@@ -1,24 +1,49 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowRight, Lock, Mail, User } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { ArrowRight, Lock, Mail, User, Phone, MapPin, Map, Calendar, Image as ImageIcon, AtSign, Globe } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { setDoc, doc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { auth, db, storage } from '@/lib/firebase';
 
 export function AuthForm() {
-  const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showHabeasData, setShowHabeasData] = useState(false);
+  const [createdUserUid, setCreatedUserUid] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Check if URL has #login to switch to login mode automatically
+    if (typeof window !== 'undefined' && window.location.hash === '#login') {
+      setIsLogin(true);
+    }
+  }, []);
   
-  // Form states
+  // Login fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
+  
+  // Registration additional fields
+  const [nombres, setNombres] = useState('');
+  const [apellidos, setApellidos] = useState('');
+  const [seudonimo, setSeudonimo] = useState('');
+  const [tipoDocumento, setTipoDocumento] = useState('');
+  const [numeroIdentificacion, setNumeroIdentificacion] = useState('');
+  const [instagram, setInstagram] = useState('');
+  const [telefono, setTelefono] = useState('');
+  const [ciudad, setCiudad] = useState('');
+  const [direccion, setDireccion] = useState('');
+  const [fechaNacimiento, setFechaNacimiento] = useState('');
 
   const router = useRouter();
   const { toast } = useToast();
@@ -27,26 +52,49 @@ export function AuthForm() {
     setIsLogin((prev) => !prev);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    
+  const handleRegister = async () => {
     try {
-      if (isLogin) {
-        await signInWithEmailAndPassword(auth, email, password);
-        toast({
-          title: "Sesión iniciada",
-          description: "Bienvenido de nuevo. Redirigiendo...",
-        });
-      } else {
-        await createUserWithEmailAndPassword(auth, email, password);
-        // Note: Firestore could be used here to save `name` user profile.
-        toast({
-          title: "Inscripción exitosa",
-          description: "Tu cuenta ha sido creada. Redirigiendo...",
-        });
-      }
-      router.push('/dashboard');
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      
+      await setDoc(doc(db, 'users', user.uid), {
+        email,
+        nombres,
+        apellidos,
+        seudonimo,
+        tipoDocumento,
+        numeroIdentificacion,
+        instagram,
+        telefono,
+        ciudad,
+        direccion,
+        fechaNacimiento,
+        habeasDataAccepted: false,
+        createdAt: new Date().toISOString()
+      });
+
+      setCreatedUserUid(user.uid);
+      setShowHabeasData(true);
+      setIsLoading(false);
+
+    } catch (error: any) {
+      toast({
+        title: "Error de registro",
+        description: error.message,
+        variant: "destructive",
+      });
+      setIsLoading(false);
+    }
+  };
+
+  const handleLogin = async () => {
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      toast({
+        title: "Sesión iniciada",
+        description: "Bienvenido de nuevo.",
+      });
+      router.push('/inscripcion');
     } catch (error: any) {
       toast({
         title: "Error de autenticación",
@@ -57,99 +105,273 @@ export function AuthForm() {
     }
   };
 
-  return (
-    <div className="w-full max-w-md relative animate-in fade-in zoom-in-95 duration-500">
-      {/* Glow effect behind the card */}
-      <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-primary/50 to-purple-600/50 blur-xl opacity-50 animate-pulse"></div>
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    if (isLogin) {
+      await handleLogin();
+    } else {
+      await handleRegister();
+    }
+  };
+
+  const handleAcceptHabeasData = async () => {
+    if (!createdUserUid) return;
+    setIsLoading(true);
+    try {
+      await setDoc(doc(db, 'users', createdUserUid), {
+        habeasDataAccepted: true,
+        habeasDataAcceptedAt: new Date().toISOString()
+      }, { merge: true });
       
-      <Card className="relative bg-background/60 backdrop-blur-2xl border-white/10 shadow-2xl overflow-hidden">
-        {/* Subtle top reflection */}
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+      toast({
+        title: "Inscripción exitosa",
+        description: "Tu cuenta ha sido creada y configurada.",
+      });
+      setShowHabeasData(false);
+      router.push('/inscripcion');
+    } catch (error: any) {
+      toast({
+        title: "Error confirmando inscripción",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <div className={`w-full relative animate-in fade-in zoom-in-95 duration-500 ${isLogin ? 'max-w-md' : 'max-w-4xl'}`}>
+        {/* Glow effect - Grayscale based */}
+        <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-zinc-700/50 to-neutral-900/50 blur-xl opacity-60 animate-pulse"></div>
         
-        <CardHeader className="space-y-2 text-center pb-6 pt-8">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 ring-1 ring-primary/20">
-            <Lock className="h-7 w-7 text-primary" />
-          </div>
-          <CardTitle className="text-3xl font-bold tracking-tight">
-            {isLogin ? 'Bienvenido de nuevo' : 'Crea tu cuenta'}
-          </CardTitle>
-          <CardDescription className="text-muted-foreground text-sm">
-            {isLogin
-              ? 'Ingresa tus credenciales para acceder a tu panel.'
-              : 'Únete hoy mismo a la plataforma.'}
-          </CardDescription>
-        </CardHeader>
-        
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className={`space-y-4 transition-all duration-300 ${!isLogin ? 'opacity-100' : 'hidden opacity-0'}`}>
+        <Card className="relative bg-zinc-950/80 backdrop-blur-2xl border-white/5 shadow-2xl overflow-hidden">
+          {/* Subtle top reflection */}
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-zinc-400/20 to-transparent"></div>
+          
+          <CardHeader className="space-y-2 text-center pb-6 pt-8">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-zinc-800/50 ring-1 ring-zinc-700/50">
+              {isLogin ? <Lock className="h-7 w-7 text-zinc-300" /> : <User className="h-7 w-7 text-zinc-300" />}
+            </div>
+            <CardTitle className="text-3xl font-headline uppercase font-bold tracking-widest text-white">
+              {isLogin ? 'Acceso' : 'INSCRIPCIÓN'}
+            </CardTitle>
+            {isLogin && (
+              <CardDescription className="text-zinc-400 text-sm">
+                Ingresa tus credenciales para acceder a tu perfil.
+              </CardDescription>
+            )}
+          </CardHeader>
+          
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              
+              {/* Registration Form (Scrollable Area includes email/pwd) */}
               {!isLogin && (
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nombre Completo</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Tu nombre" className="pl-10 bg-background/50 border-white/10 focus-visible:ring-primary/50" required={!isLogin} />
+                <div className="py-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Nombres y Apellidos */}
+                    <div className="space-y-2">
+                      <Label htmlFor="nombres" className="text-zinc-300">Nombres</Label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
+                        <Input id="nombres" value={nombres} onChange={(e) => setNombres(e.target.value)} placeholder="Ej. Juan Marcos" className="pl-10 bg-zinc-900/50 border-zinc-800 text-zinc-100" required />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="apellidos" className="text-zinc-300">Apellidos</Label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
+                        <Input id="apellidos" value={apellidos} onChange={(e) => setApellidos(e.target.value)} placeholder="Ej. Pérez Gómez" className="pl-10 bg-zinc-900/50 border-zinc-800 text-zinc-100" required />
+                      </div>
+                    </div>
+
+                    {/* Seudónimo y Fecha Nacimiento */}
+                    <div className="space-y-2">
+                      <Label htmlFor="seudonimo" className="text-zinc-300">Seudónimo</Label>
+                      <div className="relative">
+                        <AtSign className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
+                        <Input id="seudonimo" value={seudonimo} onChange={(e) => setSeudonimo(e.target.value)} placeholder="Nickname (Rider)" className="pl-10 bg-zinc-900/50 border-zinc-800 text-zinc-100" required />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="fechaNacimiento" className="text-zinc-300">Fecha de Nacimiento</Label>
+                      <div className="relative">
+                        <Calendar className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
+                        <Input id="fechaNacimiento" type="date" value={fechaNacimiento} onChange={(e) => setFechaNacimiento(e.target.value)} className="pl-10 bg-zinc-900/50 border-zinc-800 text-zinc-100 [color-scheme:dark]" required />
+                      </div>
+                    </div>
+
+                    {/* Documento */}
+                    <div className="space-y-2">
+                      <Label className="text-zinc-300">Tipo de Documento</Label>
+                      <Select value={tipoDocumento} onValueChange={setTipoDocumento} required>
+                        <SelectTrigger className="w-full bg-zinc-900/50 border-zinc-800 text-zinc-100">
+                          <SelectValue placeholder="Seleccionar" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
+                          <SelectItem value="CC">Cédula de Ciudadanía (CC)</SelectItem>
+                          <SelectItem value="TI">Tarjeta de Identidad (TI)</SelectItem>
+                          <SelectItem value="CE">Cédula de Extranjería (CE)</SelectItem>
+                          <SelectItem value="Pasaporte">Pasaporte</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="numeroIdentificacion" className="text-zinc-300">Número de Identificación</Label>
+                      <div className="relative">
+                        <Input id="numeroIdentificacion" type="text" value={numeroIdentificacion} onChange={(e) => setNumeroIdentificacion(e.target.value)} placeholder="1234567890" className="pl-4 bg-zinc-900/50 border-zinc-800 text-zinc-100" required />
+                      </div>
+                    </div>
+
+                    {/* Contacto */}
+                    <div className="space-y-2">
+                      <Label htmlFor="telefono" className="text-zinc-300">Teléfono</Label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
+                        <Input id="telefono" type="tel" value={telefono} onChange={(e) => setTelefono(e.target.value)} placeholder="+57 300 000 0000" className="pl-10 bg-zinc-900/50 border-zinc-800 text-zinc-100" required />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="ciudad" className="text-zinc-300">Ciudad</Label>
+                      <div className="relative">
+                        <Map className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
+                        <Input id="ciudad" value={ciudad} onChange={(e) => setCiudad(e.target.value)} placeholder="Ej. Bogotá" className="pl-10 bg-zinc-900/50 border-zinc-800 text-zinc-100" required />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="direccion" className="text-zinc-300">Dirección</Label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
+                        <Input id="direccion" value={direccion} onChange={(e) => setDireccion(e.target.value)} placeholder="Cra. 12 # 34 - 56" className="pl-10 bg-zinc-900/50 border-zinc-800 text-zinc-100" required />
+                      </div>
+                    </div>
+
+                    {/* Instagram */}
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="instagram" className="text-zinc-300">Instagram</Label>
+                      <div className="relative">
+                        <AtSign className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
+                        <Input id="instagram" value={instagram} onChange={(e) => setInstagram(e.target.value)} placeholder="@usuario" className="pl-10 bg-zinc-900/50 border-zinc-800 text-zinc-100" />
+                      </div>
+                    </div>
+
+
+
+                    {/* Email and Password inside the registration flow so it's grouped better */}
+                    <div className="space-y-2 md:col-span-2 pt-4 border-t border-zinc-800">
+                      <h4 className="text-zinc-400 uppercase text-xs font-bold tracking-wider mb-2">Credenciales de Acceso</h4>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email-reg" className="text-zinc-300">Correo Electrónico</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
+                        <Input id="email-reg" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="correo@ejemplo.com" className="pl-10 bg-zinc-900/50 border-zinc-800 text-zinc-100" required />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="password-reg" className="text-zinc-300">Contraseña</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
+                        <Input id="password-reg" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="pl-10 bg-zinc-900/50 border-zinc-800 text-zinc-100" required />
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="email">Correo Electrónico</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="correo@ejemplo.com" className="pl-10 bg-background/50 border-white/10 focus-visible:ring-primary/50" required />
-              </div>
-            </div>
-            
-            <div className="space-y-2 relative">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Contraseña</Label>
-                {isLogin && (
-                  <button type="button" className="text-xs text-primary hover:underline transition-all">
-                    ¿Olvidaste tu contraseña?
-                  </button>
-                )}
-              </div>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="pl-10 bg-background/50 border-white/10 focus-visible:ring-primary/50" required />
-              </div>
-            </div>
-
-            
-            <Button type="submit" className="w-full mt-6 h-12 text-md transition-all hover:scale-[1.02] shadow-lg shadow-primary/25" disabled={isLoading}>
-              {isLoading ? (
-                <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-white"></div>
-              ) : isLogin ? (
-                'Iniciar Sesión'
-              ) : (
-                'Completar Registro'
+              
+              {/* Login fields (Only visible when logging in) */}
+              {isLogin && (
+                <div className="grid grid-cols-1 gap-6 pt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-zinc-300">Correo Electrónico</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
+                      <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="correo@ejemplo.com" className="pl-10 bg-zinc-900/50 border-zinc-800 text-zinc-100 focus-visible:ring-zinc-600" required />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2 relative">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="password" className="text-zinc-300">Contraseña</Label>
+                      <button type="button" className="text-xs text-zinc-400 hover:text-white hover:underline transition-all">
+                        ¿Olvidaste tu contraseña?
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
+                      <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="pl-10 bg-zinc-900/50 border-zinc-800 text-zinc-100 focus-visible:ring-zinc-600" required />
+                    </div>
+                  </div>
+                </div>
               )}
-              {!isLoading && <ArrowRight className="ml-2 h-4 w-4" />}
+              
+              <Button type="submit" className="w-full mt-6 h-12 bg-white text-zinc-950 hover:bg-zinc-200 text-md font-semibold transition-all hover:scale-[1.02] shadow-lg shadow-black/50" disabled={isLoading}>
+                {isLoading ? (
+                  <span className="h-5 w-5 animate-spin rounded-full border-b-2 border-zinc-950 inline-block"></span>
+                ) : isLogin ? (
+                  <span>Ingresar</span>
+                ) : (
+                  <span>Crear Cuenta</span>
+                )}
+                {!isLoading && <ArrowRight className="ml-2 h-4 w-4" />}
+              </Button>
+            </form>
+          </CardContent>
+          
+
+        </Card>
+      </div>
+
+      {/* Habeas Data Dialog */}
+      <Dialog open={showHabeasData} onOpenChange={setShowHabeasData}>
+        <DialogContent className="sm:max-w-[600px] border-zinc-800 bg-zinc-950/95 backdrop-blur-md text-zinc-100">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Autorización de Tratamiento de Datos Personales</DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              Por favor lee y acepta nuestra política de datos para continuar.
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="h-[300px] rounded-md border border-zinc-800 p-4 text-sm mt-4 bg-zinc-900/50">
+            <h4 className="font-semibold mb-2">Habeas Data - Ley 1581 de 2012</h4>
+            <p className="mb-4 text-zinc-400">
+              De acuerdo con la Ley Estatutaria 1581 de 2012 de Protección de Datos y normas concordantes, 
+              se le informa al usuario que los datos consignados en el presente formulario serán incorporados 
+              en una base de datos responsabilidad de la organización del evento.
+            </p>
+            <p className="mb-4 text-zinc-400">
+              Su información será tratada con las siguientes finalidades:
+            </p>
+            <ul className="list-disc pl-6 mb-4 space-y-1 text-zinc-400">
+              <li>Gestión administrativa, organizativa y logística del evento.</li>
+              <li>Envío de comunicaciones e información relacionada con el evento.</li>
+              <li>Toma y uso de material audiovisual (fotografías y videos) durante el evento para fines publicitarios.</li>
+              <li>Mantener el histórico de participantes para futuras ediciones.</li>
+            </ul>
+            <p className="mb-4 text-zinc-400">
+              Usted puede ejercer sus derechos de conocer, actualizar, rectificar y suprimir sus datos personales, 
+              así como revocar el consentimiento otorgado para el tratamiento de los mismos.
+            </p>
+            <p className="font-semibold mt-4 text-white">
+              Al hacer clic en "Aceptar y Continuar", autorizo de manera expresa, informada y libre 
+              el tratamiento de mis datos personales conforme a los términos aquí descritos.
+            </p>
+          </ScrollArea>
+          <DialogFooter className="mt-4 gap-2 sm:gap-0">
+            <Button variant="outline" className="border-zinc-800 text-zinc-300 hover:bg-zinc-800 hover:text-white" onClick={() => setShowHabeasData(false)}>Cancelar</Button>
+            <Button className="bg-white text-zinc-950 hover:bg-zinc-200" onClick={handleAcceptHabeasData} disabled={isLoading}>
+              {isLoading ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-zinc-950 mr-2"></div>
+              ) : null}
+              Aceptar y Continuar
             </Button>
-          </form>
-        </CardContent>
-        
-        <CardFooter className="flex flex-col items-center justify-center space-y-4 pb-8 pt-4">
-          <div className="text-sm text-muted-foreground">
-            {isLogin ? "¿No tienes una cuenta aún?" : "¿Ya tienes una cuenta?"}
-          </div>
-          <Button 
-            variant="outline" 
-            className="w-full h-11 border-primary/20 bg-primary/5 hover:bg-primary/10 hover:text-primary transition-all group"
-            onClick={toggleAuthMode}
-            type="button"
-          >
-            {isLogin ? (
-              <span className="font-semibold tracking-wide">INSCRIPCION</span>
-            ) : (
-              <span>Volver al Login</span>
-            )}
-            <ArrowRight className="ml-2 h-4 w-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
-          </Button>
-        </CardFooter>
-      </Card>
-    </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
