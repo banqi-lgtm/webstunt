@@ -46,15 +46,45 @@ export default function Home() {
       ></div>
 
       {/* Navigation Header */}
-      <nav className="w-full relative z-50 px-4 md:px-8 py-4 flex justify-between items-center max-w-[1400px] mx-auto bg-black/60 backdrop-blur-xl border-b border-zinc-800 shadow-2xl">
-        <a href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/sponsors/PKS Blanco.png" alt="Paskines Stunt" className="h-6 md:h-8 w-auto object-contain" />
-        </a>
-        <Button onClick={triggerToggleLogin} className="bg-green-500 text-black font-extrabold hover:bg-green-400 transition-all shadow-[0_0_20px_rgba(34,197,94,0.3)] w-40 justify-center">
-          {isLoginState ? 'Inscripción' : 'Iniciar Sesión'} 
-          {isLoginState ? <UserPlus className="w-4 h-4 ml-2 text-black" /> : <LogIn className="w-4 h-4 ml-2 text-black" />}
-        </Button>
+      <nav className="w-full relative z-50 px-4 md:px-8 py-4 flex items-center max-w-[1400px] mx-auto bg-black/60 backdrop-blur-xl border-b border-zinc-800 shadow-2xl">
+        <div className="flex flex-wrap items-center justify-between md:justify-start gap-4 md:gap-8 w-full">
+          <div className="flex items-center gap-4">
+            <a href="/" className="flex items-center hover:opacity-80 transition-opacity cursor-pointer shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/sponsors/PKS Blanco.png" alt="Paskines Stunt" className="h-6 md:h-8 w-auto object-contain" />
+            </a>
+            <div className="hidden md:flex items-center gap-2 md:gap-4">
+              <Button 
+                onClick={() => { setIsLoginState(false); window.location.hash = ''; }} 
+                className="bg-green-500 text-black font-extrabold hover:bg-green-400 transition-all shadow-[0_0_25px_rgba(34,197,94,0.8)] text-xs md:text-sm px-3 md:px-4 h-8 md:h-10"
+              >
+                Inscripción
+              </Button>
+              <Button 
+                onClick={() => { setIsLoginState(true); window.location.hash = '#login'; }} 
+                variant="outline" 
+                className="border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-800 transition-all text-xs md:text-sm px-3 md:px-4 h-8 md:h-10"
+              >
+                Iniciar Sesión
+              </Button>
+            </div>
+          </div>
+          <div className="flex md:hidden items-center gap-2">
+            <Button 
+              onClick={() => { setIsLoginState(false); window.location.hash = ''; }} 
+              className="bg-green-500 text-black font-extrabold hover:bg-green-400 transition-all shadow-[0_0_20px_rgba(34,197,94,0.6)] text-[10px] px-2 h-7"
+            >
+              Inscripción
+            </Button>
+            <Button 
+              onClick={() => { setIsLoginState(true); window.location.hash = '#login'; }} 
+              variant="outline" 
+              className="border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-800 transition-all text-[10px] px-2 h-7"
+            >
+              Login
+            </Button>
+          </div>
+        </div>
       </nav>
 
       {/* Hero Mega-Section */}
@@ -69,11 +99,30 @@ export default function Home() {
           <div className="relative text-left space-y-8 text-zinc-300">
             {/* Main Header */}
             <div className="flex flex-col">
-              <img 
-                src="/sponsors/copa stunt nitrox f2r.png" 
-                alt="Copa Stunt Nitrox F2R" 
-                className="h-28 md:h-36 w-auto object-contain object-left drop-shadow-[0_0_15px_rgba(34,197,94,0.3)] mb-4"
-              />
+              <div className="flex flex-wrap items-center gap-3 md:gap-5 mb-4">
+                <img 
+                  src="/sponsors/copa stunt nitrox f2r.png" 
+                  alt="Copa Stunt Nitrox F2R" 
+                  className="h-16 md:h-20 w-auto object-contain object-left drop-shadow-[0_0_15px_rgba(34,197,94,0.3)]"
+                />
+                <img 
+                  src="/sponsors/Nitrox Blanco.png" 
+                  alt="Nitrox" 
+                  className="h-16 md:h-20 w-auto object-contain object-left drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+                />
+                <div className="flex flex-col gap-2 justify-center">
+                  <img 
+                    src="/sponsors/Mobil Blanco.png" 
+                    alt="Mobil" 
+                    className="h-6 md:h-8 w-auto object-contain object-left drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+                  />
+                  <img 
+                    src="/sponsors/IRC Blanco.png" 
+                    alt="IRC" 
+                    className="h-6 md:h-8 w-auto object-contain object-left drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+                  />
+                </div>
+              </div>
               <h1 className="sr-only">Copa Stunt F2R Repuestos NITROX</h1>
               
               <div className="flex flex-wrap items-center gap-2 md:gap-3">
@@ -100,11 +149,11 @@ export default function Home() {
                <div className="p-5 rounded-2xl bg-zinc-900/50 border border-zinc-800 flex flex-col gap-2">
                  <div className="flex items-center gap-2 text-green-400 font-black tracking-wide uppercase"><Gift className="w-5 h-5"/> El Costo Incluye</div>
                  <ul className="space-y-1 text-sm list-disc list-inside">
-                   <li>Escarapela 4 días (21-25 may '25)</li>
+                   <li>INGRESO ESCARAPELA FERIA</li>
                    <li>Boleta para un acompañante</li>
                    <li>Póliza deportiva de competencia</li>
-                   <li>Kit sorpresa de patrocinadores</li>
-                   <li className="text-white font-bold tracking-wide pt-1">Rifa Moto 0Km a tu casa</li>
+                   <li>Kit de bienvenida Nitrox</li>
+                   <li className="text-white font-bold tracking-wide pt-1">Participacion Rifa de moto 0 KM</li>
                  </ul>
                </div>
             </div>
