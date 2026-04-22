@@ -162,17 +162,14 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogi
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-zinc-400/20 to-transparent"></div>
           
           <CardHeader className="space-y-2 text-center pb-6 pt-8">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-zinc-800/50 ring-1 ring-zinc-700/50">
-              {isLogin ? <Lock className="h-7 w-7 text-zinc-300" /> : <User className="h-7 w-7 text-zinc-300" />}
+            <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center overflow-hidden rounded-full ring-2 ring-zinc-700/50 shadow-[0_0_15px_rgba(34,197,94,0.2)] bg-black">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="https://media.tenor.com/4O9j9UByi7oAAAAj/motorcycle-tricks.gif" alt="Motorcycle Stunt" className="w-full h-full object-cover" />
             </div>
             <CardTitle className="text-3xl font-headline uppercase font-bold tracking-widest text-white">
               {isLogin ? 'INICIAR SESIÓN' : 'INSCRIPCIÓN'}
             </CardTitle>
-            {isLogin && (
-              <CardDescription className="text-zinc-400 text-sm">
-                Ingresa tus credenciales para acceder a tu perfil.
-              </CardDescription>
-            )}
+
           </CardHeader>
           
           <CardContent>

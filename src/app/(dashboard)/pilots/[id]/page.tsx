@@ -15,13 +15,14 @@ import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
 type PilotDetailPageProps = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 
 export default async function PilotDetailPage({ params }: PilotDetailPageProps) {
-  const pilot = await getPilotById(params.id);
+  const resolvedParams = await params;
+  const pilot = await getPilotById(resolvedParams.id);
 
   if (!pilot) {
     notFound();

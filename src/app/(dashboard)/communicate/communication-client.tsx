@@ -1,6 +1,6 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
 import { createDrafts } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,7 +23,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import type { Pilot } from '@/lib/types';
 import { Sparkles, Clipboard, Check } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useActionState } from 'react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 function SubmitButton() {
@@ -60,7 +60,7 @@ function CopyButton({ textToCopy }: { textToCopy: string }) {
 }
 
 export function CommunicationClient({ pilots }: { pilots: Pilot[] }) {
-  const [state, formAction] = useFormState(createDrafts, undefined);
+  const [state, formAction] = useActionState(createDrafts, undefined);
 
   return (
     <div className="grid md:grid-cols-2 gap-8 items-start">

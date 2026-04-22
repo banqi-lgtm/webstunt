@@ -1,6 +1,6 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
 import { registerPilot } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { PageHeader } from '@/components/page-header';
-import { useEffect } from 'react';
+import { useEffect, useActionState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
@@ -36,8 +36,8 @@ function SubmitButton() {
 }
 
 export default function RegisterPage() {
-  const initialState = { errors: {} };
-  const [state, dispatch] = useFormState(registerPilot, initialState);
+  const initialState: any = { errors: {} };
+  const [state, dispatch] = useActionState(registerPilot, initialState);
   const { toast } = useToast();
   
   useEffect(() => {

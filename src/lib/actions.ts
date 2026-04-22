@@ -70,7 +70,7 @@ const communicationSchema = z.object({
     specificContext: z.string().optional(),
 });
 
-export async function createDrafts(formData: FormData) {
+export async function createDrafts(prevState: any, formData: FormData) {
     const validatedFields = communicationSchema.safeParse(Object.fromEntries(formData.entries()));
 
     if (!validatedFields.success) {

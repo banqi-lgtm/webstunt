@@ -47,10 +47,10 @@ export default function Home() {
 
       {/* Navigation Header */}
       <nav className="w-full relative z-50 px-4 md:px-8 py-4 flex justify-between items-center max-w-[1400px] mx-auto bg-black/60 backdrop-blur-xl border-b border-zinc-800 shadow-2xl">
-        <div className="flex items-center gap-3">
+        <a href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/sponsors/PKS Blanco.png" alt="Paskines Stunt" className="h-6 md:h-8 w-auto object-contain" />
-        </div>
+        </a>
         <Button onClick={triggerToggleLogin} className="bg-green-500 text-black font-extrabold hover:bg-green-400 transition-all shadow-[0_0_20px_rgba(34,197,94,0.3)] w-40 justify-center">
           {isLoginState ? 'Inscripción' : 'Iniciar Sesión'} 
           {isLoginState ? <UserPlus className="w-4 h-4 ml-2 text-black" /> : <LogIn className="w-4 h-4 ml-2 text-black" />}
@@ -120,19 +120,14 @@ export default function Home() {
                </div>
             </div>
 
-            {/* Footer Signoff */}
-            <div className="pt-6 border-t border-zinc-800/80 flex flex-col items-start gap-2">
-              <p className="font-medium text-zinc-500 text-sm uppercase tracking-widest">Organiza: Paskines Stunt S.A.S. & Feria 2 Ruedas</p>
-            </div>
+
 
           </div>
         </div>
 
         {/* Right Box: The Form Header/Logic */}
         <div className="w-full xl:w-[500px] flex-shrink-0 relative mt-4 xl:mt-0 xl:sticky xl:top-24">
-          <div className="flex flex-col items-center justify-center mb-8 xl:mb-10 text-center xl:hidden text-white">
-            <h2 className="text-2xl font-black tracking-widest italic uppercase border-b-4 border-green-500 pb-2">Inscripciones</h2>
-          </div>
+
           <AuthForm externalIsLogin={isLoginState} onToggleAuthMode={setIsLoginState} />
         </div>
       </section>
@@ -173,28 +168,30 @@ export default function Home() {
       </div>
 
       {/* NEW LOCATION: Racing paragraph block below Marquee */}
-      <section className="relative w-full z-20 bg-green-500 border-t border-b border-green-400 py-12 px-6 shadow-[0_0_50px_rgba(34,197,94,0.3)]">
-        {/* Subtle noise/texture over the bold green */}
-        <div className="absolute inset-0 opacity-20 pointer-events-none mix-blend-overlay" style={{backgroundImage: "url('https://www.transparenttextures.com/patterns/cubes.png')"}}></div>
+      <section className="relative w-full z-20 bg-zinc-900 border-t border-b border-zinc-800 py-10 px-6 shadow-2xl">
+        {/* Subtle noise/texture over the dark background */}
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{backgroundImage: "url('https://www.transparenttextures.com/patterns/cubes.png')"}}></div>
         
-        <div className="max-w-5xl mx-auto text-center relative z-10 flex flex-col items-center">
-          <Star className="w-10 h-10 text-black mb-6" />
-          <h2 className="text-3xl md:text-5xl font-headline font-black text-black uppercase tracking-tight italic mb-6 leading-tight">
+        <div className="max-w-4xl mx-auto text-center relative z-10 flex flex-col items-center">
+          <Star className="w-8 h-8 text-green-500 mb-4 drop-shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
+          <h2 className="text-2xl md:text-3xl font-headline font-black text-white uppercase tracking-wider italic mb-4 leading-tight">
             Vive una experiencia increíble. <br className="hidden md:block"/>
-            Tendremos muchas sorpresas para los asistentes y unos premios increíbles.
+            Tendremos <span className="text-green-500">muchas sorpresas</span> para los asistentes y unos <span className="text-green-500">premios increíbles</span>.
           </h2>
-          <p className="text-xl md:text-2xl font-bold text-black/80 max-w-3xl leading-snug">
+          <p className="text-lg md:text-xl font-medium text-zinc-400 max-w-2xl leading-snug">
             Así que no te quedes por fuera, es un evento único. Queremos que sea una experiencia inolvidable.
           </p>
-          <div className="inline-block mt-8 px-6 py-2 bg-black text-green-500 font-bold uppercase tracking-widest text-sm rounded-lg shadow-xl font-headline">
+          <div className="inline-block mt-6 px-6 py-2 bg-green-500/10 border border-green-500/20 text-green-400 font-bold uppercase tracking-widest text-xs rounded-full shadow-inner font-headline">
             Para hombres y mujeres que vibran por el stunt
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="w-full relative z-10 py-8 border-t border-zinc-900/50 bg-black text-center text-xs text-zinc-600 backdrop-blur-xl">
-        &copy; {new Date().getFullYear()} Paskines Stunt &middot; Copa Stunt Colombia. Todos los derechos reservados.
+      <footer className="w-full relative z-10 py-8 border-t border-zinc-900/50 bg-black text-center text-xs text-zinc-600 backdrop-blur-xl flex flex-col items-center gap-2">
+        <p className="font-bold text-green-500 text-sm uppercase tracking-widest">¡Conecta, Impulsa, Transforma!</p>
+        <p className="font-medium text-zinc-400 text-xs uppercase tracking-widest">Organiza: Paskines Stunt S.A.S. & Feria 2 Ruedas</p>
+        <div className="mt-2 text-zinc-600">&copy; {new Date().getFullYear()} Paskines Stunt &middot; Copa Stunt Colombia. Todos los derechos reservados.</div>
       </footer>
     </main>
   );
