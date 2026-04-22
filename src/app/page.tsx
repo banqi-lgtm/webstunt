@@ -2,12 +2,25 @@
 
 import { AuthForm } from '@/components/auth-form';
 import { Button } from '@/components/ui/button';
-import { LogIn, Star, Gift, ShieldAlert, MapPin, Calendar, Smartphone } from 'lucide-react';
+import { LogIn, UserPlus, Star, Gift, ShieldAlert, MapPin, Calendar, Smartphone } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 export default function Home() {
-  const triggerLogin = () => {
-    window.location.hash = '#login';
-    window.location.reload();
+  const [isLoginState, setIsLoginState] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.hash === '#login') {
+      setIsLoginState(true);
+    }
+  }, []);
+
+  const triggerToggleLogin = () => {
+    setIsLoginState(!isLoginState);
+    if (!isLoginState) {
+      window.location.hash = '#login';
+    } else {
+      window.location.hash = '';
+    }
   };
 
   // Sponsor logos mapped to precise filenames
@@ -38,8 +51,9 @@ export default function Home() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/sponsors/PKS Blanco.png" alt="Paskines Stunt" className="h-6 md:h-8 w-auto object-contain" />
         </div>
-        <Button onClick={triggerLogin} className="bg-green-500 text-black font-extrabold hover:bg-green-400 transition-all shadow-[0_0_20px_rgba(34,197,94,0.3)]">
-          Iniciar Sesión <LogIn className="w-4 h-4 ml-2 text-black" />
+        <Button onClick={triggerToggleLogin} className="bg-green-500 text-black font-extrabold hover:bg-green-400 transition-all shadow-[0_0_20px_rgba(34,197,94,0.3)] w-40 justify-center">
+          {isLoginState ? 'Inscripción' : 'Iniciar Sesión'} 
+          {isLoginState ? <UserPlus className="w-4 h-4 ml-2 text-black" /> : <LogIn className="w-4 h-4 ml-2 text-black" />}
         </Button>
       </nav>
 
@@ -54,22 +68,23 @@ export default function Home() {
 
           <div className="relative text-left space-y-8 text-zinc-300">
             {/* Main Header */}
-            <div>
-              <div className="inline-block px-4 py-1.5 mb-4 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 font-bold tracking-widest uppercase text-xs md:text-sm">
-                5ta Versión • 2026
-              </div>
+            <div className="flex flex-col">
               <img 
                 src="/sponsors/copa stunt nitrox f2r.png" 
                 alt="Copa Stunt Nitrox F2R" 
-                className="h-28 md:h-36 w-auto object-contain drop-shadow-[0_0_15px_rgba(34,197,94,0.3)] mb-2"
+                className="h-28 md:h-36 w-auto object-contain object-left drop-shadow-[0_0_15px_rgba(34,197,94,0.3)] mb-4"
               />
               <h1 className="sr-only">Copa Stunt F2R Repuestos NITROX</h1>
+              
+              <div className="flex flex-wrap items-center gap-2 md:gap-3">
+                <div className="inline-block px-4 py-1.5 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 font-bold tracking-widest uppercase text-xs md:text-sm shadow-inner">
+                  5ta Versión • 2026
+                </div>
+                <div className="inline-block px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-white font-bold tracking-widest uppercase text-xs md:text-sm">
+                  Plaza Mayor - Medellín
+                </div>
+              </div>
             </div>
-
-            <p className="text-lg md:text-xl font-medium leading-relaxed max-w-2xl text-zinc-200">
-              Vive una experiencia increíble. Tendremos muchas sorpresas para los asistentes y unos <strong className="text-white">premios increíbles</strong> para los competidores. Así que no te quedes por fuera, es un evento único, queremos que sea una experiencia inolvidable. <br className="hidden md:block"/>
-              <span className="italic text-zinc-400 mt-2 block">Dirigido a Hombres y Mujeres deportistas que vibran por el stunt.</span>
-            </p>
 
             {/* Essential Data Grid */}
             <div className="grid md:grid-cols-2 gap-4">
@@ -107,11 +122,7 @@ export default function Home() {
 
             {/* Footer Signoff */}
             <div className="pt-6 border-t border-zinc-800/80 flex flex-col items-start gap-2">
-              <div className="flex items-center gap-3 bg-zinc-900 py-2 px-4 rounded-full border border-zinc-800">
-                <MapPin className="w-4 h-4 text-green-500" />
-                <span className="text-sm font-bold text-white uppercase tracking-wider">Plaza Mayor - Medellín</span>
-              </div>
-              <p className="font-medium text-zinc-500 mt-2 text-sm uppercase tracking-widest">¡Conecta, Impulsa, Transforma! <br/> Organiza: Paskines Stunt S.A.S. & Feria 2 Ruedas</p>
+              <p className="font-medium text-zinc-500 text-sm uppercase tracking-widest">Organiza: Paskines Stunt S.A.S. & Feria 2 Ruedas</p>
             </div>
 
           </div>
@@ -122,7 +133,7 @@ export default function Home() {
           <div className="flex flex-col items-center justify-center mb-8 xl:mb-10 text-center xl:hidden text-white">
             <h2 className="text-2xl font-black tracking-widest italic uppercase border-b-4 border-green-500 pb-2">Inscripciones</h2>
           </div>
-          <AuthForm />
+          <AuthForm externalIsLogin={isLoginState} onToggleAuthMode={setIsLoginState} />
         </div>
       </section>
 
@@ -160,6 +171,26 @@ export default function Home() {
           ))}
         </div>
       </div>
+
+      {/* NEW LOCATION: Racing paragraph block below Marquee */}
+      <section className="relative w-full z-20 bg-green-500 border-t border-b border-green-400 py-12 px-6 shadow-[0_0_50px_rgba(34,197,94,0.3)]">
+        {/* Subtle noise/texture over the bold green */}
+        <div className="absolute inset-0 opacity-20 pointer-events-none mix-blend-overlay" style={{backgroundImage: "url('https://www.transparenttextures.com/patterns/cubes.png')"}}></div>
+        
+        <div className="max-w-5xl mx-auto text-center relative z-10 flex flex-col items-center">
+          <Star className="w-10 h-10 text-black mb-6" />
+          <h2 className="text-3xl md:text-5xl font-headline font-black text-black uppercase tracking-tight italic mb-6 leading-tight">
+            Vive una experiencia increíble. <br className="hidden md:block"/>
+            Tendremos muchas sorpresas para los asistentes y unos premios increíbles.
+          </h2>
+          <p className="text-xl md:text-2xl font-bold text-black/80 max-w-3xl leading-snug">
+            Así que no te quedes por fuera, es un evento único. Queremos que sea una experiencia inolvidable.
+          </p>
+          <div className="inline-block mt-8 px-6 py-2 bg-black text-green-500 font-bold uppercase tracking-widest text-sm rounded-lg shadow-xl font-headline">
+            Para hombres y mujeres que vibran por el stunt
+          </div>
+        </div>
+      </section>
 
       {/* Footer */}
       <footer className="w-full relative z-10 py-8 border-t border-zinc-900/50 bg-black text-center text-xs text-zinc-600 backdrop-blur-xl">

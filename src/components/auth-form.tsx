@@ -16,11 +16,20 @@ import { setDoc, doc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { auth, db, storage } from '@/lib/firebase';
 
-export function AuthForm() {
-  const [isLogin, setIsLogin] = useState(false);
+export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogin?: boolean; onToggleAuthMode?: (mode: boolean) => void } = {}) {
+  const [internalIsLogin, setInternalIsLogin] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showHabeasData, setShowHabeasData] = useState(false);
   const [createdUserUid, setCreatedUserUid] = useState<string | null>(null);
+
+  // Use external state if provided, otherwise fallback to internal
+  const isLogin = externalIsLogin !== undefined ? externalIsLogin : internalIsLogin;
+  
+  const setIsLogin = (val: boolean | ((prev: boolean) => boolean)) => {
+    const nextVal = typeof val === 'function' ? val(isLogin) : val;
+    setInternalIsLogin(nextVal);
+    if (onToggleAuthMode) onToggleAuthMode(nextVal);
+  };
 
   useEffect(() => {
     // Check if URL has #login to switch to login mode automatically
@@ -157,7 +166,7 @@ export function AuthForm() {
               {isLogin ? <Lock className="h-7 w-7 text-zinc-300" /> : <User className="h-7 w-7 text-zinc-300" />}
             </div>
             <CardTitle className="text-3xl font-headline uppercase font-bold tracking-widest text-white">
-              {isLogin ? 'Acceso' : 'INSCRIPCIÓN'}
+              {isLogin ? 'INICIAR SESIÓN' : 'INSCRIPCIÓN'}
             </CardTitle>
             {isLogin && (
               <CardDescription className="text-zinc-400 text-sm">
@@ -310,15 +319,20 @@ export function AuthForm() {
                 </div>
               )}
               
-              <Button type="submit" className="w-full mt-6 h-12 bg-white text-zinc-950 hover:bg-zinc-200 text-md font-semibold transition-all hover:scale-[1.02] shadow-lg shadow-black/50" disabled={isLoading}>
+              <Button type="submit" className="w-full mt-6 h-16 bg-black hover:bg-zinc-900 border border-green-500/30 text-white text-xl font-headline tracking-widest uppercase transition-all shadow-[0_0_15px_rgba(34,197,94,0.2)] flex items-center justify-center gap-4 group" disabled={isLoading}>
                 {isLoading ? (
-                  <span className="h-5 w-5 animate-spin rounded-full border-b-2 border-zinc-950 inline-block"></span>
-                ) : isLogin ? (
-                  <span>Ingresar</span>
+                  <span className="h-6 w-6 animate-spin rounded-full border-b-2 border-white inline-block"></span>
                 ) : (
-                  <span>Crear Cuenta</span>
+                  <>
+                    <img 
+                      src="https://media.giphy.com/avatars/endurodelverano/7z0REJj5cv3R.gif" 
+                      alt="Stunt" 
+                      className="w-10 h-10 object-contain rounded-full animate-[spin_2.5s_linear_infinite]"
+                      style={{ animationDirection: 'reverse' }}
+                    />
+                    <span className="text-white group-hover:text-green-400 transition-colors">{isLogin ? "INGRESAR" : "INSCRIPCIÓN"}</span>
+                  </>
                 )}
-                {!isLoading && <ArrowRight className="ml-2 h-4 w-4" />}
               </Button>
             </form>
           </CardContent>
