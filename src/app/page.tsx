@@ -98,40 +98,32 @@ export default function Home() {
 
           <div className="relative text-left space-y-8 text-zinc-300">
             {/* Main Header */}
-            <div className="flex flex-col">
-              <div className="flex flex-wrap items-center gap-3 md:gap-5 mb-4">
+            <div className="flex flex-col w-full overflow-hidden">
+              <div className="flex flex-nowrap items-center justify-start gap-3 md:gap-5 mb-4">
                 <img 
                   src="/sponsors/copa stunt nitrox f2r.png" 
                   alt="Copa Stunt Nitrox F2R" 
-                  className="h-16 md:h-20 w-auto object-contain object-left drop-shadow-[0_0_15px_rgba(34,197,94,0.3)]"
+                  className="h-10 sm:h-14 md:h-16 w-auto object-contain drop-shadow-[0_0_15px_rgba(34,197,94,0.3)] shrink-0"
                 />
                 <img 
                   src="/sponsors/Nitrox Blanco.png" 
                   alt="Nitrox" 
-                  className="h-16 md:h-20 w-auto object-contain object-left drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+                  className="h-10 sm:h-14 md:h-20 w-auto object-contain drop-shadow-[0_0_30px_rgba(255,255,255,0.6)] z-10 shrink-0"
                 />
-                <div className="flex flex-col gap-2 justify-center">
-                  <img 
-                    src="/sponsors/Mobil Blanco.png" 
-                    alt="Mobil" 
-                    className="h-6 md:h-8 w-auto object-contain object-left drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]"
-                  />
-                  <img 
-                    src="/sponsors/IRC Blanco.png" 
-                    alt="IRC" 
-                    className="h-6 md:h-8 w-auto object-contain object-left drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]"
-                  />
-                </div>
+                <img 
+                  src="/sponsors/Mobil Blanco.png" 
+                  alt="Mobil" 
+                  className="h-10 sm:h-14 md:h-16 w-auto object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] shrink-0"
+                />
               </div>
               <h1 className="sr-only">Copa Stunt F2R Repuestos NITROX</h1>
               
-              <div className="flex flex-wrap items-center gap-2 md:gap-3">
-                <div className="inline-block px-4 py-1.5 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 font-bold tracking-widest uppercase text-xs md:text-sm shadow-inner">
-                  5ta Versión • 2026
-                </div>
-                <div className="inline-block px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-white font-bold tracking-widest uppercase text-xs md:text-sm">
-                  Plaza Mayor - Medellín
-                </div>
+              <div className="mt-4 w-full flex justify-start">
+                <img 
+                  src="/sponsors/FECHA BLANCO ESP.png" 
+                  alt="Fecha y Lugar" 
+                  className="h-16 sm:h-20 md:h-24 w-full max-w-2xl object-fill drop-shadow-[0_0_10px_rgba(255,255,255,0.15)]"
+                />
               </div>
             </div>
 
