@@ -3,8 +3,11 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'Circuito Control',
-  description: 'Integral solution for managing pilot registrations, automating communications, and on-site QR validation for racing events.',
+  title: 'CopaStuntF2R_RepuestosNitrox',
+  description: 'Copa Stunt F2R Repuestos Nitrox - Event Registration',
+  icons: {
+    icon: '/sponsors/copa stunt nitrox f2r.png',
+  },
 };
 
 export default function RootLayout({
