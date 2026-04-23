@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth, db, storage } from '@/lib/firebase';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { UploadCloud, AlertTriangle, CheckCircle2, ChevronRight, Gift, Trophy, Star, ShieldAlert } from 'lucide-react';
+import { UploadCloud, AlertTriangle, CheckCircle2, ChevronRight, Gift, Trophy, Star, ShieldAlert, CreditCard, Clock, Image as ImageIcon, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import QRCode from 'react-qr-code';
 import dynamic from 'next/dynamic';
@@ -25,7 +25,9 @@ export default function InscripcionPage() {
   const router = useRouter();
   const [uid, setUid] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
+  const [step, setStep] = useState<1 | 2 | 3>(1); // 1: Form, 2: Payment, 3: Pending/Success
+  const [estadoPago, setEstadoPago] = useState<'pendiente' | 'en_revision' | 'aprobado' | 'rechazado' | 'saldo_pendiente' | 'revision_saldo'>('pendiente');
+  const [saldoFaltante, setSaldoFaltante] = useState('');
   const { toast } = useToast();
   const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
 
@@ -43,6 +45,9 @@ export default function InscripcionPage() {
   const [fotoPropiedad, setFotoPropiedad] = useState<File | null>(null);
   const [fotoSoat, setFotoSoat] = useState<File | null>(null);
   const [fotoDeportista, setFotoDeportista] = useState<File | null>(null);
+  
+  // Payment Proof
+  const [comprobantePago, setComprobantePago] = useState<File | null>(null);
   
   const [inquietudes, setInquietudes] = useState('');
 
@@ -66,7 +71,14 @@ export default function InscripcionPage() {
           const docRef = doc(db, 'event_registrations', `f2r_${user.uid}`);
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
-             setIsSuccess(true);
+             const data = docSnap.data();
+             setEstadoPago(data.estadoPago || 'pendiente');
+             setSaldoFaltante(data.saldoFaltante || '');
+             if (data.estadoPago === 'aprobado' || data.estadoPago === 'en_revision' || data.estadoPago === 'rechazado' || data.estadoPago === 'revision_saldo') {
+                setStep(3);
+             } else {
+                setStep(2); // pendiente or saldo_pendiente
+             }
           }
         } catch (e) {
           console.error("Error validando el registro anterior:", e);
@@ -103,7 +115,7 @@ export default function InscripcionPage() {
     return null; // OK
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!uid) return;
     
@@ -144,16 +156,18 @@ export default function InscripcionPage() {
           deportistaUrl: urls[4]
         },
         inquietudes,
-        registradoEl: new Date().toISOString()
+        registradoEl: new Date().toISOString(),
+        estadoPago: 'pendiente'
       };
 
       await setDoc(doc(db, 'event_registrations', `f2r_${uid}`), formData);
 
       toast({
-        title: "Inscripción Exitosa",
-        description: "Tus datos y documentos han sido enviados. ¡Nos vemos en la F2R!",
+        title: "Datos Guardados",
+        description: "Tus datos han sido enviados correctamente. Por favor completa el pago.",
       });
-      setIsSuccess(true);
+      setEstadoPago('pendiente');
+      setStep(2);
       
     } catch (error: any) {
       console.error("Firebase Registration Error:", error);
@@ -167,9 +181,53 @@ export default function InscripcionPage() {
     }
   };
 
+  const handlePaymentSubmit = async () => {
+    if (!comprobantePago) {
+      toast({ title: "Comprobante Faltante", description: "Por favor anexa la imagen del comprobante de pago.", variant: "destructive" });
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      const isSaldo = estadoPago === 'saldo_pendiente';
+      const pathPrefix = isSaldo ? 'comprobante_saldo' : 'comprobante';
+      const url = await handleFileUpload(comprobantePago, pathPrefix);
+      
+      const docRef = doc(db, 'event_registrations', `f2r_${uid}`);
+      
+      if (isSaldo) {
+        await updateDoc(docRef, {
+          estadoPago: 'revision_saldo',
+          comprobanteSaldoUrl: url
+        });
+        setEstadoPago('revision_saldo');
+        toast({ title: "Comprobante de Saldo Enviado", description: "Tu pago del saldo está en validación." });
+      } else {
+        await updateDoc(docRef, {
+          estadoPago: 'en_revision',
+          comprobanteUrl: url
+        });
+        setEstadoPago('en_revision');
+        toast({ title: "Comprobante Enviado", description: "Tu pago está en validación. Te notificaremos cuando sea aprobado." });
+      }
+      
+      setStep(3);
+      
+    } catch (error: any) {
+      console.error("Error uploading payment proof:", error);
+      toast({
+         title: "Error",
+         description: "No se pudo subir el comprobante. Inténtalo de nuevo.",
+         variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen relative overflow-hidden bg-transparent">
-      {windowSize.width > 0 && (
+      {windowSize.width > 0 && estadoPago === 'aprobado' && (
         <Confetti 
           width={windowSize.width} 
           height={windowSize.height} 
@@ -185,265 +243,453 @@ export default function InscripcionPage() {
 
       <div className="flex flex-col p-4 lg:p-8 text-zinc-100 max-w-5xl mx-auto w-full relative z-10">
         
-        {!isSuccess && (
+        {/* PASO 1: FORMULARIO */}
+        {step === 1 && (
           <div className="animate-in fade-in zoom-in-95 duration-500">
-            {/* Title replacement */}
-        <div className="mb-6 text-center animate-in fade-in slide-in-from-bottom-6 duration-700">
-          <div className="inline-block px-4 py-1.5 mb-4 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 font-bold tracking-widest uppercase text-sm">
-            ¡Felicitaciones por crear tu cuenta!
-          </div>
-          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white drop-shadow-md mb-6 leading-tight">
-            Adjunta tus Documentos
-          </h1>
-        </div>
-
-      <form onSubmit={handleSubmit}>
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
-          
-          {/* Categorías */}
-          <Card className="bg-zinc-950/60 border-zinc-800 shadow-xl backdrop-blur-md overflow-hidden">
-            <div className="h-1.5 w-full bg-green-600"></div>
-            <CardHeader>
-              <CardTitle className="text-white text-xl">1. Categorías</CardTitle>
-              <div className="flex items-start gap-3 mt-2 bg-green-500/10 border border-green-500/20 p-4 rounded-lg">
-                <AlertTriangle className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
-                <p className="text-sm text-zinc-300 leading-relaxed">
-                  <strong>IMPORTANTE:</strong> Recuerda que debes inscribirte en tu categoría real. Si no es así serás ascendido, lo que afecta planillas e imágenes en las pantallas LED.<br className="mb-2"/>
-                  <em>Cupos limitados, en cuanto se complete una categoría solo se permitirá en la siguiente.</em>
-                </p>
+            <div className="mb-6 text-center animate-in fade-in slide-in-from-bottom-6 duration-700">
+              <div className="inline-block px-4 py-1.5 mb-4 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 font-bold tracking-widest uppercase text-sm">
+                ¡Felicitaciones por crear tu cuenta!
               </div>
-            </CardHeader>
-            <CardContent>
-              <RadioGroup value={categoria} onValueChange={setCategoria} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className={`flex items-center space-x-3 border ${categoria === 'open' ? 'border-green-500 bg-green-500/10' : 'border-zinc-800 bg-zinc-900/40'} p-4 rounded-lg transition-all cursor-pointer hover:border-zinc-500`} onClick={() => setCategoria('open')}>
-                  <RadioGroupItem value="open" id="cat-open" className="border-zinc-500 text-green-500" />
-                  <div className="flex flex-col">
-                    <Label htmlFor="cat-open" className="text-base text-zinc-200 cursor-pointer">OPEN</Label>
-                    <span className="text-xs text-zinc-500 font-bold tracking-widest">(20 CUPOS)</span>
-                  </div>
-                </div>
-                <div className={`flex items-center space-x-3 border ${categoria === '2t' ? 'border-green-500 bg-green-500/10' : 'border-zinc-800 bg-zinc-900/40'} p-4 rounded-lg transition-all cursor-pointer hover:border-zinc-500`} onClick={() => setCategoria('2t')}>
-                  <RadioGroupItem value="2t" id="cat-2t" className="border-zinc-500 text-green-500" />
-                  <div className="flex flex-col">
-                    <Label htmlFor="cat-2t" className="text-base text-zinc-200 cursor-pointer">2 TIEMPOS</Label>
-                    <span className="text-xs text-zinc-500 font-bold tracking-widest">(15 CUPOS)</span>
-                  </div>
-                </div>
-                <div className={`flex items-center space-x-3 border ${categoria === '4t' ? 'border-green-500 bg-green-500/10' : 'border-zinc-800 bg-zinc-900/40'} p-4 rounded-lg transition-all cursor-pointer hover:border-zinc-500`} onClick={() => setCategoria('4t')}>
-                  <RadioGroupItem value="4t" id="cat-4t" className="border-zinc-500 text-green-500" />
-                  <div className="flex flex-col">
-                    <Label htmlFor="cat-4t" className="text-base text-zinc-200 cursor-pointer">4 TIEMPOS</Label>
-                    <span className="text-xs text-zinc-500 font-bold tracking-widest">(15 CUPOS)</span>
-                  </div>
-                </div>
-                <div className={`flex items-center space-x-3 border ${categoria === 'alto' ? 'border-green-500 bg-green-500/10' : 'border-zinc-800 bg-zinc-900/40'} p-4 rounded-lg transition-all cursor-pointer hover:border-zinc-500`} onClick={() => setCategoria('alto')}>
-                  <RadioGroupItem value="alto" id="cat-alto" className="border-zinc-500 text-green-500" />
-                  <div className="flex flex-col">
-                    <Label htmlFor="cat-alto" className="text-base text-zinc-200 cursor-pointer">ALTO CILINDRAJE</Label>
-                    <span className="text-xs text-zinc-500 font-bold tracking-widest">(15 CUPOS)</span>
-                  </div>
-                </div>
-              </RadioGroup>
-            </CardContent>
-          </Card>
-          
-          {/* Experiencia y Redes */}
-          <Card className="bg-zinc-950/60 border-zinc-800 shadow-xl backdrop-blur-md">
-            <CardHeader><CardTitle className="text-white text-xl">2. Experiencia y Compromiso</CardTitle></CardHeader>
-            <CardContent className="space-y-6">
+              <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white drop-shadow-md mb-6 leading-tight">
+                Adjunta tus Documentos
+              </h1>
+            </div>
+
+          <form onSubmit={handleFormSubmit}>
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
               
-              <div className="space-y-4">
-                <Label className="text-zinc-300 text-base">¿Haz participado en la Copa Stunt F2R en versiones anteriores?</Label>
-                <RadioGroup value={participacionPrevia} onValueChange={setParticipacionPrevia} className="flex flex-col gap-3">
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="si" id="part-si" className="border-zinc-600" />
-                    <Label htmlFor="part-si" className="text-zinc-400">Sí, ya he participado</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="no" id="part-no" className="border-zinc-600" />
-                    <Label htmlFor="part-no" className="text-zinc-400">No, pero lo disfrutaré como nunca</Label>
-                  </div>
-                </RadioGroup>
-              </div>
-
-              <div className="p-4 bg-zinc-900/50 border border-zinc-700/50 rounded-lg">
-                <div className="flex items-start space-x-3">
-                  <Checkbox 
-                    id="patroc" 
-                    checked={patrocinadores} 
-                    onCheckedChange={(val) => setPatrocinadores(!!val)} 
-                    className="border-zinc-500 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 mt-1" 
-                  />
-                  <div className="grid gap-1.5 opacity-90">
-                    <Label htmlFor="patroc" className="font-semibold text-zinc-200 cursor-pointer">
-                      Confirmo que he ido a Instagram a seguir a nuestros patrocinadores principales:
-                    </Label>
-                    <p className="text-sm text-zinc-400 font-medium tracking-wide">
-                      @repuestos.auteco.certified @victorymotorcycles.co @feria2ruedasoficial @copastuntcolombia
+              {/* Categorías */}
+              <Card className="bg-zinc-950/60 border-zinc-800 shadow-xl backdrop-blur-md overflow-hidden">
+                <div className="h-1.5 w-full bg-green-600"></div>
+                <CardHeader>
+                  <CardTitle className="text-white text-xl">1. Categorías</CardTitle>
+                  <div className="flex items-start gap-3 mt-2 bg-green-500/10 border border-green-500/20 p-4 rounded-lg">
+                    <AlertTriangle className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
+                    <p className="text-sm text-zinc-300 leading-relaxed">
+                      <strong>IMPORTANTE:</strong> Recuerda que debes inscribirte en tu categoría real. Si no es así serás ascendido, lo que afecta planillas e imágenes en las pantallas LED.<br className="mb-2"/>
+                      <em>Cupos limitados, en cuanto se complete una categoría solo se permitirá en la siguiente.</em>
                     </p>
                   </div>
-                </div>
-              </div>
-
-            </CardContent>
-          </Card>
-
-          {/* Datos Motocicleta */}
-          <Card className="bg-zinc-950/60 border-zinc-800 shadow-xl backdrop-blur-md">
-            <CardHeader><CardTitle className="text-white text-xl">3. Datos de la Motocicleta</CardTitle></CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label className="text-zinc-300">Placa Motocicleta</Label>
-                  <Input value={placa} onChange={e => setPlaca(e.target.value)} placeholder="Ej. ABC000" className="bg-zinc-900/50 border-zinc-700 text-white uppercase" maxLength={6} />
-                </div>
-                
-                <div className="space-y-2" translate="no">
-                  <Label className="text-zinc-300">Marca de tú motocicleta</Label>
-                  <Select value={marca} onValueChange={setMarca}>
-                    <SelectTrigger className="bg-zinc-900/50 border-zinc-700 text-zinc-300">
-                      <SelectValue placeholder="Seleccione una marca" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-200 max-h-60">
-                      {['YAMAHA','SUZUKI','HONDA','BAJAJ','AKT','TVS','VICTORY','BENELLI','KAWASAKI','FACTORY','YCF','HERO','KYMCO','KTM','KEEWAY','HUSQVARNA','DUCATI','JIALING MOTOS'].map(m => (
-                        <SelectItem key={m} value={m}>
-                          <span className="block">{m}</span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2 md:col-span-2">
-                  <Label className="text-zinc-300">Referencia motocicleta</Label>
-                  <Input value={referencia} onChange={e => setReferencia(e.target.value)} placeholder="Ej. MT-09, Duke 390..." className="bg-zinc-900/50 border-zinc-700 text-white" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Documentos */}
-          <Card className="bg-zinc-950/60 border-zinc-800 shadow-xl backdrop-blur-md">
-            <CardHeader>
-              <CardTitle className="text-white text-xl">4. Archivos y Documentación Legal</CardTitle>
-              <CardDescription className="text-zinc-400">Es indispensable subir estos documentos para asegurar el acceso a la Zona Franca.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
+                </CardHeader>
+                <CardContent>
+                  <RadioGroup value={categoria} onValueChange={setCategoria} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className={`flex items-center space-x-3 border ${categoria === 'open' ? 'border-green-500 bg-green-500/10' : 'border-zinc-800 bg-zinc-900/40'} p-4 rounded-lg transition-all cursor-pointer hover:border-zinc-500`} onClick={() => setCategoria('open')}>
+                      <RadioGroupItem value="open" id="cat-open" className="border-zinc-500 text-green-500" />
+                      <div className="flex flex-col">
+                        <Label htmlFor="cat-open" className="text-base text-zinc-200 cursor-pointer">OPEN</Label>
+                        <span className="text-xs text-zinc-500 font-bold tracking-widest">(20 CUPOS)</span>
+                      </div>
+                    </div>
+                    <div className={`flex items-center space-x-3 border ${categoria === '2t' ? 'border-green-500 bg-green-500/10' : 'border-zinc-800 bg-zinc-900/40'} p-4 rounded-lg transition-all cursor-pointer hover:border-zinc-500`} onClick={() => setCategoria('2t')}>
+                      <RadioGroupItem value="2t" id="cat-2t" className="border-zinc-500 text-green-500" />
+                      <div className="flex flex-col">
+                        <Label htmlFor="cat-2t" className="text-base text-zinc-200 cursor-pointer">2 TIEMPOS</Label>
+                        <span className="text-xs text-zinc-500 font-bold tracking-widest">(15 CUPOS)</span>
+                      </div>
+                    </div>
+                    <div className={`flex items-center space-x-3 border ${categoria === '4t' ? 'border-green-500 bg-green-500/10' : 'border-zinc-800 bg-zinc-900/40'} p-4 rounded-lg transition-all cursor-pointer hover:border-zinc-500`} onClick={() => setCategoria('4t')}>
+                      <RadioGroupItem value="4t" id="cat-4t" className="border-zinc-500 text-green-500" />
+                      <div className="flex flex-col">
+                        <Label htmlFor="cat-4t" className="text-base text-zinc-200 cursor-pointer">4 TIEMPOS</Label>
+                        <span className="text-xs text-zinc-500 font-bold tracking-widest">(15 CUPOS)</span>
+                      </div>
+                    </div>
+                    <div className={`flex items-center space-x-3 border ${categoria === 'alto' ? 'border-green-500 bg-green-500/10' : 'border-zinc-800 bg-zinc-900/40'} p-4 rounded-lg transition-all cursor-pointer hover:border-zinc-500`} onClick={() => setCategoria('alto')}>
+                      <RadioGroupItem value="alto" id="cat-alto" className="border-zinc-500 text-green-500" />
+                      <div className="flex flex-col">
+                        <Label htmlFor="cat-alto" className="text-base text-zinc-200 cursor-pointer">ALTO CILINDRAJE</Label>
+                        <span className="text-xs text-zinc-500 font-bold tracking-widest">(15 CUPOS)</span>
+                      </div>
+                    </div>
+                    <div className={`flex items-center space-x-3 border ${categoria === 'regional' ? 'border-green-500 bg-green-500/10' : 'border-zinc-800 bg-zinc-900/40'} p-4 rounded-lg transition-all cursor-pointer hover:border-zinc-500`} onClick={() => setCategoria('regional')}>
+                      <RadioGroupItem value="regional" id="cat-regional" className="border-zinc-500 text-green-500" />
+                      <div className="flex flex-col">
+                        <Label htmlFor="cat-regional" className="text-base text-zinc-200 cursor-pointer">REGIONAL</Label>
+                        <span className="text-xs text-zinc-500 font-bold tracking-widest">(CUPOS LIMITADOS)</span>
+                      </div>
+                    </div>
+                  </RadioGroup>
+                </CardContent>
+              </Card>
               
-              {/* Special Emphasis on ID PDF */}
-              <div className="flex flex-col space-y-3 p-5 md:p-6 bg-zinc-900 border-2 border-green-500/30 rounded-xl shadow-[0_0_15px_rgba(34,197,94,0.1)] relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-1.5 h-full bg-green-500"></div>
-                <Label className="text-white text-lg font-bold flex justify-between items-center pl-2">
-                  <span>1. Anexa un PDF por ambos lados de tu identificación <span className="text-green-500">*</span></span>
-                  {idPdf && <CheckCircle2 className="text-green-500 w-6 h-6" />}
-                </Label>
-                <p className="text-sm text-zinc-400 pl-2">Sube 1 solo archivo uniendo ambos lados (PDF o Imagen).</p>
-                
-                <div className="relative border-2 border-dashed border-zinc-700 bg-black/40 py-8 rounded-lg text-center hover:bg-zinc-800/80 transition-colors mt-2">
-                  <Input type="file" onChange={(e) => setIdPdf(e.target.files ? e.target.files[0] : null)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".pdf,image/*" />
-                  <div className="flex flex-col items-center pointer-events-none px-4">
-                    <UploadCloud className={`w-10 h-10 mb-3 ${idPdf ? 'text-green-500' : 'text-zinc-500'}`} />
-                    <span className="text-sm font-semibold text-zinc-300">
-                      {idPdf ? <span className="text-green-400 text-base">{idPdf.name}</span> : "Toca aquí para seleccionar, o toma una foto"}
-                    </span>
+              {/* Experiencia y Redes */}
+              <Card className="bg-zinc-950/60 border-zinc-800 shadow-xl backdrop-blur-md">
+                <CardHeader><CardTitle className="text-white text-xl">2. Experiencia y Compromiso</CardTitle></CardHeader>
+                <CardContent className="space-y-6">
+                  
+                  <div className="space-y-4">
+                    <Label className="text-zinc-300 text-base">¿Haz participado en la Copa Stunt F2R en versiones anteriores?</Label>
+                    <RadioGroup value={participacionPrevia} onValueChange={setParticipacionPrevia} className="flex flex-col gap-3">
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="si" id="part-si" className="border-zinc-600" />
+                        <Label htmlFor="part-si" className="text-zinc-400">Sí, ya he participado</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="no" id="part-no" className="border-zinc-600" />
+                        <Label htmlFor="part-no" className="text-zinc-400">No, pero lo disfrutaré como nunca</Label>
+                      </div>
+                    </RadioGroup>
                   </div>
-                </div>
-              </div>
 
-              {/* Other Files in Grid for better mobile flow */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
-                {[
-                  { state: fotoPlaca, setter: setFotoPlaca, title: "Foto de la placa (Tú motocicleta)", desc: "Obligatorio para la Zona Franca." },
-                  { state: fotoPropiedad, setter: setFotoPropiedad, title: "Foto/PDF Tarjeta de propiedad", desc: "O envíalo al WhatsApp: 3044347740" },
-                  { state: fotoSoat, setter: setFotoSoat, title: "Fotografía del SOAT vigente", desc: "O envíalo al WhatsApp: 3044347740" },
-                  { state: fotoDeportista, setter: setFotoDeportista, title: "Foto tuya en acción", desc: "Pantalla LED gigante. ¡Lúcete!" }
-                ].map((item, idx) => (
-                  <div key={idx} className="flex flex-col space-y-2 p-4 bg-zinc-900/30 border border-zinc-800 rounded-lg">
-                    <Label className="text-zinc-200 text-sm md:text-base font-semibold flex justify-between items-start gap-2">
-                      <span className="leading-tight">{item.title}</span>
-                      {item.state && <CheckCircle2 className="text-green-500 w-5 h-5 shrink-0" />}
-                    </Label>
-                    <p className="text-xs text-zinc-500 mb-2">{item.desc}</p>
+                  <div className="p-4 bg-zinc-900/50 border border-zinc-700/50 rounded-lg">
+                    <div className="flex items-start space-x-3">
+                      <Checkbox 
+                        id="patroc" 
+                        checked={patrocinadores} 
+                        onCheckedChange={(val) => setPatrocinadores(!!val)} 
+                        className="border-zinc-500 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 mt-1" 
+                      />
+                      <div className="grid gap-1.5 opacity-90">
+                        <Label htmlFor="patroc" className="font-semibold text-zinc-200 cursor-pointer">
+                          Confirmo que he ido a Instagram a seguir a nuestros patrocinadores principales:
+                        </Label>
+                        <p className="text-sm text-zinc-400 font-medium tracking-wide">
+                          @repuestos.auteco.certified @victorymotorcycles.co @feria2ruedasoficial @copastuntcolombia
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                </CardContent>
+              </Card>
+
+              {/* Datos Motocicleta */}
+              <Card className="bg-zinc-950/60 border-zinc-800 shadow-xl backdrop-blur-md">
+                <CardHeader><CardTitle className="text-white text-xl">3. Datos de la Motocicleta</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label className="text-zinc-300">Placa Motocicleta</Label>
+                      <Input value={placa} onChange={e => setPlaca(e.target.value)} placeholder="Ej. ABC000" className="bg-zinc-900/50 border-zinc-700 text-white uppercase" maxLength={6} />
+                    </div>
                     
-                    <div className="relative border-2 border-dashed border-zinc-700 py-5 rounded-lg text-center hover:bg-zinc-800/40 transition-colors mt-auto">
-                      <Input type="file" onChange={(e) => item.setter(e.target.files ? e.target.files[0] : null)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".pdf,image/*" />
-                      <div className="flex flex-col items-center pointer-events-none px-2">
-                        <UploadCloud className={`w-6 h-6 mb-2 ${item.state ? 'text-green-500' : 'text-zinc-500'}`} />
-                        <span className="text-xs font-medium text-zinc-400 break-words w-full">
-                          {item.state ? <span className="text-zinc-200">{item.state.name}</span> : "Toca aquí"}
+                    <div className="space-y-2" translate="no">
+                      <Label className="text-zinc-300">Marca de tú motocicleta</Label>
+                      <Select value={marca} onValueChange={setMarca}>
+                        <SelectTrigger className="bg-zinc-900/50 border-zinc-700 text-zinc-300">
+                          <SelectValue placeholder="Seleccione una marca" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-200 max-h-60">
+                          {['YAMAHA','SUZUKI','HONDA','BAJAJ','AKT','TVS','VICTORY','BENELLI','KAWASAKI','FACTORY','YCF','HERO','KYMCO','KTM','KEEWAY','HUSQVARNA','DUCATI','JIALING MOTOS'].map(m => (
+                            <SelectItem key={m} value={m}>
+                              <span className="block">{m}</span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2 md:col-span-2">
+                      <Label className="text-zinc-300">Referencia motocicleta</Label>
+                      <Input value={referencia} onChange={e => setReferencia(e.target.value)} placeholder="Ej. MT-09, Duke 390..." className="bg-zinc-900/50 border-zinc-700 text-white" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Documentos */}
+              <Card className="bg-zinc-950/60 border-zinc-800 shadow-xl backdrop-blur-md">
+                <CardHeader>
+                  <CardTitle className="text-white text-xl">4. Archivos y Documentación Legal</CardTitle>
+                  <CardDescription className="text-zinc-400">Es indispensable subir estos documentos para asegurar el acceso a la Zona Franca.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  
+                  {/* Special Emphasis on ID PDF */}
+                  <div className="flex flex-col space-y-3 p-5 md:p-6 bg-zinc-900 border-2 border-green-500/30 rounded-xl shadow-[0_0_15px_rgba(34,197,94,0.1)] relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-1.5 h-full bg-green-500"></div>
+                    <Label className="text-white text-lg font-bold flex justify-between items-center pl-2">
+                      <span>1. Anexa un PDF por ambos lados de tu identificación <span className="text-green-500">*</span></span>
+                      {idPdf && <CheckCircle2 className="text-green-500 w-6 h-6" />}
+                    </Label>
+                    <p className="text-sm text-zinc-400 pl-2">Sube 1 solo archivo uniendo ambos lados (PDF o Imagen).</p>
+                    
+                    <div className="relative border-2 border-dashed border-zinc-700 bg-black/40 py-8 rounded-lg text-center hover:bg-zinc-800/80 transition-colors mt-2">
+                      <Input type="file" onChange={(e) => setIdPdf(e.target.files ? e.target.files[0] : null)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".pdf,image/*" />
+                      <div className="flex flex-col items-center pointer-events-none px-4">
+                        <UploadCloud className={`w-10 h-10 mb-3 ${idPdf ? 'text-green-500' : 'text-zinc-500'}`} />
+                        <span className="text-sm font-semibold text-zinc-300">
+                          {idPdf ? <span className="text-green-400 text-base">{idPdf.name}</span> : "Toca aquí para seleccionar, o toma una foto"}
                         </span>
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
 
-            </CardContent>
-          </Card>
+                  {/* Other Files in Grid for better mobile flow */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                    {[
+                      { state: fotoPlaca, setter: setFotoPlaca, title: "Foto de la placa (Tú motocicleta)", desc: "Obligatorio para la Zona Franca." },
+                      { state: fotoPropiedad, setter: setFotoPropiedad, title: "Foto/PDF Tarjeta de propiedad", desc: "O envíalo al WhatsApp: 3044347740" },
+                      { state: fotoSoat, setter: setFotoSoat, title: "Fotografía del SOAT vigente", desc: "O envíalo al WhatsApp: 3044347740" },
+                      { state: fotoDeportista, setter: setFotoDeportista, title: "Foto tuya en acción", desc: "Pantalla LED gigante. ¡Lúcete!" }
+                    ].map((item, idx) => (
+                      <div key={idx} className="flex flex-col space-y-2 p-4 bg-zinc-900/30 border border-zinc-800 rounded-lg">
+                        <Label className="text-zinc-200 text-sm md:text-base font-semibold flex justify-between items-start gap-2">
+                          <span className="leading-tight">{item.title}</span>
+                          {item.state && <CheckCircle2 className="text-green-500 w-5 h-5 shrink-0" />}
+                        </Label>
+                        <p className="text-xs text-zinc-500 mb-2">{item.desc}</p>
+                        
+                        <div className="relative border-2 border-dashed border-zinc-700 py-5 rounded-lg text-center hover:bg-zinc-800/40 transition-colors mt-auto">
+                          <Input type="file" onChange={(e) => item.setter(e.target.files ? e.target.files[0] : null)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".pdf,image/*" />
+                          <div className="flex flex-col items-center pointer-events-none px-2">
+                            <UploadCloud className={`w-6 h-6 mb-2 ${item.state ? 'text-green-500' : 'text-zinc-500'}`} />
+                            <span className="text-xs font-medium text-zinc-400 break-words w-full">
+                              {item.state ? <span className="text-zinc-200">{item.state.name}</span> : "Toca aquí"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
 
-          {/* Inquietudes */}
-          <Card className="bg-zinc-950/60 border-zinc-800 shadow-xl backdrop-blur-md">
-            <CardHeader><CardTitle className="text-white text-xl">5. Comentarios e Inquietudes</CardTitle></CardHeader>
-            <CardContent>
-               <div className="space-y-3">
-                  <p className="text-sm text-zinc-400">
-                    Déjanos saber si tienes alguna pregunta o duda sobre el reglamento y el desarrollo del evento.
+                </CardContent>
+              </Card>
+
+              {/* Inquietudes */}
+              <Card className="bg-zinc-950/60 border-zinc-800 shadow-xl backdrop-blur-md">
+                <CardHeader><CardTitle className="text-white text-xl">5. Comentarios e Inquietudes</CardTitle></CardHeader>
+                <CardContent>
+                   <div className="space-y-3">
+                      <p className="text-sm text-zinc-400">
+                        Déjanos saber si tienes alguna pregunta o duda sobre el reglamento y el desarrollo del evento.
+                      </p>
+                      <Textarea 
+                        value={inquietudes}
+                        onChange={e => setInquietudes(e.target.value)}
+                        placeholder="Escribe tus dudas aquí..." 
+                        className="min-h-[100px] bg-zinc-900/50 border-zinc-700 text-white placeholder:text-zinc-600" 
+                      />
+                   </div>
+                </CardContent>
+              </Card>
+
+            </div>
+
+            <div className="mt-10 mb-16 flex justify-end">
+              <Button type="submit" disabled={isLoading} className="bg-green-600 text-white hover:bg-green-500 font-extrabold h-16 w-full md:w-auto px-12 text-xl shadow-[0_0_20px_rgba(34,197,94,0.4)] transition-all uppercase tracking-wider">
+                {isLoading ? "GUARDANDO DATOS..." : "CONTINUAR AL PAGO"}
+              </Button>
+            </div>
+
+          </form>
+          </div>
+        )}
+
+        {/* PASO 2: PAGO Y SUBIDA DE COMPROBANTE */}
+        {step === 2 && (
+          <div className="animate-in fade-in zoom-in-95 duration-500 max-w-2xl mx-auto w-full mt-10">
+            <Card className="bg-zinc-950/90 backdrop-blur-xl border-green-500/30 shadow-2xl">
+              <div className="h-2 w-full bg-green-500"></div>
+              <CardHeader className="text-center pb-2">
+                <CardTitle className="text-3xl font-extrabold text-white">Pago de Inscripción</CardTitle>
+                <CardDescription className="text-zinc-400 text-base mt-2">
+                  Oficial Copa Stunt Colombia 2026. Realiza el pago para asegurar tu cupo.
+                </CardDescription>
+              </CardHeader>
+              
+              <CardContent className="space-y-8 pt-6">
+                
+                {estadoPago === 'saldo_pendiente' && (
+                  <div className="bg-orange-500/10 border-l-4 border-orange-500 p-5 rounded-r-lg flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-2 shadow-[0_0_25px_rgba(249,115,22,0.15)]">
+                    <AlertTriangle className="w-10 h-10 text-orange-500 shrink-0 mt-1 sm:mt-0 animate-pulse" />
+                    <div>
+                      <h4 className="text-orange-400 font-bold uppercase tracking-wider text-sm mb-2">Saldo Faltante Requerido</h4>
+                      <p className="text-orange-200/90 font-medium leading-snug">
+                        Tu pago inicial fue verificado, pero presentas un saldo pendiente de: 
+                        <span className="inline-block font-extrabold text-white bg-orange-600 px-3 py-1 rounded ml-2 mt-1 sm:mt-0 text-lg shadow-sm border border-orange-500/50">
+                          ${saldoFaltante}
+                        </span>
+                      </p>
+                      <p className="text-sm text-orange-300/80 mt-2">
+                        Por favor realiza la transferencia exclusiva por este valor para completar tu inscripción y sube el nuevo comprobante aquí abajo.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex flex-col md:flex-row gap-6 items-center justify-center">
+                  <div className="w-full md:w-1/2 flex justify-center bg-white p-4 rounded-xl">
+                    <img src="/sponsors/QR BANCOLOMBIA.jpg" alt="QR Bancolombia" className="max-w-full h-auto object-contain max-h-64 rounded-md" />
+                  </div>
+                  
+                  {estadoPago !== 'saldo_pendiente' && (
+                    <div className="w-full md:w-1/2 space-y-4">
+                      <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-lg flex flex-col justify-center h-full shadow-[0_0_15px_rgba(34,197,94,0.05)]">
+                        <p className="text-xs text-zinc-500 uppercase tracking-widest font-bold mb-4">Costos de Inscripción</p>
+                        
+                        <div className="flex flex-col gap-1 mb-4">
+                          <div className="flex justify-between items-baseline">
+                            <span className="text-sm text-zinc-300 font-medium">16 Abr - 10 May</span>
+                            <span className="text-xl text-green-500 font-black tracking-wider">$280.000</span>
+                          </div>
+                          <div className="flex justify-between items-baseline pt-2 border-t border-zinc-800/50 mt-1">
+                            <span className="text-sm text-zinc-500 font-medium">11 May - 15 May</span>
+                            <span className="text-lg text-zinc-400 font-bold tracking-wider">$350.000</span>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-2 bg-zinc-950 p-3 rounded border border-zinc-800/80">
+                          <p className="text-xs text-zinc-400 leading-tight">
+                            <span className="text-zinc-300 font-bold uppercase">Nota:</span> Si pagas después del <span className="text-white font-bold">10 de Mayo</span> el valor sube automáticamente.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-zinc-900/50 p-5 rounded-lg border border-zinc-800 text-sm text-zinc-300 h-full flex flex-col justify-center">
+                    <p className="font-semibold text-white mb-3">Si no puedes realizar el pago a través del QR, estos son los datos de la cuenta:</p>
+                    <ul className="space-y-2 ml-2 font-mono mt-auto">
+                      <li><span className="text-zinc-500">Número de cuenta:</span> <span className="text-white">316-376847-80</span></li>
+                      <li><span className="text-zinc-500">Tipo de cuenta:</span> <span className="text-white">Ahorros Bancolombia</span></li>
+                      <li><span className="text-zinc-500">Titular:</span> <span className="text-white">Daniela Rojas Valencia</span></li>
+                    </ul>
+                  </div>
+
+                  <div className="bg-blue-900/20 p-5 rounded-lg border border-blue-500/30 text-sm h-full flex flex-col">
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertTriangle className="w-5 h-5 text-blue-400 shrink-0" />
+                      <p className="font-bold text-blue-400 uppercase tracking-wide leading-tight">NUEVO MEDIO DE PAGO HABILITADO</p>
+                    </div>
+                    <p className="text-blue-100/80 mb-3 text-xs leading-relaxed">Pensando en los pilotos que manejan entidades bancarias diferentes a Bancolombia, hemos habilitado pago mediante LLAVE para facilitar el proceso.</p>
+                    <p className="text-xl font-mono text-white font-bold bg-black/40 px-3 py-2 rounded border border-blue-500/50 mt-auto text-center tracking-wider">LLAVE : 1214720768</p>
+                  </div>
+                </div>
+                
+                <div className="pt-4 border-t border-zinc-800">
+                  <Label className="text-white text-lg font-bold flex items-center gap-2 mb-4">
+                    <ImageIcon className="text-green-500 w-5 h-5" /> Sube tu Comprobante {estadoPago === 'saldo_pendiente' ? 'de Saldo' : 'de Pago'}
+                  </Label>
+                  <p className="text-sm text-zinc-400 mb-4">
+                    Una vez realizado el pago, sube la foto o captura del comprobante aquí y envíalo también al canal oficial de WhatsApp 📲 304 434 7740 para confirmar tu cupo.
                   </p>
-                  <Textarea 
-                    value={inquietudes}
-                    onChange={e => setInquietudes(e.target.value)}
-                    placeholder="Escribe tus dudas aquí..." 
-                    className="min-h-[100px] bg-zinc-900/50 border-zinc-700 text-white placeholder:text-zinc-600" 
+                  
+                  <div className="relative border-2 border-dashed border-zinc-600 bg-black/40 py-8 rounded-xl text-center hover:bg-zinc-800/80 transition-all">
+                    <Input type="file" onChange={(e) => setComprobantePago(e.target.files ? e.target.files[0] : null)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept="image/*,.pdf" />
+                    <div className="flex flex-col items-center pointer-events-none px-4">
+                      {comprobantePago ? (
+                        <>
+                          <CheckCircle2 className="w-12 h-12 mb-3 text-green-500" />
+                          <span className="text-base font-bold text-green-400">{comprobantePago.name}</span>
+                          <span className="text-xs text-zinc-500 mt-1">Archivo listo para enviar</span>
+                        </>
+                      ) : (
+                        <>
+                          <UploadCloud className="w-12 h-12 mb-3 text-zinc-500" />
+                          <span className="text-base font-semibold text-zinc-300">Toca para seleccionar tu comprobante</span>
+                          <span className="text-xs text-zinc-500 mt-1">Soporta JPG, PNG, PDF</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-4">
+                  <Button 
+                    onClick={handlePaymentSubmit} 
+                    disabled={isLoading || !comprobantePago} 
+                    className="bg-green-600 text-white hover:bg-green-500 font-bold h-14 px-8 w-full md:w-auto transition-all text-lg"
+                  >
+                    {isLoading ? "SUBIENDO..." : "ENVIAR A REVISIÓN"}
+                  </Button>
+                </div>
+
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* PASO 3: ÉXITO / ESTADOS FINALES */}
+        {step === 3 && (
+          <div className="flex flex-col items-center justify-center p-8 bg-zinc-950/80 backdrop-blur-xl border border-zinc-800 rounded-3xl shadow-2xl animate-in fade-in zoom-in-95 duration-500 max-w-lg mx-auto w-full mt-10">
+            
+            {estadoPago === 'rechazado' && (
+              <>
+                <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mb-6 border border-red-500/30 shadow-[0_0_30px_rgba(239,68,68,0.2)]">
+                  <XCircle className="w-12 h-12 text-red-500" />
+                </div>
+                <h2 className="text-3xl font-extrabold text-white mb-2 text-center">Pago Rechazado</h2>
+                <p className="text-zinc-400 text-center mb-8">
+                  Lo sentimos, tu comprobante de pago no fue aceptado. Esto puede suceder si la imagen no es legible, el monto es incorrecto o si no corresponde a los datos bancarios.
+                  <br/><br/>
+                  Por favor, sube un comprobante válido para asegurar tu cupo.
+                </p>
+                <div className="flex flex-col w-full gap-3">
+                  <Button 
+                    onClick={() => setStep(2)} 
+                    className="w-full bg-red-600 text-white hover:bg-red-500 h-12 font-bold"
+                  >
+                    Volver a subir comprobante
+                  </Button>
+                  <Link href="/profile" className="w-full">
+                    <Button variant="outline" className="w-full border-zinc-700 text-zinc-300 hover:bg-zinc-800 h-12">
+                      Salir por ahora
+                    </Button>
+                  </Link>
+                </div>
+              </>
+            )}
+
+            {(estadoPago === 'en_revision' || estadoPago === 'revision_saldo') && (
+              <>
+                <div className="w-20 h-20 bg-yellow-500/20 rounded-full flex items-center justify-center mb-6 border border-yellow-500/30 shadow-[0_0_30px_rgba(234,179,8,0.15)]">
+                  <Clock className="w-10 h-10 text-yellow-500 animate-pulse" />
+                </div>
+                <h2 className="text-3xl font-extrabold text-white mb-2 text-center">
+                  {estadoPago === 'revision_saldo' ? 'Saldo en Validación' : 'Pago en Validación'}
+                </h2>
+                <p className="text-zinc-400 text-center mb-8">
+                  {estadoPago === 'revision_saldo' 
+                    ? "Hemos recibido el comprobante de tu saldo faltante. Nuestro equipo lo revisará en breve." 
+                    : "Hemos recibido tu comprobante de pago. Nuestro equipo lo revisará en breve."}
+                  <br/><br/>
+                  Vuelve a ingresar a esta sección más tarde para ver tu código QR de acceso oficial.
+                </p>
+                <Link href="/profile" className="w-full">
+                  <Button className="w-full bg-zinc-800 text-white hover:bg-zinc-700 h-12">
+                    Ir a mi perfil
+                  </Button>
+                </Link>
+              </>
+            )}
+
+            {estadoPago === 'aprobado' && (
+              <>
+                <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(34,197,94,0.3)] border border-green-500/30">
+                  <CheckCircle2 className="w-12 h-12 text-green-500" />
+                </div>
+                <h2 className="text-3xl font-extrabold text-white mb-2">¡Inscripción Aprobada!</h2>
+                <p className="text-zinc-400 text-center mb-8">
+                  Presenta este código QR en el ingreso de la Zona Franca para validar tu identidad.
+                </p>
+                
+                <div className="bg-white p-6 rounded-2xl shadow-[0_0_40px_rgba(34,197,94,0.3)] mb-8">
+                  <QRCode 
+                    value={`f2r_${uid}`} 
+                    size={220}
+                    level="H"
+                    fgColor="#09090b"
+                    bgColor="#ffffff"
                   />
-               </div>
-            </CardContent>
-          </Card>
-
-        </div>
-
-        <div className="mt-10 mb-16 flex justify-end">
-          <Button type="submit" disabled={isLoading} className="bg-green-600 text-white hover:bg-green-500 font-extrabold h-16 w-full md:w-auto px-12 text-xl shadow-[0_0_20px_rgba(34,197,94,0.4)] transition-all uppercase tracking-wider">
-            {isLoading ? "PROCESANDO INSCRIPCIÓN..." : "CONFIRMAR E INSCRIBIRSE"}
-          </Button>
-        </div>
-
-      </form>
-      </div>
-      )}
-
-      {/* Pantalla Externa de Éxito / Pase QR */}
-      {isSuccess && (
-        <div className="flex flex-col items-center justify-center p-8 bg-zinc-950/80 backdrop-blur-xl border border-green-500/30 rounded-3xl shadow-2xl animate-in fade-in zoom-in-95 duration-500 max-w-lg mx-auto w-full mt-10">
-          <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mb-6">
-            <CheckCircle2 className="w-12 h-12 text-green-500" />
+                </div>
+                
+                <div className="flex flex-col w-full gap-3">
+                  <Link href="/profile" className="w-full">
+                    <Button className="w-full bg-zinc-800 text-white hover:bg-zinc-700 h-12">
+                      Ir a mi perfil
+                    </Button>
+                  </Link>
+                </div>
+              </>
+            )}
+            
           </div>
-          <h2 className="text-3xl font-extrabold text-white mb-2">¡Inscripción Confirmada!</h2>
-          <p className="text-zinc-400 text-center mb-8">
-            Presenta este código QR en el ingreso de la Zona Franca para validar tu identidad.
-          </p>
-          
-          <div className="bg-white p-6 rounded-2xl shadow-[0_0_40px_rgba(34,197,94,0.3)] mb-8">
-            <QRCode 
-              value={`f2r_${uid}`} 
-              size={220}
-              level="H"
-              fgColor="#09090b"
-              bgColor="#ffffff"
-            />
-          </div>
-          
-          <div className="flex flex-col w-full gap-3">
-             <Link href="/profile" className="w-full">
-               <Button className="w-full bg-zinc-800 text-white hover:bg-zinc-700 h-12">
-                 Ir a mi perfil
-               </Button>
-             </Link>
-          </div>
-        </div>
-      )}
+        )}
 
       </div>
     </div>
   );
 }
-

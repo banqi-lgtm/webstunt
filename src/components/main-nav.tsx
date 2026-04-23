@@ -2,13 +2,15 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { User, CalendarDays, LogOut, Shield } from 'lucide-react';
+import { User, CalendarDays, LogOut, Shield, Users, Menu, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 
-const links = [
+const baseLinks = [
   { href: '/profile', label: 'Mi Perfil', icon: User },
   { href: '/inscripcion', label: 'Inscripción F2R', icon: CalendarDays },
 ];
@@ -17,10 +19,33 @@ export function MainNav() {
   const pathname = usePathname();
   const router = useRouter();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [hasPilotosAccess, setHasPilotosAccess] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setIsAdmin(user?.email === 'wg12435@hotmail.com');
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      const isSuperAdmin = user?.email === 'wg12435@hotmail.com';
+      setIsAdmin(isSuperAdmin);
+      
+      if (user) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            const interfaces = data.interfaces || [];
+            if (isSuperAdmin || interfaces.includes('pilotos')) {
+              setHasPilotosAccess(true);
+            } else {
+              setHasPilotosAccess(false);
+            }
+          } else if (isSuperAdmin) {
+            setHasPilotosAccess(true);
+          }
+        } catch (e) {
+          console.error("Error al obtener interfaces de usuario", e);
+        }
+      } else {
+        setHasPilotosAccess(false);
+      }
     });
     return () => unsubscribe();
   }, []);
@@ -34,56 +59,111 @@ export function MainNav() {
     }
   };
 
+  const dynamicLinks = [...baseLinks];
+  if (hasPilotosAccess) {
+    dynamicLinks.push({ href: '/pilotos', label: 'Pilotos', icon: Users });
+  }
+  if (isAdmin) {
+    dynamicLinks.push({ href: '/admin', label: 'Panel Admin', icon: Shield });
+  }
+
+  const hasMoreThanTwo = dynamicLinks.length > 2;
+
+  const NavButton = ({ link, isActive }: { link: any, isActive: boolean }) => {
+    const isPilotos = link.href === '/pilotos';
+    const isAdminLink = link.href === '/admin';
+    
+    let activeClass = 'bg-zinc-800 text-white border border-transparent';
+    let inactiveClass = 'text-zinc-400 hover:text-white hover:bg-zinc-900 border border-transparent';
+    let iconClass = 'h-4 w-4';
+    
+    if (isPilotos) {
+      activeClass = 'bg-zinc-800 text-white border border-blue-500/20';
+      inactiveClass = 'text-zinc-400 hover:text-white hover:bg-zinc-900 border border-blue-500/10';
+      iconClass = 'h-4 w-4 text-blue-500';
+    } else if (isAdminLink) {
+      activeClass = 'bg-zinc-800 text-white border border-green-500/20';
+      inactiveClass = 'text-zinc-400 hover:text-white hover:bg-zinc-900 border border-green-500/10';
+      iconClass = 'h-4 w-4 text-green-500';
+    }
+
+    return (
+      <Link href={link.href}>
+        <Button 
+          variant={isActive ? "secondary" : "ghost"} 
+          className={`gap-2 h-9 md:h-10 px-3 md:px-4 ${isActive ? activeClass : inactiveClass}`}
+        >
+          <link.icon className={iconClass} />
+          <span className="font-semibold text-xs md:text-sm whitespace-nowrap">{link.label}</span>
+        </Button>
+      </Link>
+    );
+  };
+
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-zinc-800 bg-black/50 backdrop-blur-md">
-      <div className="flex h-16 items-center justify-between px-4 md:px-8 w-full max-w-none">
+    <header className="sticky top-0 z-50 w-full border-b border-zinc-800 bg-black/80 backdrop-blur-md">
+      <div className="flex h-16 items-center justify-between px-3 md:px-8 w-full max-w-none">
         
-        {/* Left side: Logo & Navigation */}
-        <div className="flex items-center gap-6 md:gap-10">
-          <Link href="/profile" className="flex items-center">
+        {/* Left side: Logo */}
+        <div className="flex items-center">
+          <Link href="/profile" className="flex items-center shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/sponsors/PKS Blanco.png" alt="Paskines Stunt" className="h-6 md:h-8 w-auto object-contain" />
           </Link>
-          
-          <nav className="flex flex-wrap items-center gap-1 sm:gap-2">
-            {links.map((link) => {
-              const isActive = pathname === link.href;
-              return (
-                <Link key={link.href} href={link.href}>
-                  <Button 
-                    variant={isActive ? "secondary" : "ghost"} 
-                    className={`gap-2 h-10 ${isActive ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:text-white hover:bg-zinc-900'}`}
-                  >
-                    <link.icon className="h-4 w-4" />
-                    <span className="font-semibold">{link.label}</span>
-                  </Button>
-                </Link>
-              );
-            })}
-            
-            {isAdmin && (
-              <Link href="/admin">
-                <Button 
-                  variant={pathname === '/admin' ? "secondary" : "ghost"} 
-                  className={`gap-2 h-10 border border-green-500/20 ${pathname === '/admin' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:text-white hover:bg-zinc-900'}`}
-                >
-                  <Shield className="h-4 w-4 text-green-500" />
-                  <span className="font-semibold text-green-400">Panel Admin</span>
-                </Button>
-              </Link>
-            )}
-          </nav>
         </div>
 
-        {/* Right side: Log out button */}
-        <Button 
-          onClick={handleSignOut} 
-          variant="outline" 
-          className="h-9 gap-2 border-red-500/30 text-red-400 hover:text-red-300 hover:bg-red-950/40 bg-zinc-900/50"
-        >
-          <LogOut className="h-4 w-4" />
-          <span className="hidden sm:inline font-semibold">Cerrar Sesión</span>
-        </Button>
+        {/* Center/Right: Navigation */}
+        <div className="flex items-center gap-2 overflow-hidden ml-4">
+          
+          {/* DESKTOP NAV (O celular con 2 o menos interfaces) */}
+          <nav className={`flex items-center gap-1.5 md:gap-2 ${hasMoreThanTwo ? 'hidden xl:flex' : 'flex'}`}>
+            {dynamicLinks.map((link) => (
+              <NavButton key={link.href} link={link} isActive={pathname === link.href} />
+            ))}
+          </nav>
+
+          {/* MOBILE NAV: Agrupado en Dropdown si tiene más de 2 interfaces */}
+          {hasMoreThanTwo && (
+            <div className="flex xl:hidden">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="gap-2 h-9 bg-zinc-900 border-zinc-700 text-zinc-300 px-3">
+                    <Menu className="h-4 w-4" />
+                    <span className="font-bold text-xs">Módulos</span>
+                    <ChevronDown className="h-3 w-3 opacity-50" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 bg-zinc-950 border-zinc-800 p-2 shadow-2xl">
+                  {dynamicLinks.map((link) => {
+                    const isActive = pathname === link.href;
+                    return (
+                      <DropdownMenuItem key={link.href} asChild className={`cursor-pointer mb-1 rounded-md p-0 ${isActive ? 'bg-zinc-800/50' : ''}`}>
+                        <Link href={link.href} className="flex items-center w-full px-3 py-2.5">
+                          <link.icon className={`h-4 w-4 mr-3 ${link.href === '/pilotos' ? 'text-blue-500' : link.href === '/admin' ? 'text-green-500' : 'text-zinc-400'}`} />
+                          <span className={`font-semibold text-sm ${isActive ? 'text-white' : 'text-zinc-300'}`}>{link.label}</span>
+                        </Link>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
+          
+          <div className="h-6 w-px bg-zinc-800 mx-1 md:mx-2 hidden sm:block"></div>
+
+          {/* Log out button */}
+          <Button 
+            onClick={handleSignOut} 
+            variant="ghost" 
+            className="h-9 w-9 p-0 md:w-auto md:px-4 md:gap-2 text-red-400 hover:text-red-300 hover:bg-red-950/40 shrink-0"
+            title="Cerrar Sesión"
+          >
+            <LogOut className="h-4 w-4" />
+            <span className="hidden md:inline font-semibold">Cerrar</span>
+          </Button>
+          
+        </div>
       </div>
     </header>
   );
