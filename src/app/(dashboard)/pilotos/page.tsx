@@ -192,7 +192,6 @@ export default function PilotosPage() {
                       }
                     }}
                     components={{
-                      audio: false,
                       finder: true,
                     }}
                   />
