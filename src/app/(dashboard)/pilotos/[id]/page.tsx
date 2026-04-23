@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { collection, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -43,8 +43,9 @@ interface PilotDetail {
   numeroIdentificacion: string;
 }
 
-export default function PilotDetailPage({ params }: { params: { id: string } }) {
+export default function PilotDetailPage() {
   const router = useRouter();
+  const { id } = useParams() as { id: string };
   const { toast } = useToast();
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
   const [pilot, setPilot] = useState<PilotDetail | null>(null);
@@ -84,10 +85,7 @@ export default function PilotDetailPage({ params }: { params: { id: string } }) 
 
   const fetchPilotData = async () => {
     try {
-      const resolvedParams = await Promise.resolve(params);
-      const regId = resolvedParams.id;
-      
-      const regDoc = await getDoc(doc(db, 'event_registrations', regId));
+      const regDoc = await getDoc(doc(db, 'event_registrations', id));
       if (!regDoc.exists()) {
         toast({ title: 'Error', description: 'Registro no encontrado', variant: 'destructive'});
         router.push('/pilotos');
