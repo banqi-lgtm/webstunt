@@ -11,6 +11,43 @@ import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'fire
 import { setDoc, doc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 
+// Helper component for Standard Input with Icon
+const FloatingInput = ({ id, label, type = "text", value, onChange, icon: Icon, required = false, isSelect = false, options = [] }: any) => {
+  return (
+    <div className="relative w-full mb-2">
+      <label htmlFor={id} className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 pl-1">
+        {label} {required && <span className="text-[#39FF14]">*</span>}
+      </label>
+      <div className="relative">
+        {Icon && <Icon className="absolute left-3 top-3.5 h-4 w-4 text-[#39FF14]" strokeWidth={1.5} />}
+        
+        {isSelect ? (
+          <select
+            id={id}
+            value={value}
+            onChange={onChange}
+            required={required}
+            className={`block w-full h-10 text-xs text-zinc-200 bg-[#111] border border-zinc-800 rounded-xl appearance-none focus:outline-none focus:ring-1 focus:ring-[#39FF14] focus:border-[#39FF14] transition-all ${Icon ? 'pl-9' : 'pl-3'}`}
+          >
+          <option value="" disabled hidden></option>
+          {options.map((opt: any) => <option key={opt.value} value={opt.value} className="bg-[#111]">{opt.label}</option>)}
+        </select>
+        ) : (
+          <input
+            type={type}
+            id={id}
+            value={value}
+            onChange={onChange}
+            required={required}
+            placeholder={`Ej. ${label.split(' ')[0]}`}
+            className={`block w-full h-10 text-xs text-zinc-200 bg-[#111] border border-zinc-800 rounded-xl appearance-none focus:outline-none focus:ring-1 focus:ring-[#39FF14] focus:border-[#39FF14] transition-all placeholder:text-zinc-600 ${Icon ? 'pl-9' : 'pl-3'} ${type === 'date' ? '[color-scheme:dark]' : ''}`}
+          />
+        )}
+      </div>
+    </div>
+  );
+};
+
 export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogin?: boolean; onToggleAuthMode?: (mode: boolean) => void } = {}) {
   const [internalIsLogin, setInternalIsLogin] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -122,43 +159,6 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogi
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Helper component for Standard Input with Icon
-  const FloatingInput = ({ id, label, type = "text", value, onChange, icon: Icon, required = false, isSelect = false, options = [] }: any) => {
-    return (
-      <div className="relative w-full mb-2">
-        <label htmlFor={id} className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 pl-1">
-          {label} {required && <span className="text-[#39FF14]">*</span>}
-        </label>
-        <div className="relative">
-          {Icon && <Icon className="absolute left-3 top-3.5 h-4 w-4 text-[#39FF14]" strokeWidth={1.5} />}
-          
-          {isSelect ? (
-            <select
-              id={id}
-              value={value}
-              onChange={onChange}
-              required={required}
-              className={`block w-full h-10 text-xs text-zinc-200 bg-[#111] border border-zinc-800 rounded-xl appearance-none focus:outline-none focus:ring-1 focus:ring-[#39FF14] focus:border-[#39FF14] transition-all ${Icon ? 'pl-9' : 'pl-3'}`}
-            >
-            <option value="" disabled hidden></option>
-            {options.map((opt: any) => <option key={opt.value} value={opt.value} className="bg-[#111]">{opt.label}</option>)}
-          </select>
-          ) : (
-            <input
-              type={type}
-              id={id}
-              value={value}
-              onChange={onChange}
-              required={required}
-              placeholder={`Ej. ${label.split(' ')[0]}`}
-              className={`block w-full h-10 text-xs text-zinc-200 bg-[#111] border border-zinc-800 rounded-xl appearance-none focus:outline-none focus:ring-1 focus:ring-[#39FF14] focus:border-[#39FF14] transition-all placeholder:text-zinc-600 ${Icon ? 'pl-9' : 'pl-3'} ${type === 'date' ? '[color-scheme:dark]' : ''}`}
-            />
-          )}
-        </div>
-      </div>
-    );
   };
 
   return (

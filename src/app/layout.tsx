@@ -13,10 +13,10 @@ export const metadata: Metadata = {
     siteName: 'Copa Stunt F2R',
     images: [
       {
-        url: 'https://img1.wallspic.com/previews/6/0/3/8/28306/28306-motocicleta-stunt_artista_interprete_o_ejecutante-deporte_extremo-las_carreras_de_motos-automovilismo-x750.jpg',
+        url: 'https://paskinesstunt.com/sponsors/stunt2026negro.jpeg',
         width: 1200,
-        height: 630,
-        alt: 'COPASTUNTF2R-NITROX',
+        height: 1200,
+        alt: 'COPA STUNT F2R - NITROX',
       },
     ],
     locale: 'es_CO',
