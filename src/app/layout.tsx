@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
+import { Facebook, Instagram } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'CopaStuntF2R_RepuestosNitrox',

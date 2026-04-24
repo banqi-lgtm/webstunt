@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth, db, storage } from '@/lib/firebase';
-import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, getDocs, collection } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -30,6 +30,7 @@ export default function InscripcionPage() {
   const [saldoFaltante, setSaldoFaltante] = useState('');
   const { toast } = useToast();
   const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
+  const [categoryCounts, setCategoryCounts] = useState<{ [key: string]: number }>({ open: 0, '2t': 0, '4t': 0, alto: 0 });
 
   // Form State
   const [categoria, setCategoria] = useState('');
@@ -61,6 +62,21 @@ export default function InscripcionPage() {
       window.addEventListener('resize', updateSize);
     }
     
+    const fetchCounts = async () => {
+      try {
+        const snapshot = await getDocs(collection(db, 'event_registrations'));
+        const counts: { [key: string]: number } = { open: 0, '2t': 0, '4t': 0, alto: 0 };
+        snapshot.forEach(d => {
+          const cat = d.data().categoria;
+          if (cat) counts[cat] = (counts[cat] || 0) + 1;
+        });
+        setCategoryCounts(counts);
+      } catch (e) {
+        console.error("Error fetching category counts", e);
+      }
+    };
+    fetchCounts();
+
     // Auth Listener
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -126,6 +142,14 @@ export default function InscripcionPage() {
     }
 
     setIsLoading(true);
+
+    // Validación estricta final de cupos antes de guardar
+    const limits: { [key: string]: number } = { open: 20, '2t': 15, '4t': 15, alto: 15 };
+    if (limits[categoria] !== undefined && categoryCounts[categoria] >= limits[categoria]) {
+      toast({ title: "Cupos Llenos", description: "Lo sentimos, los cupos para esta categoría se acaban de llenar.", variant: "destructive" });
+      setIsLoading(false);
+      return;
+    }
 
     try {
       // Pushing 5 files parallel or sequential
@@ -273,39 +297,32 @@ export default function InscripcionPage() {
                 </CardHeader>
                 <CardContent>
                   <RadioGroup value={categoria} onValueChange={setCategoria} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div className={`flex items-center space-x-3 border ${categoria === 'open' ? 'border-green-500 bg-green-500/10' : 'border-zinc-800 bg-zinc-900/40'} p-4 rounded-lg transition-all cursor-pointer hover:border-zinc-500`} onClick={() => setCategoria('open')}>
-                      <RadioGroupItem value="open" id="cat-open" className="border-zinc-500 text-green-500" />
+                    <div className={`flex items-center space-x-3 border ${categoria === 'open' ? 'border-green-500 bg-green-500/10' : 'border-zinc-800 bg-zinc-900/40'} p-4 rounded-lg transition-all ${categoryCounts['open'] >= 20 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-zinc-500'}`} onClick={() => { if (categoryCounts['open'] < 20) setCategoria('open'); }}>
+                      <RadioGroupItem value="open" id="cat-open" className="border-zinc-500 text-green-500" disabled={categoryCounts['open'] >= 20} />
                       <div className="flex flex-col">
-                        <Label htmlFor="cat-open" className="text-base text-zinc-200 cursor-pointer">OPEN</Label>
-                        <span className="text-xs text-zinc-500 font-bold tracking-widest">(20 CUPOS)</span>
+                        <Label htmlFor="cat-open" className={`text-base text-zinc-200 ${categoryCounts['open'] >= 20 ? 'cursor-not-allowed' : 'cursor-pointer'}`}>OPEN</Label>
+                        <span className={`text-xs font-bold tracking-widest ${categoryCounts['open'] >= 20 ? 'text-red-400' : 'text-zinc-500'}`}>({Math.max(0, 20 - (categoryCounts['open'] || 0))} CUPOS RESTANTES)</span>
                       </div>
                     </div>
-                    <div className={`flex items-center space-x-3 border ${categoria === '2t' ? 'border-green-500 bg-green-500/10' : 'border-zinc-800 bg-zinc-900/40'} p-4 rounded-lg transition-all cursor-pointer hover:border-zinc-500`} onClick={() => setCategoria('2t')}>
-                      <RadioGroupItem value="2t" id="cat-2t" className="border-zinc-500 text-green-500" />
+                    <div className={`flex items-center space-x-3 border ${categoria === '2t' ? 'border-green-500 bg-green-500/10' : 'border-zinc-800 bg-zinc-900/40'} p-4 rounded-lg transition-all ${categoryCounts['2t'] >= 15 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-zinc-500'}`} onClick={() => { if (categoryCounts['2t'] < 15) setCategoria('2t'); }}>
+                      <RadioGroupItem value="2t" id="cat-2t" className="border-zinc-500 text-green-500" disabled={categoryCounts['2t'] >= 15} />
                       <div className="flex flex-col">
-                        <Label htmlFor="cat-2t" className="text-base text-zinc-200 cursor-pointer">2 TIEMPOS</Label>
-                        <span className="text-xs text-zinc-500 font-bold tracking-widest">(15 CUPOS)</span>
+                        <Label htmlFor="cat-2t" className={`text-base text-zinc-200 ${categoryCounts['2t'] >= 15 ? 'cursor-not-allowed' : 'cursor-pointer'}`}>2 TIEMPOS</Label>
+                        <span className={`text-xs font-bold tracking-widest ${categoryCounts['2t'] >= 15 ? 'text-red-400' : 'text-zinc-500'}`}>({Math.max(0, 15 - (categoryCounts['2t'] || 0))} CUPOS RESTANTES)</span>
                       </div>
                     </div>
-                    <div className={`flex items-center space-x-3 border ${categoria === '4t' ? 'border-green-500 bg-green-500/10' : 'border-zinc-800 bg-zinc-900/40'} p-4 rounded-lg transition-all cursor-pointer hover:border-zinc-500`} onClick={() => setCategoria('4t')}>
-                      <RadioGroupItem value="4t" id="cat-4t" className="border-zinc-500 text-green-500" />
+                    <div className={`flex items-center space-x-3 border ${categoria === '4t' ? 'border-green-500 bg-green-500/10' : 'border-zinc-800 bg-zinc-900/40'} p-4 rounded-lg transition-all ${categoryCounts['4t'] >= 15 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-zinc-500'}`} onClick={() => { if (categoryCounts['4t'] < 15) setCategoria('4t'); }}>
+                      <RadioGroupItem value="4t" id="cat-4t" className="border-zinc-500 text-green-500" disabled={categoryCounts['4t'] >= 15} />
                       <div className="flex flex-col">
-                        <Label htmlFor="cat-4t" className="text-base text-zinc-200 cursor-pointer">4 TIEMPOS</Label>
-                        <span className="text-xs text-zinc-500 font-bold tracking-widest">(15 CUPOS)</span>
+                        <Label htmlFor="cat-4t" className={`text-base text-zinc-200 ${categoryCounts['4t'] >= 15 ? 'cursor-not-allowed' : 'cursor-pointer'}`}>4 TIEMPOS</Label>
+                        <span className={`text-xs font-bold tracking-widest ${categoryCounts['4t'] >= 15 ? 'text-red-400' : 'text-zinc-500'}`}>({Math.max(0, 15 - (categoryCounts['4t'] || 0))} CUPOS RESTANTES)</span>
                       </div>
                     </div>
-                    <div className={`flex items-center space-x-3 border ${categoria === 'alto' ? 'border-green-500 bg-green-500/10' : 'border-zinc-800 bg-zinc-900/40'} p-4 rounded-lg transition-all cursor-pointer hover:border-zinc-500`} onClick={() => setCategoria('alto')}>
-                      <RadioGroupItem value="alto" id="cat-alto" className="border-zinc-500 text-green-500" />
+                    <div className={`flex items-center space-x-3 border ${categoria === 'alto' ? 'border-green-500 bg-green-500/10' : 'border-zinc-800 bg-zinc-900/40'} p-4 rounded-lg transition-all ${categoryCounts['alto'] >= 15 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-zinc-500'}`} onClick={() => { if (categoryCounts['alto'] < 15) setCategoria('alto'); }}>
+                      <RadioGroupItem value="alto" id="cat-alto" className="border-zinc-500 text-green-500" disabled={categoryCounts['alto'] >= 15} />
                       <div className="flex flex-col">
-                        <Label htmlFor="cat-alto" className="text-base text-zinc-200 cursor-pointer">ALTO CILINDRAJE</Label>
-                        <span className="text-xs text-zinc-500 font-bold tracking-widest">(15 CUPOS)</span>
-                      </div>
-                    </div>
-                    <div className={`flex items-center space-x-3 border ${categoria === 'regional' ? 'border-green-500 bg-green-500/10' : 'border-zinc-800 bg-zinc-900/40'} p-4 rounded-lg transition-all cursor-pointer hover:border-zinc-500`} onClick={() => setCategoria('regional')}>
-                      <RadioGroupItem value="regional" id="cat-regional" className="border-zinc-500 text-green-500" />
-                      <div className="flex flex-col">
-                        <Label htmlFor="cat-regional" className="text-base text-zinc-200 cursor-pointer">REGIONAL</Label>
-                        <span className="text-xs text-zinc-500 font-bold tracking-widest">(CUPOS LIMITADOS)</span>
+                        <Label htmlFor="cat-alto" className={`text-base text-zinc-200 ${categoryCounts['alto'] >= 15 ? 'cursor-not-allowed' : 'cursor-pointer'}`}>ALTO CILINDRAJE</Label>
+                        <span className={`text-xs font-bold tracking-widest ${categoryCounts['alto'] >= 15 ? 'text-red-400' : 'text-zinc-500'}`}>({Math.max(0, 15 - (categoryCounts['alto'] || 0))} CUPOS RESTANTES)</span>
                       </div>
                     </div>
                   </RadioGroup>
@@ -391,7 +408,7 @@ export default function InscripcionPage() {
               <Card className="bg-zinc-950/60 border-zinc-800 shadow-xl backdrop-blur-md">
                 <CardHeader>
                   <CardTitle className="text-white text-xl">4. Archivos y Documentación Legal</CardTitle>
-                  <CardDescription className="text-zinc-400">Es indispensable subir estos documentos para asegurar el acceso a la Zona Franca.</CardDescription>
+                  <CardDescription className="text-zinc-400">Es indispensable subir estos documentos para asegurar el acceso a Plaza Mayor Medellín.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   
@@ -418,25 +435,33 @@ export default function InscripcionPage() {
                   {/* Other Files in Grid for better mobile flow */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
                     {[
-                      { state: fotoPlaca, setter: setFotoPlaca, title: "Foto de la placa (Tú motocicleta)", desc: "Obligatorio para la Zona Franca." },
+                      { state: fotoPlaca, setter: setFotoPlaca, title: "Foto de la placa (Tú motocicleta)", desc: "Obligatorio para Plaza Mayor Medellín." },
                       { state: fotoPropiedad, setter: setFotoPropiedad, title: "Foto/PDF Tarjeta de propiedad", desc: "O envíalo al WhatsApp: 3044347740" },
                       { state: fotoSoat, setter: setFotoSoat, title: "Fotografía del SOAT vigente", desc: "O envíalo al WhatsApp: 3044347740" },
-                      { state: fotoDeportista, setter: setFotoDeportista, title: "Foto tuya en acción", desc: "Pantalla LED gigante. ¡Lúcete!" }
+                      { state: fotoDeportista, setter: setFotoDeportista, title: "Foto tuya (Tipo Cédula o Carnet)", desc: "Fondo blanco o azul. Pantalla LED gigante.", exampleImage: "/ejemplo-foto-cedula.png" }
                     ].map((item, idx) => (
                       <div key={idx} className="flex flex-col space-y-2 p-4 bg-zinc-900/30 border border-zinc-800 rounded-lg">
                         <Label className="text-zinc-200 text-sm md:text-base font-semibold flex justify-between items-start gap-2">
                           <span className="leading-tight">{item.title}</span>
                           {item.state && <CheckCircle2 className="text-green-500 w-5 h-5 shrink-0" />}
                         </Label>
-                        <p className="text-xs text-zinc-500 mb-2">{item.desc}</p>
-                        
-                        <div className="relative border-2 border-dashed border-zinc-700 py-5 rounded-lg text-center hover:bg-zinc-800/40 transition-colors mt-auto">
-                          <Input type="file" onChange={(e) => item.setter(e.target.files ? e.target.files[0] : null)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".pdf,image/*" />
-                          <div className="flex flex-col items-center pointer-events-none px-2">
-                            <UploadCloud className={`w-6 h-6 mb-2 ${item.state ? 'text-green-500' : 'text-zinc-500'}`} />
-                            <span className="text-xs font-medium text-zinc-400 break-words w-full">
-                              {item.state ? <span className="text-zinc-200">{item.state.name}</span> : "Toca aquí"}
-                            </span>
+                        <p className="text-xs text-zinc-400">{item.desc}</p>
+                        <div className={item.exampleImage ? "grid grid-cols-2 gap-3 mt-auto" : "mt-auto"}>
+                          {item.exampleImage && (
+                            <div className="bg-zinc-950 p-2 rounded-lg border border-zinc-800 flex flex-col items-center justify-center text-center">
+                              <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-2">Ejemplo</span>
+                              <img src={item.exampleImage} alt="Ejemplo" className="w-16 h-16 object-cover rounded-md border border-zinc-700 shadow-sm" />
+                            </div>
+                          )}
+                          
+                          <div className="relative border-2 border-dashed border-zinc-700 py-5 rounded-lg text-center hover:bg-zinc-800/40 transition-colors h-full flex flex-col justify-center">
+                            <Input type="file" onChange={(e) => item.setter(e.target.files ? e.target.files[0] : null)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".pdf,image/*" />
+                            <div className="flex flex-col items-center pointer-events-none px-2">
+                              <UploadCloud className={`w-6 h-6 mb-2 ${item.state ? 'text-green-500' : 'text-zinc-500'}`} />
+                              <span className="text-xs font-medium text-zinc-400 break-words w-full">
+                                {item.state ? <span className="text-zinc-200">{item.state.name}</span> : "Toca aquí"}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -663,7 +688,7 @@ export default function InscripcionPage() {
                 </div>
                 <h2 className="text-3xl font-extrabold text-white mb-2">¡Inscripción Aprobada!</h2>
                 <p className="text-zinc-400 text-center mb-8">
-                  Presenta este código QR en el ingreso de la Zona Franca para validar tu identidad.
+                  Presenta este código QR en el ingreso de Plaza Mayor Medellín para validar tu identidad.
                 </p>
                 
                 <div className="bg-white p-6 rounded-2xl shadow-[0_0_40px_rgba(34,197,94,0.3)] mb-8">

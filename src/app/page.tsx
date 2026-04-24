@@ -55,13 +55,21 @@ export default function Home() {
             </a>
             <div className="hidden md:flex items-center gap-2 md:gap-4">
               <Button 
-                onClick={() => { setIsLoginState(false); window.location.hash = ''; }} 
+                onClick={() => { 
+                  setIsLoginState(false); 
+                  window.location.hash = ''; 
+                  document.getElementById('auth-form-section')?.scrollIntoView({ behavior: 'smooth' });
+                }} 
                 className="bg-green-500 text-black font-extrabold hover:bg-green-400 transition-all shadow-[0_0_25px_rgba(34,197,94,0.8)] text-xs md:text-sm px-3 md:px-4 h-8 md:h-10"
               >
                 Inscripción
               </Button>
               <Button 
-                onClick={() => { setIsLoginState(true); window.location.hash = '#login'; }} 
+                onClick={() => { 
+                  setIsLoginState(true); 
+                  window.location.hash = '#login'; 
+                  document.getElementById('auth-form-section')?.scrollIntoView({ behavior: 'smooth' });
+                }} 
                 variant="outline" 
                 className="border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-800 transition-all text-xs md:text-sm px-3 md:px-4 h-8 md:h-10"
               >
@@ -71,13 +79,21 @@ export default function Home() {
           </div>
           <div className="flex md:hidden items-center gap-2">
             <Button 
-              onClick={() => { setIsLoginState(false); window.location.hash = ''; }} 
+              onClick={() => { 
+                setIsLoginState(false); 
+                window.location.hash = ''; 
+                document.getElementById('auth-form-section')?.scrollIntoView({ behavior: 'smooth' });
+              }} 
               className="bg-green-500 text-black font-extrabold hover:bg-green-400 transition-all shadow-[0_0_20px_rgba(34,197,94,0.6)] text-[10px] px-2 h-7"
             >
               Inscripción
             </Button>
             <Button 
-              onClick={() => { setIsLoginState(true); window.location.hash = '#login'; }} 
+              onClick={() => { 
+                setIsLoginState(true); 
+                window.location.hash = '#login'; 
+                document.getElementById('auth-form-section')?.scrollIntoView({ behavior: 'smooth' });
+              }} 
               variant="outline" 
               className="border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-800 transition-all text-[10px] px-2 h-7"
             >
@@ -133,7 +149,7 @@ export default function Home() {
                  <div className="flex items-center gap-2 text-green-400 font-black tracking-wide uppercase"><Calendar className="w-5 h-5"/> Fechas y Costos</div>
                  <ul className="space-y-2 text-sm">
                    <li><strong className="text-white">Ordinarias:</strong> 16 abr al 10 may - $280.000</li>
-                   <li><strong className="text-white">Extemporales:</strong> 10 al 15 may - $350.000</li>
+                   <li><strong className="text-white">Extemporales:</strong> 11 al 15 may - $350.000</li>
                    <li className="text-zinc-500 italic pt-1">No se realizarán devoluciones de dinero.</li>
                  </ul>
                </div>
@@ -142,10 +158,10 @@ export default function Home() {
                  <div className="flex items-center gap-2 text-green-400 font-black tracking-wide uppercase"><Gift className="w-5 h-5"/> El Costo Incluye</div>
                  <ul className="space-y-1 text-sm list-disc list-inside">
                    <li>INGRESO ESCARAPELA FERIA</li>
-                   <li>Boleta para un acompañante</li>
+                   <li>Boleta para acompañante</li>
                    <li>Póliza deportiva de competencia</li>
                    <li>Kit de bienvenida Nitrox</li>
-                   <li className="text-white font-bold tracking-wide pt-1">Participacion Rifa de moto 0 KM</li>
+                   <li className="text-white font-bold tracking-wide pt-1">Podrás participar en la rifa de una MRX 200</li>
                  </ul>
                </div>
             </div>
@@ -167,7 +183,7 @@ export default function Home() {
         </div>
 
         {/* Right Box: The Form Header/Logic */}
-        <div className="w-full xl:w-[500px] flex-shrink-0 relative mt-4 xl:mt-0 xl:sticky xl:top-24">
+        <div id="auth-form-section" className="w-full xl:w-[500px] flex-shrink-0 relative mt-4 xl:mt-0 xl:sticky xl:top-24">
 
           <AuthForm externalIsLogin={isLoginState} onToggleAuthMode={setIsLoginState} />
         </div>
@@ -232,6 +248,29 @@ export default function Home() {
       <footer className="w-full relative z-10 py-8 border-t border-zinc-900/50 bg-black text-center text-xs text-zinc-600 backdrop-blur-xl flex flex-col items-center gap-2">
         <p className="font-bold text-green-500 text-sm uppercase tracking-widest">¡Conecta, Impulsa, Transforma!</p>
         <p className="font-medium text-zinc-400 text-xs uppercase tracking-widest">Organiza: Paskines Stunt S.A.S. & Feria 2 Ruedas</p>
+        
+        {/* Static Social Media Buttons */}
+        <div className="flex flex-row gap-4 my-4">
+          <a 
+            href="https://www.facebook.com/copasstuntcolombia" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="w-12 h-12 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(37,99,235,0.3)] transition-all hover:scale-110 overflow-hidden"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/sponsors/facebook.png" alt="Facebook" className="w-full h-full object-cover" />
+          </a>
+          <a 
+            href="https://www.instagram.com/copastuntcolombia/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="w-12 h-12 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(236,72,153,0.3)] transition-all hover:scale-110 overflow-hidden bg-white"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/sponsors/Logo instagram.jpg" alt="Instagram" className="w-full h-full object-cover" />
+          </a>
+        </div>
+
         <div className="mt-2 text-zinc-600">&copy; {new Date().getFullYear()} Paskines Stunt &middot; Copa Stunt Colombia. Todos los derechos reservados.</div>
       </footer>
     </main>

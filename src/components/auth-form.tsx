@@ -53,6 +53,11 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogi
   const [ciudad, setCiudad] = useState('');
   const [direccion, setDireccion] = useState('');
   const [fechaNacimiento, setFechaNacimiento] = useState('');
+  
+  // Tutor fields for Minors (TI)
+  const [nombreTutor, setNombreTutor] = useState('');
+  const [cedulaTutor, setCedulaTutor] = useState('');
+  const [telefonoTutor, setTelefonoTutor] = useState('');
 
   const router = useRouter();
   const { toast } = useToast();
@@ -78,6 +83,9 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogi
         ciudad,
         direccion,
         fechaNacimiento,
+        nombreTutor: tipoDocumento === 'TI' ? nombreTutor : null,
+        cedulaTutor: tipoDocumento === 'TI' ? cedulaTutor : null,
+        telefonoTutor: tipoDocumento === 'TI' ? telefonoTutor : null,
         habeasDataAccepted: false,
         createdAt: new Date().toISOString()
       });
@@ -232,6 +240,29 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogi
                         <Input id="numeroIdentificacion" type="text" value={numeroIdentificacion} onChange={(e) => setNumeroIdentificacion(e.target.value)} placeholder="1234567890" className="pl-4 bg-zinc-900/50 border-zinc-800 text-zinc-100" required />
                       </div>
                     </div>
+
+                    {tipoDocumento === 'TI' && (
+                      <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-6 p-4 bg-orange-500/10 border border-orange-500/30 rounded-xl mt-2">
+                        <div className="md:col-span-3">
+                          <p className="text-orange-400 font-bold text-sm flex items-center gap-2">
+                            <User className="w-4 h-4" /> Datos del Adulto Responsable (Tutor)
+                          </p>
+                          <p className="text-zinc-400 text-xs mt-1">Obligatorio por ser menor de edad.</p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="nombreTutor" className="text-zinc-300">Nombre Completo</Label>
+                          <Input id="nombreTutor" value={nombreTutor} onChange={(e) => setNombreTutor(e.target.value)} placeholder="Ej. Carlos Pérez" className="bg-zinc-900/50 border-zinc-800 text-zinc-100" required={tipoDocumento === 'TI'} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="cedulaTutor" className="text-zinc-300">Cédula</Label>
+                          <Input id="cedulaTutor" value={cedulaTutor} onChange={(e) => setCedulaTutor(e.target.value)} placeholder="12345678" className="bg-zinc-900/50 border-zinc-800 text-zinc-100" required={tipoDocumento === 'TI'} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="telefonoTutor" className="text-zinc-300">Teléfono</Label>
+                          <Input id="telefonoTutor" value={telefonoTutor} onChange={(e) => setTelefonoTutor(e.target.value)} placeholder="+57 300..." className="bg-zinc-900/50 border-zinc-800 text-zinc-100" required={tipoDocumento === 'TI'} />
+                        </div>
+                      </div>
+                    )}
 
                     {/* Contacto */}
                     <div className="space-y-2">
