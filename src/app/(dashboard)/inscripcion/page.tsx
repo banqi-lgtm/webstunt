@@ -52,6 +52,9 @@ export default function InscripcionPage() {
   
   const [inquietudes, setInquietudes] = useState('');
 
+  const [faceDetector, setFaceDetector] = useState<any>(null);
+  const [isDetectingFace, setIsDetectingFace] = useState(false);
+
   useEffect(() => {
     // Window size for Confetti
     const updateSize = () => {
@@ -76,6 +79,26 @@ export default function InscripcionPage() {
       }
     };
     fetchCounts();
+
+    const initDetector = async () => {
+      try {
+        const { FaceDetector, FilesetResolver } = await import('@mediapipe/tasks-vision');
+        const vision = await FilesetResolver.forVisionTasks(
+          "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
+        );
+        const detector = await FaceDetector.createFromOptions(vision, {
+          baseOptions: {
+            modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite",
+            delegate: "GPU"
+          },
+          runningMode: "IMAGE"
+        });
+        setFaceDetector(detector);
+      } catch (err) {
+        console.error("No se pudo iniciar FaceDetector", err);
+      }
+    };
+    initDetector();
 
     // Auth Listener
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -110,6 +133,57 @@ export default function InscripcionPage() {
       if (typeof window !== 'undefined') window.removeEventListener('resize', () => {});
     };
   }, [router]);
+
+  const handleFotoDeportistaChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files ? e.target.files[0] : null;
+    if (!file) {
+      setFotoDeportista(null);
+      return;
+    }
+    
+    if (!file.type.startsWith('image/')) {
+       toast({ title: 'Formato incorrecto', description: 'Debes subir una imagen.', variant: 'destructive' });
+       e.target.value = '';
+       return;
+    }
+
+    if (!faceDetector) {
+      setFotoDeportista(file);
+      return;
+    }
+
+    setIsDetectingFace(true);
+
+    try {
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(file);
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+      });
+
+      const detections = faceDetector.detect(img);
+      URL.revokeObjectURL(img.src);
+
+      if (detections.detections.length === 0) {
+        toast({ 
+          title: "Rostro no detectado", 
+          description: "No se logró detectar un rostro claro en la fotografía. Por favor intenta con una foto donde te veas mejor de frente.", 
+          variant: "destructive" 
+        });
+        e.target.value = '';
+        setFotoDeportista(null);
+      } else {
+        toast({ title: "Rostro validado", description: "¡Perfecto! Tu foto cumple con los parámetros." });
+        setFotoDeportista(file);
+      }
+    } catch (error) {
+      console.error("Face detection error:", error);
+      setFotoDeportista(file); 
+    } finally {
+      setIsDetectingFace(false);
+    }
+  };
 
   const handleFileUpload = async (file: File | null, pathPrefix: string): Promise<string | null> => {
     if (!file || !uid) return null;
@@ -435,11 +509,11 @@ export default function InscripcionPage() {
                   {/* Other Files in Grid for better mobile flow */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
                     {[
-                      { state: fotoPlaca, setter: setFotoPlaca, title: "Foto de la placa (Tú motocicleta)", desc: "Obligatorio para Plaza Mayor Medellín." },
-                      { state: fotoPropiedad, setter: setFotoPropiedad, title: "Foto/PDF Tarjeta de propiedad", desc: "O envíalo al WhatsApp: 3044347740" },
-                      { state: fotoSoat, setter: setFotoSoat, title: "Fotografía del SOAT vigente", desc: "O envíalo al WhatsApp: 3044347740" },
-                      { state: fotoDeportista, setter: setFotoDeportista, title: "Foto tuya (Tipo Cédula o Carnet)", desc: "Fondo blanco o azul. Pantalla LED gigante.", exampleImage: "/ejemplo-foto-cedula.png" }
-                    ].map((item, idx) => (
+                      { state: fotoPlaca, setter: (f: any) => setFotoPlaca(f), title: "Foto de la placa (Tú motocicleta)", desc: "Obligatorio para Plaza Mayor Medellín." },
+                      { state: fotoPropiedad, setter: (f: any) => setFotoPropiedad(f), title: "Foto/PDF Tarjeta de propiedad", desc: "O envíalo al WhatsApp: 3044347740" },
+                      { state: fotoSoat, setter: (f: any) => setFotoSoat(f), title: "Fotografía del SOAT vigente", desc: "O envíalo al WhatsApp: 3044347740" },
+                      { state: fotoDeportista, setter: (f: any, e: any) => handleFotoDeportistaChange(e), title: "Foto tuya (Tipo Cédula o Carnet)", desc: "Fondo blanco o azul. Pantalla LED gigante.", exampleImage: "/ejemplo-foto-cedula.png", isDeportista: true }
+                    ].map((item: any, idx) => (
                       <div key={idx} className="flex flex-col space-y-2 p-4 bg-zinc-900/30 border border-zinc-800 rounded-lg">
                         <Label className="text-zinc-200 text-sm md:text-base font-semibold flex justify-between items-start gap-2">
                           <span className="leading-tight">{item.title}</span>
@@ -455,11 +529,11 @@ export default function InscripcionPage() {
                           )}
                           
                           <div className="relative border-2 border-dashed border-zinc-700 py-5 rounded-lg text-center hover:bg-zinc-800/40 transition-colors h-full flex flex-col justify-center">
-                            <Input type="file" onChange={(e) => item.setter(e.target.files ? e.target.files[0] : null)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".pdf,image/*" />
+                            <Input type="file" onChange={(e) => item.setter(e.target.files ? e.target.files[0] : null, e)} className={`absolute inset-0 w-full h-full opacity-0 ${item.isDeportista && isDetectingFace ? 'cursor-wait' : 'cursor-pointer'}`} accept=".pdf,image/*" disabled={item.isDeportista && isDetectingFace} />
                             <div className="flex flex-col items-center pointer-events-none px-2">
-                              <UploadCloud className={`w-6 h-6 mb-2 ${item.state ? 'text-green-500' : 'text-zinc-500'}`} />
+                              <UploadCloud className={`w-6 h-6 mb-2 ${item.state ? 'text-green-500' : 'text-zinc-500'} ${item.isDeportista && isDetectingFace ? 'animate-bounce' : ''}`} />
                               <span className="text-xs font-medium text-zinc-400 break-words w-full">
-                                {item.state ? <span className="text-zinc-200">{item.state.name}</span> : "Toca aquí"}
+                                {item.isDeportista && isDetectingFace ? "Analizando rostro..." : item.state ? <span className="text-zinc-200">{item.state.name}</span> : "Toca aquí"}
                               </span>
                             </div>
                           </div>
@@ -686,7 +760,8 @@ export default function InscripcionPage() {
                 <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(34,197,94,0.3)] border border-green-500/30">
                   <CheckCircle2 className="w-12 h-12 text-green-500" />
                 </div>
-                <h2 className="text-3xl font-extrabold text-white mb-2">¡Inscripción Aprobada!</h2>
+                <h2 className="text-3xl font-extrabold text-white mb-2 text-center">¡Inscripción Aprobada!</h2>
+                <h3 className="text-xl font-bold text-green-400 mb-2 text-center">¡Gracias por ser parte de la Copa Stunt 2026!</h3>
                 <p className="text-zinc-400 text-center mb-8">
                   Presenta este código QR en el ingreso de Plaza Mayor Medellín para validar tu identidad.
                 </p>

@@ -2,7 +2,7 @@
 
 import { AuthForm } from '@/components/auth-form';
 import { Button } from '@/components/ui/button';
-import { LogIn, UserPlus, Star, Gift, ShieldAlert, MapPin, Calendar, Smartphone } from 'lucide-react';
+import { Shield, Settings, Globe, MapPin, Calendar, CheckCircle2, ChevronRight, AlertTriangle, ShieldCheck, Ticket, ScrollText, Flag } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 export default function Home() {
@@ -14,266 +14,219 @@ export default function Home() {
     }
   }, []);
 
-  const triggerToggleLogin = () => {
-    setIsLoginState(!isLoginState);
-    if (!isLoginState) {
-      window.location.hash = '#login';
-    } else {
-      window.location.hash = '';
-    }
-  };
-
-  // Sponsor logos mapped to precise filenames
-  const sponsors = [
-    { name: "Copa Stunt Nitrox F2R", file: "copa stunt nitrox f2r.png" },
-    { name: "Fedemoto Colombia", file: "Fedemoto.png" },
-    { name: "Mobil", file: "Mobil Blanco.png" },
-    { name: "IRC Tire", file: "IRC Blanco.png" },
-    { name: "Copa Stunt", file: "Copa Stunt Nitrox Blanco.png" },
-    { name: "Nitrox", file: "Nitrox Blanco.png" },
-    { name: "Victory Motorcycles", file: "Victory Blanco.png" },
-    { name: "Trakku", file: "Trakku.png" },
-    { name: "PKS", file: "PKS Blanco.png" },
-  ];
-
   return (
-    <main className="relative min-h-screen w-full overflow-x-hidden bg-black flex flex-col items-center selection:bg-green-500 selection:text-black">
+    <main className="relative min-h-screen w-full overflow-x-hidden bg-[#080808] text-zinc-200 selection:bg-[#00FF00] selection:text-black font-body flex flex-col">
+      {/* Background Texture (Industrial Metal/Carbon vibe) */}
+      <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-zinc-800/20 via-[#0A0A0A] to-[#050505] z-0"></div>
+      <div className="fixed inset-0 pointer-events-none opacity-[0.15] z-0" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=%2220%22 height=%2220%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cpath d=%22M0 0h20v20H0z%22 fill=%22%23000%22 fill-opacity=%220.05%22/%3E%3Cpath d=%22M0 0l20 20M20 0L0 20%22 stroke=%22%23fff%22 stroke-opacity=%220.05%22 stroke-width=%221%22/%3E%3C/svg%3E")' }}></div>
       
-      {/* Background Ambience */}
-      <div 
-        className="fixed inset-0 bg-cover bg-center opacity-30 brightness-50 mix-blend-luminosity z-0 pointer-events-none"
-        style={{ backgroundImage: "url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQDzaVuxtCY_AusMRO-aMQj4FO9geAfOKi5Zg&s')" }}
-      ></div>
-
       {/* Navigation Header */}
-      <nav className="w-full relative z-50 px-4 md:px-8 py-4 flex items-center max-w-[1400px] mx-auto bg-black/60 backdrop-blur-xl border-b border-zinc-800 shadow-2xl">
-        <div className="flex flex-wrap items-center justify-between md:justify-start gap-4 md:gap-8 w-full">
-          <div className="flex items-center gap-4">
-            <a href="/" className="flex items-center hover:opacity-80 transition-opacity cursor-pointer shrink-0">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/sponsors/PKS Blanco.png" alt="Paskines Stunt" className="h-6 md:h-8 w-auto object-contain" />
-            </a>
-            <div className="hidden md:flex items-center gap-2 md:gap-4">
-              <Button 
-                onClick={() => { 
-                  setIsLoginState(false); 
-                  window.location.hash = ''; 
-                  document.getElementById('auth-form-section')?.scrollIntoView({ behavior: 'smooth' });
-                }} 
-                className="bg-green-500 text-black font-extrabold hover:bg-green-400 transition-all shadow-[0_0_25px_rgba(34,197,94,0.8)] text-xs md:text-sm px-3 md:px-4 h-8 md:h-10"
-              >
-                Inscripción
-              </Button>
-              <Button 
-                onClick={() => { 
-                  setIsLoginState(true); 
-                  window.location.hash = '#login'; 
-                  document.getElementById('auth-form-section')?.scrollIntoView({ behavior: 'smooth' });
-                }} 
-                variant="outline" 
-                className="border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-800 transition-all text-xs md:text-sm px-3 md:px-4 h-8 md:h-10"
-              >
-                Iniciar Sesión
-              </Button>
-            </div>
-          </div>
-          <div className="flex md:hidden items-center gap-2">
-            <Button 
-              onClick={() => { 
-                setIsLoginState(false); 
-                window.location.hash = ''; 
-                document.getElementById('auth-form-section')?.scrollIntoView({ behavior: 'smooth' });
-              }} 
-              className="bg-green-500 text-black font-extrabold hover:bg-green-400 transition-all shadow-[0_0_20px_rgba(34,197,94,0.6)] text-[10px] px-2 h-7"
-            >
-              Inscripción
-            </Button>
-            <Button 
-              onClick={() => { 
-                setIsLoginState(true); 
-                window.location.hash = '#login'; 
-                document.getElementById('auth-form-section')?.scrollIntoView({ behavior: 'smooth' });
-              }} 
-              variant="outline" 
-              className="border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-800 transition-all text-[10px] px-2 h-7"
-            >
-              Login
-            </Button>
-          </div>
+      <nav className="w-full relative z-50 px-6 py-3 flex items-center justify-between max-w-[1800px] mx-auto drop-shadow-2xl flex-shrink-0">
+        <div className="flex items-center">
+          <a href="/" className="cursor-pointer transition-opacity hover:opacity-80">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/sponsors/PKS Blanco.png" alt="Paskines Stunt" className="h-6 md:h-8 w-auto object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]" />
+          </a>
+        </div>
+        
+        <div className="flex bg-[#111111]/90 backdrop-blur-md p-1.5 rounded-xl border border-zinc-800/80 shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
+          <Button 
+            onClick={() => { 
+              setIsLoginState(false); 
+              window.location.hash = ''; 
+            }} 
+            className={`rounded-lg px-6 h-9 font-bold transition-all duration-300 ${!isLoginState ? 'bg-[#39FF14] text-black shadow-[0_0_20px_rgba(57,255,20,0.4)] hover:bg-[#2CE50F] hover:shadow-[0_0_30px_rgba(57,255,20,0.6)]' : 'bg-transparent text-zinc-500 hover:text-white hover:bg-zinc-800/50'}`}
+          >
+            Inscripción
+          </Button>
+          <Button 
+            onClick={() => { 
+              setIsLoginState(true); 
+              window.location.hash = '#login'; 
+            }} 
+            className={`rounded-lg px-6 h-9 font-bold transition-all duration-300 ${isLoginState ? 'bg-[#39FF14] text-black shadow-[0_0_20px_rgba(57,255,20,0.4)] hover:bg-[#2CE50F] hover:shadow-[0_0_30px_rgba(57,255,20,0.6)]' : 'bg-transparent text-zinc-500 hover:text-white hover:bg-zinc-800/50'}`}
+          >
+            Iniciar Sesión
+          </Button>
         </div>
       </nav>
 
-      {/* Hero Mega-Section */}
-      <section className="relative z-10 w-full flex flex-col xl:flex-row items-center xl:items-start justify-center gap-8 xl:gap-14 pt-8 pb-16 px-4 md:px-8 max-w-[1400px] mx-auto">
+      {/* Main Layout Container: 3 Asymmetric Parts (Hero, Value, Form) */}
+      <div className="max-w-[1800px] mx-auto w-full flex-1 flex flex-col lg:flex-row relative z-10 px-4 md:px-8 pb-10 lg:pb-12 gap-8 lg:gap-12 mt-4">
         
-        {/* Left Box: Event Info styled as Street Racing */}
-        <div className="w-full xl:flex-1 bg-zinc-950/80 backdrop-blur-2xl border border-zinc-800/80 rounded-[2rem] p-6 md:p-10 shadow-2xl relative overflow-hidden group">
+        {/* LEFT COLUMN: Hero & Value (Approx 60%) */}
+        <div className="w-full lg:w-[60%] flex flex-col relative gap-8">
           
-          {/* Internal Glow Effects */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-green-500/10 blur-[100px] pointer-events-none transition-all group-hover:bg-green-500/20"></div>
+          {/* HERO IMAGE BACKGROUND (Absolute to left column) */}
+          <div className="absolute top-[-5%] left-[-5%] w-[120%] h-[110%] z-[-1] opacity-40 pointer-events-none" 
+               style={{ WebkitMaskImage: 'linear-gradient(to right, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 90%)', maskImage: 'linear-gradient(to right, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 90%)' }}>
+            <div className="w-full h-full" style={{ WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%)', maskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%)' }}>
+              <div 
+                className="w-full h-full bg-cover bg-top bg-no-repeat"
+                style={{ backgroundImage: "url('/sponsors/fondo.png')" }}
+              ></div>
+            </div>
+          </div>
 
-          <div className="relative text-left space-y-8 text-zinc-300">
-            {/* Main Header */}
-            <div className="flex flex-col w-full overflow-hidden">
-              <div className="flex flex-nowrap items-center justify-start gap-3 md:gap-5 mb-4">
-                <img 
-                  src="/sponsors/copa stunt nitrox f2r.png" 
-                  alt="Copa Stunt Nitrox F2R" 
-                  className="h-10 sm:h-14 md:h-16 w-auto object-contain drop-shadow-[0_0_15px_rgba(34,197,94,0.3)] shrink-0"
-                />
-                <img 
-                  src="/sponsors/Nitrox Blanco.png" 
-                  alt="Nitrox" 
-                  className="h-10 sm:h-14 md:h-20 w-auto object-contain drop-shadow-[0_0_30px_rgba(255,255,255,0.6)] z-10 shrink-0"
-                />
-                <img 
-                  src="/sponsors/Mobil Blanco.png" 
-                  alt="Mobil" 
-                  className="h-10 sm:h-14 md:h-16 w-auto object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.2)] shrink-0"
-                />
+          {/* HERO CONTENT */}
+          <div className="relative z-10 drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)] mt-2 lg:mt-6">
+            <h1 className="flex flex-col font-headline font-black uppercase italic leading-[0.85] tracking-tighter drop-shadow-2xl">
+              <span className="text-white text-6xl md:text-7xl lg:text-[6rem] drop-shadow-[0_5px_10px_rgba(0,0,0,0.8)]">COPA STUNT</span>
+              <span className="text-[#39FF14] text-6xl md:text-7xl lg:text-[6rem] drop-shadow-[0_0_30px_rgba(57,255,20,0.4)]">F2R - NITROX</span>
+            </h1>
+            
+            <div className="flex flex-wrap items-center gap-4 mt-6 ml-1">
+              <p className="text-zinc-400 font-medium text-[10px] md:text-xs uppercase tracking-[0.2em] max-w-[250px]">
+                El campeonato de stunt más importante del país
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-4 mt-5 ml-1">
+              <div className="flex items-center gap-2 text-[#00FF00]">
+                <MapPin className="w-4 h-4" />
+                <span className="text-white font-bold tracking-widest text-xs uppercase">MEDELLÍN</span>
               </div>
-              <h1 className="sr-only">Copa Stunt F2R Repuestos NITROX</h1>
-              
-              <div className="mt-4 w-full flex justify-start">
-                <img 
-                  src="/sponsors/FECHA BLANCO ESP.png" 
-                  alt="Fecha y Lugar" 
-                  className="h-16 sm:h-20 md:h-24 w-full max-w-2xl object-fill drop-shadow-[0_0_10px_rgba(255,255,255,0.15)]"
-                />
+              <div className="h-4 w-px bg-zinc-700"></div>
+              <div className="flex items-center gap-2 text-[#00FF00]">
+                <Calendar className="w-4 h-4" />
+                <span className="text-white font-bold tracking-widest text-xs uppercase">21 AL 24 DE MAYO</span>
               </div>
             </div>
 
-            {/* Essential Data Grid */}
-            <div className="grid md:grid-cols-2 gap-4">
-               <div className="p-5 rounded-2xl bg-zinc-900/50 border border-zinc-800 flex flex-col gap-2">
-                 <div className="flex items-center gap-2 text-green-400 font-black tracking-wide uppercase"><Calendar className="w-5 h-5"/> Fechas y Costos</div>
-                 <ul className="space-y-2 text-sm">
-                   <li><strong className="text-white">Ordinarias:</strong> 16 abr al 10 may - $280.000</li>
-                   <li><strong className="text-white">Extemporales:</strong> 11 al 15 may - $350.000</li>
-                   <li className="text-zinc-500 italic pt-1">No se realizarán devoluciones de dinero.</li>
-                 </ul>
-               </div>
+            <div className="mt-8 bg-gradient-to-r from-[#111] to-transparent border-l-4 border-[#00FF00] pl-5 py-3">
+              <h3 className="text-white font-black text-lg md:text-xl uppercase tracking-widest italic">
+                AQUÍ SE DEFINE EL <span className="text-[#00FF00]">NIVEL</span> DEL STUNT EN COLOMBIA
+              </h3>
+            </div>
+          </div>
 
-               <div className="p-5 rounded-2xl bg-zinc-900/50 border border-zinc-800 flex flex-col gap-2">
-                 <div className="flex items-center gap-2 text-green-400 font-black tracking-wide uppercase"><Gift className="w-5 h-5"/> El Costo Incluye</div>
-                 <ul className="space-y-1 text-sm list-disc list-inside">
-                   <li>INGRESO ESCARAPELA FERIA</li>
-                   <li>Boleta para acompañante</li>
-                   <li>Póliza deportiva de competencia</li>
-                   <li>Kit de bienvenida Nitrox</li>
-                   <li className="text-white font-bold tracking-wide pt-1">Podrás participar en la rifa de una MRX 200</li>
-                 </ul>
-               </div>
+          {/* VALUE MODULE (Cards Row) */}
+          <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-3">
+            
+            {/* Card 1: Precio */}
+            <div className="bg-[#111111]/90 backdrop-blur-md border border-[#222] rounded-xl p-4 lg:p-5 relative overflow-hidden group hover:border-[#FFB700]/50 transition-all duration-300 flex flex-col justify-center">
+              <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-[#FFB700] to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <div className="flex items-center gap-2 mb-2 text-[#00FF00]">
+                <Ticket className="w-4 h-4" strokeWidth={2} />
+                <span className="font-bold text-[10px] uppercase tracking-widest">INSCRIPCIÓN</span>
+              </div>
+              <h2 className="text-3xl lg:text-4xl font-black text-white tracking-tighter drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+                $280.000
+              </h2>
+              <div className="mt-2 flex flex-wrap items-center gap-1.5 lg:gap-2">
+                <span className="text-[#00FF00] font-bold text-xs lg:text-sm drop-shadow-[0_0_5px_rgba(0,255,0,0.5)]">$350.000</span>
+                <span className="text-zinc-500 text-[8px] lg:text-[9px] uppercase tracking-widest font-bold">EXTEMPORÁNEO</span>
+              </div>
             </div>
 
-            {/* Warning block */}
-            <div className="flex items-start gap-4 p-5 bg-green-500/5 border border-green-500/20 rounded-2xl">
-               <ShieldAlert className="w-6 h-6 text-green-500 shrink-0 mt-0.5" />
-               <div className="text-sm font-medium space-y-1.5 text-zinc-400">
-                 <strong className="text-green-500 block uppercase tracking-wider mb-2">Reglamento</strong>
-                 <p>• Nos reservamos el derecho de admisión y permanencia.</p>
-                 <p>• La organización solo se hará responsable por pilotos que cumplan el reglamento a cabalidad.</p>
-                 <p>• Menores de edad deben estar acompañados por un adulto responsable (asumirá toda la responsabilidad).</p>
-               </div>
+            {/* Card 2: Incluye */}
+            <div className="bg-[#111111]/90 backdrop-blur-md border border-[#222] rounded-xl p-4 lg:p-5 relative overflow-hidden group hover:border-[#00FF00]/40 transition-all duration-300">
+              <div className="flex items-center gap-2 mb-3 text-[#00FF00]">
+                <ShieldCheck className="w-4 h-4" strokeWidth={2} />
+                <span className="font-bold text-[10px] uppercase tracking-widest">INCLUYE</span>
+              </div>
+              <ul className="space-y-2.5">
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="w-3 h-3 text-[#00FF00] shrink-0" strokeWidth={2} />
+                  <span className="text-xs text-zinc-300 font-medium">Acceso VIP a la feria</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="w-3 h-3 text-[#00FF00] shrink-0" strokeWidth={2} />
+                  <span className="text-xs text-zinc-300 font-medium">Participación oficial</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="w-3 h-3 text-[#00FF00] shrink-0" strokeWidth={2} />
+                  <span className="text-xs text-zinc-300 font-medium">Kit de patrocinadores</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="w-3 h-3 text-[#00FF00] shrink-0" strokeWidth={2} />
+                  <span className="text-xs text-zinc-300 font-medium">Póliza deportiva integral</span>
+                </li>
+              </ul>
             </div>
 
-
+            {/* Card 3: Reglamento */}
+            <div className="bg-[#111111]/90 backdrop-blur-md border border-[#222] rounded-xl p-4 lg:p-5 flex flex-col relative overflow-hidden group hover:border-zinc-500 transition-all duration-300">
+              <div className="flex items-center gap-2 mb-2 text-[#00FF00]">
+                <ScrollText className="w-4 h-4" strokeWidth={2} />
+                <span className="font-bold text-[10px] uppercase tracking-widest">REGLAMENTO</span>
+              </div>
+              <p className="text-xs text-zinc-400 leading-relaxed mb-4 flex-grow">
+                Consulta normativas técnicas y reglas de comportamiento.
+              </p>
+              <Button variant="outline" className="w-full border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white uppercase tracking-widest text-[10px] font-bold h-9 mt-auto">
+                VER REGLAMENTO
+              </Button>
+            </div>
 
           </div>
+
+          {/* SPONSORS STRIP */}
+          <div className="relative z-10 pt-8 pb-4 mt-auto flex flex-col gap-6 md:gap-8">
+            {/* Prioritized Sponsors */}
+            <div className="flex flex-wrap items-center justify-center gap-8 md:gap-16">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/sponsors/Copa Stunt Nitrox Blanco.png" alt="Copa Stunt" className="h-14 md:h-20 lg:h-24 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/sponsors/Nitrox Blanco.png" alt="Nitrox" className="h-12 md:h-16 lg:h-20 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/sponsors/Mobil Blanco.png" alt="Mobil Super" className="h-12 md:h-16 lg:h-20 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]" />
+            </div>
+            
+            {/* Secondary Sponsors */}
+            <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/sponsors/PKS Blanco.png" alt="PKS" className="h-8 md:h-10 lg:h-12 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)]" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/sponsors/copa stunt nitrox f2r.png" alt="F2R" className="h-10 md:h-12 lg:h-14 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)]" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/sponsors/Trakku.png" alt="Trakku" className="h-9 md:h-11 lg:h-12 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)]" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/sponsors/IRC Blanco.png" alt="IRC" className="h-8 md:h-10 lg:h-12 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)]" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/sponsors/Fedemoto.png" alt="Fedemoto" className="h-8 md:h-10 lg:h-12 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)]" />
+            </div>
+
+            {/* Redes Sociales A Color */}
+            <div className="flex justify-center items-center gap-6 mt-6 md:mt-8 pb-4">
+              <a href="https://instagram.com/copastuntcolombia" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-10 h-10 md:w-12 md:h-12 drop-shadow-[0_0_10px_rgba(225,48,108,0.4)]">
+                  <defs>
+                    <linearGradient id="ig-grad" x1="0%" y1="100%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="#f09433"/>
+                      <stop offset="25%" stopColor="#e6683c"/>
+                      <stop offset="50%" stopColor="#dc2743"/>
+                      <stop offset="75%" stopColor="#cc2366"/>
+                      <stop offset="100%" stopColor="#bc1888"/>
+                    </linearGradient>
+                  </defs>
+                  <path fill="url(#ig-grad)" d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+                </svg>
+              </a>
+              <a href="https://facebook.com/copastuntcolombia" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-10 h-10 md:w-12 md:h-12 drop-shadow-[0_0_10px_rgba(24,119,242,0.4)]">
+                  <path fill="#1877F2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                  <path fill="#fff" d="M16.671 15.542l.532-3.469h-3.328V9.822c0-.949.465-1.874 1.956-1.874h1.514V5.006s-1.375-.235-2.686-.235c-2.741 0-4.533 1.662-4.533 4.669v2.633H7.078v3.469h3.047v8.385a12.09 12.09 0 003.875 0v-8.385h2.671z"/>
+                </svg>
+              </a>
+            </div>
+          </div>
+
+          {/* FOOTER */}
+          <footer className="relative z-10 w-full py-4 mt-2 flex justify-center border-t border-zinc-800/30">
+            <p className="text-zinc-500 text-[10px] md:text-xs uppercase tracking-widest font-bold text-center">
+              © 2026 COPA STUNT COLOMBIA. TODOS LOS DERECHOS RESERVADOS.
+            </p>
+          </footer>
+
         </div>
 
-        {/* Right Box: The Form Header/Logic */}
-        <div id="auth-form-section" className="w-full xl:w-[500px] flex-shrink-0 relative mt-4 xl:mt-0 xl:sticky xl:top-24">
-
+        {/* RIGHT COLUMN: PREMIUM FORM (Approx 40%) */}
+        <div id="auth-form-section" className="w-full lg:w-[40%] flex-shrink-0 relative z-20 h-full flex flex-col justify-center">
           <AuthForm externalIsLogin={isLoginState} onToggleAuthMode={setIsLoginState} />
         </div>
-      </section>
 
-      {/* ====== SPONSOR BANNER WITH REAL LOGOS - Moved BELOW main form ====== */}
-      <div className="w-full relative z-40 py-10 overflow-hidden"
-        style={{ 
-          backgroundImage: "url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQDzaVuxtCY_AusMRO-aMQj4FO9geAfOKi5Zg&s')",
-          backgroundSize: 'cover', 
-          backgroundPosition: 'center'
-        }}
-      >
-        {/* Dark overlay on wood/dark texture */}
-        <div className="absolute inset-0 bg-black/80"></div>
-
-        {/* Fading Edges */}
-        <div className="absolute top-0 left-0 w-16 md:w-32 h-full bg-gradient-to-r from-black via-black/80 to-transparent z-20 pointer-events-none"></div>
-        <div className="absolute top-0 right-0 w-16 md:w-32 h-full bg-gradient-to-l from-black via-black/80 to-transparent z-20 pointer-events-none"></div>
-
-        {/* Marquee Track */}
-        <div className="relative z-10 flex animate-marquee items-center" style={{ width: 'max-content' }}>
-          {/* Repeat 3x for seamless loop */}
-          {[0, 1, 2].map((setIdx) => (
-            <div key={setIdx} className="flex items-center gap-0">
-              {sponsors.map((sponsor, i) => (
-                <div key={`${setIdx}-${i}`} className="flex justify-center items-center px-8 md:px-16">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={`/sponsors/${sponsor.file}`}
-                    alt={sponsor.name}
-                    className="h-16 md:h-24 w-auto object-contain brightness-100 drop-shadow-[0_0_15px_rgba(255,255,255,0.15)] hover:scale-110 transition-transform duration-300"
-                  />
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
       </div>
-
-      {/* NEW LOCATION: Racing paragraph block below Marquee */}
-      <section className="relative w-full z-20 bg-zinc-900 border-t border-b border-zinc-800 py-10 px-6 shadow-2xl">
-        {/* Subtle noise/texture over the dark background */}
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{backgroundImage: "url('https://www.transparenttextures.com/patterns/cubes.png')"}}></div>
-        
-        <div className="max-w-4xl mx-auto text-center relative z-10 flex flex-col items-center">
-          <Star className="w-8 h-8 text-green-500 mb-4 drop-shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
-          <h2 className="text-2xl md:text-3xl font-headline font-black text-white uppercase tracking-wider italic mb-4 leading-tight">
-            Vive una experiencia increíble. <br className="hidden md:block"/>
-            Tendremos <span className="text-green-500">muchas sorpresas</span> para los asistentes y unos <span className="text-green-500">premios increíbles</span>.
-          </h2>
-          <p className="text-lg md:text-xl font-medium text-zinc-400 max-w-2xl leading-snug">
-            Así que no te quedes por fuera, es un evento único. Queremos que sea una experiencia inolvidable.
-          </p>
-          <div className="inline-block mt-6 px-6 py-2 bg-green-500/10 border border-green-500/20 text-green-400 font-bold uppercase tracking-widest text-xs rounded-full shadow-inner font-headline">
-            Para hombres y mujeres que vibran por el stunt
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="w-full relative z-10 py-8 border-t border-zinc-900/50 bg-black text-center text-xs text-zinc-600 backdrop-blur-xl flex flex-col items-center gap-2">
-        <p className="font-bold text-green-500 text-sm uppercase tracking-widest">¡Conecta, Impulsa, Transforma!</p>
-        <p className="font-medium text-zinc-400 text-xs uppercase tracking-widest">Organiza: Paskines Stunt S.A.S. & Feria 2 Ruedas</p>
-        
-        {/* Static Social Media Buttons */}
-        <div className="flex flex-row gap-4 my-4">
-          <a 
-            href="https://www.facebook.com/copasstuntcolombia" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="w-12 h-12 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(37,99,235,0.3)] transition-all hover:scale-110 overflow-hidden"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/sponsors/facebook.png" alt="Facebook" className="w-full h-full object-cover" />
-          </a>
-          <a 
-            href="https://www.instagram.com/copastuntcolombia/" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="w-12 h-12 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(236,72,153,0.3)] transition-all hover:scale-110 overflow-hidden bg-white"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/sponsors/Logo instagram.jpg" alt="Instagram" className="w-full h-full object-cover" />
-          </a>
-        </div>
-
-        <div className="mt-2 text-zinc-600">&copy; {new Date().getFullYear()} Paskines Stunt &middot; Copa Stunt Colombia. Todos los derechos reservados.</div>
-      </footer>
     </main>
   );
 }
-

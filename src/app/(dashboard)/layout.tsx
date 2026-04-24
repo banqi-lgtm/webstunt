@@ -10,7 +10,7 @@ export default function DashboardLayout({
       {/* Background Image for Dashboard */}
       <div 
         className="fixed inset-0 bg-cover bg-center bg-no-repeat opacity-40 pointer-events-none z-0"
-        style={{ backgroundImage: "url('https://img1.wallspic.com/previews/6/0/3/8/28306/28306-motocicleta-stunt_artista_interprete_o_ejecutante-deporte_extremo-las_carreras_de_motos-automovilismo-x750.jpg')" }}
+        style={{ backgroundImage: "url('/sponsors/Diseño%20sin%20título.png')" }}
       />
       <div className="fixed inset-0 bg-zinc-950/70 pointer-events-none z-0" />
 
@@ -39,7 +39,7 @@ export default function DashboardLayout({
               className="w-10 h-10 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(236,72,153,0.3)] transition-all hover:scale-110 overflow-hidden bg-white"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/sponsors/Logo instagram.jpg" alt="Instagram" className="w-full h-full object-cover" />
+              <img src="/sponsors/images.jpg" alt="Instagram" className="w-full h-full object-cover" />
             </a>
           </div>
           <div className="mt-2 text-zinc-600">&copy; {new Date().getFullYear()} Paskines Stunt &middot; Copa Stunt Colombia</div>

@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     type: 'website',
   },
   icons: {
-    icon: '/sponsors/copa stunt nitrox f2r.png',
+    icon: '/sponsors/stunt2026negro.jpeg',
   },
 };
 
