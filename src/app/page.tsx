@@ -2,7 +2,7 @@
 
 import { AuthForm } from '@/components/auth-form';
 import { Button } from '@/components/ui/button';
-import { Shield, Settings, Globe, MapPin, Calendar, CheckCircle2, ChevronRight, AlertTriangle, ShieldCheck, Ticket, ScrollText, Flag } from 'lucide-react';
+import { Shield, Settings, Globe, MapPin, Calendar, CheckCircle2, ChevronRight, AlertTriangle, ShieldCheck, Ticket, ScrollText, Flag, Check, Gift } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 export default function Home() {
@@ -15,10 +15,7 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="relative min-h-screen w-full overflow-x-hidden bg-[#080808] text-zinc-200 selection:bg-[#00FF00] selection:text-black font-body flex flex-col">
-      {/* Background Texture (Industrial Metal/Carbon vibe) */}
-      <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-zinc-800/20 via-[#0A0A0A] to-[#050505] z-0"></div>
-      <div className="fixed inset-0 pointer-events-none opacity-[0.15] z-0" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=%2220%22 height=%2220%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cpath d=%22M0 0h20v20H0z%22 fill=%22%23000%22 fill-opacity=%220.05%22/%3E%3Cpath d=%22M0 0l20 20M20 0L0 20%22 stroke=%22%23fff%22 stroke-opacity=%220.05%22 stroke-width=%221%22/%3E%3C/svg%3E")' }}></div>
+    <main className="relative min-h-screen w-full overflow-x-hidden bg-black text-zinc-200 selection:bg-[#00FF00] selection:text-black font-body flex flex-col">
       
       {/* Navigation Header */}
       <nav className="w-full relative z-50 px-6 py-3 flex items-center justify-between max-w-[1800px] mx-auto drop-shadow-2xl flex-shrink-0">
@@ -51,144 +48,240 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* Main Layout Container: 3 Asymmetric Parts (Hero, Value, Form) */}
-      <div className="max-w-[1800px] mx-auto w-full flex-1 flex flex-col lg:flex-row relative z-10 px-4 md:px-8 pb-10 lg:pb-12 gap-8 lg:gap-12 mt-4">
+      {/* Main Layout Container */}
+      <div className="max-w-[1800px] mx-auto w-full flex-1 flex flex-col relative z-10 px-4 md:px-8 pb-10 lg:pb-12 gap-8 lg:gap-12 mt-4">
         
-        {/* LEFT COLUMN: Hero & Value (Approx 60%) */}
-        <div className="w-full lg:w-[60%] flex flex-col relative gap-8">
-          
-          {/* HERO IMAGE BACKGROUND (Absolute to left column) */}
-          <div className="absolute top-[-5%] left-[-5%] w-[120%] h-[110%] z-[-1] opacity-40 pointer-events-none" 
-               style={{ WebkitMaskImage: 'linear-gradient(to right, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 90%)', maskImage: 'linear-gradient(to right, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 90%)' }}>
-            <div className="w-full h-full" style={{ WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%)', maskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%)' }}>
-              <div 
-                className="w-full h-full bg-cover bg-top bg-no-repeat"
-                style={{ backgroundImage: "url('/sponsors/fondo.png')" }}
-              ></div>
-            </div>
-          </div>
+        {/* TOP ROW: Hero/Value (Left) & Form (Right) */}
+        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 w-full">
 
-          {/* HERO CONTENT */}
-          <div className="relative z-10 drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)] mt-2 lg:mt-6">
-            <h1 className="flex flex-col font-headline font-black uppercase italic leading-[0.85] tracking-tighter drop-shadow-2xl">
-              <span className="text-white text-6xl md:text-7xl lg:text-[6rem] drop-shadow-[0_5px_10px_rgba(0,0,0,0.8)]">COPA STUNT</span>
-              <span className="text-[#39FF14] text-6xl md:text-7xl lg:text-[6rem] drop-shadow-[0_0_30px_rgba(57,255,20,0.4)]">F2R - NITROX</span>
-            </h1>
+          {/* LEFT COLUMN: Hero & Value (Approx 60%) */}
+          <div className="w-full lg:w-[60%] flex flex-col relative gap-8">
+
+          {/* HERO CONTENT — Title + Moto image */}
+          <div className="relative z-10 mt-2 lg:mt-6">
+            {/* BACKGROUND EFFECTS & MOTO */}
+            {/* BACKGROUND EFFECTS & MOTO */}
+            <div className="absolute inset-0 pointer-events-none z-0 overflow-visible">
+              {/* Subtle Green Neon Glow acting as a separator/highlight */}
+              <div className="absolute top-[80px] right-[100px] md:right-[250px] w-[150px] md:w-[250px] h-[200px] md:h-[300px] bg-[#39FF14] opacity-[0.12] blur-[80px] rounded-full mix-blend-screen"></div>
+              
+              {/* Background Screenshot image — heavily faded on the left to leave the logo area completely clean */}
+              <div className="absolute top-0 md:top-[-40px] right-[-80px] md:right-[-80px] w-[500px] h-[500px] md:w-[900px] md:h-[800px] opacity-70 md:opacity-90"
+                   style={{ 
+                     WebkitMaskImage: 'linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 45%, rgba(0,0,0,1) 85%), linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 15%, rgba(0,0,0,1) 85%, rgba(0,0,0,0) 100%)', 
+                     WebkitMaskComposite: 'destination-in',
+                     maskImage: 'linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 45%, rgba(0,0,0,1) 85%), linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 15%, rgba(0,0,0,1) 85%, rgba(0,0,0,0) 100%)',
+                     maskComposite: 'intersect'
+                   }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/sponsors/Screenshot 2026-04-24 175445.png" alt="Stunt Rider Background" className="w-full h-full object-contain object-right" />
+              </div>
+            </div>
+            {/* Title Logo replacing text title */}
+            <div className="relative z-10 w-[180px] md:w-[240px] lg:w-[280px] mb-4 drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/sponsors/copa stunt nitrox f2r.png" alt="Copa Stunt Colombia F2R 2026" className="w-full h-auto object-contain" />
+            </div>
             
-            <div className="flex flex-wrap items-center gap-4 mt-6 ml-1">
-              <p className="text-zinc-400 font-medium text-[10px] md:text-xs uppercase tracking-[0.2em] max-w-[250px]">
-                El campeonato de stunt más importante del país
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-4 mt-5 ml-1">
-              <div className="flex items-center gap-2 text-[#00FF00]">
-                <MapPin className="w-4 h-4" />
-                <span className="text-white font-bold tracking-widest text-xs uppercase">MEDELLÍN</span>
-              </div>
-              <div className="h-4 w-px bg-zinc-700"></div>
-              <div className="flex items-center gap-2 text-[#00FF00]">
-                <Calendar className="w-4 h-4" />
-                <span className="text-white font-bold tracking-widest text-xs uppercase">21 AL 24 DE MAYO</span>
-              </div>
-            </div>
-
-            <div className="mt-8 bg-gradient-to-r from-[#111] to-transparent border-l-4 border-[#00FF00] pl-5 py-3">
-              <h3 className="text-white font-black text-lg md:text-xl uppercase tracking-widest italic">
-                AQUÍ SE DEFINE EL <span className="text-[#00FF00]">NIVEL</span> DEL STUNT EN COLOMBIA
-              </h3>
-            </div>
-          </div>
-
-          {/* VALUE MODULE (Cards Row) */}
-          <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-3">
-            
-            {/* Card 1: Precio */}
-            <div className="bg-[#111111]/90 backdrop-blur-md border border-[#222] rounded-xl p-4 lg:p-5 relative overflow-hidden group hover:border-[#FFB700]/50 transition-all duration-300 flex flex-col justify-center">
-              <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-[#FFB700] to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-              <div className="flex items-center gap-2 mb-2 text-[#00FF00]">
-                <Ticket className="w-4 h-4" strokeWidth={2} />
-                <span className="font-bold text-[10px] uppercase tracking-widest">INSCRIPCIÓN</span>
-              </div>
-              <h2 className="text-3xl lg:text-4xl font-black text-white tracking-tighter drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
-                $280.000
+            {/* Subtitle */}
+            <div className="relative z-10 flex flex-col gap-1 mt-2">
+              <h2 className="text-white font-bold text-xl md:text-2xl uppercase tracking-wide">
+                EL CAMPEONATO DE STUNT
               </h2>
-              <div className="mt-2 flex flex-wrap items-center gap-1.5 lg:gap-2">
-                <span className="text-[#00FF00] font-bold text-xs lg:text-sm drop-shadow-[0_0_5px_rgba(0,255,0,0.5)]">$350.000</span>
-                <span className="text-zinc-500 text-[8px] lg:text-[9px] uppercase tracking-widest font-bold">EXTEMPORÁNEO</span>
+              <h2 className="text-[#FFB700] font-bold text-xl md:text-2xl uppercase tracking-wide drop-shadow-[0_0_8px_rgba(255,183,0,0.5)]">
+                MÁS IMPORTANTE DEL PAÍS
+              </h2>
+            </div>
+
+            {/* Location and Date */}
+            <div className="relative z-10 flex flex-wrap items-start gap-8 mt-6">
+              <div className="flex items-start gap-3">
+                <MapPin className="w-6 h-6 text-[#39FF14] mt-0.5" strokeWidth={2} />
+                <div className="flex flex-col">
+                  <span className="text-white font-bold tracking-wide text-sm uppercase">MEDELLÍN, COLOMBIA</span>
+                  <span className="text-zinc-400 font-medium text-xs uppercase">PLAZA MAYOR</span>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <Calendar className="w-6 h-6 text-[#39FF14] mt-0.5" strokeWidth={2} />
+                <div className="flex flex-col">
+                  <span className="text-white font-bold tracking-wide text-sm uppercase">21 AL 24</span>
+                  <span className="text-zinc-400 font-medium text-xs uppercase">MAYO 2026</span>
+                </div>
               </div>
             </div>
 
-            {/* Card 2: Incluye */}
-            <div className="bg-[#111111]/90 backdrop-blur-md border border-[#222] rounded-xl p-4 lg:p-5 relative overflow-hidden group hover:border-[#00FF00]/40 transition-all duration-300">
-              <div className="flex items-center gap-2 mb-3 text-[#00FF00]">
-                <ShieldCheck className="w-4 h-4" strokeWidth={2} />
-                <span className="font-bold text-[10px] uppercase tracking-widest">INCLUYE</span>
-              </div>
-              <ul className="space-y-2.5">
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3 h-3 text-[#00FF00] shrink-0" strokeWidth={2} />
-                  <span className="text-xs text-zinc-300 font-medium">Acceso VIP a la feria</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3 h-3 text-[#00FF00] shrink-0" strokeWidth={2} />
-                  <span className="text-xs text-zinc-300 font-medium">Participación oficial</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3 h-3 text-[#00FF00] shrink-0" strokeWidth={2} />
-                  <span className="text-xs text-zinc-300 font-medium">Kit de patrocinadores</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3 h-3 text-[#00FF00] shrink-0" strokeWidth={2} />
-                  <span className="text-xs text-zinc-300 font-medium">Póliza deportiva integral</span>
-                </li>
-              </ul>
-            </div>
-
-            {/* Card 3: Reglamento */}
-            <div className="bg-[#111111]/90 backdrop-blur-md border border-[#222] rounded-xl p-4 lg:p-5 flex flex-col relative overflow-hidden group hover:border-zinc-500 transition-all duration-300">
-              <div className="flex items-center gap-2 mb-2 text-[#00FF00]">
-                <ScrollText className="w-4 h-4" strokeWidth={2} />
-                <span className="font-bold text-[10px] uppercase tracking-widest">REGLAMENTO</span>
-              </div>
-              <p className="text-xs text-zinc-400 leading-relaxed mb-4 flex-grow">
-                Consulta normativas técnicas y reglas de comportamiento.
-              </p>
-              <Button variant="outline" className="w-full border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white uppercase tracking-widest text-[10px] font-bold h-9 mt-auto">
-                VER REGLAMENTO
+            {/* CTA Button */}
+            <div className="relative z-10 mt-8 mb-6">
+              <Button 
+                onClick={() => { window.location.hash = '#login'; document.getElementById('auth-form-section')?.scrollIntoView({ behavior: 'smooth' }); }}
+                className="bg-gradient-to-r from-[#FFB700] to-[#FFD500] text-black font-black uppercase tracking-widest text-sm md:text-base px-8 py-6 rounded-md hover:scale-105 transition-transform shadow-[0_0_20px_rgba(255,183,0,0.4)] flex items-center gap-3 w-fit"
+              >
+                ¡INSCRÍBETE AHORA!
+                <ChevronRight className="w-5 h-5" strokeWidth={3} />
               </Button>
             </div>
 
+            {/* Feature Strip */}
+            <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-6 py-6 border-t border-b border-white/10 mt-4 mb-6">
+              <div className="flex items-center gap-4">
+                <ShieldCheck className="w-8 h-8 text-[#39FF14] shrink-0" strokeWidth={1.5} />
+                <p className="text-xs text-white uppercase font-bold tracking-wide leading-snug">
+                  EVENTO OFICIAL <br/>
+                  <span className="text-[#39FF14]">EN EL MARCO DE LA<br/>FERIA 2 RUEDAS</span>
+                </p>
+              </div>
+              <div className="flex items-center gap-4">
+                <Shield className="w-8 h-8 text-[#39FF14] shrink-0" strokeWidth={1.5} />
+                <p className="text-xs text-white uppercase font-bold tracking-wide leading-snug">
+                  RESPALDADO POR LA <br/>
+                  <span className="text-[#39FF14]">FEDERACIÓN COLOMBIANA<br/>DE MOTOCICLISMO</span>
+                </p>
+              </div>
+              <div className="flex items-center gap-4">
+                <Globe className="w-8 h-8 text-[#39FF14] shrink-0" strokeWidth={1.5} />
+                <p className="text-xs text-white uppercase font-bold tracking-wide leading-snug">
+                  PILOTOS DE TODO <br/>
+                  <span className="text-[#39FF14]">EL PAÍS EN UN<br/>ESCENARIO ÚNICO</span>
+                </p>
+              </div>
+            </div>
+
           </div>
 
-          {/* SPONSORS STRIP */}
-          <div className="relative z-10 pt-8 pb-4 mt-auto flex flex-col gap-6 md:gap-8">
-            {/* Prioritized Sponsors */}
-            <div className="flex flex-wrap items-center justify-center gap-8 md:gap-16">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/sponsors/Copa Stunt Nitrox Blanco.png" alt="Copa Stunt" className="h-14 md:h-20 lg:h-24 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]" />
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/sponsors/Nitrox Blanco.png" alt="Nitrox" className="h-12 md:h-16 lg:h-20 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]" />
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/sponsors/Mobil Blanco.png" alt="Mobil Super" className="h-12 md:h-16 lg:h-20 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]" />
+          <div className="relative z-10 w-full">
+            {/* VALUE MODULE (Cards Row) - 3 Columns Layout */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              
+              {/* Card 1: Fechas y Costos */}
+              <div className="bg-[#0a0a0a]/90 backdrop-blur-md border border-white/10 rounded-xl p-5 lg:p-6 shadow-[0_10px_30px_rgba(0,0,0,0.5)] relative overflow-hidden flex flex-col group">
+                <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-[#39FF14] to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="flex items-center gap-2 mb-6 text-[#39FF14]">
+                  <Calendar className="w-5 h-5" strokeWidth={2.5} />
+                  <span className="font-black text-sm uppercase tracking-widest">FECHAS Y COSTOS</span>
+                </div>
+                
+                <div className="flex flex-col gap-6 flex-grow">
+                  <div>
+                    <h4 className="text-white font-bold text-xs uppercase mb-2">INSCRIPCIONES ORDINARIAS</h4>
+                    <div className="flex justify-between items-center bg-white/5 rounded px-3 py-2 border border-white/10">
+                      <span className="text-zinc-300 text-xs font-medium">16 ABR AL 10 MAY</span>
+                      <span className="text-[#39FF14] font-black text-sm">$280.000</span>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="text-white font-bold text-xs uppercase mb-2">INSCRIPCIONES EXTEMPORALES</h4>
+                    <div className="flex justify-between items-center bg-white/5 rounded px-3 py-2 border border-white/10">
+                      <span className="text-zinc-300 text-xs font-medium">10 AL 15 MAY</span>
+                      <span className="text-[#39FF14] font-black text-sm">$350.000</span>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-zinc-500 text-[10px] italic mt-6">
+                  No se realizarán devoluciones de dinero.
+                </p>
+              </div>
+
+              {/* Card 2: El Costo Incluye */}
+              <div className="bg-[#0a0a0a]/90 backdrop-blur-md border border-white/10 rounded-xl p-5 lg:p-6 shadow-[0_10px_30px_rgba(0,0,0,0.5)] relative overflow-hidden flex flex-col group">
+                <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-[#39FF14] to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="flex items-center gap-2 mb-6 text-[#39FF14]">
+                  <Gift className="w-5 h-5" strokeWidth={2.5} />
+                  <span className="font-black text-sm uppercase tracking-widest">EL COSTO INCLUYE</span>
+                </div>
+                
+                <ul className="space-y-4">
+                  <li className="flex items-start gap-3">
+                    <CheckCircle2 className="w-4 h-4 text-[#39FF14] shrink-0 mt-0.5" strokeWidth={2} />
+                    <span className="text-xs text-zinc-300 font-medium">Ingreso escarapela feria (4 días)</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle2 className="w-4 h-4 text-[#39FF14] shrink-0 mt-0.5" strokeWidth={2} />
+                    <span className="text-xs text-zinc-300 font-medium">Boleta para un acompañante</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle2 className="w-4 h-4 text-[#39FF14] shrink-0 mt-0.5" strokeWidth={2} />
+                    <span className="text-xs text-zinc-300 font-medium">Póliza deportiva de competencia</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle2 className="w-4 h-4 text-[#39FF14] shrink-0 mt-0.5" strokeWidth={2} />
+                    <span className="text-xs text-zinc-300 font-medium">Kit de bienvenida Nitrox</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle2 className="w-4 h-4 text-[#39FF14] shrink-0 mt-0.5" strokeWidth={2} />
+                    <span className="text-[#39FF14] text-xs font-bold">Participación en rifa de moto 0 KM</span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Card 3: Cómo Participar */}
+              <div className="bg-[#0a0a0a]/90 backdrop-blur-md border border-white/10 rounded-xl p-5 lg:p-6 shadow-[0_10px_30px_rgba(0,0,0,0.5)] relative overflow-hidden flex flex-col group">
+                <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-[#39FF14] to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="flex items-center gap-2 mb-6 text-[#39FF14]">
+                  <Gift className="w-5 h-5" strokeWidth={2.5} />
+                  <span className="font-black text-sm uppercase tracking-widest">¿CÓMO PARTICIPAR?</span>
+                </div>
+                
+                <div className="space-y-4 mb-6 flex-grow relative before:absolute before:inset-y-0 before:left-3 before:w-px before:bg-white/10 before:z-0">
+                  <div className="flex items-start gap-4 relative z-10">
+                    <div className="w-6 h-6 rounded-full border border-[#39FF14] bg-black flex items-center justify-center text-[#39FF14] text-[10px] font-bold shrink-0">1</div>
+                    <span className="text-xs text-zinc-300 font-medium mt-0.5">Diligencia el formulario con tus datos</span>
+                  </div>
+                  <div className="flex items-start gap-4 relative z-10">
+                    <div className="w-6 h-6 rounded-full border border-[#39FF14] bg-black flex items-center justify-center text-[#39FF14] text-[10px] font-bold shrink-0">2</div>
+                    <span className="text-xs text-zinc-300 font-medium mt-0.5">Realiza el pago de la inscripción</span>
+                  </div>
+                  <div className="flex items-start gap-4 relative z-10">
+                    <div className="w-6 h-6 rounded-full border border-[#39FF14] bg-black flex items-center justify-center text-[#39FF14] text-[10px] font-bold shrink-0">3</div>
+                    <span className="text-xs text-zinc-300 font-medium mt-0.5">Envía el soporte de pago por WhatsApp</span>
+                  </div>
+                </div>
+
+                <Button variant="outline" className="w-full border-white/20 text-[#39FF14] hover:bg-[#39FF14] hover:text-black uppercase tracking-widest text-[10px] font-bold h-10 mt-auto transition-colors flex items-center justify-between px-4">
+                  VER DETALLES DE PAGO
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
-            
-            {/* Secondary Sponsors */}
-            <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10">
+          </div>
+          </div> {/* END LEFT COLUMN */}
+
+          {/* RIGHT COLUMN: PREMIUM FORM (Approx 40%) */}
+          <div id="auth-form-section" className="w-full lg:w-[40%] flex-shrink-0 relative z-20 h-full flex flex-col justify-center mt-8 lg:mt-0">
+            <AuthForm externalIsLogin={isLoginState} onToggleAuthMode={setIsLoginState} />
+          </div>
+
+        </div> {/* END TOP ROW */}
+
+        {/* BOTTOM FULL-WIDTH SECTION: SPONSORS & FOOTER */}
+        <div className="w-full flex flex-col mt-4 lg:mt-8 pt-8 lg:pt-12 border-t border-white/5 relative z-10">
+
+          {/* SPONSORS STRIP - Single Horizontal Row */}
+          <div className="flex flex-col gap-6 md:gap-8">
+            {/* Contenedor con overflow para evitar que salten de línea en pantallas pequeñas */}
+            <div className="flex flex-nowrap items-center justify-start xl:justify-center gap-6 md:gap-8 lg:gap-10 w-full overflow-x-auto pb-4 px-4 snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/sponsors/PKS Blanco.png" alt="PKS" className="h-8 md:h-10 lg:h-12 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)]" />
+              <img src="/sponsors/Copa Stunt Nitrox Blanco.png" alt="Copa Stunt" className="h-12 md:h-16 lg:h-20 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.4)] shrink-0 snap-center" />
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/sponsors/copa stunt nitrox f2r.png" alt="F2R" className="h-10 md:h-12 lg:h-14 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)]" />
+              <img src="/sponsors/Nitrox Blanco.png" alt="Nitrox" className="h-10 md:h-12 lg:h-16 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.3)] shrink-0 snap-center" />
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/sponsors/Trakku.png" alt="Trakku" className="h-9 md:h-11 lg:h-12 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)]" />
+              <img src="/sponsors/Mobil Blanco.png" alt="Mobil Super" className="h-10 md:h-12 lg:h-16 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.3)] shrink-0 snap-center" />
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/sponsors/IRC Blanco.png" alt="IRC" className="h-8 md:h-10 lg:h-12 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)]" />
+              <img src="/sponsors/PKS Blanco.png" alt="PKS" className="h-8 md:h-10 lg:h-12 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] shrink-0 snap-center" />
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/sponsors/Fedemoto.png" alt="Fedemoto" className="h-8 md:h-10 lg:h-12 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)]" />
+              <img src="/sponsors/copa stunt nitrox f2r.png" alt="F2R" className="h-10 md:h-12 lg:h-14 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] shrink-0 snap-center" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/sponsors/Trakku.png" alt="Trakku" className="h-8 md:h-10 lg:h-12 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] shrink-0 snap-center" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/sponsors/IRC Blanco.png" alt="IRC" className="h-8 md:h-10 lg:h-12 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] shrink-0 snap-center" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/sponsors/Fedemoto.png" alt="Fedemoto" className="h-8 md:h-10 lg:h-12 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] shrink-0 snap-center" />
             </div>
 
             {/* Redes Sociales A Color */}
-            <div className="flex justify-center items-center gap-6 mt-6 md:mt-8 pb-4">
+            <div className="flex justify-center items-center gap-6 mt-4 md:mt-6 pb-4">
               <a href="https://instagram.com/copastuntcolombia" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-10 h-10 md:w-12 md:h-12 drop-shadow-[0_0_10px_rgba(225,48,108,0.4)]">
                   <defs>
@@ -219,11 +312,6 @@ export default function Home() {
             </p>
           </footer>
 
-        </div>
-
-        {/* RIGHT COLUMN: PREMIUM FORM (Approx 40%) */}
-        <div id="auth-form-section" className="w-full lg:w-[40%] flex-shrink-0 relative z-20 h-full flex flex-col justify-center">
-          <AuthForm externalIsLogin={isLoginState} onToggleAuthMode={setIsLoginState} />
         </div>
 
       </div>
