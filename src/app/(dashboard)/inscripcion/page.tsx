@@ -15,8 +15,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { UploadCloud, AlertTriangle, CheckCircle2, ChevronRight, Gift, Trophy, Star, ShieldAlert, CreditCard, Clock, Image as ImageIcon, XCircle } from 'lucide-react';
+import { UploadCloud, AlertTriangle, CheckCircle2, ChevronRight, Gift, Trophy, Star, ShieldAlert, CreditCard, Clock, Image as ImageIcon, XCircle, ArrowLeft, CheckCircle, Smartphone, Phone, Lock, Camera } from 'lucide-react';
 import Link from 'next/link';
+import { CameraModal } from '@/components/camera-modal';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import QRCode from 'react-qr-code';
 import dynamic from 'next/dynamic';
 const Confetti = dynamic(() => import('react-confetti'), { ssr: false });
@@ -32,9 +34,68 @@ export default function InscripcionPage() {
   const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
   const [categoryCounts, setCategoryCounts] = useState<{ [key: string]: number }>({ open: 0, '2t': 0, '4t': 0, alto: 0 });
 
+  // Options Modal State
+  const [optionsModalOpen, setOptionsModalOpen] = useState(false);
+  const [currentDocKey, setCurrentDocKey] = useState<string | null>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
+
+  const openOptions = (docKey: string) => {
+    setCurrentDocKey(docKey);
+    setOptionsModalOpen(true);
+  };
+
+  const handleFileFromDialog = async (file: File) => {
+    setOptionsModalOpen(false);
+    if (!currentDocKey) return;
+    
+    if (currentDocKey === 'deportista') {
+      await handleFotoDeportistaChange(file);
+      return;
+    }
+
+    const url = await handleInstantUpload(file, currentDocKey);
+    if (url) {
+      const stateObj = { url, name: file.name };
+      if (currentDocKey === 'id') setIdPdf(stateObj);
+      else if (currentDocKey === 'placa') setFotoPlaca(stateObj);
+      else if (currentDocKey === 'propiedad') setFotoPropiedad(stateObj);
+      else if (currentDocKey === 'soat') setFotoSoat(stateObj);
+      else if (currentDocKey === 'comprobante') setComprobantePago(stateObj);
+    }
+  };
+
+  const handleInstantUpload = async (file: File, docKey: string): Promise<string | null> => {
+    if (!uid) return null;
+    toast({ title: 'Subiendo archivo...', description: 'Guardando documento...', duration: 2000 });
+    try {
+      // Guardar en la raíz de la carpeta del usuario para evitar restricciones de reglas de Storage (storage/unauthorized)
+      const storageRef = ref(storage, `events/f2r/${uid}/${docKey}_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      
+      const docRef = doc(db, 'event_registrations', `f2r_${uid}`);
+      if (docKey === 'comprobante') {
+         await setDoc(docRef, { comprobanteUrl: url, estadoPago: estadoPago === 'pendiente' ? 'borrador' : estadoPago }, { merge: true });
+      } else {
+         await setDoc(docRef, {
+           documentos: {
+             [`${docKey}Url`]: url
+           },
+           estadoPago: estadoPago === 'pendiente' ? 'borrador' : estadoPago
+         }, { merge: true });
+      }
+      toast({ title: 'Guardado', description: 'El archivo se guardó automáticamente.', variant: 'default' });
+      return url;
+    } catch (e: any) {
+      console.error('Error instant upload', e);
+      toast({ title: 'Error', description: `No se pudo guardar: ${e.message}`, variant: 'destructive' });
+      return null;
+    }
+  };
+
   // Form State
   const [categoria, setCategoria] = useState('');
-  const [idPdf, setIdPdf] = useState<File | null>(null);
+  const [idPdf, setIdPdf] = useState<any>(null);
   const [participacionPrevia, setParticipacionPrevia] = useState('');
   const [patrocinadores, setPatrocinadores] = useState<boolean>(false);
   const [placa, setPlaca] = useState('');
@@ -42,13 +103,13 @@ export default function InscripcionPage() {
   const [referencia, setReferencia] = useState('');
   
   // Files
-  const [fotoPlaca, setFotoPlaca] = useState<File | null>(null);
-  const [fotoPropiedad, setFotoPropiedad] = useState<File | null>(null);
-  const [fotoSoat, setFotoSoat] = useState<File | null>(null);
-  const [fotoDeportista, setFotoDeportista] = useState<File | null>(null);
+  const [fotoPlaca, setFotoPlaca] = useState<any>(null);
+  const [fotoPropiedad, setFotoPropiedad] = useState<any>(null);
+  const [fotoSoat, setFotoSoat] = useState<any>(null);
+  const [fotoDeportista, setFotoDeportista] = useState<any>(null);
   
   // Payment Proof
-  const [comprobantePago, setComprobantePago] = useState<File | null>(null);
+  const [comprobantePago, setComprobantePago] = useState<any>(null);
   
   const [inquietudes, setInquietudes] = useState('');
 
@@ -111,12 +172,22 @@ export default function InscripcionPage() {
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
              const data = docSnap.data();
+             if (data.documentos) {
+               if (data.documentos.idUrl) setIdPdf({ url: data.documentos.idUrl, name: 'Identificación Guardada' });
+               if (data.documentos.placaUrl) setFotoPlaca({ url: data.documentos.placaUrl, name: 'Foto Placa Guardada' });
+               if (data.documentos.propiedadUrl) setFotoPropiedad({ url: data.documentos.propiedadUrl, name: 'Tarjeta Propiedad Guardada' });
+               if (data.documentos.soatUrl) setFotoSoat({ url: data.documentos.soatUrl, name: 'SOAT Guardado' });
+               if (data.documentos.deportistaUrl) setFotoDeportista({ url: data.documentos.deportistaUrl, name: 'Foto Deportista Guardada' });
+             }
+             if (data.comprobanteUrl) {
+               setComprobantePago({ url: data.comprobanteUrl, name: 'Comprobante Guardado' });
+             }
              setEstadoPago(data.estadoPago || 'pendiente');
              setSaldoFaltante(data.saldoFaltante || '');
              if (data.estadoPago === 'aprobado' || data.estadoPago === 'en_revision' || data.estadoPago === 'rechazado' || data.estadoPago === 'revision_saldo') {
                 setStep(3);
              } else {
-                setStep(2); // pendiente or saldo_pendiente
+                setStep(1); // pendiente, saldo_pendiente, o borrador
              }
           }
         } catch (e) {
@@ -134,8 +205,7 @@ export default function InscripcionPage() {
     };
   }, [router]);
 
-  const handleFotoDeportistaChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files ? e.target.files[0] : null;
+  const handleFotoDeportistaChange = async (file: File | null) => {
     if (!file) {
       setFotoDeportista(null);
       return;
@@ -143,12 +213,12 @@ export default function InscripcionPage() {
     
     if (!file.type.startsWith('image/')) {
        toast({ title: 'Formato incorrecto', description: 'Debes subir una imagen.', variant: 'destructive' });
-       e.target.value = '';
        return;
     }
 
     if (!faceDetector) {
-      setFotoDeportista(file);
+      const url = await handleInstantUpload(file, 'deportista');
+      if (url) setFotoDeportista({ url, name: file.name, file });
       return;
     }
 
@@ -171,15 +241,16 @@ export default function InscripcionPage() {
           description: "No se logró detectar un rostro claro en la fotografía. Por favor intenta con una foto donde te veas mejor de frente.", 
           variant: "destructive" 
         });
-        e.target.value = '';
         setFotoDeportista(null);
       } else {
         toast({ title: "Rostro validado", description: "¡Perfecto! Tu foto cumple con los parámetros." });
-        setFotoDeportista(file);
+        const url = await handleInstantUpload(file, 'deportista');
+        if (url) setFotoDeportista({ url, name: file.name, file });
       }
     } catch (error) {
       console.error("Face detection error:", error);
-      setFotoDeportista(file); 
+      const url = await handleInstantUpload(file, 'deportista');
+      if (url) setFotoDeportista({ url, name: file.name, file });
     } finally {
       setIsDetectingFace(false);
     }
@@ -202,6 +273,7 @@ export default function InscripcionPage() {
     if (!fotoPropiedad) return "Anexa fotografía/PDF de la tarjeta de propiedad";
     if (!fotoSoat) return "Anexa fotografía del SOAT vigente";
     if (!fotoDeportista) return "Anexa tu foto en acción para la pantalla LED";
+    if (!comprobantePago) return "Anexa tu comprobante de pago";
     return null; // OK
   };
 
@@ -226,13 +298,14 @@ export default function InscripcionPage() {
     }
 
     try {
-      // Pushing 5 files parallel or sequential
+      // Pushing 6 files parallel
       const urls = await Promise.all([
-        handleFileUpload(idPdf, 'id'),
-        handleFileUpload(fotoPlaca, 'placa'),
-        handleFileUpload(fotoPropiedad, 'propiedad'),
-        handleFileUpload(fotoSoat, 'soat'),
-        handleFileUpload(fotoDeportista, 'deportista')
+        idPdf?.url ? Promise.resolve(idPdf.url) : handleFileUpload(idPdf?.file || null, 'id'),
+        fotoPlaca?.url ? Promise.resolve(fotoPlaca.url) : handleFileUpload(fotoPlaca?.file || null, 'placa'),
+        fotoPropiedad?.url ? Promise.resolve(fotoPropiedad.url) : handleFileUpload(fotoPropiedad?.file || null, 'propiedad'),
+        fotoSoat?.url ? Promise.resolve(fotoSoat.url) : handleFileUpload(fotoSoat?.file || null, 'soat'),
+        fotoDeportista?.url ? Promise.resolve(fotoDeportista.url) : handleFileUpload(fotoDeportista?.file || null, 'deportista'),
+        comprobantePago?.url ? Promise.resolve(comprobantePago.url) : handleFileUpload(comprobantePago?.file || null, 'comprobante')
       ]);
 
       const formData = {
@@ -253,19 +326,20 @@ export default function InscripcionPage() {
           soatUrl: urls[3],
           deportistaUrl: urls[4]
         },
+        comprobanteUrl: urls[5],
         inquietudes,
         registradoEl: new Date().toISOString(),
-        estadoPago: 'pendiente'
+        estadoPago: 'en_revision'
       };
 
       await setDoc(doc(db, 'event_registrations', `f2r_${uid}`), formData);
 
       toast({
-        title: "Datos Guardados",
-        description: "Tus datos han sido enviados correctamente. Por favor completa el pago.",
+        title: "Inscripción Enviada",
+        description: "Tus documentos y comprobante han sido enviados correctamente.",
       });
-      setEstadoPago('pendiente');
-      setStep(2);
+      setEstadoPago('en_revision');
+      setStep(3);
       
     } catch (error: any) {
       console.error("Firebase Registration Error:", error);
@@ -324,7 +398,7 @@ export default function InscripcionPage() {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-transparent">
+    <div className="min-h-screen relative overflow-hidden bg-[#121212]">
       {windowSize.width > 0 && estadoPago === 'aprobado' && (
         <Confetti 
           width={windowSize.width} 
@@ -337,368 +411,332 @@ export default function InscripcionPage() {
         />
       )}
       {/* Background glow */}
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-green-600/10 blur-[150px] mix-blend-screen pointer-events-none rounded-full"></div>
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#00E676]/10 blur-[150px] mix-blend-screen pointer-events-none rounded-full"></div>
 
       <div className="flex flex-col p-4 lg:p-8 text-zinc-100 max-w-5xl mx-auto w-full relative z-10">
         
-        {/* PASO 1: FORMULARIO */}
+        {/* PASO 1: FORMULARIO SECUENCIAL */}
         {step === 1 && (
-          <div className="animate-in fade-in zoom-in-95 duration-500">
-            <div className="mb-6 text-center animate-in fade-in slide-in-from-bottom-6 duration-700">
-              <div className="inline-block px-4 py-1.5 mb-4 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 font-bold tracking-widest uppercase text-sm">
-                ¡Felicitaciones por crear tu cuenta!
+          <form onSubmit={handleFormSubmit} className="animate-in fade-in zoom-in-95 duration-500 max-w-5xl mx-auto w-full">
+            
+            {/* Header de Progreso */}
+            <div className="flex flex-col mb-8 border-b border-[#2A2A2A] pb-4">
+              <div className="flex items-center gap-3 mb-4">
+                <Link href="/profile" className="text-[#B0B0B0] hover:text-white transition-colors">
+                  <ArrowLeft className="w-6 h-6" />
+                </Link>
+                <h1 className="text-xl md:text-2xl font-black tracking-tight text-white uppercase">
+                  Adjunta tus Documentos
+                </h1>
               </div>
-              <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white drop-shadow-md mb-6 leading-tight">
-                Adjunta tus Documentos
-              </h1>
+              <div className="flex items-center justify-between text-xs font-bold tracking-widest text-[#B0B0B0] mb-2">
+                <span className="text-[#00E676]">Paso 2 de 3</span>
+                <span className="text-white">66%</span>
+              </div>
+              <div className="h-1.5 w-full bg-[#1A1A1A] rounded-full overflow-hidden border border-[#2A2A2A]">
+                <div className="h-full bg-[#00E676] w-[66%] rounded-full shadow-[0_0_15px_rgba(0,230,118,0.5)]"></div>
+              </div>
             </div>
 
-          <form onSubmit={handleFormSubmit}>
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+              {/* Columna Izquierda: Datos y Documentos */}
+              <div className="space-y-6">
               
               {/* Categorías */}
-              <Card className="bg-zinc-950/60 border-zinc-800 shadow-xl backdrop-blur-md overflow-hidden">
-                <div className="h-1.5 w-full bg-green-600"></div>
-                <CardHeader>
-                  <CardTitle className="text-white text-xl">1. Categorías</CardTitle>
-                  <div className="flex items-start gap-3 mt-2 bg-green-500/10 border border-green-500/20 p-4 rounded-lg">
-                    <AlertTriangle className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
-                    <p className="text-sm text-zinc-300 leading-relaxed">
-                      <strong>IMPORTANTE:</strong> Recuerda que debes inscribirte en tu categoría real. Si no es así serás ascendido, lo que afecta planillas e imágenes en las pantallas LED.<br className="mb-2"/>
-                      <em>Cupos limitados, en cuanto se complete una categoría solo se permitirá en la siguiente.</em>
-                    </p>
+              <div className="space-y-3 bg-[#1A1A1A] p-5 rounded-2xl border border-[#2A2A2A]">
+                <Label className="text-white text-sm font-bold uppercase tracking-wider flex items-center gap-2 mb-4">
+                  1. Categoría <span className="text-[#FF9800] text-[10px] bg-[#FF9800]/10 px-2 py-0.5 rounded border border-[#FF9800]/20 flex items-center gap-1"><AlertTriangle className="w-3 h-3"/> Cupos limitados</span>
+                </Label>
+                <RadioGroup value={categoria} onValueChange={setCategoria} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categoria === 'open' ? 'border-[#00E676] bg-[#00E676]/5 shadow-[0_0_15px_rgba(0,230,118,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['open'] || 0) >= 20 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { if ((categoryCounts['open'] || 0) < 20) setCategoria('open'); }}>
+                    <RadioGroupItem value="open" id="cat-open" className="sr-only" disabled={(categoryCounts['open'] || 0) >= 20} />
+                    <div className="w-10 h-10 rounded-full bg-[#1A1A1A] flex items-center justify-center mr-3 border border-[#2A2A2A]">
+                      <span className="text-xl">🟢</span>
+                    </div>
+                    <div className="flex-1">
+                      <Label className="font-bold text-white text-sm cursor-pointer notranslate" translate="no">OPEN</Label>
+                      <p className="text-[10px] text-[#B0B0B0] mt-0.5 font-medium">{Math.max(0, 20 - (categoryCounts['open'] || 0))} CUPOS RESTANTES</p>
+                    </div>
+                    {categoria === 'open' && <CheckCircle2 className="w-5 h-5 text-[#00E676] absolute top-2 right-2" />}
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <RadioGroup value={categoria} onValueChange={setCategoria} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div className={`flex items-center space-x-3 border ${categoria === 'open' ? 'border-green-500 bg-green-500/10' : 'border-zinc-800 bg-zinc-900/40'} p-4 rounded-lg transition-all ${categoryCounts['open'] >= 20 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-zinc-500'}`} onClick={() => { if (categoryCounts['open'] < 20) setCategoria('open'); }}>
-                      <RadioGroupItem value="open" id="cat-open" className="border-zinc-500 text-green-500" disabled={categoryCounts['open'] >= 20} />
-                      <div className="flex flex-col">
-                        <Label htmlFor="cat-open" className={`text-base text-zinc-200 ${categoryCounts['open'] >= 20 ? 'cursor-not-allowed' : 'cursor-pointer'}`}>OPEN</Label>
-                        <span className={`text-xs font-bold tracking-widest ${categoryCounts['open'] >= 20 ? 'text-red-400' : 'text-zinc-500'}`}>({Math.max(0, 20 - (categoryCounts['open'] || 0))} CUPOS RESTANTES)</span>
-                      </div>
-                    </div>
-                    <div className={`flex items-center space-x-3 border ${categoria === '2t' ? 'border-green-500 bg-green-500/10' : 'border-zinc-800 bg-zinc-900/40'} p-4 rounded-lg transition-all ${categoryCounts['2t'] >= 15 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-zinc-500'}`} onClick={() => { if (categoryCounts['2t'] < 15) setCategoria('2t'); }}>
-                      <RadioGroupItem value="2t" id="cat-2t" className="border-zinc-500 text-green-500" disabled={categoryCounts['2t'] >= 15} />
-                      <div className="flex flex-col">
-                        <Label htmlFor="cat-2t" className={`text-base text-zinc-200 ${categoryCounts['2t'] >= 15 ? 'cursor-not-allowed' : 'cursor-pointer'}`}>2 TIEMPOS</Label>
-                        <span className={`text-xs font-bold tracking-widest ${categoryCounts['2t'] >= 15 ? 'text-red-400' : 'text-zinc-500'}`}>({Math.max(0, 15 - (categoryCounts['2t'] || 0))} CUPOS RESTANTES)</span>
-                      </div>
-                    </div>
-                    <div className={`flex items-center space-x-3 border ${categoria === '4t' ? 'border-green-500 bg-green-500/10' : 'border-zinc-800 bg-zinc-900/40'} p-4 rounded-lg transition-all ${categoryCounts['4t'] >= 15 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-zinc-500'}`} onClick={() => { if (categoryCounts['4t'] < 15) setCategoria('4t'); }}>
-                      <RadioGroupItem value="4t" id="cat-4t" className="border-zinc-500 text-green-500" disabled={categoryCounts['4t'] >= 15} />
-                      <div className="flex flex-col">
-                        <Label htmlFor="cat-4t" className={`text-base text-zinc-200 ${categoryCounts['4t'] >= 15 ? 'cursor-not-allowed' : 'cursor-pointer'}`}>4 TIEMPOS</Label>
-                        <span className={`text-xs font-bold tracking-widest ${categoryCounts['4t'] >= 15 ? 'text-red-400' : 'text-zinc-500'}`}>({Math.max(0, 15 - (categoryCounts['4t'] || 0))} CUPOS RESTANTES)</span>
-                      </div>
-                    </div>
-                    <div className={`flex items-center space-x-3 border ${categoria === 'alto' ? 'border-green-500 bg-green-500/10' : 'border-zinc-800 bg-zinc-900/40'} p-4 rounded-lg transition-all ${categoryCounts['alto'] >= 15 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-zinc-500'}`} onClick={() => { if (categoryCounts['alto'] < 15) setCategoria('alto'); }}>
-                      <RadioGroupItem value="alto" id="cat-alto" className="border-zinc-500 text-green-500" disabled={categoryCounts['alto'] >= 15} />
-                      <div className="flex flex-col">
-                        <Label htmlFor="cat-alto" className={`text-base text-zinc-200 ${categoryCounts['alto'] >= 15 ? 'cursor-not-allowed' : 'cursor-pointer'}`}>ALTO CILINDRAJE</Label>
-                        <span className={`text-xs font-bold tracking-widest ${categoryCounts['alto'] >= 15 ? 'text-red-400' : 'text-zinc-500'}`}>({Math.max(0, 15 - (categoryCounts['alto'] || 0))} CUPOS RESTANTES)</span>
-                      </div>
-                    </div>
-                  </RadioGroup>
-                </CardContent>
-              </Card>
-              
-              {/* Experiencia y Redes */}
-              <Card className="bg-zinc-950/60 border-zinc-800 shadow-xl backdrop-blur-md">
-                <CardHeader><CardTitle className="text-white text-xl">2. Experiencia y Compromiso</CardTitle></CardHeader>
-                <CardContent className="space-y-6">
                   
-                  <div className="space-y-4">
-                    <Label className="text-zinc-300 text-base">¿Haz participado en la Copa Stunt F2R en versiones anteriores?</Label>
-                    <RadioGroup value={participacionPrevia} onValueChange={setParticipacionPrevia} className="flex flex-col gap-3">
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="si" id="part-si" className="border-zinc-600" />
-                        <Label htmlFor="part-si" className="text-zinc-400">Sí, ya he participado</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="no" id="part-no" className="border-zinc-600" />
-                        <Label htmlFor="part-no" className="text-zinc-400">No, pero lo disfrutaré como nunca</Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
-
-                  <div className="p-4 bg-zinc-900/50 border border-zinc-700/50 rounded-lg">
-                    <div className="flex items-start space-x-3">
-                      <Checkbox 
-                        id="patroc" 
-                        checked={patrocinadores} 
-                        onCheckedChange={(val) => setPatrocinadores(!!val)} 
-                        className="border-zinc-500 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 mt-1" 
-                      />
-                      <div className="grid gap-1.5 opacity-90">
-                        <Label htmlFor="patroc" className="font-semibold text-zinc-200 cursor-pointer">
-                          Confirmo que he ido a Instagram a seguir a nuestros patrocinadores principales:
-                        </Label>
-                        <p className="text-sm text-zinc-400 font-medium tracking-wide">
-                          @repuestos.auteco.certified @victorymotorcycles.co @feria2ruedasoficial @copastuntcolombia
-                        </p>
-                      </div>
+                  <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categoria === '2t' ? 'border-[#00E676] bg-[#00E676]/5 shadow-[0_0_15px_rgba(0,230,118,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['2t'] || 0) >= 15 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { if ((categoryCounts['2t'] || 0) < 15) setCategoria('2t'); }}>
+                    <RadioGroupItem value="2t" id="cat-2t" className="sr-only" disabled={(categoryCounts['2t'] || 0) >= 15} />
+                    <div className="w-10 h-10 rounded-full bg-[#1A1A1A] flex items-center justify-center mr-3 border border-[#2A2A2A]">
+                      <span className="text-xl">🏍️</span>
                     </div>
+                    <div className="flex-1">
+                      <Label className="font-bold text-white text-sm cursor-pointer">2 TIEMPOS</Label>
+                      <p className="text-[10px] text-[#B0B0B0] mt-0.5 font-medium">{Math.max(0, 15 - (categoryCounts['2t'] || 0))} CUPOS RESTANTES</p>
+                    </div>
+                    {categoria === '2t' && <CheckCircle2 className="w-5 h-5 text-[#00E676] absolute top-2 right-2" />}
                   </div>
 
-                </CardContent>
-              </Card>
+                  <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categoria === '4t' ? 'border-[#00E676] bg-[#00E676]/5 shadow-[0_0_15px_rgba(0,230,118,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['4t'] || 0) >= 15 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { if ((categoryCounts['4t'] || 0) < 15) setCategoria('4t'); }}>
+                    <RadioGroupItem value="4t" id="cat-4t" className="sr-only" disabled={(categoryCounts['4t'] || 0) >= 15} />
+                    <div className="w-10 h-10 rounded-full bg-[#1A1A1A] flex items-center justify-center mr-3 border border-[#2A2A2A]">
+                      <span className="text-xl">🛵</span>
+                    </div>
+                    <div className="flex-1">
+                      <Label className="font-bold text-white text-sm cursor-pointer">4 TIEMPOS</Label>
+                      <p className="text-[10px] text-[#B0B0B0] mt-0.5 font-medium">{Math.max(0, 15 - (categoryCounts['4t'] || 0))} CUPOS RESTANTES</p>
+                    </div>
+                    {categoria === '4t' && <CheckCircle2 className="w-5 h-5 text-[#00E676] absolute top-2 right-2" />}
+                  </div>
+
+                  <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categoria === 'alto' ? 'border-[#00E676] bg-[#00E676]/5 shadow-[0_0_15px_rgba(0,230,118,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['alto'] || 0) >= 15 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { if ((categoryCounts['alto'] || 0) < 15) setCategoria('alto'); }}>
+                    <RadioGroupItem value="alto" id="cat-alto" className="sr-only" disabled={(categoryCounts['alto'] || 0) >= 15} />
+                    <div className="w-10 h-10 rounded-full bg-[#1A1A1A] flex items-center justify-center mr-3 border border-[#2A2A2A]">
+                      <span className="text-xl">🔥</span>
+                    </div>
+                    <div className="flex-1">
+                      <Label className="font-bold text-white text-sm cursor-pointer">ALTO CILINDRAJE</Label>
+                      <p className="text-[10px] text-[#B0B0B0] mt-0.5 font-medium">{Math.max(0, 15 - (categoryCounts['alto'] || 0))} CUPOS RESTANTES</p>
+                    </div>
+                    {categoria === 'alto' && <CheckCircle2 className="w-5 h-5 text-[#00E676] absolute top-2 right-2" />}
+                  </div>
+                </RadioGroup>
+              </div>
+              
+              {/* Experiencia y Compromiso */}
+              <div className="space-y-3 pt-4 border-t border-zinc-800/50">
+                <Label className="text-white text-sm font-bold uppercase tracking-wider block">2. Experiencia y Compromiso</Label>
+                <p className="text-xs text-zinc-400 mb-2">¿Has participado en la Copa Stunt F2R en versiones anteriores?</p>
+                <RadioGroup value={participacionPrevia} onValueChange={setParticipacionPrevia} className="grid grid-cols-2 gap-3">
+                  <div className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all cursor-pointer ${participacionPrevia === 'si' ? 'border-green-500 bg-green-500/5' : 'border-zinc-800 bg-zinc-900/50'}`} onClick={() => setParticipacionPrevia('si')}>
+                    <RadioGroupItem value="si" id="part-si" className="sr-only" />
+                    <CheckCircle2 className={`w-6 h-6 mb-2 ${participacionPrevia === 'si' ? 'text-green-500' : 'text-zinc-600'}`} />
+                    <Label className="text-center font-bold text-white text-xs cursor-pointer">Sí, ya he participado</Label>
+                  </div>
+                  <div className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all cursor-pointer ${participacionPrevia === 'no' ? 'border-green-500 bg-green-500/5' : 'border-zinc-800 bg-zinc-900/50'}`} onClick={() => setParticipacionPrevia('no')}>
+                    <RadioGroupItem value="no" id="part-no" className="sr-only" />
+                    <div className="w-6 h-6 flex items-center justify-center mb-2">
+                       <span className={`text-xl ${participacionPrevia === 'no' ? 'text-yellow-500' : 'text-zinc-600 grayscale'}`}>⭐</span>
+                    </div>
+                    <Label className="text-center font-bold text-zinc-300 text-xs cursor-pointer leading-tight">No, pero lo disfrutaré como nunca.</Label>
+                  </div>
+                </RadioGroup>
+                
+                <div className="mt-3 bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 flex items-center justify-between cursor-pointer hover:border-zinc-700 transition-colors" onClick={() => setPatrocinadores(!patrocinadores)}>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${patrocinadores ? 'border-green-500 bg-green-500' : 'border-zinc-600'}`}>
+                      {patrocinadores && <CheckCircle className="w-4 h-4 text-white" />}
+                    </div>
+                    <Label className="text-xs text-zinc-300 font-medium cursor-pointer leading-tight">
+                      Confirmo que fui a Instagram a seguir a nuestros patrocinadores principales
+                    </Label>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-zinc-600" />
+                </div>
+              </div>
 
               {/* Datos Motocicleta */}
-              <Card className="bg-zinc-950/60 border-zinc-800 shadow-xl backdrop-blur-md">
-                <CardHeader><CardTitle className="text-white text-xl">3. Datos de la Motocicleta</CardTitle></CardHeader>
-                <CardContent>
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label className="text-zinc-300">Placa Motocicleta</Label>
-                      <Input value={placa} onChange={e => setPlaca(e.target.value)} placeholder="Ej. ABC000" className="bg-zinc-900/50 border-zinc-700 text-white uppercase" maxLength={6} />
-                    </div>
-                    
-                    <div className="space-y-2" translate="no">
-                      <Label className="text-zinc-300">Marca de tú motocicleta</Label>
-                      <Select value={marca} onValueChange={setMarca}>
-                        <SelectTrigger className="bg-zinc-900/50 border-zinc-700 text-zinc-300">
-                          <SelectValue placeholder="Seleccione una marca" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-200 max-h-60">
-                          {['YAMAHA','SUZUKI','HONDA','BAJAJ','AKT','TVS','VICTORY','BENELLI','KAWASAKI','FACTORY','YCF','HERO','KYMCO','KTM','KEEWAY','HUSQVARNA','DUCATI','JIALING MOTOS'].map(m => (
-                            <SelectItem key={m} value={m}>
-                              <span className="block">{m}</span>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2 md:col-span-2">
-                      <Label className="text-zinc-300">Referencia motocicleta</Label>
-                      <Input value={referencia} onChange={e => setReferencia(e.target.value)} placeholder="Ej. MT-09, Duke 390..." className="bg-zinc-900/50 border-zinc-700 text-white" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Documentos */}
-              <Card className="bg-zinc-950/60 border-zinc-800 shadow-xl backdrop-blur-md">
-                <CardHeader>
-                  <CardTitle className="text-white text-xl">4. Archivos y Documentación Legal</CardTitle>
-                  <CardDescription className="text-zinc-400">Es indispensable subir estos documentos para asegurar el acceso a Plaza Mayor Medellín.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  
-                  {/* Special Emphasis on ID PDF */}
-                  <div className="flex flex-col space-y-3 p-5 md:p-6 bg-zinc-900 border-2 border-green-500/30 rounded-xl shadow-[0_0_15px_rgba(34,197,94,0.1)] relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-1.5 h-full bg-green-500"></div>
-                    <Label className="text-white text-lg font-bold flex justify-between items-center pl-2">
-                      <span>1. Anexa un PDF por ambos lados de tu identificación <span className="text-green-500">*</span></span>
-                      {idPdf && <CheckCircle2 className="text-green-500 w-6 h-6" />}
-                    </Label>
-                    <p className="text-sm text-zinc-400 pl-2">Sube 1 solo archivo uniendo ambos lados (PDF o Imagen).</p>
-                    
-                    <div className="relative border-2 border-dashed border-zinc-700 bg-black/40 py-8 rounded-lg text-center hover:bg-zinc-800/80 transition-colors mt-2">
-                      <Input type="file" onChange={(e) => setIdPdf(e.target.files ? e.target.files[0] : null)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".pdf,image/*" />
-                      <div className="flex flex-col items-center pointer-events-none px-4">
-                        <UploadCloud className={`w-10 h-10 mb-3 ${idPdf ? 'text-green-500' : 'text-zinc-500'}`} />
-                        <span className="text-sm font-semibold text-zinc-300">
-                          {idPdf ? <span className="text-green-400 text-base">{idPdf.name}</span> : "Toca aquí para seleccionar, o toma una foto"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Other Files in Grid for better mobile flow */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
-                    {[
-                      { state: fotoPlaca, setter: (f: any) => setFotoPlaca(f), title: "Foto de la placa (Tú motocicleta)", desc: "Obligatorio para Plaza Mayor Medellín." },
-                      { state: fotoPropiedad, setter: (f: any) => setFotoPropiedad(f), title: "Foto/PDF Tarjeta de propiedad", desc: "O envíalo al WhatsApp: 3044347740" },
-                      { state: fotoSoat, setter: (f: any) => setFotoSoat(f), title: "Fotografía del SOAT vigente", desc: "O envíalo al WhatsApp: 3044347740" },
-                      { state: fotoDeportista, setter: (f: any, e: any) => handleFotoDeportistaChange(e), title: "Foto tuya (Tipo Cédula o Carnet)", desc: "Fondo blanco o azul. Pantalla LED gigante.", exampleImage: "/ejemplo-foto-cedula.png", isDeportista: true }
-                    ].map((item: any, idx) => (
-                      <div key={idx} className="flex flex-col space-y-2 p-4 bg-zinc-900/30 border border-zinc-800 rounded-lg">
-                        <Label className="text-zinc-200 text-sm md:text-base font-semibold flex justify-between items-start gap-2">
-                          <span className="leading-tight">{item.title}</span>
-                          {item.state && <CheckCircle2 className="text-green-500 w-5 h-5 shrink-0" />}
-                        </Label>
-                        <p className="text-xs text-zinc-400">{item.desc}</p>
-                        <div className={item.exampleImage ? "grid grid-cols-2 gap-3 mt-auto" : "mt-auto"}>
-                          {item.exampleImage && (
-                            <div className="bg-zinc-950 p-2 rounded-lg border border-zinc-800 flex flex-col items-center justify-center text-center">
-                              <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mb-2">Ejemplo</span>
-                              <img src={item.exampleImage} alt="Ejemplo" className="w-16 h-16 object-cover rounded-md border border-zinc-700 shadow-sm" />
-                            </div>
-                          )}
-                          
-                          <div className="relative border-2 border-dashed border-zinc-700 py-5 rounded-lg text-center hover:bg-zinc-800/40 transition-colors h-full flex flex-col justify-center">
-                            <Input type="file" onChange={(e) => item.setter(e.target.files ? e.target.files[0] : null, e)} className={`absolute inset-0 w-full h-full opacity-0 ${item.isDeportista && isDetectingFace ? 'cursor-wait' : 'cursor-pointer'}`} accept=".pdf,image/*" disabled={item.isDeportista && isDetectingFace} />
-                            <div className="flex flex-col items-center pointer-events-none px-2">
-                              <UploadCloud className={`w-6 h-6 mb-2 ${item.state ? 'text-green-500' : 'text-zinc-500'} ${item.isDeportista && isDetectingFace ? 'animate-bounce' : ''}`} />
-                              <span className="text-xs font-medium text-zinc-400 break-words w-full">
-                                {item.isDeportista && isDetectingFace ? "Analizando rostro..." : item.state ? <span className="text-zinc-200">{item.state.name}</span> : "Toca aquí"}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                </CardContent>
-              </Card>
-
-              {/* Inquietudes */}
-              <Card className="bg-zinc-950/60 border-zinc-800 shadow-xl backdrop-blur-md">
-                <CardHeader><CardTitle className="text-white text-xl">5. Comentarios e Inquietudes</CardTitle></CardHeader>
-                <CardContent>
-                   <div className="space-y-3">
-                      <p className="text-sm text-zinc-400">
-                        Déjanos saber si tienes alguna pregunta o duda sobre el reglamento y el desarrollo del evento.
-                      </p>
-                      <Textarea 
-                        value={inquietudes}
-                        onChange={e => setInquietudes(e.target.value)}
-                        placeholder="Escribe tus dudas aquí..." 
-                        className="min-h-[100px] bg-zinc-900/50 border-zinc-700 text-white placeholder:text-zinc-600" 
-                      />
-                   </div>
-                </CardContent>
-              </Card>
-
-            </div>
-
-            <div className="mt-10 mb-16 flex justify-end">
-              <Button type="submit" disabled={isLoading} className="bg-green-600 text-white hover:bg-green-500 font-extrabold h-16 w-full md:w-auto px-12 text-xl shadow-[0_0_20px_rgba(34,197,94,0.4)] transition-all uppercase tracking-wider">
-                {isLoading ? "GUARDANDO DATOS..." : "CONTINUAR AL PAGO"}
-              </Button>
-            </div>
-
-          </form>
-          </div>
-        )}
-
-        {/* PASO 2: PAGO Y SUBIDA DE COMPROBANTE */}
-        {step === 2 && (
-          <div className="animate-in fade-in zoom-in-95 duration-500 max-w-2xl mx-auto w-full mt-10">
-            <Card className="bg-zinc-950/90 backdrop-blur-xl border-green-500/30 shadow-2xl">
-              <div className="h-2 w-full bg-green-500"></div>
-              <CardHeader className="text-center pb-2">
-                <CardTitle className="text-3xl font-extrabold text-white">Pago de Inscripción</CardTitle>
-                <CardDescription className="text-zinc-400 text-base mt-2">
-                  Oficial Copa Stunt Colombia 2026. Realiza el pago para asegurar tu cupo.
-                </CardDescription>
-              </CardHeader>
-              
-              <CardContent className="space-y-8 pt-6">
+              <div className="space-y-4 pt-6 border-t border-[#2A2A2A]">
+                <Label className="text-white text-sm font-bold uppercase tracking-wider block flex items-center gap-2 mb-2">
+                  <span className="text-[#00E676]">🏍️</span> 3. Datos de la Motocicleta
+                </Label>
                 
-                {estadoPago === 'saldo_pendiente' && (
-                  <div className="bg-orange-500/10 border-l-4 border-orange-500 p-5 rounded-r-lg flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-2 shadow-[0_0_25px_rgba(249,115,22,0.15)]">
-                    <AlertTriangle className="w-10 h-10 text-orange-500 shrink-0 mt-1 sm:mt-0 animate-pulse" />
-                    <div>
-                      <h4 className="text-orange-400 font-bold uppercase tracking-wider text-sm mb-2">Saldo Faltante Requerido</h4>
-                      <p className="text-orange-200/90 font-medium leading-snug">
-                        Tu pago inicial fue verificado, pero presentas un saldo pendiente de: 
-                        <span className="inline-block font-extrabold text-white bg-orange-600 px-3 py-1 rounded ml-2 mt-1 sm:mt-0 text-lg shadow-sm border border-orange-500/50">
-                          ${saldoFaltante}
-                        </span>
-                      </p>
-                      <p className="text-sm text-orange-300/80 mt-2">
-                        Por favor realiza la transferencia exclusiva por este valor para completar tu inscripción y sube el nuevo comprobante aquí abajo.
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex flex-col md:flex-row gap-6 items-center justify-center">
-                  <div className="w-full md:w-1/2 flex justify-center bg-white p-4 rounded-xl">
-                    <img src="/sponsors/QR BANCOLOMBIA.jpg" alt="QR Bancolombia" className="max-w-full h-auto object-contain max-h-64 rounded-md" />
-                  </div>
-                  
-                  {estadoPago !== 'saldo_pendiente' && (
-                    <div className="w-full md:w-1/2 space-y-4">
-                      <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-lg flex flex-col justify-center h-full shadow-[0_0_15px_rgba(34,197,94,0.05)]">
-                        <p className="text-xs text-zinc-500 uppercase tracking-widest font-bold mb-4">Costos de Inscripción</p>
-                        
-                        <div className="flex flex-col gap-1 mb-4">
-                          <div className="flex justify-between items-baseline">
-                            <span className="text-sm text-zinc-300 font-medium">16 Abr - 10 May</span>
-                            <span className="text-xl text-green-500 font-black tracking-wider">$280.000</span>
-                          </div>
-                          <div className="flex justify-between items-baseline pt-2 border-t border-zinc-800/50 mt-1">
-                            <span className="text-sm text-zinc-500 font-medium">11 May - 15 May</span>
-                            <span className="text-lg text-zinc-400 font-bold tracking-wider">$350.000</span>
-                          </div>
-                        </div>
-                        
-                        <div className="mt-2 bg-zinc-950 p-3 rounded border border-zinc-800/80">
-                          <p className="text-xs text-zinc-400 leading-tight">
-                            <span className="text-zinc-300 font-bold uppercase">Nota:</span> Si pagas después del <span className="text-white font-bold">10 de Mayo</span> el valor sube automáticamente.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-zinc-900/50 p-5 rounded-lg border border-zinc-800 text-sm text-zinc-300 h-full flex flex-col justify-center">
-                    <p className="font-semibold text-white mb-3">Si no puedes realizar el pago a través del QR, estos son los datos de la cuenta:</p>
-                    <ul className="space-y-2 ml-2 font-mono mt-auto">
-                      <li><span className="text-zinc-500">Número de cuenta:</span> <span className="text-white">316-376847-80</span></li>
-                      <li><span className="text-zinc-500">Tipo de cuenta:</span> <span className="text-white">Ahorros Bancolombia</span></li>
-                      <li><span className="text-zinc-500">Titular:</span> <span className="text-white">Daniela Rojas Valencia</span></li>
-                    </ul>
-                  </div>
-
-                  <div className="bg-blue-900/20 p-5 rounded-lg border border-blue-500/30 text-sm h-full flex flex-col">
-                    <div className="flex items-center gap-2 mb-2">
-                      <AlertTriangle className="w-5 h-5 text-blue-400 shrink-0" />
-                      <p className="font-bold text-blue-400 uppercase tracking-wide leading-tight">NUEVO MEDIO DE PAGO HABILITADO</p>
-                    </div>
-                    <p className="text-blue-100/80 mb-3 text-xs leading-relaxed">Pensando en los pilotos que manejan entidades bancarias diferentes a Bancolombia, hemos habilitado pago mediante LLAVE para facilitar el proceso.</p>
-                    <p className="text-xl font-mono text-white font-bold bg-black/40 px-3 py-2 rounded border border-blue-500/50 mt-auto text-center tracking-wider">LLAVE : 1214720768</p>
-                  </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-[#B0B0B0] uppercase tracking-wider ml-1">Placa Motocicleta</Label>
+                  <Input value={placa} onChange={e => setPlaca(e.target.value)} placeholder="ABC123" className="bg-[#1A1A1A] border-[#2A2A2A] text-white h-12 uppercase rounded-xl px-4 focus:border-[#00E676] focus:ring-[#00E676]" maxLength={6} />
                 </div>
                 
-                <div className="pt-4 border-t border-zinc-800">
-                  <Label className="text-white text-lg font-bold flex items-center gap-2 mb-4">
-                    <ImageIcon className="text-green-500 w-5 h-5" /> Sube tu Comprobante {estadoPago === 'saldo_pendiente' ? 'de Saldo' : 'de Pago'}
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-[#B0B0B0] uppercase tracking-wider ml-1">Marca de tu motocicleta</Label>
+                  <Select value={marca} onValueChange={setMarca}>
+                    <SelectTrigger className="bg-[#1A1A1A] border-[#2A2A2A] text-white h-12 rounded-xl px-4 focus:ring-[#00E676]">
+                      <SelectValue placeholder="Seleccione..." />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#121212] border-[#2A2A2A] text-white">
+                      {['YAMAHA','SUZUKI','HONDA','BAJAJ','AKT','TVS','VICTORY','BENELLI','KAWASAKI','FACTORY','YCF','HERO','KYMCO','KTM','KEEWAY','HUSQVARNA','DUCATI','JIALING MOTOS'].map(m => (
+                        <SelectItem key={m} value={m} className="hover:bg-[#1A1A1A] focus:bg-[#1A1A1A] cursor-pointer">{m}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-[#B0B0B0] uppercase tracking-wider ml-1">Referencia motocicleta</Label>
+                  <Input value={referencia} onChange={e => setReferencia(e.target.value)} placeholder="Ej. MT-09" className="bg-[#1A1A1A] border-[#2A2A2A] text-white h-12 rounded-xl px-4 focus:border-[#00E676] focus:ring-[#00E676]" />
+                </div>
+              </div>
+
+              {/* Documentos Legales */}
+              <div className="space-y-3 pt-6 border-t border-[#2A2A2A] pb-6">
+                <div className="flex justify-between items-center mb-2">
+                  <Label className="text-white text-sm font-bold uppercase tracking-wider block flex items-center gap-2">
+                    <span className="text-[#00E676]">📄</span> 4. Archivos y Documentación Legal
                   </Label>
-                  <p className="text-sm text-zinc-400 mb-4">
-                    Una vez realizado el pago, sube la foto o captura del comprobante aquí y envíalo también al canal oficial de WhatsApp 📲 304 434 7740 para confirmar tu cupo.
-                  </p>
+                </div>
+                <p className="text-[10px] text-[#B0B0B0] mb-4 leading-relaxed">
+                  Es indispensable subir estos documentos para asegurar el acceso a Plaza Mayor Medellín.
+                </p>
+
+                {[
+                  { key: 'id', state: idPdf, title: "Anexa un PDF por ambos lados de tu identificación", desc: "PDF o Imagen" },
+                  { key: 'placa', state: fotoPlaca, title: "Foto de la placa (Tu motocicleta)", desc: "Obligatorio" },
+                  { key: 'propiedad', state: fotoPropiedad, title: "Foto/PDF Tarjeta de propiedad", desc: "Claro y legible" },
+                  { key: 'soat', state: fotoSoat, title: "Fotografía del SOAT vigente", desc: "Vigente para la fecha" },
+                  { key: 'deportista', state: fotoDeportista, title: "Foto tuya (Tipo Cédula o Carnet)", desc: "Fondo blanco o azul", isDeportista: true }
+                ].map((item: any) => (
+                  <div key={item.key} onClick={() => { if (!(item.isDeportista && isDetectingFace)) openOptions(item.key); }} className={`relative bg-[#1A1A1A] border ${item.state ? 'border-[#00E676] shadow-[0_0_15px_rgba(0,230,118,0.1)]' : 'border-[#2A2A2A]'} rounded-xl p-3 flex items-center gap-3 hover:border-[#424242] transition-all overflow-hidden ${item.isDeportista && isDetectingFace ? 'cursor-wait opacity-50' : 'cursor-pointer hover:bg-[#121212]'}`}>
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 border ${item.state ? 'bg-[#00E676]/10 border-[#00E676]/30' : 'bg-[#121212] border-[#2A2A2A]'}`}>
+                      <ImageIcon className={`w-5 h-5 ${item.state ? 'text-[#00E676]' : 'text-[#00E676]/50'}`} />
+                    </div>
+                    
+                    <div className="flex-1 min-w-0 pointer-events-none">
+                      <p className="text-xs text-white font-bold leading-tight truncate">{item.title}</p>
+                      <p className="text-[10px] text-zinc-500">{item.state ? item.state.name : item.desc}</p>
+                    </div>
+
+                    <div className="shrink-0 z-20 pointer-events-none">
+                      {item.state ? (
+                        <div className="flex items-center gap-1.5 bg-green-500/10 border border-green-500/30 px-2.5 py-1 rounded-md">
+                          <span className="text-green-500 text-[10px] font-bold uppercase">Subido</span>
+                          <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 bg-zinc-800/50 border border-zinc-700 px-2.5 py-1 rounded-md opacity-50">
+                          <span className="text-zinc-400 text-[10px] font-bold uppercase">Pendiente</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              </div>
+
+              {/* Columna Derecha: Pagos y Comprobante */}
+              <div className="space-y-6">
+                
+                {/* Alerta Importante */}
+                {/* Alerta Importante */}
+                <div className="bg-[#1A1A1A] border border-[#FF9800]/50 rounded-2xl p-5 flex flex-col items-center text-center shadow-[0_0_20px_rgba(255,152,0,0.15)] relative overflow-hidden">
+                  <div className="absolute top-0 w-full h-1 bg-gradient-to-r from-transparent via-[#FF9800] to-transparent opacity-50"></div>
+                  <div className="flex items-center justify-center gap-2 mb-3">
+                    <AlertTriangle className="w-5 h-5 text-[#FF9800]" />
+                    <span className="text-[#FF9800] font-black tracking-widest uppercase text-sm">Importante</span>
+                  </div>
+                  <p className="text-[#B0B0B0] text-sm leading-relaxed">Tu cupo <strong className="text-white">NO</strong> está asegurado<br/>hasta completar el pago.</p>
+                </div>
+
+                {/* Comprobante de Pago */}
+                <div className="space-y-4 pt-4 lg:pt-0 pb-6">
+                <div className="flex justify-between items-center mb-2">
+                  <Label className="text-white text-sm font-bold uppercase tracking-wider block flex items-center gap-2">
+                    <span className="text-[#00E676]">💰</span> 5. Comprobante de Pago
+                  </Label>
+                </div>
+                
+                <div className="bg-[#1A1A1A] p-5 rounded-2xl border border-[#2A2A2A] shadow-[0_0_15px_rgba(0,0,0,0.5)]">
+                  <div className="flex flex-col gap-3 mb-5">
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-xs text-[#B0B0B0] font-medium uppercase tracking-wider">Costo (16 Abr - 10 May)</span>
+                      <span className="text-xl text-[#00E676] font-black tracking-wider shadow-[#00E676]/20">$280.000</span>
+                    </div>
+                    <div className="flex justify-between items-baseline pt-2 border-t border-[#2A2A2A]">
+                      <span className="text-[10px] text-[#424242] font-medium uppercase tracking-wider">Costo (11 May - 15 May)</span>
+                      <span className="text-sm text-[#B0B0B0] font-bold tracking-wider">$350.000</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 mb-4">
+                    <div className="bg-[#121212] p-4 rounded-xl border border-[#2A2A2A] flex flex-col items-center gap-4 text-xs text-[#B0B0B0]">
+                      <div className="shrink-0 bg-white p-2.5 rounded-2xl shadow-[0_0_20px_rgba(0,230,118,0.15)]">
+                        <img src="/sponsors/QR BANCOLOMBIA.jpg" alt="QR Bancolombia" className="w-36 h-36 md:w-40 md:h-40 object-contain rounded-xl" />
+                      </div>
+                      <div className="flex-1 text-center w-full">
+                        <p className="font-black text-white mb-3 text-sm uppercase tracking-widest border-b border-[#2A2A2A] pb-3">Ahorros Bancolombia</p>
+                        <ul className="space-y-1.5 font-mono text-[#B0B0B0] pt-1">
+                          <li className="text-xl text-[#00E676] font-bold tracking-wider">316-376847-80</li>
+                          <li className="text-[10px] text-[#424242] uppercase font-sans tracking-wide mt-2">Titular: <span className="text-[#B0B0B0]">Daniela Rojas Valencia</span></li>
+                        </ul>
+                      </div>
+                    </div>
+                    <div className="bg-[#121212] p-4 rounded-xl border border-[#2A2A2A] text-center">
+                      <p className="font-bold text-[#424242] uppercase tracking-wide text-[10px] mb-1">Pago por LLAVE</p>
+                      <p className="text-lg font-mono text-[#B0B0B0] font-bold tracking-wider">1214720768</p>
+                    </div>
+                  </div>
+
+                  <Label className="text-white text-xs font-bold flex items-center gap-2 mb-3">
+                    <UploadCloud className="text-[#00E676] w-4 h-4" /> Sube tu Comprobante <span className="text-[#00E676]">*</span>
+                  </Label>
                   
-                  <div className="relative border-2 border-dashed border-zinc-600 bg-black/40 py-8 rounded-xl text-center hover:bg-zinc-800/80 transition-all">
-                    <Input type="file" onChange={(e) => setComprobantePago(e.target.files ? e.target.files[0] : null)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept="image/*,.pdf" />
-                    <div className="flex flex-col items-center pointer-events-none px-4">
+                  <div onClick={() => openOptions('comprobante')} className={`border-2 border-dashed border-[#2A2A2A] bg-[#121212] py-6 rounded-xl text-center hover:border-[#00E676]/50 transition-all cursor-pointer hover:bg-[#1A1A1A] ${comprobantePago ? 'border-[#00E676] bg-[#00E676]/5 shadow-[0_0_15px_rgba(0,230,118,0.1)]' : ''}`}>
+                    <div className="flex flex-col items-center px-4 pointer-events-none">
                       {comprobantePago ? (
                         <>
-                          <CheckCircle2 className="w-12 h-12 mb-3 text-green-500" />
-                          <span className="text-base font-bold text-green-400">{comprobantePago.name}</span>
-                          <span className="text-xs text-zinc-500 mt-1">Archivo listo para enviar</span>
+                          <CheckCircle2 className="w-8 h-8 mb-2 text-[#00E676]" />
+                          <span className="text-sm font-bold text-[#00E676] truncate w-full px-2">{comprobantePago.name}</span>
+                          <span className="text-[10px] text-[#B0B0B0] mt-1 uppercase font-bold tracking-widest">Subido Exitosamente</span>
                         </>
                       ) : (
                         <>
-                          <UploadCloud className="w-12 h-12 mb-3 text-zinc-500" />
-                          <span className="text-base font-semibold text-zinc-300">Toca para seleccionar tu comprobante</span>
-                          <span className="text-xs text-zinc-500 mt-1">Soporta JPG, PNG, PDF</span>
+                          <ImageIcon className="w-8 h-8 mb-2 text-[#424242]" />
+                          <span className="text-xs font-semibold text-[#B0B0B0]">Seleccionar imagen o PDF</span>
                         </>
                       )}
                     </div>
                   </div>
                 </div>
-
-                <div className="flex justify-end pt-4">
-                  <Button 
-                    onClick={handlePaymentSubmit} 
-                    disabled={isLoading || !comprobantePago} 
-                    className="bg-green-600 text-white hover:bg-green-500 font-bold h-14 px-8 w-full md:w-auto transition-all text-lg"
-                  >
-                    {isLoading ? "SUBIENDO..." : "ENVIAR A REVISIÓN"}
-                  </Button>
                 </div>
 
-              </CardContent>
-            </Card>
-          </div>
+                {/* Ayuda WhatsApp */}
+                <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl p-5 shadow-[0_0_15px_rgba(0,0,0,0.5)]">
+                  <p className="text-white font-bold mb-1 text-sm">¿Problemas con el pago?</p>
+                  <p className="text-[#B0B0B0] text-[10px] mb-4">Comunícate a nuestro canal oficial de WhatsApp</p>
+                  <a href="https://wa.me/573044347740" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between bg-[#121212] border border-[#00E676]/30 hover:bg-[#00E676]/10 transition-colors p-4 rounded-xl group cursor-pointer shadow-[0_0_10px_rgba(0,230,118,0.05)]">
+                    <div className="flex items-center gap-3">
+                      <Smartphone className="w-6 h-6 text-[#00E676] group-hover:scale-110 transition-transform" />
+                      <span className="text-[#00E676] font-bold text-lg tracking-wider">304 434 7740</span>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-[#00E676]/50 group-hover:text-[#00E676] transition-colors" />
+                  </a>
+                </div>
+
+                {/* Graphic Footer */}
+                <div className="relative rounded-2xl overflow-hidden border border-[#2A2A2A] bg-[#121212] shadow-2xl mt-0">
+                  {/* Background Image Oscurecida */}
+                  <div 
+                    className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20 mix-blend-luminosity"
+                    style={{ backgroundImage: "url('/sponsors/Screenshot 2026-04-24 175445.png')" }}
+                  ></div>
+                  {/* Gradient overlay to ensure text readability */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#121212] via-[#121212]/80 to-transparent"></div>
+                  
+                  <div className="relative z-10 p-8 flex flex-col items-center text-center">
+                    <div className="w-20 h-20 mb-4 bg-[#FF9800]/10 rounded-full flex items-center justify-center border border-[#FF9800]/20 shadow-[0_0_30px_rgba(255,152,0,0.15)]">
+                      <span className="text-4xl">🏆</span>
+                    </div>
+                    <p className="text-[#B0B0B0] text-xs md:text-sm leading-relaxed mb-6 max-w-[280px]">
+                      Gracias por ser parte de la <span className="text-white font-bold">Copa Stunt Colombia 2026</span>, el evento que impulsa el talento, la disciplina y la pasión por el stunt a nivel nacional e internacional.
+                    </p>
+                    <div className="inline-block bg-[#1A1A1A]/80 backdrop-blur-md border border-[#FF9800]/30 px-6 py-2 rounded-lg shadow-[0_0_15px_rgba(255,152,0,0.1)]">
+                      <p className="text-[#FF9800] font-black tracking-widest text-sm uppercase">
+                        🔥 Nos vemos en la pista. 🔥
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+
+            <div className="mt-12 mb-16 max-w-2xl mx-auto">
+              <Button type="submit" disabled={isLoading} className="bg-[#00E676] text-black hover:bg-[#00E676]/90 font-black h-16 w-full text-sm md:text-base shadow-[0_0_20px_rgba(0,230,118,0.4)] transition-all uppercase tracking-wider rounded-2xl">
+                {isLoading ? "GUARDANDO..." : "CONFIRMACIÓN DE INSCRIPCIÓN Y VALIDACIÓN DE PAGO"}
+                {!isLoading && <ChevronRight className="w-6 h-6 ml-2" />}
+              </Button>
+              <div className="flex items-center justify-center gap-2 mt-4 text-[#424242] text-[10px] uppercase font-bold tracking-widest mb-10">
+                <Lock className="w-3 h-3" />
+                Tu información está segura con nosotros.
+              </div>
+            </div>
+
+          </form>
         )}
 
         {/* PASO 3: ÉXITO / ESTADOS FINALES */}
@@ -790,6 +828,44 @@ export default function InscripcionPage() {
         )}
 
       </div>
+
+      {/* Modals para Cámara y Opciones de Archivo */}
+      <CameraModal 
+        isOpen={cameraOpen} 
+        onClose={() => setCameraOpen(false)} 
+        onCapture={(file) => {
+          handleFileFromDialog(file);
+        }} 
+        title="Capturar Documento"
+        isDeportista={currentDocKey === 'deportista'}
+      />
+
+      <Dialog open={optionsModalOpen} onOpenChange={setOptionsModalOpen}>
+        <DialogContent className="bg-zinc-950 border border-zinc-800 sm:max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-white">Subir Documento</DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              ¿Cómo deseas adjuntar este archivo?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 mt-4">
+            <Button onClick={() => { setOptionsModalOpen(false); setCameraOpen(true); }} className="w-full h-14 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-white flex items-center justify-start gap-3 rounded-xl">
+              <Camera className="w-5 h-5 text-green-500" />
+              <span className="font-bold">Tomar Foto</span>
+            </Button>
+            <div className="relative">
+              <Input type="file" id="dialog-file" onChange={(e) => {
+                const file = e.target.files ? e.target.files[0] : null;
+                if (file) handleFileFromDialog(file);
+              }} className="hidden" accept=".pdf,image/*" />
+              <Label htmlFor="dialog-file" className="w-full h-14 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-white flex items-center justify-start gap-3 rounded-xl cursor-pointer px-4">
+                <UploadCloud className="w-5 h-5 text-green-500" />
+                <span className="font-bold">Subir Archivo / PDF</span>
+              </Label>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

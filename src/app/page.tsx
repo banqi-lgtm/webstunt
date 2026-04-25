@@ -5,6 +5,17 @@ import { Button } from '@/components/ui/button';
 import { Shield, Settings, Globe, MapPin, Calendar, CheckCircle2, ChevronRight, AlertTriangle, ShieldCheck, Ticket, ScrollText, Flag, Check, Gift } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
+const SPONSOR_LOGOS = [
+  { src: "/sponsors/Copa Stunt Nitrox Blanco.png", alt: "Copa Stunt", className: "h-12 md:h-16 lg:h-20 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.4)] shrink-0" },
+  { src: "/sponsors/Nitrox Blanco.png", alt: "Nitrox", className: "h-10 md:h-12 lg:h-16 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.3)] shrink-0" },
+  { src: "/sponsors/Mobil Blanco.png", alt: "Mobil Super", className: "h-10 md:h-12 lg:h-16 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.3)] shrink-0" },
+  { src: "/sponsors/PKS Blanco.png", alt: "PKS", className: "h-8 md:h-10 lg:h-12 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] shrink-0" },
+  { src: "/sponsors/copa stunt nitrox f2r.png", alt: "F2R", className: "h-10 md:h-12 lg:h-14 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] shrink-0" },
+  { src: "/sponsors/Trakku.png", alt: "Trakku", className: "h-8 md:h-10 lg:h-12 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] shrink-0" },
+  { src: "/sponsors/IRC Blanco.png", alt: "IRC", className: "h-8 md:h-10 lg:h-12 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] shrink-0" },
+  { src: "/sponsors/Fedemoto.png", alt: "Fedemoto", className: "h-8 md:h-10 lg:h-12 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] shrink-0" }
+];
+
 export default function Home() {
   const [isLoginState, setIsLoginState] = useState(false);
 
@@ -258,26 +269,22 @@ export default function Home() {
         {/* BOTTOM FULL-WIDTH SECTION: SPONSORS & FOOTER */}
         <div className="w-full flex flex-col mt-4 lg:mt-8 pt-8 lg:pt-12 border-t border-white/5 relative z-10">
 
-          {/* SPONSORS STRIP - Single Horizontal Row */}
-          <div className="flex flex-col gap-6 md:gap-8">
-            {/* Contenedor con overflow para evitar que salten de línea en pantallas pequeñas */}
-            <div className="flex flex-nowrap items-center justify-start xl:justify-center gap-6 md:gap-8 lg:gap-10 w-full overflow-x-auto pb-4 px-4 snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/sponsors/Copa Stunt Nitrox Blanco.png" alt="Copa Stunt" className="h-12 md:h-16 lg:h-20 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.4)] shrink-0 snap-center" />
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/sponsors/Nitrox Blanco.png" alt="Nitrox" className="h-10 md:h-12 lg:h-16 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.3)] shrink-0 snap-center" />
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/sponsors/Mobil Blanco.png" alt="Mobil Super" className="h-10 md:h-12 lg:h-16 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.3)] shrink-0 snap-center" />
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/sponsors/PKS Blanco.png" alt="PKS" className="h-8 md:h-10 lg:h-12 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] shrink-0 snap-center" />
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/sponsors/copa stunt nitrox f2r.png" alt="F2R" className="h-10 md:h-12 lg:h-14 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] shrink-0 snap-center" />
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/sponsors/Trakku.png" alt="Trakku" className="h-8 md:h-10 lg:h-12 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] shrink-0 snap-center" />
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/sponsors/IRC Blanco.png" alt="IRC" className="h-8 md:h-10 lg:h-12 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] shrink-0 snap-center" />
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/sponsors/Fedemoto.png" alt="Fedemoto" className="h-8 md:h-10 lg:h-12 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] shrink-0 snap-center" />
+          {/* SPONSORS STRIP - Infinite Marquee */}
+          <div className="flex flex-col gap-6 md:gap-8 overflow-hidden relative">
+            {/* Fade effect gradients */}
+            <div className="absolute inset-y-0 left-0 w-16 md:w-32 bg-gradient-to-r from-black to-transparent z-10 pointer-events-none"></div>
+            <div className="absolute inset-y-0 right-0 w-16 md:w-32 bg-gradient-to-l from-black to-transparent z-10 pointer-events-none"></div>
+
+            {/* Marquee Container */}
+            <div className="flex w-max animate-marquee [animation-duration:18s] items-center">
+              {[...Array(3)].map((_, arrayIndex) => (
+                <div key={arrayIndex} className="flex items-center justify-center gap-10 md:gap-16 px-5 md:px-8 shrink-0">
+                  {SPONSOR_LOGOS.map((logo, index) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img key={`${arrayIndex}-${index}`} src={logo.src} alt={logo.alt} className={logo.className} />
+                  ))}
+                </div>
+              ))}
             </div>
 
             {/* Redes Sociales A Color */}

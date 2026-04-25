@@ -88,11 +88,39 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogi
   const [nombreTutor, setNombreTutor] = useState('');
   const [cedulaTutor, setCedulaTutor] = useState('');
   const [telefonoTutor, setTelefonoTutor] = useState('');
+  const [correoTutor, setCorreoTutor] = useState('');
+  const [parentescoTutor, setParentescoTutor] = useState('');
+
+  const isMinor = () => {
+    if (!fechaNacimiento) return false;
+    const today = new Date();
+    const birthDate = new Date(fechaNacimiento);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+    }
+    return age < 18;
+  };
+
+  const requireTutor = tipoDocumento === 'TI' || isMinor();
 
   const router = useRouter();
   const { toast } = useToast();
 
   const handleRegister = async () => {
+    if (!nombres || !apellidos || !seudonimo || !fechaNacimiento || !tipoDocumento || !numeroIdentificacion || !telefono || !ciudad || !direccion || !email || !password) {
+      toast({ title: "Campos incompletos", description: "Por favor completa todos los campos obligatorios (*).", variant: "destructive" });
+      setIsLoading(false);
+      return;
+    }
+
+    if (requireTutor && (!nombreTutor || !cedulaTutor || !telefonoTutor || !correoTutor || !parentescoTutor)) {
+      toast({ title: "Datos del tutor faltantes", description: "Al ser menor de edad, todos los datos de tu adulto responsable (incluyendo parentesco) son obligatorios.", variant: "destructive" });
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
@@ -100,9 +128,11 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogi
       await setDoc(doc(db, 'users', user.uid), {
         email, nombres, apellidos, seudonimo, tipoDocumento, numeroIdentificacion,
         instagram, telefono, ciudad, direccion, fechaNacimiento,
-        nombreTutor: tipoDocumento === 'TI' ? nombreTutor : null,
-        cedulaTutor: tipoDocumento === 'TI' ? cedulaTutor : null,
-        telefonoTutor: tipoDocumento === 'TI' ? telefonoTutor : null,
+        nombreTutor: requireTutor ? nombreTutor : null,
+        cedulaTutor: requireTutor ? cedulaTutor : null,
+        telefonoTutor: requireTutor ? telefonoTutor : null,
+        correoTutor: requireTutor ? correoTutor : null,
+        parentescoTutor: requireTutor ? parentescoTutor : null,
         habeasDataAccepted: false,
         createdAt: new Date().toISOString()
       });
@@ -214,15 +244,19 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogi
                   />
                   <FloatingInput id="numeroIdentificacion" label="Número de Identificación" value={numeroIdentificacion} onChange={(e: any) => setNumeroIdentificacion(e.target.value)} required />
 
-                  {/* TI (Tutor) Fields */}
-                  {tipoDocumento === 'TI' && (
-                    <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4 p-4 bg-orange-500/5 border border-orange-500/20 rounded-xl mt-1">
-                      <div className="md:col-span-3">
+                  {/* TI / Minor (Tutor) Fields */}
+                  {requireTutor && (
+                    <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 p-4 bg-orange-500/5 border border-orange-500/20 rounded-xl mt-1">
+                      <div className="md:col-span-2">
                         <p className="text-orange-400 font-bold text-[10px] uppercase tracking-widest">Datos Adulto Responsable (Tutor)</p>
                       </div>
                       <FloatingInput id="nombreTutor" label="Nombre Completo" value={nombreTutor} onChange={(e: any) => setNombreTutor(e.target.value)} required={true} />
                       <FloatingInput id="cedulaTutor" label="Cédula" value={cedulaTutor} onChange={(e: any) => setCedulaTutor(e.target.value)} required={true} />
-                      <FloatingInput id="telefonoTutor" label="Teléfono" value={telefonoTutor} onChange={(e: any) => setTelefonoTutor(e.target.value)} required={true} />
+                      <FloatingInput id="parentescoTutor" label="Parentesco (Ej. Padre, Madre)" value={parentescoTutor} onChange={(e: any) => setParentescoTutor(e.target.value)} required={true} />
+                      <FloatingInput id="telefonoTutor" label="Teléfono" type="tel" value={telefonoTutor} onChange={(e: any) => setTelefonoTutor(e.target.value)} required={true} />
+                      <div className="md:col-span-2">
+                        <FloatingInput id="correoTutor" label="Correo Electrónico" type="email" icon={Mail} value={correoTutor} onChange={(e: any) => setCorreoTutor(e.target.value)} required={true} />
+                      </div>
                     </div>
                   )}
 

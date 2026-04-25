@@ -41,6 +41,19 @@ interface PilotDetail {
   apellidos: string;
   email: string;
   numeroIdentificacion: string;
+  telefono: string;
+  ciudad: string;
+  direccion: string;
+  fechaNacimiento: string;
+  instagram: string;
+  redesSociales: string;
+  seudonimo: string;
+  tipoDocumento: string;
+  nombreTutor?: string;
+  cedulaTutor?: string;
+  telefonoTutor?: string;
+  correoTutor?: string;
+  parentescoTutor?: string;
 }
 
 export default function PilotDetailPage() {
@@ -114,7 +127,20 @@ export default function PilotDetailPage() {
         nombres: userData.nombres || 'Desconocido',
         apellidos: userData.apellidos || '',
         email: userData.email || 'N/A',
-        numeroIdentificacion: userData.numeroIdentificacion || 'N/A'
+        numeroIdentificacion: userData.numeroIdentificacion || 'N/A',
+        telefono: userData.telefono || 'N/A',
+        ciudad: userData.ciudad || 'N/A',
+        direccion: userData.direccion || 'N/A',
+        fechaNacimiento: userData.fechaNacimiento || 'N/A',
+        instagram: userData.instagram || 'N/A',
+        redesSociales: userData.redesSociales || 'N/A',
+        seudonimo: userData.seudonimo || 'N/A',
+        tipoDocumento: userData.tipoDocumento || 'CC',
+        nombreTutor: userData.nombreTutor || '',
+        cedulaTutor: userData.cedulaTutor || '',
+        telefonoTutor: userData.telefonoTutor || '',
+        correoTutor: userData.correoTutor || '',
+        parentescoTutor: userData.parentescoTutor || ''
       });
       
     } catch (e) {
@@ -284,31 +310,83 @@ export default function PilotDetailPage() {
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="flex flex-col gap-6">
           
-          {/* Columna Izquierda: Datos del Formulario */}
-          <div className="lg:col-span-1 space-y-6">
+          {/* Fila 1: Datos del Formulario en Horizontal */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <Card className="bg-zinc-950/80 backdrop-blur-xl border-zinc-800/50">
               <CardHeader className="pb-3 border-b border-zinc-800/50">
                 <CardTitle className="text-white text-lg flex items-center gap-2">
                   <User className="w-4 h-4 text-zinc-400" /> Datos Personales
                 </CardTitle>
               </CardHeader>
-              <CardContent className="pt-4 space-y-3">
+              <CardContent className="pt-4 grid grid-cols-2 gap-4">
                 <div>
-                  <span className="text-xs text-zinc-500 uppercase font-semibold">Identificación</span>
-                  <p className="text-zinc-300 font-mono">{pilot.numeroIdentificacion}</p>
+                  <span className="text-[10px] text-zinc-500 uppercase font-semibold">Tipo Doc.</span>
+                  <p className="text-sm text-zinc-300 font-mono">{pilot.tipoDocumento}</p>
                 </div>
                 <div>
-                  <span className="text-xs text-zinc-500 uppercase font-semibold">Participación Previa</span>
-                  <p className="text-zinc-300 capitalize">{pilot.participacionPrevia}</p>
+                  <span className="text-[10px] text-zinc-500 uppercase font-semibold">Identificación</span>
+                  <p className="text-sm text-zinc-300 font-mono">{pilot.numeroIdentificacion}</p>
                 </div>
                 <div>
-                  <span className="text-xs text-zinc-500 uppercase font-semibold">Fecha Inscripción</span>
-                  <p className="text-zinc-300">
-                    {pilot.registradoEl ? new Date(pilot.registradoEl).toLocaleString() : 'N/A'}
+                  <span className="text-[10px] text-zinc-500 uppercase font-semibold">Seudónimo (AKA)</span>
+                  <p className="text-sm text-zinc-300 capitalize">{pilot.seudonimo}</p>
+                </div>
+                <div>
+                  <span className="text-[10px] text-zinc-500 uppercase font-semibold">Teléfono</span>
+                  <p className="text-sm text-zinc-300">{pilot.telefono}</p>
+                </div>
+                <div>
+                  <span className="text-[10px] text-zinc-500 uppercase font-semibold">Fecha Nac.</span>
+                  <p className="text-sm text-zinc-300">{pilot.fechaNacimiento}</p>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-[10px] text-zinc-500 uppercase font-semibold">Ubicación</span>
+                  <p className="text-sm text-zinc-300">{pilot.ciudad} - {pilot.direccion}</p>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-[10px] text-zinc-500 uppercase font-semibold">Instagram</span>
+                  <p className="text-sm text-zinc-300">{pilot.instagram}</p>
+                </div>
+                <div>
+                  <span className="text-[10px] text-zinc-500 uppercase font-semibold">Part. Previa</span>
+                  <p className="text-sm text-zinc-300 capitalize">{pilot.participacionPrevia}</p>
+                </div>
+                <div>
+                  <span className="text-[10px] text-zinc-500 uppercase font-semibold">Inscripción</span>
+                  <p className="text-sm text-zinc-300">
+                    {pilot.registradoEl ? new Date(pilot.registradoEl).toLocaleDateString() : 'N/A'}
                   </p>
                 </div>
+
+                {pilot.nombreTutor && (
+                  <div className="col-span-2 mt-2 pt-4 border-t border-zinc-800/50">
+                    <span className="text-[10px] text-orange-400 uppercase font-bold tracking-widest block mb-3">Datos del Tutor (Adulto Responsable)</span>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <span className="text-[10px] text-zinc-500 uppercase font-semibold">Nombre Tutor</span>
+                        <p className="text-sm text-zinc-300">{pilot.nombreTutor}</p>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-zinc-500 uppercase font-semibold">Cédula Tutor</span>
+                        <p className="text-sm text-zinc-300 font-mono">{pilot.cedulaTutor}</p>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-zinc-500 uppercase font-semibold">Parentesco</span>
+                        <p className="text-sm text-zinc-300 capitalize">{pilot.parentescoTutor}</p>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-zinc-500 uppercase font-semibold">Teléfono Tutor</span>
+                        <p className="text-sm text-zinc-300">{pilot.telefonoTutor}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-[10px] text-zinc-500 uppercase font-semibold">Correo Tutor</span>
+                        <p className="text-sm text-zinc-300">{pilot.correoTutor}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -348,8 +426,8 @@ export default function PilotDetailPage() {
             )}
           </div>
 
-          {/* Columna Derecha: Documentos */}
-          <div className="lg:col-span-3 space-y-6">
+          {/* Fila 2: Verificación Financiera y Comprobantes */}
+          <div className="space-y-6">
             
             {/* Panel de Aprobación de Pago */}
             <Card className="bg-zinc-900 border-zinc-800 w-full shadow-[0_0_15px_rgba(255,255,255,0.02)]">
