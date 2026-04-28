@@ -4,6 +4,7 @@ import { AuthForm } from '@/components/auth-form';
 import { Button } from '@/components/ui/button';
 import { Shield, Settings, Globe, MapPin, Calendar, CheckCircle2, ChevronRight, AlertTriangle, ShieldCheck, Ticket, ScrollText, Flag, Check, Gift } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const SPONSOR_LOGOS = [
   { src: "/sponsors/Copa Stunt Nitrox Blanco.png", alt: "Copa Stunt", className: "h-12 md:h-16 lg:h-20 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.4)] shrink-0" },
@@ -18,6 +19,7 @@ const SPONSOR_LOGOS = [
 
 export default function Home() {
   const [isLoginState, setIsLoginState] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.location.hash === '#login') {
@@ -29,21 +31,22 @@ export default function Home() {
     <main className="relative min-h-screen w-full overflow-x-hidden bg-black text-zinc-200 selection:bg-[#00FF00] selection:text-black font-body flex flex-col">
       
       {/* Navigation Header */}
-      <nav className="w-full relative z-50 px-6 py-3 flex items-center justify-between max-w-[1800px] mx-auto drop-shadow-2xl flex-shrink-0">
-        <div className="flex items-center">
+      <nav className="w-full relative z-50 px-4 md:px-6 py-3 flex items-center justify-between max-w-[1800px] mx-auto drop-shadow-2xl flex-shrink-0">
+        <div className="flex items-center shrink-0 mr-2">
           <a href="/" className="cursor-pointer transition-opacity hover:opacity-80">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/sponsors/PKS Blanco.png" alt="Paskines Stunt" className="h-6 md:h-8 w-auto object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]" />
+            <img src="/sponsors/PKS Blanco.png" alt="Paskines Stunt" className="h-5 md:h-8 w-auto object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]" />
           </a>
         </div>
         
-        <div className="flex bg-[#111111]/90 backdrop-blur-md p-1.5 rounded-xl border border-zinc-800/80 shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
+        <div className="flex bg-[#111111]/90 backdrop-blur-md p-1 md:p-1.5 rounded-xl border border-zinc-800/80 shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
           <Button 
             onClick={() => { 
               setIsLoginState(false); 
               window.location.hash = ''; 
+              document.getElementById('auth-form-section')?.scrollIntoView({ behavior: 'smooth' });
             }} 
-            className={`rounded-lg px-6 h-9 font-bold transition-all duration-300 ${!isLoginState ? 'bg-[#39FF14] text-black shadow-[0_0_20px_rgba(57,255,20,0.4)] hover:bg-[#2CE50F] hover:shadow-[0_0_30px_rgba(57,255,20,0.6)]' : 'bg-transparent text-zinc-500 hover:text-white hover:bg-zinc-800/50'}`}
+            className={`rounded-lg px-3 md:px-6 h-7 md:h-9 text-[10px] md:text-sm font-bold transition-all duration-300 ${!isLoginState ? 'bg-[#39FF14] text-black shadow-[0_0_20px_rgba(57,255,20,0.4)] hover:bg-[#2CE50F] hover:shadow-[0_0_30px_rgba(57,255,20,0.6)]' : 'bg-transparent text-zinc-500 hover:text-white hover:bg-zinc-800/50'}`}
           >
             Inscripción
           </Button>
@@ -51,8 +54,9 @@ export default function Home() {
             onClick={() => { 
               setIsLoginState(true); 
               window.location.hash = '#login'; 
+              document.getElementById('auth-form-section')?.scrollIntoView({ behavior: 'smooth' });
             }} 
-            className={`rounded-lg px-6 h-9 font-bold transition-all duration-300 ${isLoginState ? 'bg-[#39FF14] text-black shadow-[0_0_20px_rgba(57,255,20,0.4)] hover:bg-[#2CE50F] hover:shadow-[0_0_30px_rgba(57,255,20,0.6)]' : 'bg-transparent text-zinc-500 hover:text-white hover:bg-zinc-800/50'}`}
+            className={`rounded-lg px-3 md:px-6 h-7 md:h-9 text-[10px] md:text-sm font-bold transition-all duration-300 ${isLoginState ? 'bg-[#39FF14] text-black shadow-[0_0_20px_rgba(57,255,20,0.4)] hover:bg-[#2CE50F] hover:shadow-[0_0_30px_rgba(57,255,20,0.6)]' : 'bg-transparent text-zinc-500 hover:text-white hover:bg-zinc-800/50'}`}
           >
             Iniciar Sesión
           </Button>
@@ -184,7 +188,7 @@ export default function Home() {
                   <div>
                     <h4 className="text-white font-bold text-xs uppercase mb-2">INSCRIPCIONES EXTEMPORALES</h4>
                     <div className="flex justify-between items-center bg-white/5 rounded px-3 py-2 border border-white/10">
-                      <span className="text-zinc-300 text-xs font-medium">10 AL 15 MAY</span>
+                      <span className="text-zinc-300 text-xs font-medium">11 AL 15 MAY</span>
                       <span className="text-[#39FF14] font-black text-sm">$350.000</span>
                     </div>
                   </div>
@@ -210,7 +214,7 @@ export default function Home() {
                   </li>
                   <li className="flex items-start gap-3">
                     <CheckCircle2 className="w-4 h-4 text-[#39FF14] shrink-0 mt-0.5" strokeWidth={2} />
-                    <span className="text-xs text-zinc-300 font-medium">Boleta para un acompañante</span>
+                    <span className="text-xs text-zinc-300 font-medium">Boleta para acompañante</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <CheckCircle2 className="w-4 h-4 text-[#39FF14] shrink-0 mt-0.5" strokeWidth={2} />
@@ -218,11 +222,11 @@ export default function Home() {
                   </li>
                   <li className="flex items-start gap-3">
                     <CheckCircle2 className="w-4 h-4 text-[#39FF14] shrink-0 mt-0.5" strokeWidth={2} />
-                    <span className="text-xs text-zinc-300 font-medium">Kit de bienvenida Nitrox</span>
+                    <span className="text-xs text-zinc-300 font-medium">VIP BOX con sorpresas increíbles</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <CheckCircle2 className="w-4 h-4 text-[#39FF14] shrink-0 mt-0.5" strokeWidth={2} />
-                    <span className="text-[#39FF14] text-xs font-bold">Participación en rifa de moto 0 KM</span>
+                    <span className="text-[#39FF14] text-xs font-bold">Participa por una moto MRX 200 0km</span>
                   </li>
                 </ul>
               </div>
@@ -246,12 +250,16 @@ export default function Home() {
                   </div>
                   <div className="flex items-start gap-4 relative z-10">
                     <div className="w-6 h-6 rounded-full border border-[#39FF14] bg-black flex items-center justify-center text-[#39FF14] text-[10px] font-bold shrink-0">3</div>
-                    <span className="text-xs text-zinc-300 font-medium mt-0.5">Envía el soporte de pago por WhatsApp</span>
+                    <span className="text-xs text-zinc-300 font-medium mt-0.5">Sube el comprobante de Pago</span>
                   </div>
                 </div>
 
-                <Button variant="outline" className="w-full border-white/20 text-[#39FF14] hover:bg-[#39FF14] hover:text-black uppercase tracking-widest text-[10px] font-bold h-10 mt-auto transition-colors flex items-center justify-between px-4">
-                  VER DETALLES DE PAGO
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsPaymentModalOpen(true)}
+                  className="w-full border-white/20 text-[#39FF14] hover:bg-[#39FF14] hover:text-black uppercase tracking-widest text-[10px] font-bold h-10 mt-auto transition-colors flex items-center justify-between px-4"
+                >
+                  MÉTODOS DE PAGO
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
@@ -322,6 +330,58 @@ export default function Home() {
         </div>
 
       </div>
+
+      {/* Payment Details Modal */}
+      <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
+        <DialogContent className="sm:max-w-[400px] w-[95vw] bg-[#121212] border-2 border-[#00E676] shadow-[0_0_30px_rgba(0,230,118,0.3)] text-white p-0 overflow-hidden rounded-2xl">
+          <DialogHeader className="p-4 pb-2 border-b border-[#2A2A2A]/50 bg-black/40">
+            <DialogTitle className="text-lg md:text-xl font-black uppercase text-[#00E676] tracking-wider flex items-center justify-center gap-2">
+              <span className="text-xl md:text-2xl">💰</span> Detalles de Pago
+            </DialogTitle>
+          </DialogHeader>
+          <div className="p-4 pt-4 max-h-[90vh] overflow-hidden">
+            <div className="bg-[#1A1A1A] p-4 rounded-xl border border-[#2A2A2A] shadow-[0_0_15px_rgba(0,0,0,0.5)]">
+              <div className="flex flex-col gap-2 mb-3">
+                <div className="flex justify-between items-baseline">
+                  <span className="text-[11px] text-[#B0B0B0] font-medium uppercase tracking-wider">Costo (16 Abr - 10 May)</span>
+                  <span className="text-lg text-[#00E676] font-black tracking-wider shadow-[#00E676]/20">$280.000</span>
+                </div>
+                <div className="flex justify-between items-baseline pt-2 border-t border-[#2A2A2A]">
+                  <span className="text-[9px] text-[#424242] font-medium uppercase tracking-wider">Costo (11 May - 15 May)</span>
+                  <span className="text-xs text-[#B0B0B0] font-bold tracking-wider">$350.000</span>
+                </div>
+              </div>
+
+              <div className="space-y-2.5">
+                <div className="bg-[#121212] p-3 rounded-xl border border-[#2A2A2A] flex flex-row items-center gap-4 text-xs text-[#B0B0B0]">
+                  <div className="shrink-0 bg-white p-1.5 rounded-lg shadow-[0_0_20px_rgba(0,230,118,0.15)]">
+                    <img src="/sponsors/QR BANCOLOMBIA.jpg" alt="QR Bancolombia" className="w-20 h-20 object-contain rounded-md" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="font-black text-white mb-1.5 text-[10px] md:text-xs uppercase tracking-widest border-b border-[#2A2A2A] pb-1.5">Ahorros Bancolombia</p>
+                    <ul className="space-y-0.5 font-mono text-[#B0B0B0]">
+                      <li className="text-sm md:text-base text-[#00E676] font-bold tracking-wider">316-376847-80</li>
+                      <li className="text-[8px] md:text-[9px] text-[#424242] uppercase font-sans tracking-wide">Titular: <span className="text-[#B0B0B0]">Daniela Rojas Valencia</span></li>
+                    </ul>
+                  </div>
+                </div>
+                <div className="bg-[#121212] p-2.5 rounded-xl border border-[#2A2A2A] flex items-center justify-between px-4">
+                  <p className="font-bold text-[#424242] uppercase tracking-wide text-[10px]">Pago por LLAVE</p>
+                  <p className="text-sm md:text-base font-mono text-[#B0B0B0] font-bold tracking-wider">1214720768</p>
+                </div>
+              </div>
+            </div>
+            <div className="mt-4">
+              <Button 
+                onClick={() => setIsPaymentModalOpen(false)} 
+                className="w-full bg-[#00E676] hover:bg-[#00C853] text-black font-black uppercase tracking-wider h-12 rounded-xl shadow-[0_0_15px_rgba(0,230,118,0.2)]"
+              >
+                Entendido
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }
