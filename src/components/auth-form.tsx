@@ -83,6 +83,7 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogi
   const [ciudad, setCiudad] = useState('');
   const [direccion, setDireccion] = useState('');
   const [fechaNacimiento, setFechaNacimiento] = useState('');
+  const [tallaCamisa, setTallaCamisa] = useState('');
   
   // Tutor fields for Minors (TI)
   const [nombreTutor, setNombreTutor] = useState('');
@@ -109,7 +110,7 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogi
   const { toast } = useToast();
 
   const handleRegister = async () => {
-    if (!nombres || !apellidos || !seudonimo || !fechaNacimiento || !tipoDocumento || !numeroIdentificacion || !telefono || !ciudad || !direccion || !email || !password) {
+    if (!nombres || !apellidos || !seudonimo || !fechaNacimiento || !tipoDocumento || !numeroIdentificacion || !telefono || !ciudad || !direccion || !email || !password || !tallaCamisa) {
       toast({ title: "Campos incompletos", description: "Por favor completa todos los campos obligatorios (*).", variant: "destructive" });
       setIsLoading(false);
       return;
@@ -127,7 +128,7 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogi
       
       await setDoc(doc(db, 'users', user.uid), {
         email, nombres, apellidos, seudonimo, tipoDocumento, numeroIdentificacion,
-        instagram, telefono, ciudad, direccion, fechaNacimiento,
+        instagram, telefono, ciudad, direccion, fechaNacimiento, tallaCamisa,
         nombreTutor: requireTutor ? nombreTutor : null,
         cedulaTutor: requireTutor ? cedulaTutor : null,
         telefonoTutor: requireTutor ? telefonoTutor : null,
@@ -263,8 +264,23 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogi
                   <FloatingInput id="telefono" label="Teléfono" icon={Phone} type="tel" value={telefono} onChange={(e: any) => setTelefono(e.target.value)} required />
                   <FloatingInput id="ciudad" label="Ciudad" icon={MapPin} value={ciudad} onChange={(e: any) => setCiudad(e.target.value)} required />
 
-                  <div className="md:col-span-2">
+                  <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                     <FloatingInput id="direccion" label="Dirección" icon={MapPin} value={direccion} onChange={(e: any) => setDireccion(e.target.value)} required />
+                    <FloatingInput 
+                      id="tallaCamisa" 
+                      label="Talla de Camisa" 
+                      isSelect 
+                      value={tallaCamisa} 
+                      onChange={(e: any) => setTallaCamisa(e.target.value)} 
+                      required 
+                      options={[
+                        { value: "S", label: "S" },
+                        { value: "M", label: "M" },
+                        { value: "L", label: "L" },
+                        { value: "XL", label: "XL" },
+                        { value: "XXL", label: "XXL" }
+                      ]}
+                    />
                   </div>
 
                   <div className="md:col-span-2">

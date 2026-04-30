@@ -139,6 +139,17 @@ export default function Home() {
 
             {/* Feature Strip */}
             <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-6 py-6 border-t border-b border-white/10 mt-4 mb-6">
+              {/* 1. Respaldado por */}
+              <div className="flex items-center gap-4">
+                <Shield className="w-8 h-8 text-[#39FF14] shrink-0" strokeWidth={1.5} />
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-xs text-white uppercase font-bold tracking-wide leading-snug">RESPALDADO POR</span>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/sponsors/Fedemoto.png" alt="Fedemoto" className="h-12 md:h-16 w-auto object-contain object-left" />
+                </div>
+              </div>
+              
+              {/* 2. Evento Oficial */}
               <div className="flex items-center gap-4">
                 <ShieldCheck className="w-8 h-8 text-[#39FF14] shrink-0" strokeWidth={1.5} />
                 <p className="text-xs text-white uppercase font-bold tracking-wide leading-snug">
@@ -146,13 +157,8 @@ export default function Home() {
                   <span className="text-[#39FF14]">EN EL MARCO DE LA<br/>FERIA 2 RUEDAS</span>
                 </p>
               </div>
-              <div className="flex items-center gap-4">
-                <Shield className="w-8 h-8 text-[#39FF14] shrink-0" strokeWidth={1.5} />
-                <p className="text-xs text-white uppercase font-bold tracking-wide leading-snug">
-                  RESPALDADO POR LA <br/>
-                  <span className="text-[#39FF14]">FEDERACIÓN COLOMBIANA<br/>DE MOTOCICLISMO</span>
-                </p>
-              </div>
+              
+              {/* 3. Pilotos de todo el país */}
               <div className="flex items-center gap-4">
                 <Globe className="w-8 h-8 text-[#39FF14] shrink-0" strokeWidth={1.5} />
                 <p className="text-xs text-white uppercase font-bold tracking-wide leading-snug">

@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { UploadCloud, AlertTriangle, CheckCircle2, ChevronRight, Gift, Trophy, Star, ShieldAlert, CreditCard, Clock, Image as ImageIcon, XCircle, ArrowLeft, CheckCircle, Smartphone, Phone, Lock, Camera } from 'lucide-react';
+import { UploadCloud, AlertTriangle, CheckCircle2, ChevronRight, Gift, Trophy, Star, ShieldAlert, CreditCard, Clock, Image as ImageIcon, XCircle, ArrowLeft, CheckCircle, Smartphone, Phone, Lock, Camera, Instagram } from 'lucide-react';
 import Link from 'next/link';
 import { CameraModal } from '@/components/camera-modal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -38,6 +38,12 @@ export default function InscripcionPage() {
   const [optionsModalOpen, setOptionsModalOpen] = useState(false);
   const [currentDocKey, setCurrentDocKey] = useState<string | null>(null);
   const [cameraOpen, setCameraOpen] = useState(false);
+  const [sponsorsModalOpen, setSponsorsModalOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const openOptions = (docKey: string) => {
     setCurrentDocKey(docKey);
@@ -131,8 +137,11 @@ export default function InscripcionPage() {
         const snapshot = await getDocs(collection(db, 'event_registrations'));
         const counts: { [key: string]: number } = { open: 0, '2t': 0, '4t': 0, alto: 0 };
         snapshot.forEach(d => {
-          const cat = d.data().categoria;
-          if (cat) counts[cat] = (counts[cat] || 0) + 1;
+          const data = d.data();
+          const cat = data.categoria;
+          if (cat && data.estadoPago === 'aprobado') {
+            counts[cat] = (counts[cat] || 0) + 1;
+          }
         });
         setCategoryCounts(counts);
       } catch (e) {
@@ -399,12 +408,12 @@ export default function InscripcionPage() {
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-[#121212]">
-      {windowSize.width > 0 && estadoPago === 'aprobado' && (
+      {mounted && windowSize.width > 0 && estadoPago === 'aprobado' && (
         <Confetti 
           width={windowSize.width} 
           height={windowSize.height} 
           recycle={false} 
-          numberOfPieces={600} 
+          numberOfPieces={500} 
           gravity={0.15} 
           className="z-50"
           style={{ position: 'fixed' }}
@@ -517,16 +526,18 @@ export default function InscripcionPage() {
                   </div>
                 </RadioGroup>
                 
-                <div className="mt-3 bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 flex items-center justify-between cursor-pointer hover:border-zinc-700 transition-colors" onClick={() => setPatrocinadores(!patrocinadores)}>
-                  <div className="flex items-center gap-3">
-                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${patrocinadores ? 'border-green-500 bg-green-500' : 'border-zinc-600'}`}>
-                      {patrocinadores && <CheckCircle className="w-4 h-4 text-white" />}
+                <div className="mt-3 bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden transition-all">
+                  <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-zinc-800/50 transition-colors" onClick={() => { if (!patrocinadores) setSponsorsModalOpen(true); else setPatrocinadores(false); }}>
+                    <div className="flex items-center gap-3">
+                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${patrocinadores ? 'border-[#39FF14] bg-[#39FF14]' : 'border-zinc-600'}`}>
+                        {patrocinadores && <CheckCircle className="w-4 h-4 text-black" />}
+                      </div>
+                      <Label className="text-xs text-zinc-300 font-medium cursor-pointer leading-tight">
+                        Confirmo que fui a Instagram a seguir a nuestros patrocinadores principales
+                      </Label>
                     </div>
-                    <Label className="text-xs text-zinc-300 font-medium cursor-pointer leading-tight">
-                      Confirmo que fui a Instagram a seguir a nuestros patrocinadores principales
-                    </Label>
+                    <ChevronRight className="w-5 h-5 text-zinc-600" />
                   </div>
-                  <ChevronRight className="w-5 h-5 text-zinc-600" />
                 </div>
               </div>
 
@@ -864,6 +875,73 @@ export default function InscripcionPage() {
               </Label>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Sponsors Modal */}
+      <Dialog open={sponsorsModalOpen} onOpenChange={setSponsorsModalOpen}>
+        <DialogContent className="sm:max-w-md bg-[#050505] border border-zinc-800 p-5 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.9)] text-zinc-100">
+          <DialogHeader>
+            <DialogTitle className="text-white text-base font-black uppercase tracking-wider text-center flex flex-col items-center gap-1">
+              <Instagram className="w-8 h-8 text-pink-500 drop-shadow-[0_0_10px_rgba(236,72,153,0.5)]" />
+              SÍGUENOS EN INSTAGRAM
+            </DialogTitle>
+            <DialogDescription className="text-zinc-400 text-center text-[11px] mt-1 font-medium">
+              Para asegurar tu cupo es obligatorio seguir a nuestros patrocinadores oficiales. Haz clic en cada uno para apoyarlos.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex flex-col gap-2 my-2">
+            <a href="https://www.instagram.com/nitrox.repuestos/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 rounded-xl bg-zinc-900/40 hover:bg-zinc-800/60 transition-colors border border-zinc-800 hover:border-zinc-600">
+              <div className="w-10 h-10 bg-black rounded-lg border border-[#222] p-1.5 flex items-center justify-center shrink-0 shadow-inner">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/sponsors/Nitrox Blanco.png" alt="Nitrox" className="w-full h-full object-contain" />
+              </div>
+              <span className="text-xs text-white font-bold tracking-wide">@nitrox.repuestos</span>
+            </a>
+            
+            <a href="https://www.instagram.com/paskinesstunt/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 rounded-xl bg-zinc-900/40 hover:bg-zinc-800/60 transition-colors border border-zinc-800 hover:border-zinc-600">
+              <div className="w-10 h-10 bg-black rounded-lg border border-[#222] p-1.5 flex items-center justify-center shrink-0 shadow-inner">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/sponsors/PKS Blanco.png" alt="Paskines Stunt" className="w-full h-full object-contain" />
+              </div>
+              <span className="text-xs text-white font-bold tracking-wide">@paskinesstunt</span>
+            </a>
+            
+            <a href="https://www.instagram.com/autecotrakku/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 rounded-xl bg-zinc-900/40 hover:bg-zinc-800/60 transition-colors border border-zinc-800 hover:border-zinc-600">
+              <div className="w-10 h-10 bg-black rounded-lg border border-[#222] p-1.5 flex items-center justify-center shrink-0 shadow-inner">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/sponsors/Trakku.png" alt="Auteco Trakku" className="w-full h-full object-contain" />
+              </div>
+              <span className="text-xs text-white font-bold tracking-wide">@autecotrakku</span>
+            </a>
+            
+            <a href="https://www.instagram.com/copastuntcolombia/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 rounded-xl bg-zinc-900/40 hover:bg-zinc-800/60 transition-colors border border-zinc-800 hover:border-zinc-600">
+              <div className="w-10 h-10 bg-black rounded-lg border border-[#222] p-1.5 flex items-center justify-center shrink-0 shadow-inner">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/sponsors/Copa Stunt Nitrox Blanco.png" alt="Copa Stunt" className="w-full h-full object-contain" />
+              </div>
+              <span className="text-xs text-white font-bold tracking-wide">@copastuntcolombia</span>
+            </a>
+            
+            <a href="https://www.instagram.com/feria2ruedasoficial/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2 rounded-xl bg-zinc-900/40 hover:bg-zinc-800/60 transition-colors border border-zinc-800 hover:border-zinc-600">
+              <div className="w-10 h-10 bg-black rounded-lg border border-[#222] flex items-center justify-center shrink-0 shadow-inner overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/sponsors/stunt2026negro.jpeg" alt="Feria 2 Ruedas" className="w-full h-full object-cover" />
+              </div>
+              <span className="text-xs text-white font-bold tracking-wide">@feria2ruedasoficial</span>
+            </a>
+          </div>
+
+          <Button 
+            className="w-full bg-[#39FF14] text-black hover:bg-[#2CE50F] hover:scale-[1.02] transition-all font-black uppercase tracking-wider h-12 mt-1 rounded-xl text-xs shadow-[0_0_15px_rgba(57,255,20,0.3)]"
+            onClick={() => {
+              setPatrocinadores(true);
+              setSponsorsModalOpen(false);
+            }}
+          >
+            CONFIRMO QUE YA LOS SIGO
+          </Button>
         </DialogContent>
       </Dialog>
     </div>
