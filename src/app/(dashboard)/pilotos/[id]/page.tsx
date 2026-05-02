@@ -99,15 +99,25 @@ export default function PilotDetailPage() {
   const fetchPilotData = async () => {
     try {
       const regDoc = await getDoc(doc(db, 'event_registrations', id));
-      if (!regDoc.exists()) {
+      const isRegExists = regDoc.exists();
+      const data = isRegExists ? regDoc.data() : {};
+      
+      const extractedUid = data.uid || id.replace('f2r_', '');
+
+      if (!extractedUid) {
+        toast({ title: 'Error', description: 'Piloto no válido', variant: 'destructive'});
+        router.push('/pilotos');
+        return;
+      }
+      
+      const userDoc = await getDoc(doc(db, 'users', extractedUid));
+      
+      if (!isRegExists && !userDoc.exists()) {
         toast({ title: 'Error', description: 'Registro no encontrado', variant: 'destructive'});
         router.push('/pilotos');
         return;
       }
 
-      const data = regDoc.data();
-      
-      const userDoc = await getDoc(doc(db, 'users', data.uid));
       const userData = userDoc.exists() ? userDoc.data() : {};
 
       setPilot({

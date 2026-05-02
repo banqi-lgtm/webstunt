@@ -83,19 +83,33 @@ export default function PilotosPage() {
 
       // 2. Fetch Registrations
       const regSnap = await getDocs(collection(db, 'event_registrations'));
-      const fetched: Registration[] = [];
-      
+      const regsMap = new Map();
       regSnap.forEach(docSnap => {
         const data = docSnap.data();
-        const userData = usersMap.get(data.uid) || {};
+        if (data.uid) {
+          regsMap.set(data.uid, { id: docSnap.id, ...data });
+        }
+      });
+
+      const fetched: Registration[] = [];
+      
+      // Combine users and registrations to show everyone
+      usersMap.forEach((userData, userId) => {
+        // Exclude super admin if they don't have basic pilot data
+        if (userData.email === 'wg12435@hotmail.com' && !userData.numeroIdentificacion) return;
+        
+        // Skip users with missing names
+        if (!userData.nombres) return;
+
+        const regData = regsMap.get(userId) || {};
         
         fetched.push({
-          id: docSnap.id,
-          uid: data.uid,
-          categoria: data.categoria || 'N/A',
-          motocicleta: data.motocicleta || { placa: 'N/A', marca: 'N/A', referencia: 'N/A' },
-          registradoEl: data.registradoEl || '',
-          estadoPago: data.estadoPago || 'pendiente',
+          id: regData.id || `f2r_${userId}`,
+          uid: userId,
+          categoria: regData.categoria || 'N/A',
+          motocicleta: regData.motocicleta || { placa: 'N/A', marca: 'N/A', referencia: 'N/A' },
+          registradoEl: regData.registradoEl || userData.createdAt || new Date().toISOString(),
+          estadoPago: regData.estadoPago || 'pendiente',
           nombres: userData.nombres || 'Desconocido',
           apellidos: userData.apellidos || '',
           email: userData.email || 'N/A',
@@ -169,7 +183,8 @@ export default function PilotosPage() {
                              const regDoc = await getDoc(doc(db, 'event_registrations', value));
                              if (regDoc.exists()) {
                                const data = regDoc.data();
-                               const userDoc = await getDoc(doc(db, 'users', data.uid));
+                               const extractedUid = data.uid || value.replace('f2r_', '');
+                               const userDoc = await getDoc(doc(db, 'users', extractedUid));
                                const userData = userDoc.exists() ? userDoc.data() : {};
                                setScannedPilot({
                                   ...data,
