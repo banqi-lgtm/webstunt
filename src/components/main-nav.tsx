@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { User, CalendarDays, LogOut, Shield, Users, Menu, ChevronDown } from 'lucide-react';
+import { User, CalendarDays, LogOut, Shield, Users, Menu, ChevronDown, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { auth, db } from '@/lib/firebase';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
@@ -20,6 +20,7 @@ export function MainNav() {
   const router = useRouter();
   const [isAdmin, setIsAdmin] = useState(false);
   const [hasPilotosAccess, setHasPilotosAccess] = useState(false);
+  const [hasStaffAccess, setHasStaffAccess] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -37,14 +38,21 @@ export function MainNav() {
             } else {
               setHasPilotosAccess(false);
             }
+            if (isSuperAdmin || interfaces.includes('staff')) {
+              setHasStaffAccess(true);
+            } else {
+              setHasStaffAccess(false);
+            }
           } else if (isSuperAdmin) {
             setHasPilotosAccess(true);
+            setHasStaffAccess(true);
           }
         } catch (e) {
           console.error("Error al obtener interfaces de usuario", e);
         }
       } else {
         setHasPilotosAccess(false);
+        setHasStaffAccess(false);
       }
     });
     return () => unsubscribe();
@@ -63,6 +71,9 @@ export function MainNav() {
   if (hasPilotosAccess) {
     dynamicLinks.push({ href: '/pilotos', label: 'Pilotos', icon: Users });
   }
+  if (hasStaffAccess) {
+    dynamicLinks.push({ href: '/staff', label: 'Staff', icon: Star });
+  }
   if (isAdmin) {
     dynamicLinks.push({ href: '/admin', label: 'Panel Admin', icon: Shield });
   }
@@ -72,6 +83,7 @@ export function MainNav() {
   const NavButton = ({ link, isActive }: { link: any, isActive: boolean }) => {
     const isPilotos = link.href === '/pilotos';
     const isAdminLink = link.href === '/admin';
+    const isStaff = link.href === '/staff';
     
     let activeClass = 'bg-zinc-800 text-white border border-transparent';
     let inactiveClass = 'text-zinc-400 hover:text-white hover:bg-zinc-900 border border-transparent';
@@ -85,6 +97,10 @@ export function MainNav() {
       activeClass = 'bg-zinc-800 text-white border border-green-500/20';
       inactiveClass = 'text-zinc-400 hover:text-white hover:bg-zinc-900 border border-green-500/10';
       iconClass = 'h-4 w-4 text-green-500';
+    } else if (isStaff) {
+      activeClass = 'bg-zinc-800 text-white border border-purple-500/20';
+      inactiveClass = 'text-zinc-400 hover:text-white hover:bg-zinc-900 border border-purple-500/10';
+      iconClass = 'h-4 w-4 text-purple-400';
     }
 
     return (
@@ -138,7 +154,7 @@ export function MainNav() {
                   return (
                     <DropdownMenuItem key={link.href} asChild className={`cursor-pointer mb-1 rounded-md p-0 ${isActive ? 'bg-zinc-800/50' : ''}`}>
                       <Link href={link.href} className="flex items-center w-full px-3 py-2.5">
-                        <link.icon className={`h-4 w-4 mr-3 ${link.href === '/pilotos' ? 'text-blue-500' : link.href === '/admin' ? 'text-green-500' : 'text-zinc-400'}`} />
+                        <link.icon className={`h-4 w-4 mr-3 ${link.href === '/pilotos' ? 'text-blue-500' : link.href === '/staff' ? 'text-purple-400' : link.href === '/admin' ? 'text-green-500' : 'text-zinc-400'}`} />
                         <span className={`font-semibold text-sm ${isActive ? 'text-white' : 'text-zinc-300'}`}>{link.label}</span>
                       </Link>
                     </DropdownMenuItem>

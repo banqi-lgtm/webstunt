@@ -101,6 +101,9 @@ export default function PilotosPage() {
         // Skip users with missing names
         if (!userData.nombres) return;
 
+        // Skip staff members
+        if (userData.rol === 'staff') return;
+
         const regData = regsMap.get(userId) || {};
         
         fetched.push({
@@ -135,12 +138,18 @@ export default function PilotosPage() {
                           r.apellidos.toLowerCase().includes(search.toLowerCase()) ||
                           r.motocicleta.placa.toLowerCase().includes(search.toLowerCase());
     
-    const matchesFilter = filterStatus === 'todos' || r.estadoPago === filterStatus;
+    const matchesFilter = filterStatus === 'todos' || 
+                          r.estadoPago === filterStatus ||
+                          (filterStatus === 'en_revision' && r.estadoPago === 'revision_saldo');
     
     return matchesSearch && matchesFilter;
   });
 
+  const countTodos = registrations.length;
   const countEnRevision = registrations.filter(r => r.estadoPago === 'en_revision' || r.estadoPago === 'revision_saldo').length;
+  const countAprobados = registrations.filter(r => r.estadoPago === 'aprobado').length;
+  const countSinPagar = registrations.filter(r => r.estadoPago === 'pendiente').length;
+  const countDebenSaldo = registrations.filter(r => r.estadoPago === 'saldo_pendiente').length;
 
   return (
     <div className="min-h-screen p-4 lg:p-10 relative">
@@ -305,36 +314,38 @@ export default function PilotosPage() {
                 <div className="flex bg-zinc-900/80 p-1 rounded-lg border border-zinc-800 overflow-x-auto">
                   <button 
                     onClick={() => setFilterStatus('todos')}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${filterStatus === 'todos' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:text-white'}`}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${filterStatus === 'todos' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:text-white'}`}
                   >
                     Todos
+                    <span className="bg-zinc-700/50 text-zinc-300 text-xs font-bold px-1.5 py-0.5 rounded-full">{countTodos}</span>
                   </button>
                   <button 
                     onClick={() => setFilterStatus('en_revision')}
                     className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${filterStatus === 'en_revision' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' : 'text-zinc-400 hover:text-white'}`}
                   >
                     En Revisión
-                    {countEnRevision > 0 && (
-                      <span className="bg-yellow-500 text-yellow-950 text-xs font-bold px-1.5 py-0.5 rounded-full">{countEnRevision}</span>
-                    )}
+                    <span className={`${filterStatus === 'en_revision' ? 'bg-yellow-500 text-yellow-950' : 'bg-zinc-800 text-zinc-500'} text-xs font-bold px-1.5 py-0.5 rounded-full transition-colors`}>{countEnRevision}</span>
                   </button>
                   <button 
                     onClick={() => setFilterStatus('aprobado')}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${filterStatus === 'aprobado' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'text-zinc-400 hover:text-white'}`}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${filterStatus === 'aprobado' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'text-zinc-400 hover:text-white'}`}
                   >
                     Aprobados
+                    <span className={`${filterStatus === 'aprobado' ? 'bg-green-500 text-green-950' : 'bg-zinc-800 text-zinc-500'} text-xs font-bold px-1.5 py-0.5 rounded-full transition-colors`}>{countAprobados}</span>
                   </button>
                   <button 
                     onClick={() => setFilterStatus('pendiente')}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${filterStatus === 'pendiente' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'text-zinc-400 hover:text-white'}`}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${filterStatus === 'pendiente' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'text-zinc-400 hover:text-white'}`}
                   >
                     Sin Pagar
+                    <span className={`${filterStatus === 'pendiente' ? 'bg-red-500 text-red-950' : 'bg-zinc-800 text-zinc-500'} text-xs font-bold px-1.5 py-0.5 rounded-full transition-colors`}>{countSinPagar}</span>
                   </button>
                   <button 
                     onClick={() => setFilterStatus('saldo_pendiente')}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${filterStatus === 'saldo_pendiente' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' : 'text-zinc-400 hover:text-white'}`}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${filterStatus === 'saldo_pendiente' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' : 'text-zinc-400 hover:text-white'}`}
                   >
                     Deben Saldo
+                    <span className={`${filterStatus === 'saldo_pendiente' ? 'bg-orange-500 text-orange-950' : 'bg-zinc-800 text-zinc-500'} text-xs font-bold px-1.5 py-0.5 rounded-full transition-colors`}>{countDebenSaldo}</span>
                   </button>
                 </div>
                 

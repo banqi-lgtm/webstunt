@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { collection, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { ArrowLeft, ExternalLink, User, Bike, FileText, CheckCircle2, XCircle, CreditCard, Clock, AlertCircle, FileCheck2 } from 'lucide-react';
+import { ArrowLeft, ExternalLink, User, Bike, FileText, CheckCircle2, XCircle, CreditCard, Clock, AlertCircle, FileCheck2, Star, ShieldAlert } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,6 +54,7 @@ interface PilotDetail {
   telefonoTutor?: string;
   correoTutor?: string;
   parentescoTutor?: string;
+  rol: string;
 }
 
 export default function PilotDetailPage() {
@@ -66,6 +67,9 @@ export default function PilotDetailPage() {
   const [updating, setUpdating] = useState(false);
   const [isSaldoDialogOpen, setIsSaldoDialogOpen] = useState(false);
   const [saldoAmount, setSaldoAmount] = useState('');
+  const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
+  const [newRole, setNewRole] = useState<'piloto' | 'staff'>('piloto');
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -75,6 +79,7 @@ export default function PilotDetailPage() {
       }
       
       const isSuperAdmin = user.email === 'wg12435@hotmail.com';
+      setIsAdmin(isSuperAdmin);
       
       try {
         const userDoc = await getDoc(doc(db, 'users', user.uid));
@@ -122,7 +127,7 @@ export default function PilotDetailPage() {
 
       setPilot({
         id: regDoc.id,
-        uid: data.uid,
+        uid: extractedUid,
         categoria: data.categoria || 'N/A',
         participacionPrevia: data.participacionPrevia || 'N/A',
         patrocinadores: data.patrocinadores || false,
@@ -150,7 +155,8 @@ export default function PilotDetailPage() {
         cedulaTutor: userData.cedulaTutor || '',
         telefonoTutor: userData.telefonoTutor || '',
         correoTutor: userData.correoTutor || '',
-        parentescoTutor: userData.parentescoTutor || ''
+        parentescoTutor: userData.parentescoTutor || '',
+        rol: userData.rol || 'piloto'
       });
       
     } catch (e) {
@@ -202,6 +208,41 @@ export default function PilotDetailPage() {
     }
   };
 
+  const handleChangeRole = async () => {
+    if (!pilot || !isAdmin) return;
+    setUpdating(true);
+    try {
+      await updateDoc(doc(db, 'users', pilot.uid), { rol: newRole });
+      setPilot({ ...pilot, rol: newRole });
+      setIsRoleDialogOpen(false);
+      toast({ title: 'Rol Actualizado', description: `El usuario ahora tiene el rol de ${newRole.toUpperCase()}.` });
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'Error', description: 'No se pudo actualizar el rol.', variant: 'destructive' });
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleDeletePilot = async () => {
+    if (!pilot || !isAdmin) return;
+    
+    if (!confirm(`¿Estás seguro de que deseas eliminar a ${pilot.nombres} ${pilot.apellidos} por completo del sistema? Esta acción no se puede deshacer.`)) return;
+
+    setUpdating(true);
+    try {
+      await deleteDoc(doc(db, 'event_registrations', pilot.id));
+      await deleteDoc(doc(db, 'users', pilot.uid));
+      
+      toast({ title: 'Usuario Eliminado', description: 'El registro y el perfil han sido borrados de la base de datos.' });
+      router.push('/pilotos');
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'Error', description: 'No se pudo eliminar al usuario. Es posible que no tengas permisos.', variant: 'destructive' });
+      setUpdating(false);
+    }
+  };
+
   if (hasAccess === null || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-zinc-500">
@@ -249,12 +290,26 @@ export default function PilotDetailPage() {
         
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
           <div className="flex flex-col gap-6 w-full">
-            <Link href="/pilotos">
-              <Button variant="outline" className="w-fit gap-2 border-zinc-700 hover:bg-zinc-800 hover:text-white text-zinc-400">
-                <ArrowLeft className="w-4 h-4" />
-                Volver al Directorio
-              </Button>
-            </Link>
+            <div className="flex justify-between items-center w-full">
+              <Link href="/pilotos">
+                <Button variant="outline" className="w-fit gap-2 border-zinc-700 hover:bg-zinc-800 hover:text-white text-zinc-400">
+                  <ArrowLeft className="w-4 h-4" />
+                  Volver al Directorio
+                </Button>
+              </Link>
+
+              {isAdmin && (
+                <Button 
+                  onClick={handleDeletePilot} 
+                  disabled={updating}
+                  variant="outline" 
+                  className="border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                >
+                  <XCircle className="w-4 h-4 mr-2" />
+                  Eliminar del Sistema
+                </Button>
+              )}
+            </div>
             
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between w-full gap-6">
               <div className="flex items-center gap-4">
@@ -262,8 +317,53 @@ export default function PilotDetailPage() {
                   <User className="w-8 h-8 text-green-500" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold text-white">{pilot.nombres} {pilot.apellidos}</h1>
-                  <p className="text-zinc-400 flex items-center gap-2 mt-1">
+                  <div className="flex items-center gap-3">
+                    <h1 className="text-3xl font-bold text-white">{pilot.nombres} {pilot.apellidos}</h1>
+                    {pilot.rol === 'staff' ? (
+                      <span className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30 uppercase tracking-widest">
+                        <Star className="w-3 h-3" /> STAFF
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30 uppercase tracking-widest">
+                        <User className="w-3 h-3" /> PILOTO
+                      </span>
+                    )}
+                    {isAdmin && (
+                      <Dialog open={isRoleDialogOpen} onOpenChange={setIsRoleDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-7 text-xs text-zinc-500 hover:text-white" onClick={() => setNewRole(pilot.rol as 'piloto' | 'staff')}>
+                            Cambiar Rol
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="bg-zinc-950 border-zinc-800">
+                          <DialogHeader>
+                            <DialogTitle className="text-white flex items-center gap-2">
+                              <ShieldAlert className="w-5 h-5 text-yellow-500" />
+                              Modificar Rol de Usuario
+                            </DialogTitle>
+                          </DialogHeader>
+                          <div className="py-4">
+                            <p className="text-sm text-zinc-400 mb-4">
+                              Selecciona el nuevo rol para <strong>{pilot.nombres} {pilot.apellidos}</strong>. Los usuarios Staff desaparecerán de la lista de pilotos y tendrán su propia sección.
+                            </p>
+                            <select 
+                              value={newRole}
+                              onChange={(e) => setNewRole(e.target.value as 'piloto' | 'staff')}
+                              className="w-full bg-zinc-900 border border-zinc-700 text-white rounded-md h-10 px-3 outline-none focus:border-green-500 transition-colors"
+                            >
+                              <option value="piloto">Piloto</option>
+                              <option value="staff">Staff</option>
+                            </select>
+                          </div>
+                          <DialogFooter>
+                            <Button onClick={() => setIsRoleDialogOpen(false)} variant="ghost" className="text-zinc-400">Cancelar</Button>
+                            <Button onClick={handleChangeRole} disabled={updating || newRole === pilot.rol} className="bg-green-600 hover:bg-green-500 text-white">Guardar Cambios</Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    )}
+                  </div>
+                  <p className="text-zinc-400 flex items-center gap-2 mt-2">
                     <span className="inline-block px-2 py-0.5 rounded-full text-xs font-bold bg-green-500/10 text-green-400 border border-green-500/20 uppercase tracking-wider">
                       {pilot.categoria}
                     </span>
