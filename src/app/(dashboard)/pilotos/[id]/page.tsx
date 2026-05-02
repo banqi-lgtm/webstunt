@@ -213,13 +213,20 @@ export default function PilotDetailPage() {
     setUpdating(true);
     try {
       await updateDoc(doc(db, 'users', pilot.uid), { rol: newRole });
-      setPilot({ ...pilot, rol: newRole });
+      
+      // Cerrar el modal primero para evitar conflictos de animación de Radix UI
       setIsRoleDialogOpen(false);
-      toast({ title: 'Rol Actualizado', description: `El usuario ahora tiene el rol de ${newRole.toUpperCase()}.` });
+      
+      // Retrasar la actualización visual un instante para que el modal se cierre limpiamente
+      setTimeout(() => {
+        setPilot(prev => prev ? { ...prev, rol: newRole } : null);
+        toast({ title: 'Rol Actualizado', description: `El usuario ahora tiene el rol de ${newRole.toUpperCase()}.` });
+        setUpdating(false);
+      }, 150);
+      
     } catch (e) {
       console.error(e);
       toast({ title: 'Error', description: 'No se pudo actualizar el rol.', variant: 'destructive' });
-    } finally {
       setUpdating(false);
     }
   };
