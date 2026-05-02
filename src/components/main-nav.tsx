@@ -24,15 +24,16 @@ export function MainNav() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      const isSuperAdmin = user?.email === 'wg12435@hotmail.com';
-      setIsAdmin(isSuperAdmin);
-      
       if (user) {
         try {
           const userDoc = await getDoc(doc(db, 'users', user.uid));
           if (userDoc.exists()) {
             const data = userDoc.data();
             const interfaces = data.interfaces || [];
+            
+            const isSuperAdmin = ['wg12435@hotmail.com', 'walter12345@hotmail.com'].includes(user?.email || '') || interfaces.includes('admin');
+            setIsAdmin(isSuperAdmin);
+
             if (isSuperAdmin || interfaces.includes('pilotos')) {
               setHasPilotosAccess(true);
             } else {
@@ -43,9 +44,13 @@ export function MainNav() {
             } else {
               setHasStaffAccess(false);
             }
-          } else if (isSuperAdmin) {
-            setHasPilotosAccess(true);
-            setHasStaffAccess(true);
+          } else {
+            const isSuperAdmin = ['wg12435@hotmail.com', 'walter12345@hotmail.com'].includes(user?.email || '');
+            setIsAdmin(isSuperAdmin);
+            if (isSuperAdmin) {
+              setHasPilotosAccess(true);
+              setHasStaffAccess(true);
+            }
           }
         } catch (e) {
           console.error("Error al obtener interfaces de usuario", e);

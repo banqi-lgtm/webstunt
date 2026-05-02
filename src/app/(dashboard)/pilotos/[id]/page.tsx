@@ -78,14 +78,14 @@ export default function PilotDetailPage() {
         return;
       }
       
-      const isSuperAdmin = user.email === 'wg12435@hotmail.com';
-      setIsAdmin(isSuperAdmin);
-      
       try {
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         const data = userDoc.data();
         const interfaces = data?.interfaces || [];
         
+        const isSuperAdmin = ['wg12435@hotmail.com', 'walter12345@hotmail.com'].includes(user.email || '') || interfaces.includes('admin');
+        setIsAdmin(isSuperAdmin);
+
         if (isSuperAdmin || interfaces.includes('pilotos')) {
           setHasAccess(true);
           fetchPilotData();

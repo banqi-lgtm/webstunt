@@ -30,12 +30,28 @@ export default function AdminPage() {
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user?.email === 'wg12435@hotmail.com') {
-        setIsAdmin(true);
-        fetchUsers();
-      } else {
-        setIsAdmin(false);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        router.push('/');
+        return;
+      }
+      
+      const isHardcodedAdmin = ['wg12435@hotmail.com', 'walter12345@hotmail.com'].includes(user?.email || '');
+      
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        const data = userDoc.exists() ? userDoc.data() : {};
+        const interfaces = data.interfaces || [];
+        
+        if (isHardcodedAdmin || interfaces.includes('admin')) {
+          setIsAdmin(true);
+          fetchUsers();
+        } else {
+          setIsAdmin(false);
+          router.push('/profile');
+        }
+      } catch (e) {
+        console.error(e);
         router.push('/profile');
       }
     });
@@ -168,11 +184,11 @@ export default function AdminPage() {
 
                         <div className="flex items-center space-x-2 bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded-md">
                           <Checkbox 
-                            id={`futuro-${user.id}`} 
-                            checked={user.interfaces.includes('premium')} 
-                            onCheckedChange={() => toggleInterface(user.id, 'premium', user.interfaces)}
+                            id={`admin-${user.id}`} 
+                            checked={user.interfaces.includes('admin')} 
+                            onCheckedChange={() => toggleInterface(user.id, 'admin', user.interfaces)}
                           />
-                          <label htmlFor={`futuro-${user.id}`} className="text-sm font-medium text-amber-500 cursor-pointer">Interfaz X</label>
+                          <label htmlFor={`admin-${user.id}`} className="text-sm font-medium text-amber-500 cursor-pointer">Admin</label>
                         </div>
                         
                         <div className="flex items-center space-x-2 bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded-md">

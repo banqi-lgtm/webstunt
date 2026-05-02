@@ -50,12 +50,12 @@ export default function PilotosPage() {
         return;
       }
       
-      const isSuperAdmin = user.email === 'wg12435@hotmail.com';
-      
       try {
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         const data = userDoc.data();
         const interfaces = data?.interfaces || [];
+        
+        const isSuperAdmin = ['wg12435@hotmail.com', 'walter12345@hotmail.com'].includes(user.email || '') || interfaces.includes('admin');
         
         if (isSuperAdmin || interfaces.includes('pilotos')) {
           setHasAccess(true);
@@ -96,7 +96,7 @@ export default function PilotosPage() {
       // Combine users and registrations to show everyone
       usersMap.forEach((userData, userId) => {
         // Exclude super admin if they don't have basic pilot data
-        if (userData.email === 'wg12435@hotmail.com' && !userData.numeroIdentificacion) return;
+        if (['wg12435@hotmail.com', 'walter12345@hotmail.com'].includes(userData.email) && !userData.numeroIdentificacion) return;
         
         // Skip users with missing names
         if (!userData.nombres) return;

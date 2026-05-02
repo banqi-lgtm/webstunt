@@ -5,10 +5,10 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Lock, Mail, User, Phone, MapPin, Calendar, AtSign, Flame, ClipboardList, CheckCircle2 } from 'lucide-react';
+import { Lock, Mail, User, Phone, MapPin, Calendar, AtSign, Flame, ClipboardList, CheckCircle2, AlertCircle, KeyRound } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { setDoc, doc } from 'firebase/firestore';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { collection, query, where, getDocs, setDoc, doc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 
 // Helper component for Standard Input with Icon
@@ -53,6 +53,13 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogi
   const [isLoading, setIsLoading] = useState(false);
   const [showHabeasData, setShowHabeasData] = useState(false);
   const [createdUserUid, setCreatedUserUid] = useState<string | null>(null);
+  const [duplicateIdDialogOpen, setDuplicateIdDialogOpen] = useState(false);
+  const [duplicateIdValue, setDuplicateIdValue] = useState('');
+  
+  // Reset Password State
+  const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
+  const [resetPasswordEmail, setResetPasswordEmail] = useState('');
+  const [isResetting, setIsResetting] = useState(false);
 
   const isLogin = externalIsLogin !== undefined ? externalIsLogin : internalIsLogin;
   
@@ -123,9 +130,33 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogi
     }
 
     try {
+      // 1. Crear la cuenta en Auth primero para obtener permisos de lectura en Firestore
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
+
+      // 2. Ahora que hay sesión, verificar si la cédula ya existe
+      let isDuplicate = false;
+      try {
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where("numeroIdentificacion", "==", numeroIdentificacion));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          isDuplicate = true;
+        }
+      } catch (queryErr) {
+        console.warn("Aviso: No se pudo verificar duplicados por reglas de Firestore.", queryErr);
+      }
+
+      if (isDuplicate) {
+        // Borrar la cuenta Auth recién creada porque la cédula ya estaba registrada
+        await user.delete();
+        setDuplicateIdValue(numeroIdentificacion);
+        setDuplicateIdDialogOpen(true);
+        setIsLoading(false);
+        return;
+      }
       
+      // 3. Crear el documento del usuario en la base de datos
       await setDoc(doc(db, 'users', user.uid), {
         email, nombres, apellidos, seudonimo, tipoDocumento, numeroIdentificacion,
         instagram, telefono, ciudad, direccion, fechaNacimiento, tallaCamisa,
@@ -160,6 +191,29 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogi
         variant: "destructive"
       });
       setIsLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetPasswordEmail) {
+      toast({ title: "Falta el correo", description: "Por favor ingresa tu correo electrónico.", variant: "destructive" });
+      return;
+    }
+    
+    setIsResetting(true);
+    try {
+      await sendPasswordResetEmail(auth, resetPasswordEmail);
+      toast({ title: "Correo enviado", description: "Revisa tu bandeja de entrada o spam para restablecer tu contraseña." });
+      setResetPasswordDialogOpen(false);
+      setResetPasswordEmail('');
+    } catch (error: any) {
+      toast({ 
+        title: "Error", 
+        description: error.message.includes('auth/user-not-found') ? "No hay ninguna cuenta registrada con este correo." : "No se pudo enviar el correo de recuperación.", 
+        variant: "destructive" 
+      });
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -295,7 +349,18 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogi
               <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-3">Credenciales de Acceso</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                 <FloatingInput id="email" label="Correo Electrónico" type="email" icon={Mail} value={email} onChange={(e: any) => setEmail(e.target.value)} required />
-                <FloatingInput id="password" label="Contraseña" type="password" icon={Lock} value={password} onChange={(e: any) => setPassword(e.target.value)} required />
+                <div>
+                  <FloatingInput id="password" label="Contraseña" type="password" icon={Lock} value={password} onChange={(e: any) => setPassword(e.target.value)} required />
+                  {isLogin && (
+                    <button 
+                      type="button" 
+                      onClick={() => setResetPasswordDialogOpen(true)}
+                      className="text-[10px] text-zinc-500 hover:text-[#39FF14] mt-1.5 block w-full text-right transition-colors font-semibold"
+                    >
+                      ¿Olvidaste tu contraseña?
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -370,6 +435,86 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogi
             <Button className="bg-[#FFB700] text-black hover:bg-[#E5A400] font-bold rounded-xl" onClick={handleAcceptHabeasData} disabled={isLoading}>
               {isLoading ? <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-black mr-2"></div> : null}
               Aceptar y Continuar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Dialogo de Identificación Duplicada */}
+      <Dialog open={duplicateIdDialogOpen} onOpenChange={setDuplicateIdDialogOpen}>
+        <DialogContent className="sm:max-w-md bg-zinc-950 border-zinc-800 text-white rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-center text-orange-500 flex flex-col items-center gap-2">
+              <AlertCircle className="w-10 h-10" />
+              Documento Ya Registrado
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4 text-center">
+            <p className="text-zinc-300">
+              El número de identificación <span className="font-bold text-white">{duplicateIdValue}</span> ya se encuentra registrado en nuestra base de datos.
+            </p>
+            <p className="text-zinc-500 text-sm mt-2">
+              Si ya tienes una cuenta, por favor inicia sesión para continuar con tu proceso.
+            </p>
+          </div>
+          <DialogFooter className="flex flex-col sm:flex-row gap-3 sm:justify-center">
+            <Button 
+              variant="outline"
+              className="border-zinc-800 text-zinc-300 hover:bg-zinc-900 w-full sm:w-auto rounded-xl"
+              onClick={() => setDuplicateIdDialogOpen(false)}
+            >
+              Cerrar
+            </Button>
+            <Button 
+              className="bg-[#39FF14] text-black hover:bg-[#2CE50F] w-full sm:w-auto font-bold rounded-xl"
+              onClick={() => {
+                setDuplicateIdDialogOpen(false);
+                setIsLogin(true);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            >
+              Iniciar Sesión
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Dialogo de Recuperación de Contraseña */}
+      <Dialog open={resetPasswordDialogOpen} onOpenChange={setResetPasswordDialogOpen}>
+        <DialogContent className="sm:max-w-md bg-zinc-950 border-zinc-800 text-white rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-center text-[#39FF14] flex flex-col items-center gap-2">
+              <KeyRound className="w-10 h-10" />
+              Recuperar Contraseña
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4 text-center">
+            <p className="text-zinc-300 text-sm mb-4">
+              Ingresa el <strong className="text-white">correo electrónico</strong> asociado a tu cuenta para enviarte un enlace de recuperación segura.
+            </p>
+            <FloatingInput 
+              id="resetEmail" 
+              label="Correo Electrónico" 
+              type="email" 
+              icon={Mail} 
+              value={resetPasswordEmail} 
+              onChange={(e: any) => setResetPasswordEmail(e.target.value)} 
+              required 
+            />
+          </div>
+          <DialogFooter className="flex flex-col sm:flex-row gap-3 sm:justify-center mt-2">
+            <Button 
+              variant="outline"
+              className="border-zinc-800 text-zinc-300 hover:bg-zinc-900 w-full sm:w-auto rounded-xl"
+              onClick={() => setResetPasswordDialogOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              className="bg-[#39FF14] text-black hover:bg-[#2CE50F] w-full sm:w-auto font-bold rounded-xl"
+              onClick={handleResetPassword}
+              disabled={isResetting || !resetPasswordEmail}
+            >
+              {isResetting ? <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-black mr-2"></div> : null}
+              Enviar Enlace
             </Button>
           </DialogFooter>
         </DialogContent>

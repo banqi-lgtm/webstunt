@@ -38,14 +38,14 @@ export default function StaffPage() {
         return;
       }
       
-      const isSuperAdmin = user.email === 'wg12435@hotmail.com';
-      
       try {
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         const data = userDoc.data();
         const interfaces = data?.interfaces || [];
         
-        if (isSuperAdmin || interfaces.includes('pilotos')) {
+        const isSuperAdmin = ['wg12435@hotmail.com', 'walter12345@hotmail.com'].includes(user.email || '') || interfaces.includes('admin');
+        
+        if (isSuperAdmin || interfaces.includes('staff')) {
           setHasAccess(true);
           fetchStaff();
         } else {
@@ -69,7 +69,7 @@ export default function StaffPage() {
         const userData = docSnap.data();
         
         // Excluir super admin si no tiene info completa (aunque sea admin)
-        if (userData.email === 'wg12435@hotmail.com' && !userData.nombres) return;
+        if (['wg12435@hotmail.com', 'walter12345@hotmail.com'].includes(userData.email) && !userData.nombres) return;
         
         // Solo incluir a los que tengan explícitamente el rol de "staff"
         if (userData.rol === 'staff') {
