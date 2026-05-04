@@ -39,6 +39,8 @@ export default function InscripcionPage() {
   const [currentDocKey, setCurrentDocKey] = useState<string | null>(null);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [sponsorsModalOpen, setSponsorsModalOpen] = useState(false);
+  const [correctionDialogOpen, setCorrectionDialogOpen] = useState(false);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(true);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -47,7 +49,11 @@ export default function InscripcionPage() {
 
   const openOptions = (docKey: string) => {
     setCurrentDocKey(docKey);
-    setOptionsModalOpen(true);
+    if (docKey === 'id') {
+      setCameraOpen(true);
+    } else {
+      setOptionsModalOpen(true);
+    }
   };
 
   const handleFileFromDialog = async (file: File) => {
@@ -89,6 +95,13 @@ export default function InscripcionPage() {
            },
            estadoPago: estadoPago === 'pendiente' ? 'borrador' : estadoPago
          }, { merge: true });
+         
+         // Remove from rejected if it was there
+         if (documentosRechazados.includes(docKey)) {
+           const { arrayRemove } = await import('firebase/firestore');
+           await updateDoc(docRef, { documentosRechazados: arrayRemove(docKey) });
+           setDocumentosRechazados(prev => prev.filter(k => k !== docKey));
+         }
       }
       toast({ title: 'Guardado', description: 'El archivo se guardó automáticamente.', variant: 'default' });
       return url;
@@ -118,6 +131,8 @@ export default function InscripcionPage() {
   const [comprobantePago, setComprobantePago] = useState<any>(null);
   
   const [inquietudes, setInquietudes] = useState('');
+
+  const [documentosRechazados, setDocumentosRechazados] = useState<string[]>([]);
 
   const [faceDetector, setFaceDetector] = useState<any>(null);
   const [isDetectingFace, setIsDetectingFace] = useState(false);
@@ -193,6 +208,7 @@ export default function InscripcionPage() {
              }
              setEstadoPago(data.estadoPago || 'pendiente');
              setSaldoFaltante(data.saldoFaltante || '');
+             setDocumentosRechazados(data.documentosRechazados || []);
              if (data.estadoPago === 'aprobado' || data.estadoPago === 'en_revision' || data.estadoPago === 'rechazado' || data.estadoPago === 'revision_saldo') {
                 setStep(3);
              } else {
@@ -201,9 +217,12 @@ export default function InscripcionPage() {
           }
         } catch (e) {
           console.error("Error validando el registro anterior:", e);
+        } finally {
+          setIsCheckingStatus(false);
         }
 
       } else {
+        setIsCheckingStatus(false);
         router.push('/');
       }
     });
@@ -213,6 +232,18 @@ export default function InscripcionPage() {
       if (typeof window !== 'undefined') window.removeEventListener('resize', () => {});
     };
   }, [router]);
+
+  // FIX: Force remove pointer-events: none that Radix UI might leave behind on navigation or errors
+  useEffect(() => {
+    document.body.style.pointerEvents = '';
+    return () => { document.body.style.pointerEvents = ''; };
+  }, []);
+
+  useEffect(() => {
+    if (documentosRechazados.length === 0) {
+      setCorrectionDialogOpen(false);
+    }
+  }, [documentosRechazados.length]);
 
   const handleFotoDeportistaChange = async (file: File | null) => {
     if (!file) {
@@ -424,9 +455,16 @@ export default function InscripcionPage() {
 
       <div className="flex flex-col p-4 lg:p-8 text-zinc-100 max-w-5xl mx-auto w-full relative z-10">
         
-        {/* PASO 1: FORMULARIO SECUENCIAL */}
-        {step === 1 && (
-          <form onSubmit={handleFormSubmit} className="animate-in fade-in zoom-in-95 duration-500 max-w-5xl mx-auto w-full">
+        {isCheckingStatus ? (
+          <div className="flex flex-col items-center justify-center min-h-[60vh]">
+            <div className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+            <p className="mt-6 text-green-500 font-bold uppercase tracking-widest text-sm animate-pulse">Sincronizando perfil...</p>
+          </div>
+        ) : (
+          <>
+            {/* PASO 1: FORMULARIO SECUENCIAL */}
+            {step === 1 && (
+              <form onSubmit={handleFormSubmit} className="animate-in fade-in zoom-in-95 duration-500 max-w-5xl mx-auto w-full">
             
             {/* Header de Progreso */}
             <div className="flex flex-col mb-8 border-b border-[#2A2A2A] pb-4">
@@ -584,7 +622,7 @@ export default function InscripcionPage() {
                 </p>
 
                 {[
-                  { key: 'id', state: idPdf, title: "Anexa un PDF por ambos lados de tu identificación", desc: "PDF o Imagen" },
+                  { key: 'id', state: idPdf, title: "Documento de identificación por ambos lados", desc: "Solo Foto (Frente y Reverso)" },
                   { key: 'placa', state: fotoPlaca, title: "Foto de la placa (Tu motocicleta)", desc: "Obligatorio" },
                   { key: 'propiedad', state: fotoPropiedad, title: "Foto/PDF Tarjeta de propiedad", desc: "Claro y legible" },
                   { key: 'soat', state: fotoSoat, title: "Fotografía del SOAT vigente", desc: "Vigente para la fecha" },
@@ -752,8 +790,27 @@ export default function InscripcionPage() {
 
         {/* PASO 3: ÉXITO / ESTADOS FINALES */}
         {step === 3 && (
-          <div className="flex flex-col items-center justify-center p-8 bg-zinc-950/80 backdrop-blur-xl border border-zinc-800 rounded-3xl shadow-2xl animate-in fade-in zoom-in-95 duration-500 max-w-lg mx-auto w-full mt-10">
+          <div className="flex flex-col items-center justify-center p-5 sm:p-8 bg-zinc-950/80 backdrop-blur-xl border border-zinc-800 rounded-3xl shadow-2xl animate-in fade-in zoom-in-95 duration-500 max-w-lg mx-auto w-full mt-4 sm:mt-8">
             
+            {documentosRechazados.length > 0 && (
+              <div className="w-full bg-red-500/10 border border-red-500/60 rounded-2xl p-4 sm:p-5 mb-6 flex flex-col items-center text-center shadow-[0_0_30px_rgba(239,68,68,0.25)] relative overflow-hidden">
+                {/* Glow sutil de fondo */}
+                <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-500 to-transparent"></div>
+                
+                <AlertTriangle className="w-8 h-8 sm:w-10 sm:h-10 text-red-500 mb-2 drop-shadow-[0_0_10px_rgba(239,68,68,0.8)]" />
+                <h3 className="text-base sm:text-lg font-black text-red-500 uppercase tracking-widest mb-1">Documentos por Corregir</h3>
+                <p className="text-zinc-300 text-[11px] sm:text-sm mb-4">
+                  Tienes documentos pendientes por corregir. Debes volver a subirlos para validarlos.
+                </p>
+                <Button 
+                  onClick={() => setCorrectionDialogOpen(true)} 
+                  className="bg-red-600 text-white hover:bg-red-500 font-bold uppercase tracking-widest w-full shadow-[0_0_15px_rgba(239,68,68,0.4)] h-10 sm:h-11 text-xs sm:text-sm"
+                >
+                  Ir a corregirlos
+                </Button>
+              </div>
+            )}
+
             {estadoPago === 'rechazado' && (
               <>
                 <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mb-6 border border-red-500/30 shadow-[0_0_30px_rgba(239,68,68,0.2)]">
@@ -837,7 +894,8 @@ export default function InscripcionPage() {
             
           </div>
         )}
-
+        </>
+        )}
       </div>
 
       {/* Modals para Cámara y Opciones de Archivo */}
@@ -847,8 +905,9 @@ export default function InscripcionPage() {
         onCapture={(file) => {
           handleFileFromDialog(file);
         }} 
-        title="Capturar Documento"
+        title={currentDocKey === 'id' ? 'Documento (Doble Cara)' : 'Capturar Documento'}
         isDeportista={currentDocKey === 'deportista'}
+        mode={currentDocKey === 'id' ? 'double' : 'single'}
       />
 
       <Dialog open={optionsModalOpen} onOpenChange={setOptionsModalOpen}>
@@ -860,7 +919,10 @@ export default function InscripcionPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-3 mt-4">
-            <Button onClick={() => { setOptionsModalOpen(false); setCameraOpen(true); }} className="w-full h-14 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-white flex items-center justify-start gap-3 rounded-xl">
+            <Button onClick={() => { 
+              setOptionsModalOpen(false); 
+              setTimeout(() => setCameraOpen(true), 100); 
+            }} className="w-full h-14 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-white flex items-center justify-start gap-3 rounded-xl">
               <Camera className="w-5 h-5 text-green-500" />
               <span className="font-bold">Tomar Foto</span>
             </Button>
@@ -942,6 +1004,43 @@ export default function InscripcionPage() {
           >
             CONFIRMO QUE YA LOS SIGO
           </Button>
+        </DialogContent>
+      </Dialog>
+
+      {/* Correction Dialog */}
+      <Dialog open={correctionDialogOpen} onOpenChange={setCorrectionDialogOpen}>
+        <DialogContent className="w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto bg-zinc-950 border border-red-500/30 p-4 sm:p-5 rounded-2xl shadow-[0_0_50px_rgba(239,68,68,0.15)] text-zinc-100">
+          <DialogHeader>
+            <DialogTitle className="text-white text-sm sm:text-base font-black uppercase tracking-wider flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-red-500" />
+              Documentos por Corregir
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 mt-2 sm:mt-4">
+            {[
+              { key: 'id', state: idPdf, title: "Documento de identificación por ambos lados", desc: "Solo Foto (Frente y Reverso)" },
+              { key: 'placa', state: fotoPlaca, title: "Foto de la placa (Tu motocicleta)", desc: "Obligatorio" },
+              { key: 'propiedad', state: fotoPropiedad, title: "Foto/PDF Tarjeta de propiedad", desc: "Claro y legible" },
+              { key: 'soat', state: fotoSoat, title: "Fotografía del SOAT vigente", desc: "Vigente para la fecha" },
+              { key: 'deportista', state: fotoDeportista, title: "Foto tuya (Tipo Cédula o Carnet)", desc: "Fondo blanco o azul", isDeportista: true }
+            ].filter(item => documentosRechazados.includes(item.key)).map((item: any) => (
+              <div key={item.key} onClick={() => { if (!(item.isDeportista && isDetectingFace)) { setCorrectionDialogOpen(false); openOptions(item.key); } }} className={`relative bg-[#1A1A1A] border border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)] rounded-xl p-2.5 sm:p-3 flex items-center gap-2 sm:gap-3 hover:border-red-400 transition-all overflow-hidden cursor-pointer hover:bg-[#121212]`}>
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center shrink-0 border bg-red-500/10 border-red-500/30">
+                  <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />
+                </div>
+                <div className="flex-1 min-w-0 pointer-events-none">
+                  <p className="text-[11px] sm:text-xs font-bold leading-tight truncate text-red-400">{item.title}</p>
+                  <p className="text-[9px] sm:text-[10px] text-red-500 font-bold">RECHAZADO - Subir de nuevo</p>
+                </div>
+                <div className="shrink-0 z-20 pointer-events-none">
+                  <div className="flex items-center gap-1.5 bg-red-500/10 border border-red-500/30 px-2 py-1 rounded-md">
+                    <span className="text-red-500 text-[9px] sm:text-[10px] font-bold uppercase hidden sm:inline-block">Corregir</span>
+                    <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

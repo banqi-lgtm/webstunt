@@ -21,8 +21,11 @@ export function MainNav() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [hasPilotosAccess, setHasPilotosAccess] = useState(false);
   const [hasStaffAccess, setHasStaffAccess] = useState(false);
+  const [hasWhatsAppAccess, setHasWhatsAppAccess] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         try {
@@ -145,28 +148,36 @@ export function MainNav() {
 
           {/* MOBILE NAV: Agrupado en Dropdown */}
           <div className="flex xl:hidden">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="gap-2 h-9 bg-zinc-900 border-zinc-700 text-zinc-300 px-3">
-                  <Menu className="h-4 w-4" />
-                  <span className="font-bold text-xs">Módulos</span>
-                  <ChevronDown className="h-3 w-3 opacity-50" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 bg-zinc-950 border-zinc-800 p-2 shadow-2xl">
-                {dynamicLinks.map((link) => {
-                  const isActive = pathname === link.href;
-                  return (
-                    <DropdownMenuItem key={link.href} asChild className={`cursor-pointer mb-1 rounded-md p-0 ${isActive ? 'bg-zinc-800/50' : ''}`}>
-                      <Link href={link.href} className="flex items-center w-full px-3 py-2.5">
-                        <link.icon className={`h-4 w-4 mr-3 ${link.href === '/pilotos' ? 'text-blue-500' : link.href === '/staff' ? 'text-purple-400' : link.href === '/admin' ? 'text-green-500' : 'text-zinc-400'}`} />
-                        <span className={`font-semibold text-sm ${isActive ? 'text-white' : 'text-zinc-300'}`}>{link.label}</span>
-                      </Link>
-                    </DropdownMenuItem>
-                  );
-                })}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {isMounted ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="gap-2 h-9 bg-zinc-900 border-zinc-700 text-zinc-300 px-3">
+                    <Menu className="h-4 w-4" />
+                    <span className="font-bold text-xs">Módulos</span>
+                    <ChevronDown className="h-3 w-3 opacity-50" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 bg-zinc-950 border-zinc-800 p-2 shadow-2xl">
+                  {dynamicLinks.map((link) => {
+                    const isActive = pathname === link.href;
+                    return (
+                      <DropdownMenuItem key={link.href} asChild className={`cursor-pointer mb-1 rounded-md p-0 ${isActive ? 'bg-zinc-800/50' : ''}`}>
+                        <Link href={link.href} className="flex items-center w-full px-3 py-2.5">
+                          <link.icon className={`h-4 w-4 mr-3 ${link.href === '/pilotos' ? 'text-blue-500' : link.href === '/staff' ? 'text-purple-400' : link.href === '/admin' ? 'text-green-500' : link.href === '/whatsapp' ? 'text-[#25D366]' : 'text-zinc-400'}`} />
+                          <span className={`font-semibold text-sm ${isActive ? 'text-white' : 'text-zinc-300'}`}>{link.label}</span>
+                        </Link>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button variant="outline" className="gap-2 h-9 bg-zinc-900 border-zinc-700 text-zinc-300 px-3">
+                <Menu className="h-4 w-4" />
+                <span className="font-bold text-xs">Módulos</span>
+                <ChevronDown className="h-3 w-3 opacity-50" />
+              </Button>
+            )}
           </div>
           
           <div className="h-6 w-px bg-zinc-800 mx-1 md:mx-2 hidden sm:block"></div>

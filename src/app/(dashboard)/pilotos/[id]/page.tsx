@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { collection, doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, updateDoc, deleteDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { ArrowLeft, ExternalLink, User, Bike, FileText, CheckCircle2, XCircle, CreditCard, Clock, AlertCircle, FileCheck2, Star, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, ExternalLink, User, Bike, FileText, CheckCircle2, XCircle, CreditCard, Clock, AlertCircle, FileCheck2, Star, ShieldAlert, Eye, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -55,6 +55,7 @@ interface PilotDetail {
   correoTutor?: string;
   parentescoTutor?: string;
   rol: string;
+  documentosRechazados?: string[];
 }
 
 export default function PilotDetailPage() {
@@ -156,7 +157,8 @@ export default function PilotDetailPage() {
         telefonoTutor: userData.telefonoTutor || '',
         correoTutor: userData.correoTutor || '',
         parentescoTutor: userData.parentescoTutor || '',
-        rol: userData.rol || 'piloto'
+        rol: userData.rol || 'piloto',
+        documentosRechazados: data.documentosRechazados || []
       });
       
     } catch (e) {
@@ -250,6 +252,30 @@ export default function PilotDetailPage() {
     }
   };
 
+  const toggleDocumentStatus = async (docKey: string, isRejected: boolean) => {
+    if (!pilot || !isAdmin) return;
+    setUpdating(true);
+    try {
+      const docRef = doc(db, 'event_registrations', pilot.id);
+      if (isRejected) {
+        // Deshacer rechazo
+        await updateDoc(docRef, { documentosRechazados: arrayRemove(docKey) });
+        setPilot({ ...pilot, documentosRechazados: (pilot.documentosRechazados || []).filter(k => k !== docKey) });
+        toast({ title: 'Documento Aprobado', description: 'Se ha removido la marca de corrección.' });
+      } else {
+        // Rechazar
+        await updateDoc(docRef, { documentosRechazados: arrayUnion(docKey) });
+        setPilot({ ...pilot, documentosRechazados: [...(pilot.documentosRechazados || []), docKey] });
+        toast({ title: 'Documento Rechazado', description: 'El piloto ha sido notificado para corregir este documento.', variant: 'destructive' });
+      }
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'Error', description: 'No se pudo actualizar el estado del documento.', variant: 'destructive' });
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   if (hasAccess === null || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-zinc-500">
@@ -264,7 +290,7 @@ export default function PilotDetailPage() {
   const isPaymentApproved = pilot.estadoPago === 'aprobado';
   const isAllGreen = isDocsComplete && isPaymentApproved;
 
-  const DocumentPreview = ({ title, url }: { title: string, url?: string }) => {
+  const DocumentPreview = ({ title, url, docKey }: { title: string, url?: string, docKey: string }) => {
     if (!url) return (
       <div className="p-3 bg-zinc-900/50 border border-zinc-800 rounded-lg flex flex-col items-center justify-center text-zinc-500 text-xs h-32 gap-2 text-center">
         <AlertCircle className="w-5 h-5 text-zinc-600" />
@@ -272,19 +298,38 @@ export default function PilotDetailPage() {
       </div>
     );
     
+    const isRejected = pilot.documentosRechazados?.includes(docKey);
+
     return (
       <div className="flex flex-col gap-1.5 h-full">
-        <span className="text-[11px] uppercase tracking-wider font-semibold text-zinc-400 truncate">{title}</span>
-        <a href={url} target="_blank" rel="noopener noreferrer" className="group relative h-32 flex-grow bg-zinc-900 border border-zinc-700 rounded-lg overflow-hidden flex items-center justify-center hover:border-green-500 transition-colors">
-          <div className="absolute inset-0 bg-black/40 group-hover:bg-black/10 transition-colors z-10 flex items-center justify-center opacity-0 group-hover:opacity-100">
-            <ExternalLink className="w-6 h-6 text-white drop-shadow-md" />
-          </div>
+        <div className="flex justify-between items-center">
+          <span className="text-[11px] uppercase tracking-wider font-semibold text-zinc-400 truncate">{title}</span>
+          {isRejected && <span className="text-[9px] uppercase font-bold text-red-500 bg-red-500/10 px-1.5 py-0.5 rounded">Rechazado</span>}
+        </div>
+        <div className={`relative h-32 flex-grow bg-zinc-900 border rounded-lg overflow-hidden flex items-center justify-center transition-colors group ${isRejected ? 'border-red-500' : 'border-zinc-700 hover:border-green-500'}`}>
           <img src={url} alt={title} className="object-cover w-full h-full" onError={(e) => {
             (e.target as HTMLImageElement).style.display = 'none';
             (e.target as HTMLImageElement).parentElement?.classList.add('bg-zinc-800');
             (e.target as HTMLImageElement).parentElement?.insertAdjacentHTML('beforeend', '<div class="text-zinc-500 flex flex-col items-center"><svg class="w-8 h-8 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg><span class="text-[10px] uppercase font-bold tracking-widest">PDF</span></div>');
           }}/>
-        </a>
+          
+          {/* Overlay de acciones */}
+          <div className="absolute inset-0 bg-black/60 transition-opacity z-10 flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100">
+            <a href={url} target="_blank" rel="noopener noreferrer" className="bg-zinc-800 hover:bg-zinc-700 p-2.5 rounded-full transition-transform hover:scale-110 shadow-lg text-white" title="Ver documento">
+              <Eye className="w-5 h-5" />
+            </a>
+            {isAdmin && (
+              <button 
+                onClick={() => toggleDocumentStatus(docKey, !!isRejected)} 
+                disabled={updating}
+                className={`${isRejected ? 'bg-green-600 hover:bg-green-500' : 'bg-red-600 hover:bg-red-500'} p-2.5 rounded-full transition-transform hover:scale-110 shadow-lg text-white disabled:opacity-50`}
+                title={isRejected ? "Deshacer rechazo" : "Rechazar documento (Pedir corregir)"}
+              >
+                {isRejected ? <CheckCircle2 className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     );
   };
@@ -297,9 +342,9 @@ export default function PilotDetailPage() {
         
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
           <div className="flex flex-col gap-6 w-full">
-            <div className="flex justify-between items-center w-full">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center w-full gap-3">
               <Link href="/pilotos">
-                <Button variant="outline" className="w-fit gap-2 border-zinc-700 hover:bg-zinc-800 hover:text-white text-zinc-400">
+                <Button variant="outline" className="w-fit gap-2 border-zinc-700 hover:bg-zinc-800 hover:text-white text-zinc-400 text-xs sm:text-sm">
                   <ArrowLeft className="w-4 h-4" />
                   Volver al Directorio
                 </Button>
@@ -310,7 +355,7 @@ export default function PilotDetailPage() {
                   onClick={handleDeletePilot} 
                   disabled={updating}
                   variant="outline" 
-                  className="border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                  className="w-full sm:w-fit border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300 text-xs sm:text-sm"
                 >
                   <XCircle className="w-4 h-4 mr-2" />
                   Eliminar del Sistema
@@ -319,87 +364,89 @@ export default function PilotDetailPage() {
             </div>
             
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between w-full gap-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-green-500/20 rounded-xl border border-green-500/50">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full lg:w-auto">
+                <div className="p-3 bg-green-500/20 rounded-xl border border-green-500/50 shrink-0">
                   <User className="w-8 h-8 text-green-500" />
                 </div>
-                <div>
-                  <div className="flex items-center gap-3">
-                    <h1 className="text-3xl font-bold text-white">{pilot.nombres} {pilot.apellidos}</h1>
-                    {pilot.rol === 'staff' ? (
-                      <span className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30 uppercase tracking-widest">
-                        <Star className="w-3 h-3" /> STAFF
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30 uppercase tracking-widest">
-                        <User className="w-3 h-3" /> PILOTO
-                      </span>
-                    )}
-                    {isAdmin && (
-                      <Dialog open={isRoleDialogOpen} onOpenChange={setIsRoleDialogOpen}>
-                        <DialogTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-7 text-xs text-zinc-500 hover:text-white" onClick={() => setNewRole(pilot.rol as 'piloto' | 'staff')}>
-                            Cambiar Rol
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="bg-zinc-950 border-zinc-800">
-                          <DialogHeader>
-                            <DialogTitle className="text-white flex items-center gap-2">
-                              <ShieldAlert className="w-5 h-5 text-yellow-500" />
-                              Modificar Rol de Usuario
-                            </DialogTitle>
-                          </DialogHeader>
-                          <div className="py-4">
-                            <p className="text-sm text-zinc-400 mb-4">
-                              Selecciona el nuevo rol para <strong>{pilot.nombres} {pilot.apellidos}</strong>. Los usuarios Staff desaparecerán de la lista de pilotos y tendrán su propia sección.
-                            </p>
-                            <select 
-                              value={newRole}
-                              onChange={(e) => setNewRole(e.target.value as 'piloto' | 'staff')}
-                              className="w-full bg-zinc-900 border border-zinc-700 text-white rounded-md h-10 px-3 outline-none focus:border-green-500 transition-colors"
-                            >
-                              <option value="piloto">Piloto</option>
-                              <option value="staff">Staff</option>
-                            </select>
-                          </div>
-                          <DialogFooter>
-                            <Button onClick={() => setIsRoleDialogOpen(false)} variant="ghost" className="text-zinc-400">Cancelar</Button>
-                            <Button onClick={handleChangeRole} disabled={updating || newRole === pilot.rol} className="bg-green-600 hover:bg-green-500 text-white">Guardar Cambios</Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
-                    )}
+                <div className="min-w-0 w-full">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-white break-words w-full sm:w-auto leading-tight">{pilot.nombres} {pilot.apellidos}</h1>
+                    <div className="flex items-center gap-2 mt-1 sm:mt-0">
+                      {pilot.rol === 'staff' ? (
+                        <span className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] sm:text-xs font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30 uppercase tracking-widest shrink-0">
+                          <Star className="w-3 h-3" /> STAFF
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] sm:text-xs font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30 uppercase tracking-widest shrink-0">
+                          <User className="w-3 h-3" /> PILOTO
+                        </span>
+                      )}
+                      {isAdmin && (
+                        <Dialog open={isRoleDialogOpen} onOpenChange={setIsRoleDialogOpen}>
+                          <DialogTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-6 sm:h-7 px-2 text-[10px] sm:text-xs text-zinc-500 hover:text-white shrink-0" onClick={() => setNewRole(pilot.rol as 'piloto' | 'staff')}>
+                              Cambiar Rol
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="bg-zinc-950 border-zinc-800">
+                            <DialogHeader>
+                              <DialogTitle className="text-white flex items-center gap-2">
+                                <ShieldAlert className="w-5 h-5 text-yellow-500" />
+                                Modificar Rol de Usuario
+                              </DialogTitle>
+                            </DialogHeader>
+                            <div className="py-4">
+                              <p className="text-sm text-zinc-400 mb-4">
+                                Selecciona el nuevo rol para <strong>{pilot.nombres} {pilot.apellidos}</strong>. Los usuarios Staff desaparecerán de la lista de pilotos y tendrán su propia sección.
+                              </p>
+                              <select 
+                                value={newRole}
+                                onChange={(e) => setNewRole(e.target.value as 'piloto' | 'staff')}
+                                className="w-full bg-zinc-900 border border-zinc-700 text-white rounded-md h-10 px-3 outline-none focus:border-green-500 transition-colors"
+                              >
+                                <option value="piloto">Piloto</option>
+                                <option value="staff">Staff</option>
+                              </select>
+                            </div>
+                            <DialogFooter>
+                              <Button onClick={() => setIsRoleDialogOpen(false)} variant="ghost" className="text-zinc-400">Cancelar</Button>
+                              <Button onClick={handleChangeRole} disabled={updating || newRole === pilot.rol} className="bg-green-600 hover:bg-green-500 text-white">Guardar Cambios</Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-zinc-400 flex items-center gap-2 mt-2">
-                    <span className="inline-block px-2 py-0.5 rounded-full text-xs font-bold bg-green-500/10 text-green-400 border border-green-500/20 uppercase tracking-wider">
+                  <p className="text-zinc-400 flex flex-wrap items-center gap-2 mt-2 break-all text-xs sm:text-sm">
+                    <span className="inline-block px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold bg-green-500/10 text-green-400 border border-green-500/20 uppercase tracking-wider">
                       {pilot.categoria}
                     </span>
-                    • {pilot.email}
+                    <span className="hidden sm:inline">•</span> {pilot.email}
                   </p>
                 </div>
               </div>
 
               {/* Checklist Visual */}
-              <div className={`flex flex-col items-end p-4 rounded-xl border ${isAllGreen ? 'bg-green-500/10 border-green-500/30' : 'bg-zinc-900 border-zinc-800'}`}>
-                <div className="flex items-center gap-2 mb-2">
-                  <FileCheck2 className={`w-5 h-5 ${isAllGreen ? 'text-green-400' : 'text-zinc-400'}`} />
-                  <span className="text-sm font-bold uppercase tracking-wider text-white">Checklist de Ingreso</span>
+              <div className={`flex flex-col items-start lg:items-end w-full lg:w-auto p-4 rounded-xl border ${isAllGreen ? 'bg-green-500/10 border-green-500/30' : 'bg-zinc-900 border-zinc-800'}`}>
+                <div className="flex items-center gap-2 mb-3">
+                  <FileCheck2 className={`w-5 h-5 ${isAllGreen ? 'text-green-400' : 'text-zinc-400'} shrink-0`} />
+                  <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-white">Checklist de Ingreso</span>
                 </div>
-                <div className="flex items-center gap-6">
-                  <div className="flex flex-col items-end">
-                    <span className="text-xs text-zinc-500 uppercase">Documentos (5/5)</span>
+                <div className="flex flex-row flex-wrap items-center justify-between lg:justify-end gap-4 sm:gap-6 w-full lg:w-auto">
+                  <div className="flex flex-col items-start lg:items-end">
+                    <span className="text-[10px] sm:text-xs text-zinc-500 uppercase">Documentos (5/5)</span>
                     {isDocsComplete ? (
-                      <span className="text-green-400 font-bold flex items-center gap-1"><CheckCircle2 className="w-4 h-4"/> COMPLETOS</span>
+                      <span className="text-green-400 font-bold text-xs sm:text-sm flex items-center gap-1"><CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4"/> COMPLETOS</span>
                     ) : (
-                      <span className="text-red-400 font-bold flex items-center gap-1"><XCircle className="w-4 h-4"/> INCOMPLETOS</span>
+                      <span className="text-red-400 font-bold text-xs sm:text-sm flex items-center gap-1"><XCircle className="w-3 h-3 sm:w-4 sm:h-4"/> INCOMPLETOS</span>
                     )}
                   </div>
-                  <div className="flex flex-col items-end">
-                    <span className="text-xs text-zinc-500 uppercase">Estado Financiero</span>
+                  <div className="flex flex-col items-start lg:items-end">
+                    <span className="text-[10px] sm:text-xs text-zinc-500 uppercase">Estado Financiero</span>
                     {isPaymentApproved ? (
-                      <span className="text-green-400 font-bold flex items-center gap-1"><CheckCircle2 className="w-4 h-4"/> APROBADO</span>
+                      <span className="text-green-400 font-bold text-xs sm:text-sm flex items-center gap-1"><CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4"/> APROBADO</span>
                     ) : (
-                      <span className="text-yellow-500 font-bold flex items-center gap-1"><AlertCircle className="w-4 h-4"/> PENDIENTE</span>
+                      <span className="text-yellow-500 font-bold text-xs sm:text-sm flex items-center gap-1"><AlertCircle className="w-3 h-3 sm:w-4 sm:h-4"/> PENDIENTE</span>
                     )}
                   </div>
                 </div>
@@ -418,11 +465,11 @@ export default function PilotDetailPage() {
           </CardHeader>
           <CardContent className="pt-4">
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-              <DocumentPreview title="1. Identidad" url={pilot.documentos.idUrl} />
-              <DocumentPreview title="2. Deportista" url={pilot.documentos.deportistaUrl} />
-              <DocumentPreview title="3. Placa" url={pilot.documentos.placaUrl} />
-              <DocumentPreview title="4. Propiedad" url={pilot.documentos.propiedadUrl} />
-              <DocumentPreview title="5. SOAT" url={pilot.documentos.soatUrl} />
+              <DocumentPreview title="1. Identidad" url={pilot.documentos.idUrl} docKey="id" />
+              <DocumentPreview title="2. Deportista" url={pilot.documentos.deportistaUrl} docKey="deportista" />
+              <DocumentPreview title="3. Placa" url={pilot.documentos.placaUrl} docKey="placa" />
+              <DocumentPreview title="4. Propiedad" url={pilot.documentos.propiedadUrl} docKey="propiedad" />
+              <DocumentPreview title="5. SOAT" url={pilot.documentos.soatUrl} docKey="soat" />
             </div>
           </CardContent>
         </Card>
