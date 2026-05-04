@@ -60,48 +60,11 @@ const INITIAL_POSTS: Post[] = [
     authorName: 'DIRECCIÓN DE CARRERA',
     authorNumber: 'RC',
     authorAvatar: '🏁',
-    timestamp: 'Hace 10 min',
-    content: 'Se informa a todos los pilotos que la pista estará abierta para prácticas libres a partir de las 10:00 AM. Uso obligatorio de equipo completo.',
-    reactions: { fast: 12, champ: 0, fire: 5, eyes: 34 },
-    comments: [
-      { id: 'c1', author: 'Walter Garzon', number: '99', text: 'Entendido, motos listas en carpa 4.' }
-    ]
-  },
-  {
-    id: 2,
-    type: 'PILOT',
-    authorName: 'Daniel Rojas',
-    authorNumber: '07',
-    authorAvatar: '🇨🇴',
-    timestamp: 'Hace 15 min',
-    content: 'El asfalto en Plaza Mayor está perfecto hoy. Cuidado con la zona de frenado al final de la recta principal.',
-    reactions: { fast: 0, champ: 2, fire: 1, eyes: 8 },
+    timestamp: 'Hace 5 min',
+    content: '🔥 ¡ATENCIÓN! 🔥\n\n¿Quieres estrenar moto? 🏍️💨\n¡Esta es tu oportunidad!\n\n🎉 Podrás participar por una MOTO 0KM MRX 200 GO PRO 🎉\n\nSiente la adrenalina, vive la aventura y llévate esta increíble máquina diseñada para los que buscan más.\n\n👉 Participa ahora y haz realidad tu sueño de tener moto propia.\n\n#Sorteo #Moto0KM #MRX200 #GoPro #Adrenalina #CumpleTuSueño',
+    image: '/sponsors/mrx200-sorteo.png',
+    reactions: { fast: 120, champ: 45, fire: 89, eyes: 230 },
     comments: []
-  },
-  {
-    id: 3,
-    type: 'ALERT',
-    authorName: 'ORGANIZACIÓN',
-    authorNumber: 'ORG',
-    authorAvatar: '⚠️',
-    timestamp: 'Hace 1 hora',
-    content: 'RECORDATORIO: La revisión técnica de las motocicletas de Alto Cilindraje comienza a las 14:00. No se permitirán retrasos.',
-    reactions: { fast: 0, champ: 0, fire: 0, eyes: 50 },
-    comments: []
-  },
-  {
-    id: 4,
-    type: 'PILOT',
-    authorName: 'Julian Stunt',
-    authorNumber: '21',
-    authorAvatar: '🔥',
-    timestamp: 'Hace 2 horas',
-    content: 'Lista la máquina para hacer vibrar a Medellín. ¡Vamos con todo por el campeonato NITROX!',
-    image: 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&q=80&w=1000',
-    reactions: { fast: 45, champ: 12, fire: 89, eyes: 5 },
-    comments: [
-      { id: 'c2', author: 'Sponsor Team', number: 'ST', text: 'Con toda, Julian!' }
-    ]
   }
 ];
 
@@ -775,7 +738,7 @@ export default function PskPitxDashboard() {
           padding: 1.5rem; font-size: 1.2rem; line-height: 1.5; letter-spacing: 0.5px;
         }
         .post-image {
-          width: 100%; max-height: 400px; object-fit: cover;
+          width: 100%; max-height: 450px; object-fit: contain; background: #000;
           border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);
         }
 
@@ -957,10 +920,10 @@ export default function PskPitxDashboard() {
           .create-post textarea { height: 80px; }
           .post-actions { flex-wrap: wrap; }
           .post-actions .btn-primary { flex: 1; width: 100%; }
-          .sponsors-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-          .sponsor-card { padding: 10px; }
-          .sponsor-header { font-size: 11px; }
-          .sponsor-links { flex-wrap: wrap; justify-content: center; }
+          .sponsors-list { display: flex; flex-direction: column; gap: 10px; }
+          .sponsor-card { padding: 12px; }
+          .sponsor-header { font-size: 12px; }
+          .sponsor-links { flex-wrap: wrap; justify-content: flex-start; }
           .panel-header { font-size: 14px; }
           .sidebar-left { width: 100%; }
           .feed-container { overflow-y: visible; }

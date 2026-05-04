@@ -339,31 +339,31 @@ export default function PilotosPage() {
                   </button>
                   <button 
                     onClick={() => setFilterStatus('en_revision')}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${filterStatus === 'en_revision' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' : 'text-zinc-400 hover:text-white'}`}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${filterStatus === 'en_revision' ? 'bg-[#FFFF00]/10 text-[#FFFF00] border border-[#FFFF00]/30 shadow-[0_0_10px_rgba(255,255,0,0.2)]' : 'text-zinc-400 hover:text-white'}`}
                   >
                     En Revisión
-                    <span className={`${filterStatus === 'en_revision' ? 'bg-yellow-500 text-yellow-950' : 'bg-zinc-800 text-zinc-500'} text-xs font-bold px-1.5 py-0.5 rounded-full transition-colors`}>{countEnRevision}</span>
+                    <span className={`${filterStatus === 'en_revision' ? 'bg-[#FFFF00] text-black' : 'bg-zinc-800 text-zinc-500'} text-xs font-bold px-1.5 py-0.5 rounded-full transition-colors`}>{countEnRevision}</span>
                   </button>
                   <button 
                     onClick={() => setFilterStatus('aprobado')}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${filterStatus === 'aprobado' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'text-zinc-400 hover:text-white'}`}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${filterStatus === 'aprobado' ? 'bg-[#39FF14]/10 text-[#39FF14] border border-[#39FF14]/30 shadow-[0_0_10px_rgba(57,255,20,0.2)]' : 'text-zinc-400 hover:text-white'}`}
                   >
                     Aprobados
-                    <span className={`${filterStatus === 'aprobado' ? 'bg-green-500 text-green-950' : 'bg-zinc-800 text-zinc-500'} text-xs font-bold px-1.5 py-0.5 rounded-full transition-colors`}>{countAprobados}</span>
+                    <span className={`${filterStatus === 'aprobado' ? 'bg-[#39FF14] text-black' : 'bg-zinc-800 text-zinc-500'} text-xs font-bold px-1.5 py-0.5 rounded-full transition-colors`}>{countAprobados}</span>
                   </button>
                   <button 
                     onClick={() => setFilterStatus('pendiente')}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${filterStatus === 'pendiente' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'text-zinc-400 hover:text-white'}`}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${filterStatus === 'pendiente' ? 'bg-[#FF073A]/10 text-[#FF073A] border border-[#FF073A]/30 shadow-[0_0_10px_rgba(255,7,58,0.2)]' : 'text-zinc-400 hover:text-white'}`}
                   >
                     Sin Pagar
-                    <span className={`${filterStatus === 'pendiente' ? 'bg-red-500 text-red-950' : 'bg-zinc-800 text-zinc-500'} text-xs font-bold px-1.5 py-0.5 rounded-full transition-colors`}>{countSinPagar}</span>
+                    <span className={`${filterStatus === 'pendiente' ? 'bg-[#FF073A] text-white' : 'bg-zinc-800 text-zinc-500'} text-xs font-bold px-1.5 py-0.5 rounded-full transition-colors`}>{countSinPagar}</span>
                   </button>
                   <button 
                     onClick={() => setFilterStatus('saldo_pendiente')}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${filterStatus === 'saldo_pendiente' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' : 'text-zinc-400 hover:text-white'}`}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${filterStatus === 'saldo_pendiente' ? 'bg-[#FF5E00]/10 text-[#FF5E00] border border-[#FF5E00]/30 shadow-[0_0_10px_rgba(255,94,0,0.2)]' : 'text-zinc-400 hover:text-white'}`}
                   >
                     Deben Saldo
-                    <span className={`${filterStatus === 'saldo_pendiente' ? 'bg-orange-500 text-orange-950' : 'bg-zinc-800 text-zinc-500'} text-xs font-bold px-1.5 py-0.5 rounded-full transition-colors`}>{countDebenSaldo}</span>
+                    <span className={`${filterStatus === 'saldo_pendiente' ? 'bg-[#FF5E00] text-white' : 'bg-zinc-800 text-zinc-500'} text-xs font-bold px-1.5 py-0.5 rounded-full transition-colors`}>{countDebenSaldo}</span>
                   </button>
                 </div>
                 
@@ -400,22 +400,22 @@ export default function PilotosPage() {
                     <tr key={reg.id} className="hover:bg-zinc-900/30 transition-colors">
                       <td className="px-6 py-4">
                         {reg.estadoPago === 'aprobado' && (
-                          <div className="flex items-center gap-2 text-green-400 bg-green-500/10 px-3 py-1 rounded-full border border-green-500/20 w-fit">
+                          <div style={{ color: '#39FF14', backgroundColor: 'rgba(57, 255, 20, 0.1)', borderColor: 'rgba(57, 255, 20, 0.2)', textShadow: '0 0 10px rgba(57, 255, 20, 0.4)' }} className="flex items-center gap-2 px-3 py-1 rounded-full border w-fit">
                             <CheckCircle2 className="w-4 h-4" /> <span className="font-bold text-xs">APROBADO</span>
                           </div>
                         )}
                         {(reg.estadoPago === 'en_revision' || reg.estadoPago === 'revision_saldo') && (
-                          <div className="flex items-center gap-2 text-yellow-400 bg-yellow-500/10 px-3 py-1 rounded-full border border-yellow-500/20 w-fit">
+                          <div style={{ color: '#FFFF00', backgroundColor: 'rgba(255, 255, 0, 0.1)', borderColor: 'rgba(255, 255, 0, 0.2)', textShadow: '0 0 10px rgba(255, 255, 0, 0.4)' }} className="flex items-center gap-2 px-3 py-1 rounded-full border w-fit">
                             <Clock className="w-4 h-4" /> <span className="font-bold text-xs">{reg.estadoPago === 'revision_saldo' ? 'REVISIÓN SALDO' : 'EN REVISIÓN'}</span>
                           </div>
                         )}
                         {reg.estadoPago === 'pendiente' && (
-                          <div className="flex items-center gap-2 text-red-400 bg-red-500/10 px-3 py-1 rounded-full border border-red-500/20 w-fit">
+                          <div style={{ color: '#FF073A', backgroundColor: 'rgba(255, 7, 58, 0.1)', borderColor: 'rgba(255, 7, 58, 0.2)', textShadow: '0 0 10px rgba(255, 7, 58, 0.4)' }} className="flex items-center gap-2 px-3 py-1 rounded-full border w-fit">
                             <AlertCircle className="w-4 h-4" /> <span className="font-bold text-xs">PENDIENTE</span>
                           </div>
                         )}
                         {reg.estadoPago === 'saldo_pendiente' && (
-                          <div className="flex items-center gap-2 text-orange-400 bg-orange-500/10 px-3 py-1 rounded-full border border-orange-500/20 w-fit">
+                          <div style={{ color: '#FF5E00', backgroundColor: 'rgba(255, 94, 0, 0.1)', borderColor: 'rgba(255, 94, 0, 0.2)', textShadow: '0 0 10px rgba(255, 94, 0, 0.4)' }} className="flex items-center gap-2 px-3 py-1 rounded-full border w-fit">
                             <AlertCircle className="w-4 h-4" /> <span className="font-bold text-xs">DEBE SALDO</span>
                           </div>
                         )}
@@ -427,7 +427,7 @@ export default function PilotosPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="inline-block px-2.5 py-1 rounded-full text-xs font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 uppercase tracking-wider">
+                        <span style={{ color: '#00FFFF', backgroundColor: 'rgba(0, 255, 255, 0.1)', borderColor: 'rgba(0, 255, 255, 0.2)', textShadow: '0 0 10px rgba(0, 255, 255, 0.4)' }} className="inline-block px-2.5 py-1 rounded-full text-xs font-bold border uppercase tracking-wider">
                           {reg.categoria}
                         </span>
                       </td>
