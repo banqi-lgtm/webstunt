@@ -738,7 +738,7 @@ export default function InscripcionPage() {
 
             <div className="mt-12 mb-16 max-w-2xl mx-auto">
               <Button type="submit" disabled={isLoading} className="bg-[#00E676] text-black hover:bg-[#00E676]/90 font-black h-16 w-full text-sm md:text-base shadow-[0_0_20px_rgba(0,230,118,0.4)] transition-all uppercase tracking-wider rounded-2xl">
-                {isLoading ? "GUARDANDO..." : "CONFIRMACIÓN DE INSCRIPCIÓN Y VALIDACIÓN DE PAGO"}
+                {isLoading ? "GUARDANDO..." : "CONFIRMACIÓN"}
                 {!isLoading && <ChevronRight className="w-6 h-6 ml-2" />}
               </Button>
               <div className="flex items-center justify-center gap-2 mt-4 text-[#424242] text-[10px] uppercase font-bold tracking-widest mb-10">
