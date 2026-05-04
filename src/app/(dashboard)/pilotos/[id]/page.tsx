@@ -290,7 +290,7 @@ export default function PilotDetailPage() {
   const isPaymentApproved = pilot.estadoPago === 'aprobado';
   const isAllGreen = isDocsComplete && isPaymentApproved;
 
-  const DocumentPreview = ({ title, url, docKey }: { title: string, url?: string, docKey: string }) => {
+  const DocumentPreview = ({ title, url, docKey }: { title: string, url?: string, docKey?: string }) => {
     if (!url) return (
       <div className="p-3 bg-zinc-900/50 border border-zinc-800 rounded-lg flex flex-col items-center justify-center text-zinc-500 text-xs h-32 gap-2 text-center">
         <AlertCircle className="w-5 h-5 text-zinc-600" />
@@ -298,7 +298,7 @@ export default function PilotDetailPage() {
       </div>
     );
     
-    const isRejected = pilot.documentosRechazados?.includes(docKey);
+    const isRejected = docKey ? pilot.documentosRechazados?.includes(docKey) : false;
 
     return (
       <div className="flex flex-col gap-1.5 h-full">
@@ -318,7 +318,7 @@ export default function PilotDetailPage() {
             <a href={url} target="_blank" rel="noopener noreferrer" className="bg-zinc-800 hover:bg-zinc-700 p-2.5 rounded-full transition-transform hover:scale-110 shadow-lg text-white" title="Ver documento">
               <Eye className="w-5 h-5" />
             </a>
-            {isAdmin && (
+            {isAdmin && docKey && (
               <button 
                 onClick={() => toggleDocumentStatus(docKey, !!isRejected)} 
                 disabled={updating}
