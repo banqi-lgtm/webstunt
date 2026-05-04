@@ -113,7 +113,7 @@ export default function InscripcionPage() {
   };
 
   // Form State
-  const [categoria, setCategoria] = useState('');
+  const [categorias, setCategorias] = useState<string[]>([]);
   const [idPdf, setIdPdf] = useState<any>(null);
   const [participacionPrevia, setParticipacionPrevia] = useState('');
   const [patrocinadores, setPatrocinadores] = useState<boolean>(false);
@@ -153,9 +153,13 @@ export default function InscripcionPage() {
         const counts: { [key: string]: number } = { open: 0, '2t': 0, '4t': 0, alto: 0 };
         snapshot.forEach(d => {
           const data = d.data();
-          const cat = data.categoria;
-          if (cat && data.estadoPago === 'aprobado') {
-            counts[cat] = (counts[cat] || 0) + 1;
+          const cats = data.categoria || data.categorias;
+          if (cats && data.estadoPago === 'aprobado') {
+            if (Array.isArray(cats)) {
+              cats.forEach(c => counts[c] = (counts[c] || 0) + 1);
+            } else {
+              counts[cats] = (counts[cats] || 0) + 1;
+            }
           }
         });
         setCategoryCounts(counts);
@@ -304,7 +308,7 @@ export default function InscripcionPage() {
   };
 
   const validateForm = () => {
-    if (!categoria) return "Selecciona una categoría";
+    if (categorias.length === 0) return "Selecciona al menos una categoría";
     if (!idPdf) return "Falta anexar el PDF/Foto de tu identificación";
     if (!participacionPrevia) return "Responde si has participado antes";
     if (!patrocinadores) return "Debes confirmar que sigues a los patrocinadores";
@@ -331,10 +335,12 @@ export default function InscripcionPage() {
 
     // Validación estricta final de cupos antes de guardar
     const limits: { [key: string]: number } = { open: 20, '2t': 15, '4t': 15, alto: 15 };
-    if (limits[categoria] !== undefined && categoryCounts[categoria] >= limits[categoria]) {
-      toast({ title: "Cupos Llenos", description: "Lo sentimos, los cupos para esta categoría se acaban de llenar.", variant: "destructive" });
-      setIsLoading(false);
-      return;
+    for (const cat of categorias) {
+      if (limits[cat] !== undefined && categoryCounts[cat] >= limits[cat]) {
+        toast({ title: "Cupos Llenos", description: `Lo sentimos, los cupos para la categoría ${cat === '2t' ? '2 TIEMPOS' : cat === '4t' ? '4 TIEMPOS' : cat === 'alto' ? 'ALTO CILINDRAJE' : 'OPEN'} se acaban de llenar.`, variant: "destructive" });
+        setIsLoading(false);
+        return;
+      }
     }
 
     try {
@@ -351,7 +357,7 @@ export default function InscripcionPage() {
       const formData = {
         uid,
         eventId: 'f2r_2026',
-        categoria,
+        categoria: categorias,
         participacionPrevia,
         patrocinadores,
         motocicleta: {
@@ -451,7 +457,7 @@ export default function InscripcionPage() {
         />
       )}
       {/* Background glow */}
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#00E676]/10 blur-[150px] mix-blend-screen pointer-events-none rounded-full"></div>
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#39FF14]/10 blur-[150px] mix-blend-screen pointer-events-none rounded-full"></div>
 
       <div className="flex flex-col p-4 lg:p-8 text-zinc-100 max-w-5xl mx-auto w-full relative z-10">
         
@@ -477,11 +483,11 @@ export default function InscripcionPage() {
                 </h1>
               </div>
               <div className="flex items-center justify-between text-xs font-bold tracking-widest text-[#B0B0B0] mb-2">
-                <span className="text-[#00E676]">Paso 2 de 3</span>
+                <span className="text-[#39FF14]">Paso 2 de 3</span>
                 <span className="text-white">66%</span>
               </div>
               <div className="h-1.5 w-full bg-[#1A1A1A] rounded-full overflow-hidden border border-[#2A2A2A]">
-                <div className="h-full bg-[#00E676] w-[66%] rounded-full shadow-[0_0_15px_rgba(0,230,118,0.5)]"></div>
+                <div className="h-full bg-[#39FF14] w-[66%] rounded-full shadow-[0_0_15px_rgba(57,255,20,0.5)]"></div>
               </div>
             </div>
 
@@ -494,9 +500,15 @@ export default function InscripcionPage() {
                 <Label className="text-white text-sm font-bold uppercase tracking-wider flex items-center gap-2 mb-4">
                   1. Categoría <span className="text-[#FF9800] text-[10px] bg-[#FF9800]/10 px-2 py-0.5 rounded border border-[#FF9800]/20 flex items-center gap-1"><AlertTriangle className="w-3 h-3"/> Cupos limitados</span>
                 </Label>
-                <RadioGroup value={categoria} onValueChange={setCategoria} className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categoria === 'open' ? 'border-[#00E676] bg-[#00E676]/5 shadow-[0_0_15px_rgba(0,230,118,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['open'] || 0) >= 20 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { if ((categoryCounts['open'] || 0) < 20) setCategoria('open'); }}>
-                    <RadioGroupItem value="open" id="cat-open" className="sr-only" disabled={(categoryCounts['open'] || 0) >= 20} />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('open') ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_15px_rgba(57,255,20,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['open'] || 0) >= 20 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { 
+                    if ((categoryCounts['open'] || 0) >= 20) return;
+                    if (categorias.includes('open')) {
+                      setCategorias([]);
+                    } else {
+                      setCategorias(['open']);
+                    }
+                  }}>
                     <div className="w-10 h-10 rounded-full bg-[#1A1A1A] flex items-center justify-center mr-3 border border-[#2A2A2A]">
                       <span className="text-xl">🟢</span>
                     </div>
@@ -504,11 +516,18 @@ export default function InscripcionPage() {
                       <Label className="font-bold text-white text-sm cursor-pointer notranslate" translate="no">OPEN</Label>
                       <p className="text-[10px] text-[#B0B0B0] mt-0.5 font-medium">{Math.max(0, 20 - (categoryCounts['open'] || 0))} CUPOS RESTANTES</p>
                     </div>
-                    {categoria === 'open' && <CheckCircle2 className="w-5 h-5 text-[#00E676] absolute top-2 right-2" />}
+                    {categorias.includes('open') && <CheckCircle2 className="w-5 h-5 text-[#39FF14] absolute top-2 right-2" />}
                   </div>
                   
-                  <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categoria === '2t' ? 'border-[#00E676] bg-[#00E676]/5 shadow-[0_0_15px_rgba(0,230,118,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['2t'] || 0) >= 15 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { if ((categoryCounts['2t'] || 0) < 15) setCategoria('2t'); }}>
-                    <RadioGroupItem value="2t" id="cat-2t" className="sr-only" disabled={(categoryCounts['2t'] || 0) >= 15} />
+                  <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('2t') ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_15px_rgba(57,255,20,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['2t'] || 0) >= 15 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { 
+                    if ((categoryCounts['2t'] || 0) >= 15) return;
+                    if (categorias.includes('open')) {
+                      toast({ title: "Categoría exclusiva", description: "La categoría OPEN no se puede combinar con otras.", variant: "default" });
+                      return;
+                    }
+                    if (categorias.includes('2t')) setCategorias(categorias.filter(c => c !== '2t'));
+                    else setCategorias([...categorias, '2t']);
+                  }}>
                     <div className="w-10 h-10 rounded-full bg-[#1A1A1A] flex items-center justify-center mr-3 border border-[#2A2A2A]">
                       <span className="text-xl">🏍️</span>
                     </div>
@@ -516,11 +535,18 @@ export default function InscripcionPage() {
                       <Label className="font-bold text-white text-sm cursor-pointer">2 TIEMPOS</Label>
                       <p className="text-[10px] text-[#B0B0B0] mt-0.5 font-medium">{Math.max(0, 15 - (categoryCounts['2t'] || 0))} CUPOS RESTANTES</p>
                     </div>
-                    {categoria === '2t' && <CheckCircle2 className="w-5 h-5 text-[#00E676] absolute top-2 right-2" />}
+                    {categorias.includes('2t') && <CheckCircle2 className="w-5 h-5 text-[#39FF14] absolute top-2 right-2" />}
                   </div>
 
-                  <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categoria === '4t' ? 'border-[#00E676] bg-[#00E676]/5 shadow-[0_0_15px_rgba(0,230,118,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['4t'] || 0) >= 15 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { if ((categoryCounts['4t'] || 0) < 15) setCategoria('4t'); }}>
-                    <RadioGroupItem value="4t" id="cat-4t" className="sr-only" disabled={(categoryCounts['4t'] || 0) >= 15} />
+                  <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('4t') ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_15px_rgba(57,255,20,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['4t'] || 0) >= 15 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { 
+                    if ((categoryCounts['4t'] || 0) >= 15) return;
+                    if (categorias.includes('open')) {
+                      toast({ title: "Categoría exclusiva", description: "La categoría OPEN no se puede combinar con otras.", variant: "default" });
+                      return;
+                    }
+                    if (categorias.includes('4t')) setCategorias(categorias.filter(c => c !== '4t'));
+                    else setCategorias([...categorias, '4t']);
+                  }}>
                     <div className="w-10 h-10 rounded-full bg-[#1A1A1A] flex items-center justify-center mr-3 border border-[#2A2A2A]">
                       <span className="text-xl">🛵</span>
                     </div>
@@ -528,11 +554,18 @@ export default function InscripcionPage() {
                       <Label className="font-bold text-white text-sm cursor-pointer">4 TIEMPOS</Label>
                       <p className="text-[10px] text-[#B0B0B0] mt-0.5 font-medium">{Math.max(0, 15 - (categoryCounts['4t'] || 0))} CUPOS RESTANTES</p>
                     </div>
-                    {categoria === '4t' && <CheckCircle2 className="w-5 h-5 text-[#00E676] absolute top-2 right-2" />}
+                    {categorias.includes('4t') && <CheckCircle2 className="w-5 h-5 text-[#39FF14] absolute top-2 right-2" />}
                   </div>
 
-                  <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categoria === 'alto' ? 'border-[#00E676] bg-[#00E676]/5 shadow-[0_0_15px_rgba(0,230,118,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['alto'] || 0) >= 15 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { if ((categoryCounts['alto'] || 0) < 15) setCategoria('alto'); }}>
-                    <RadioGroupItem value="alto" id="cat-alto" className="sr-only" disabled={(categoryCounts['alto'] || 0) >= 15} />
+                  <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('alto') ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_15px_rgba(57,255,20,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['alto'] || 0) >= 15 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { 
+                    if ((categoryCounts['alto'] || 0) >= 15) return;
+                    if (categorias.includes('open')) {
+                      toast({ title: "Categoría exclusiva", description: "La categoría OPEN no se puede combinar con otras.", variant: "default" });
+                      return;
+                    }
+                    if (categorias.includes('alto')) setCategorias(categorias.filter(c => c !== 'alto'));
+                    else setCategorias([...categorias, 'alto']);
+                  }}>
                     <div className="w-10 h-10 rounded-full bg-[#1A1A1A] flex items-center justify-center mr-3 border border-[#2A2A2A]">
                       <span className="text-xl">🔥</span>
                     </div>
@@ -540,9 +573,9 @@ export default function InscripcionPage() {
                       <Label className="font-bold text-white text-sm cursor-pointer">ALTO CILINDRAJE</Label>
                       <p className="text-[10px] text-[#B0B0B0] mt-0.5 font-medium">{Math.max(0, 15 - (categoryCounts['alto'] || 0))} CUPOS RESTANTES</p>
                     </div>
-                    {categoria === 'alto' && <CheckCircle2 className="w-5 h-5 text-[#00E676] absolute top-2 right-2" />}
+                    {categorias.includes('alto') && <CheckCircle2 className="w-5 h-5 text-[#39FF14] absolute top-2 right-2" />}
                   </div>
-                </RadioGroup>
+                </div>
               </div>
               
               {/* Experiencia y Compromiso */}
@@ -582,18 +615,18 @@ export default function InscripcionPage() {
               {/* Datos Motocicleta */}
               <div className="space-y-4 pt-6 border-t border-[#2A2A2A]">
                 <Label className="text-white text-sm font-bold uppercase tracking-wider block flex items-center gap-2 mb-2">
-                  <span className="text-[#00E676]">🏍️</span> 3. Datos de la Motocicleta
+                  <span className="text-[#39FF14]">🏍️</span> 3. Datos de la Motocicleta
                 </Label>
                 
                 <div className="space-y-1">
                   <Label className="text-[10px] text-[#B0B0B0] uppercase tracking-wider ml-1">Placa Motocicleta</Label>
-                  <Input value={placa} onChange={e => setPlaca(e.target.value)} placeholder="ABC123" className="bg-[#1A1A1A] border-[#2A2A2A] text-white h-12 uppercase rounded-xl px-4 focus:border-[#00E676] focus:ring-[#00E676]" maxLength={6} />
+                  <Input value={placa} onChange={e => setPlaca(e.target.value)} placeholder="ABC123" className="bg-[#1A1A1A] border-[#2A2A2A] text-white h-12 uppercase rounded-xl px-4 focus:border-[#39FF14] focus:ring-[#39FF14]" maxLength={6} />
                 </div>
                 
                 <div className="space-y-1">
                   <Label className="text-[10px] text-[#B0B0B0] uppercase tracking-wider ml-1">Marca de tu motocicleta</Label>
                   <Select value={marca} onValueChange={setMarca}>
-                    <SelectTrigger className="bg-[#1A1A1A] border-[#2A2A2A] text-white h-12 rounded-xl px-4 focus:ring-[#00E676]">
+                    <SelectTrigger className="bg-[#1A1A1A] border-[#2A2A2A] text-white h-12 rounded-xl px-4 focus:ring-[#39FF14]">
                       <SelectValue placeholder="Seleccione..." />
                     </SelectTrigger>
                     <SelectContent className="bg-[#121212] border-[#2A2A2A] text-white">
@@ -606,7 +639,7 @@ export default function InscripcionPage() {
 
                 <div className="space-y-1">
                   <Label className="text-[10px] text-[#B0B0B0] uppercase tracking-wider ml-1">Referencia motocicleta</Label>
-                  <Input value={referencia} onChange={e => setReferencia(e.target.value)} placeholder="Ej. MT-09" className="bg-[#1A1A1A] border-[#2A2A2A] text-white h-12 rounded-xl px-4 focus:border-[#00E676] focus:ring-[#00E676]" />
+                  <Input value={referencia} onChange={e => setReferencia(e.target.value)} placeholder="Ej. MT-09" className="bg-[#1A1A1A] border-[#2A2A2A] text-white h-12 rounded-xl px-4 focus:border-[#39FF14] focus:ring-[#39FF14]" />
                 </div>
               </div>
 
@@ -614,7 +647,7 @@ export default function InscripcionPage() {
               <div className="space-y-3 pt-6 border-t border-[#2A2A2A] pb-6">
                 <div className="flex justify-between items-center mb-2">
                   <Label className="text-white text-sm font-bold uppercase tracking-wider block flex items-center gap-2">
-                    <span className="text-[#00E676]">📄</span> 4. Archivos y Documentación Legal
+                    <span className="text-[#39FF14]">📄</span> 4. Archivos y Documentación Legal
                   </Label>
                 </div>
                 <p className="text-[10px] text-[#B0B0B0] mb-4 leading-relaxed">
@@ -628,9 +661,9 @@ export default function InscripcionPage() {
                   { key: 'soat', state: fotoSoat, title: "Fotografía del SOAT vigente", desc: "Vigente para la fecha" },
                   { key: 'deportista', state: fotoDeportista, title: "Foto tuya (Tipo Cédula o Carnet)", desc: "Fondo blanco o azul", isDeportista: true }
                 ].map((item: any) => (
-                  <div key={item.key} onClick={() => { if (!(item.isDeportista && isDetectingFace)) openOptions(item.key); }} className={`relative bg-[#1A1A1A] border ${item.state ? 'border-[#00E676] shadow-[0_0_15px_rgba(0,230,118,0.1)]' : 'border-[#2A2A2A]'} rounded-xl p-3 flex items-center gap-3 hover:border-[#424242] transition-all overflow-hidden ${item.isDeportista && isDetectingFace ? 'cursor-wait opacity-50' : 'cursor-pointer hover:bg-[#121212]'}`}>
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 border ${item.state ? 'bg-[#00E676]/10 border-[#00E676]/30' : 'bg-[#121212] border-[#2A2A2A]'}`}>
-                      <ImageIcon className={`w-5 h-5 ${item.state ? 'text-[#00E676]' : 'text-[#00E676]/50'}`} />
+                  <div key={item.key} onClick={() => { if (!(item.isDeportista && isDetectingFace)) openOptions(item.key); }} className={`relative bg-[#1A1A1A] border ${item.state ? 'border-[#39FF14] shadow-[0_0_15px_rgba(57,255,20,0.1)]' : 'border-[#2A2A2A]'} rounded-xl p-3 flex items-center gap-3 hover:border-[#424242] transition-all overflow-hidden ${item.isDeportista && isDetectingFace ? 'cursor-wait opacity-50' : 'cursor-pointer hover:bg-[#121212]'}`}>
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 border ${item.state ? 'bg-[#39FF14]/10 border-[#39FF14]/30' : 'bg-[#121212] border-[#2A2A2A]'}`}>
+                      <ImageIcon className={`w-5 h-5 ${item.state ? 'text-[#39FF14]' : 'text-[#39FF14]/50'}`} />
                     </div>
                     
                     <div className="flex-1 min-w-0 pointer-events-none">
@@ -674,7 +707,7 @@ export default function InscripcionPage() {
                 <div className="space-y-4 pt-4 lg:pt-0 pb-6">
                 <div className="flex justify-between items-center mb-2">
                   <Label className="text-white text-sm font-bold uppercase tracking-wider block flex items-center gap-2">
-                    <span className="text-[#00E676]">💰</span> 5. Comprobante de Pago
+                    <span className="text-[#39FF14]">💰</span> 5. Comprobante de Pago
                   </Label>
                 </div>
                 
@@ -682,7 +715,7 @@ export default function InscripcionPage() {
                   <div className="flex flex-col gap-3 mb-5">
                     <div className="flex justify-between items-baseline">
                       <span className="text-xs text-[#B0B0B0] font-medium uppercase tracking-wider">Costo (16 Abr - 10 May)</span>
-                      <span className="text-xl text-[#00E676] font-black tracking-wider shadow-[#00E676]/20">$280.000</span>
+                      <span className="text-xl text-[#39FF14] font-black tracking-wider shadow-[#39FF14]/20">$280.000</span>
                     </div>
                     <div className="flex justify-between items-baseline pt-2 border-t border-[#2A2A2A]">
                       <span className="text-[10px] text-[#424242] font-medium uppercase tracking-wider">Costo (11 May - 15 May)</span>
@@ -692,13 +725,13 @@ export default function InscripcionPage() {
 
                   <div className="space-y-3 mb-4">
                     <div className="bg-[#121212] p-4 rounded-xl border border-[#2A2A2A] flex flex-col items-center gap-4 text-xs text-[#B0B0B0]">
-                      <div className="shrink-0 bg-white p-2.5 rounded-2xl shadow-[0_0_20px_rgba(0,230,118,0.15)]">
+                      <div className="shrink-0 bg-white p-2.5 rounded-2xl shadow-[0_0_20px_rgba(57,255,20,0.15)]">
                         <img src="/sponsors/QR BANCOLOMBIA.jpg" alt="QR Bancolombia" className="w-36 h-36 md:w-40 md:h-40 object-contain rounded-xl" />
                       </div>
                       <div className="flex-1 text-center w-full">
                         <p className="font-black text-white mb-3 text-sm uppercase tracking-widest border-b border-[#2A2A2A] pb-3">Ahorros Bancolombia</p>
                         <ul className="space-y-1.5 font-mono text-[#B0B0B0] pt-1">
-                          <li className="text-xl text-[#00E676] font-bold tracking-wider">316-376847-80</li>
+                          <li className="text-xl text-[#39FF14] font-bold tracking-wider">316-376847-80</li>
                           <li className="text-[10px] text-[#424242] uppercase font-sans tracking-wide mt-2">Titular: <span className="text-[#B0B0B0]">Daniela Rojas Valencia</span></li>
                         </ul>
                       </div>
@@ -710,15 +743,15 @@ export default function InscripcionPage() {
                   </div>
 
                   <Label className="text-white text-xs font-bold flex items-center gap-2 mb-3">
-                    <UploadCloud className="text-[#00E676] w-4 h-4" /> Sube tu Comprobante <span className="text-[#00E676]">*</span>
+                    <UploadCloud className="text-[#39FF14] w-4 h-4" /> Sube tu Comprobante <span className="text-[#39FF14]">*</span>
                   </Label>
                   
-                  <div onClick={() => openOptions('comprobante')} className={`border-2 border-dashed border-[#2A2A2A] bg-[#121212] py-6 rounded-xl text-center hover:border-[#00E676]/50 transition-all cursor-pointer hover:bg-[#1A1A1A] ${comprobantePago ? 'border-[#00E676] bg-[#00E676]/5 shadow-[0_0_15px_rgba(0,230,118,0.1)]' : ''}`}>
+                  <div onClick={() => openOptions('comprobante')} className={`border-2 border-dashed border-[#2A2A2A] bg-[#121212] py-6 rounded-xl text-center hover:border-[#39FF14]/50 transition-all cursor-pointer hover:bg-[#1A1A1A] ${comprobantePago ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_15px_rgba(57,255,20,0.1)]' : ''}`}>
                     <div className="flex flex-col items-center px-4 pointer-events-none">
                       {comprobantePago ? (
                         <>
-                          <CheckCircle2 className="w-8 h-8 mb-2 text-[#00E676]" />
-                          <span className="text-sm font-bold text-[#00E676] truncate w-full px-2">{comprobantePago.name}</span>
+                          <CheckCircle2 className="w-8 h-8 mb-2 text-[#39FF14]" />
+                          <span className="text-sm font-bold text-[#39FF14] truncate w-full px-2">{comprobantePago.name}</span>
                           <span className="text-[10px] text-[#B0B0B0] mt-1 uppercase font-bold tracking-widest">Subido Exitosamente</span>
                         </>
                       ) : (
@@ -736,12 +769,12 @@ export default function InscripcionPage() {
                 <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl p-5 shadow-[0_0_15px_rgba(0,0,0,0.5)]">
                   <p className="text-white font-bold mb-1 text-sm">¿Problemas con el pago?</p>
                   <p className="text-[#B0B0B0] text-[10px] mb-4">Comunícate a nuestro canal oficial de WhatsApp</p>
-                  <a href="https://wa.me/573044347740" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between bg-[#121212] border border-[#00E676]/30 hover:bg-[#00E676]/10 transition-colors p-4 rounded-xl group cursor-pointer shadow-[0_0_10px_rgba(0,230,118,0.05)]">
+                  <a href="https://wa.me/573044347740" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between bg-[#121212] border border-[#39FF14]/30 hover:bg-[#39FF14]/10 transition-colors p-4 rounded-xl group cursor-pointer shadow-[0_0_10px_rgba(57,255,20,0.05)]">
                     <div className="flex items-center gap-3">
-                      <Smartphone className="w-6 h-6 text-[#00E676] group-hover:scale-110 transition-transform" />
-                      <span className="text-[#00E676] font-bold text-lg tracking-wider">304 434 7740</span>
+                      <Smartphone className="w-6 h-6 text-[#39FF14] group-hover:scale-110 transition-transform" />
+                      <span className="text-[#39FF14] font-bold text-lg tracking-wider">304 434 7740</span>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-[#00E676]/50 group-hover:text-[#00E676] transition-colors" />
+                    <ChevronRight className="w-5 h-5 text-[#39FF14]/50 group-hover:text-[#39FF14] transition-colors" />
                   </a>
                 </div>
 
@@ -775,7 +808,7 @@ export default function InscripcionPage() {
             </div>
 
             <div className="mt-12 mb-16 max-w-2xl mx-auto">
-              <Button type="submit" disabled={isLoading} className="bg-[#00E676] text-black hover:bg-[#00E676]/90 font-black h-16 w-full text-sm md:text-base shadow-[0_0_20px_rgba(0,230,118,0.4)] transition-all uppercase tracking-wider rounded-2xl">
+              <Button type="submit" disabled={isLoading} className="bg-[#39FF14] text-black hover:bg-[#39FF14]/90 font-black h-16 w-full text-sm md:text-base shadow-[0_0_20px_rgba(57,255,20,0.4)] transition-all uppercase tracking-wider rounded-2xl">
                 {isLoading ? "GUARDANDO..." : "CONFIRMACIÓN"}
                 {!isLoading && <ChevronRight className="w-6 h-6 ml-2" />}
               </Button>
@@ -1024,7 +1057,7 @@ export default function InscripcionPage() {
               { key: 'soat', state: fotoSoat, title: "Fotografía del SOAT vigente", desc: "Vigente para la fecha" },
               { key: 'deportista', state: fotoDeportista, title: "Foto tuya (Tipo Cédula o Carnet)", desc: "Fondo blanco o azul", isDeportista: true }
             ].filter(item => documentosRechazados.includes(item.key)).map((item: any) => (
-              <div key={item.key} onClick={() => { if (!(item.isDeportista && isDetectingFace)) { setCorrectionDialogOpen(false); openOptions(item.key); } }} className={`relative bg-[#1A1A1A] border border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)] rounded-xl p-2.5 sm:p-3 flex items-center gap-2 sm:gap-3 hover:border-red-400 transition-all overflow-hidden cursor-pointer hover:bg-[#121212]`}>
+              <div key={item.key} onClick={() => { if (!(item.isDeportista && isDetectingFace)) { setCorrectionDialogOpen(false); setTimeout(() => openOptions(item.key), 350); } }} className={`relative bg-[#1A1A1A] border border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)] rounded-xl p-2.5 sm:p-3 flex items-center gap-2 sm:gap-3 hover:border-red-400 transition-all overflow-hidden cursor-pointer hover:bg-[#121212]`}>
                 <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center shrink-0 border bg-red-500/10 border-red-500/30">
                   <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />
                 </div>

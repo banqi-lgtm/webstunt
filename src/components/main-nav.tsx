@@ -2,13 +2,12 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { User, CalendarDays, LogOut, Shield, Users, Menu, ChevronDown, Star } from 'lucide-react';
+import { User, CalendarDays, LogOut, Shield, Users, Menu, Star, LayoutDashboard, Search, FileText, CheckCircle, XCircle, Clock, ShieldCheck, Flag, Settings, Smartphone, Bell, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { auth, db } from '@/lib/firebase';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 
 const baseLinks = [
   { href: '/profile', label: 'Mi Perfil', icon: User },
@@ -23,6 +22,7 @@ export function MainNav() {
   const [hasStaffAccess, setHasStaffAccess] = useState(false);
   const [hasWhatsAppAccess, setHasWhatsAppAccess] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -125,11 +125,43 @@ export function MainNav() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-zinc-800 bg-black/80 backdrop-blur-md">
+    <>
+      {/* MOBILE DRAWER MENU */}
+      {isMobileMenuOpen && (
+        <div style={{position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 9999, backdropFilter: 'blur(5px)'}}>
+          <div style={{width: '280px', height: '100%', backgroundColor: '#111', borderRight: '1px solid #39FF14', padding: '20px', display: 'flex', flexDirection: 'column'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px'}}>
+              <img src="/sponsors/PKS Blanco.png" alt="PKS" style={{ height: '30px' }} />
+              <button onClick={() => setIsMobileMenuOpen(false)} style={{background:'none', border:'none', color:'white', fontSize:'1.5rem', cursor: 'pointer'}}>✕</button>
+            </div>
+            <div style={{display: 'flex', flexDirection: 'column', gap: '20px', fontSize: '1.2rem', fontFamily: 'Orbitron'}}>
+              {dynamicLinks.map(link => {
+                const isActive = pathname === link.href;
+                return (
+                  <Link key={link.href} href={link.href} style={{color: isActive ? '#39FF14' : 'white', display: 'flex', alignItems: 'center', gap: '10px'}} onClick={() => setIsMobileMenuOpen(false)}>
+                    <link.icon style={{ width: '20px', height: '20px' }} />
+                    {link.label}
+                  </Link>
+                );
+              })}
+            </div>
+            <div style={{marginTop: 'auto'}}>
+              <button onClick={() => { setIsMobileMenuOpen(false); handleSignOut(); }} style={{background: 'rgba(255,0,0,0.1)', color: '#ff4444', border: '1px solid #ff4444', padding: '10px 20px', borderRadius: '8px', width: '100%', fontFamily: 'Orbitron', cursor: 'pointer'}}>CERRAR SESIÓN</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <header className="sticky top-0 z-50 w-full border-b border-zinc-800 bg-black/80 backdrop-blur-md">
       <div className="flex h-16 items-center justify-between px-3 md:px-8 w-full max-w-none">
         
-        {/* Left side: Logo */}
-        <div className="flex items-center">
+        {/* Left side: Logo & Mobile Hamburger */}
+        <div className="flex items-center gap-3">
+          {/* MOBILE NAV: Hamburger Drawer (Visible only on mobile) */}
+          <div className="flex xl:hidden">
+            <button onClick={() => setIsMobileMenuOpen(true)} style={{ background: 'none', border: 'none', color: '#39FF14', fontSize: '2.2rem', cursor: 'pointer', lineHeight: 1 }}>☰</button>
+          </div>
+          
           <Link href="/profile" className="flex items-center shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/sponsors/PKS Blanco.png" alt="Paskines Stunt" className="h-6 md:h-8 w-auto object-contain" />
@@ -145,40 +177,6 @@ export function MainNav() {
               <NavButton key={link.href} link={link} isActive={pathname === link.href} />
             ))}
           </nav>
-
-          {/* MOBILE NAV: Agrupado en Dropdown */}
-          <div className="flex xl:hidden">
-            {isMounted ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="gap-2 h-9 bg-zinc-900 border-zinc-700 text-zinc-300 px-3">
-                    <Menu className="h-4 w-4" />
-                    <span className="font-bold text-xs">Módulos</span>
-                    <ChevronDown className="h-3 w-3 opacity-50" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 bg-zinc-950 border-zinc-800 p-2 shadow-2xl">
-                  {dynamicLinks.map((link) => {
-                    const isActive = pathname === link.href;
-                    return (
-                      <DropdownMenuItem key={link.href} asChild className={`cursor-pointer mb-1 rounded-md p-0 ${isActive ? 'bg-zinc-800/50' : ''}`}>
-                        <Link href={link.href} className="flex items-center w-full px-3 py-2.5">
-                          <link.icon className={`h-4 w-4 mr-3 ${link.href === '/pilotos' ? 'text-blue-500' : link.href === '/staff' ? 'text-purple-400' : link.href === '/admin' ? 'text-green-500' : link.href === '/whatsapp' ? 'text-[#25D366]' : 'text-zinc-400'}`} />
-                          <span className={`font-semibold text-sm ${isActive ? 'text-white' : 'text-zinc-300'}`}>{link.label}</span>
-                        </Link>
-                      </DropdownMenuItem>
-                    );
-                  })}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Button variant="outline" className="gap-2 h-9 bg-zinc-900 border-zinc-700 text-zinc-300 px-3">
-                <Menu className="h-4 w-4" />
-                <span className="font-bold text-xs">Módulos</span>
-                <ChevronDown className="h-3 w-3 opacity-50" />
-              </Button>
-            )}
-          </div>
           
           <div className="h-6 w-px bg-zinc-800 mx-1 md:mx-2 hidden sm:block"></div>
 
@@ -196,5 +194,6 @@ export function MainNav() {
         </div>
       </div>
     </header>
+    </>
   );
 }

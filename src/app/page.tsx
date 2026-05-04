@@ -339,9 +339,9 @@ export default function Home() {
 
       {/* Payment Details Modal */}
       <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
-        <DialogContent className="sm:max-w-[400px] w-[95vw] bg-[#121212] border-2 border-[#00E676] shadow-[0_0_30px_rgba(0,230,118,0.3)] text-white p-0 overflow-hidden rounded-2xl">
+        <DialogContent className="sm:max-w-[400px] w-[95vw] bg-[#121212] border-2 border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] text-white p-0 overflow-hidden rounded-2xl">
           <DialogHeader className="p-4 pb-2 border-b border-[#2A2A2A]/50 bg-black/40">
-            <DialogTitle className="text-lg md:text-xl font-black uppercase text-[#00E676] tracking-wider flex items-center justify-center gap-2">
+            <DialogTitle className="text-lg md:text-xl font-black uppercase text-[#39FF14] tracking-wider flex items-center justify-center gap-2">
               <span className="text-xl md:text-2xl">💰</span> Detalles de Pago
             </DialogTitle>
           </DialogHeader>
@@ -350,7 +350,7 @@ export default function Home() {
               <div className="flex flex-col gap-2 mb-3">
                 <div className="flex justify-between items-baseline">
                   <span className="text-[11px] text-[#B0B0B0] font-medium uppercase tracking-wider">Costo (16 Abr - 10 May)</span>
-                  <span className="text-lg text-[#00E676] font-black tracking-wider shadow-[#00E676]/20">$280.000</span>
+                  <span className="text-lg text-[#39FF14] font-black tracking-wider shadow-[#39FF14]/20">$280.000</span>
                 </div>
                 <div className="flex justify-between items-baseline pt-2 border-t border-[#2A2A2A]">
                   <span className="text-[9px] text-[#424242] font-medium uppercase tracking-wider">Costo (11 May - 15 May)</span>
@@ -360,13 +360,13 @@ export default function Home() {
 
               <div className="space-y-2.5">
                 <div className="bg-[#121212] p-3 rounded-xl border border-[#2A2A2A] flex flex-row items-center gap-4 text-xs text-[#B0B0B0]">
-                  <div className="shrink-0 bg-white p-1.5 rounded-lg shadow-[0_0_20px_rgba(0,230,118,0.15)]">
+                  <div className="shrink-0 bg-white p-1.5 rounded-lg shadow-[0_0_20px_rgba(57,255,20,0.15)]">
                     <img src="/sponsors/QR BANCOLOMBIA.jpg" alt="QR Bancolombia" className="w-20 h-20 object-contain rounded-md" />
                   </div>
                   <div className="flex-1 text-left">
                     <p className="font-black text-white mb-1.5 text-[10px] md:text-xs uppercase tracking-widest border-b border-[#2A2A2A] pb-1.5">Ahorros Bancolombia</p>
                     <ul className="space-y-0.5 font-mono text-[#B0B0B0]">
-                      <li className="text-sm md:text-base text-[#00E676] font-bold tracking-wider">316-376847-80</li>
+                      <li className="text-sm md:text-base text-[#39FF14] font-bold tracking-wider">316-376847-80</li>
                       <li className="text-[8px] md:text-[9px] text-[#424242] uppercase font-sans tracking-wide">Titular: <span className="text-[#B0B0B0]">Daniela Rojas Valencia</span></li>
                     </ul>
                   </div>
@@ -380,7 +380,7 @@ export default function Home() {
             <div className="mt-4">
               <Button 
                 onClick={() => setIsPaymentModalOpen(false)} 
-                className="w-full bg-[#00E676] hover:bg-[#00C853] text-black font-black uppercase tracking-wider h-12 rounded-xl shadow-[0_0_15px_rgba(0,230,118,0.2)]"
+                className="w-full bg-[#39FF14] hover:bg-[#00C853] text-black font-black uppercase tracking-wider h-12 rounded-xl shadow-[0_0_15px_rgba(57,255,20,0.2)]"
               >
                 Entendido
               </Button>

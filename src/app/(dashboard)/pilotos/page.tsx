@@ -233,6 +233,7 @@ export default function PilotosPage() {
              if (!open) setScannedPilot(null);
           }}>
             <DialogContent className="sm:max-w-md bg-zinc-950 border-zinc-800">
+               <DialogTitle className="sr-only">Resultado del Escáner</DialogTitle>
                {fetchingScan ? (
                  <div className="flex flex-col items-center justify-center py-10">
                    <div className="w-10 h-10 border-4 border-green-500 border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -244,26 +245,42 @@ export default function PilotosPage() {
                    
                    <ul className="space-y-3">
                      {/* Pago */}
-                     <li className="flex items-center justify-between p-4 rounded-lg border border-zinc-800 bg-zinc-900/50">
-                        <span className="text-zinc-300 font-semibold text-lg">1. Pago de Inscripción</span>
+                     <li className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-lg border border-zinc-800 bg-zinc-900/50 gap-2">
+                        <span className="text-zinc-300 font-semibold text-base sm:text-lg">1. Pago de Inscripción</span>
                         {scannedPilot.estadoPago === 'aprobado' ? (
-                          <span className="flex items-center text-green-400 font-bold text-lg"><CheckCircle2 className="w-6 h-6 mr-1" /> Aprobado</span>
+                          <span className="flex items-center text-green-400 font-bold text-base sm:text-lg"><CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 mr-1" /> Aprobado</span>
                         ) : (
-                          <span className="flex items-center text-red-400 font-bold text-lg"><XCircle className="w-6 h-6 mr-1" /> Pendiente</span>
+                          <span className="flex items-center text-red-400 font-bold text-base sm:text-lg"><XCircle className="w-5 h-5 sm:w-6 sm:h-6 mr-1" /> Pendiente</span>
                         )}
                      </li>
                      
                      {/* Docs */}
                      {(() => {
                         const docs = scannedPilot.documentos || {};
-                        const docsComplete = docs.idUrl && docs.placaUrl && docs.propiedadUrl && docs.soatUrl && docs.deportistaUrl;
+                        const rechazos = scannedPilot.documentosRechazados || [];
+                        const docsComplete = docs.idUrl && docs.placaUrl && docs.propiedadUrl && docs.soatUrl && docs.deportistaUrl && rechazos.length === 0;
+                        
+                        const pendientes = [];
+                        if (!docs.idUrl || rechazos.includes('id')) pendientes.push("Identidad");
+                        if (!docs.placaUrl || rechazos.includes('placa')) pendientes.push("Placa");
+                        if (!docs.propiedadUrl || rechazos.includes('propiedad')) pendientes.push("Tarjeta Prop.");
+                        if (!docs.soatUrl || rechazos.includes('soat')) pendientes.push("SOAT");
+                        if (!docs.deportistaUrl || rechazos.includes('deportista')) pendientes.push("Foto Piloto");
+
                         return (
-                          <li className="flex items-center justify-between p-4 rounded-lg border border-zinc-800 bg-zinc-900/50">
-                             <span className="text-zinc-300 font-semibold text-lg">2. Documentos Legales</span>
-                             {docsComplete ? (
-                               <span className="flex items-center text-green-400 font-bold text-lg"><CheckCircle2 className="w-6 h-6 mr-1" /> Completos</span>
-                             ) : (
-                               <span className="flex items-center text-orange-400 font-bold text-lg"><AlertCircle className="w-6 h-6 mr-1" /> Incompletos</span>
+                          <li className="flex flex-col p-3 sm:p-4 rounded-lg border border-zinc-800 bg-zinc-900/50 gap-2">
+                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                               <span className="text-zinc-300 font-semibold text-base sm:text-lg">2. Documentos Legales</span>
+                               {docsComplete ? (
+                                 <span className="flex items-center text-green-400 font-bold text-base sm:text-lg"><CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 mr-1" /> Completos</span>
+                               ) : (
+                                 <span className="flex items-center text-orange-400 font-bold text-base sm:text-lg"><AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 mr-1" /> Incompletos</span>
+                               )}
+                             </div>
+                             {!docsComplete && pendientes.length > 0 && (
+                               <div className="mt-1 text-xs text-orange-400/90 bg-orange-500/10 p-2 rounded border border-orange-500/20 leading-relaxed">
+                                 <span className="font-bold uppercase tracking-wider">Pendiente/Rechazado:</span><br/> {pendientes.join(' • ')}
+                               </div>
                              )}
                           </li>
                         );
@@ -273,19 +290,20 @@ export default function PilotosPage() {
                    {/* Acces Permitted Banner */}
                    {scannedPilot.estadoPago === 'aprobado' && (() => {
                         const docs = scannedPilot.documentos || {};
-                        const docsComplete = docs.idUrl && docs.placaUrl && docs.propiedadUrl && docs.soatUrl && docs.deportistaUrl;
+                        const rechazos = scannedPilot.documentosRechazados || [];
+                        const docsComplete = docs.idUrl && docs.placaUrl && docs.propiedadUrl && docs.soatUrl && docs.deportistaUrl && rechazos.length === 0;
                         if (docsComplete) return (
-                          <div className="w-full bg-green-600 text-white font-black text-center py-4 rounded-lg text-xl uppercase tracking-widest shadow-[0_0_20px_rgba(34,197,94,0.4)] animate-pulse">
+                          <div className="w-full bg-green-600 text-white font-black text-center py-4 rounded-lg text-lg sm:text-xl uppercase tracking-widest shadow-[0_0_20px_rgba(34,197,94,0.4)] animate-pulse">
                             ¡ACCESO PERMITIDO!
                           </div>
                         );
                         return null;
                    })()}
                    
-                   <div className="flex gap-2 w-full mt-2">
-                      <Button onClick={() => setIsScannedDialogOpen(false)} variant="outline" className="w-full border-zinc-700 text-zinc-300 hover:bg-zinc-800">Cerrar Escáner</Button>
-                      <Link href={`/pilotos/f2r_${scannedPilot.uid}`} className="w-full">
-                        <Button className="w-full bg-zinc-800 hover:bg-zinc-700 text-white">Ver Expediente Completo</Button>
+                   <div className="flex flex-col sm:flex-row gap-3 w-full mt-2">
+                      <Button onClick={() => setIsScannedDialogOpen(false)} variant="outline" className="w-full sm:w-1/2 border-zinc-700 text-zinc-300 hover:bg-zinc-800 h-11">Cerrar Escáner</Button>
+                      <Link href={`/pilotos/f2r_${scannedPilot.uid}`} className="w-full sm:w-1/2">
+                        <Button className="w-full bg-zinc-800 hover:bg-zinc-700 text-white h-11">Ver Expediente</Button>
                       </Link>
                    </div>
                  </div>
