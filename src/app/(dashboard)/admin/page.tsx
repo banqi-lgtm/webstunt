@@ -208,6 +208,15 @@ export default function AdminPage() {
                           />
                           <label htmlFor={`staff-${user.id}`} className="text-sm font-medium text-purple-400 cursor-pointer">Staff</label>
                         </div>
+
+                        <div className="flex items-center space-x-2 bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded-md">
+                          <Checkbox 
+                            id={`jueces-${user.id}`} 
+                            checked={user.interfaces.includes('jueces')} 
+                            onCheckedChange={() => toggleInterface(user.id, 'jueces', user.interfaces)}
+                          />
+                          <label htmlFor={`jueces-${user.id}`} className="text-sm font-medium text-yellow-500 cursor-pointer">Jueces</label>
+                        </div>
                         
                       </td>
                     </tr>

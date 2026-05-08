@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { User, CalendarDays, LogOut, Shield, Users, Menu, Star, LayoutDashboard, Search, FileText, CheckCircle, XCircle, Clock, ShieldCheck, Flag, Settings, Smartphone, Bell, Video } from 'lucide-react';
+import { User, CalendarDays, LogOut, Shield, Users, Menu, Star, LayoutDashboard, Search, FileText, CheckCircle, XCircle, Clock, ShieldCheck, Flag, Settings, Smartphone, Bell, Video, ClipboardList } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { auth, db } from '@/lib/firebase';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
@@ -21,6 +21,7 @@ export function MainNav() {
   const [hasPilotosAccess, setHasPilotosAccess] = useState(false);
   const [hasStaffAccess, setHasStaffAccess] = useState(false);
   const [hasWhatsAppAccess, setHasWhatsAppAccess] = useState(false);
+  const [hasJuecesAccess, setHasJuecesAccess] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -47,12 +48,18 @@ export function MainNav() {
             } else {
               setHasStaffAccess(false);
             }
+            if (isSuperAdmin || interfaces.includes('jueces')) {
+              setHasJuecesAccess(true);
+            } else {
+              setHasJuecesAccess(false);
+            }
           } else {
             const isSuperAdmin = ['wg12435@hotmail.com', 'walter12345@hotmail.com'].includes(user?.email || '');
             setIsAdmin(isSuperAdmin);
             if (isSuperAdmin) {
               setHasPilotosAccess(true);
               setHasStaffAccess(true);
+              setHasJuecesAccess(true);
             }
           }
         } catch (e) {
@@ -61,6 +68,7 @@ export function MainNav() {
       } else {
         setHasPilotosAccess(false);
         setHasStaffAccess(false);
+        setHasJuecesAccess(false);
       }
     });
     return () => unsubscribe();
@@ -82,6 +90,9 @@ export function MainNav() {
   if (hasStaffAccess) {
     dynamicLinks.push({ href: '/staff', label: 'Staff', icon: Star });
   }
+  if (hasJuecesAccess) {
+    dynamicLinks.push({ href: '/jueces', label: 'Jueces', icon: ClipboardList });
+  }
   if (isAdmin) {
     dynamicLinks.push({ href: '/admin', label: 'Panel Admin', icon: Shield });
   }
@@ -92,6 +103,7 @@ export function MainNav() {
     const isPilotos = link.href === '/pilotos';
     const isAdminLink = link.href === '/admin';
     const isStaff = link.href === '/staff';
+    const isJueces = link.href === '/jueces';
     
     let activeClass = 'bg-zinc-800 text-white border border-transparent';
     let inactiveClass = 'text-zinc-400 hover:text-white hover:bg-zinc-900 border border-transparent';
@@ -109,6 +121,10 @@ export function MainNav() {
       activeClass = 'bg-zinc-800 text-white border border-purple-500/20';
       inactiveClass = 'text-zinc-400 hover:text-white hover:bg-zinc-900 border border-purple-500/10';
       iconClass = 'h-4 w-4 text-purple-400';
+    } else if (isJueces) {
+      activeClass = 'bg-zinc-800 text-white border border-yellow-500/20';
+      inactiveClass = 'text-zinc-400 hover:text-white hover:bg-zinc-900 border border-yellow-500/10';
+      iconClass = 'h-4 w-4 text-yellow-500';
     }
 
     return (

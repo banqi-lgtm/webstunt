@@ -69,7 +69,7 @@ export default function PilotDetailPage() {
   const [isSaldoDialogOpen, setIsSaldoDialogOpen] = useState(false);
   const [saldoAmount, setSaldoAmount] = useState('');
   const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
-  const [newRole, setNewRole] = useState<'piloto' | 'staff'>('piloto');
+  const [newRole, setNewRole] = useState<'piloto' | 'staff' | 'juez'>('piloto');
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
@@ -376,6 +376,10 @@ export default function PilotDetailPage() {
                         <span className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] sm:text-xs font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30 uppercase tracking-widest shrink-0">
                           <Star className="w-3 h-3" /> STAFF
                         </span>
+                      ) : pilot.rol === 'juez' ? (
+                        <span className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] sm:text-xs font-bold bg-yellow-500/20 text-yellow-500 border border-yellow-500/30 uppercase tracking-widest shrink-0">
+                          <ShieldAlert className="w-3 h-3" /> JUEZ
+                        </span>
                       ) : (
                         <span className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] sm:text-xs font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30 uppercase tracking-widest shrink-0">
                           <User className="w-3 h-3" /> PILOTO
@@ -384,7 +388,7 @@ export default function PilotDetailPage() {
                       {isAdmin && (
                         <Dialog open={isRoleDialogOpen} onOpenChange={setIsRoleDialogOpen}>
                           <DialogTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-6 sm:h-7 px-2 text-[10px] sm:text-xs text-zinc-500 hover:text-white shrink-0" onClick={() => setNewRole(pilot.rol as 'piloto' | 'staff')}>
+                            <Button variant="ghost" size="sm" className="h-6 sm:h-7 px-2 text-[10px] sm:text-xs text-zinc-500 hover:text-white shrink-0" onClick={() => setNewRole((pilot.rol || 'piloto') as 'piloto' | 'staff' | 'juez')}>
                               Cambiar Rol
                             </Button>
                           </DialogTrigger>
@@ -401,11 +405,12 @@ export default function PilotDetailPage() {
                               </p>
                               <select 
                                 value={newRole}
-                                onChange={(e) => setNewRole(e.target.value as 'piloto' | 'staff')}
+                                onChange={(e) => setNewRole(e.target.value as 'piloto' | 'staff' | 'juez')}
                                 className="w-full bg-zinc-900 border border-zinc-700 text-white rounded-md h-10 px-3 outline-none focus:border-green-500 transition-colors"
                               >
                                 <option value="piloto">Piloto</option>
                                 <option value="staff">Staff</option>
+                                <option value="juez">Juez</option>
                               </select>
                             </div>
                             <DialogFooter>

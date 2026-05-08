@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { Users, Search, Bike, ChevronRight, Clock, AlertCircle, CheckCircle2, ScanLine, User, XCircle } from 'lucide-react';
+import { Users, Search, Bike, ChevronRight, Clock, AlertCircle, CheckCircle2, ScanLine, User, XCircle, Download } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useToast } from '@/hooks/use-toast';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import Link from 'next/link';
+import * as XLSX from 'xlsx';
 
 interface Registration {
   id: string;
@@ -28,6 +29,8 @@ interface Registration {
   nombres: string;
   apellidos: string;
   email: string;
+  numeroIdentificacion?: string;
+  telefono?: string;
 }
 
 export default function PilotosPage() {
@@ -101,8 +104,8 @@ export default function PilotosPage() {
         // Skip users with missing names
         if (!userData.nombres) return;
 
-        // Skip staff members
-        if (userData.rol === 'staff') return;
+        // Skip staff members and judges
+        if (userData.rol === 'staff' || userData.rol === 'juez') return;
 
         const regData = regsMap.get(userId) || {};
         
@@ -116,6 +119,8 @@ export default function PilotosPage() {
           nombres: userData.nombres || 'Desconocido',
           apellidos: userData.apellidos || '',
           email: userData.email || 'N/A',
+          numeroIdentificacion: userData.numeroIdentificacion || regData.numeroIdentificacion || 'N/A',
+          telefono: userData.telefono || regData.telefono || 'N/A',
         });
       });
       
@@ -145,6 +150,28 @@ export default function PilotosPage() {
     return matchesSearch && matchesFilter;
   });
 
+  const exportToExcel = () => {
+    const data = filteredRegistrations.map(reg => ({
+      "ID": reg.id,
+      "Identificación": reg.numeroIdentificacion || 'N/A',
+      "Nombres": reg.nombres,
+      "Apellidos": reg.apellidos,
+      "Teléfono": reg.telefono || 'N/A',
+      "Email": reg.email,
+      "Estado Pago": reg.estadoPago.toUpperCase().replace('_', ' '),
+      "Categoría": Array.isArray(reg.categoria) ? reg.categoria.join(', ') : reg.categoria,
+      "Placa": reg.motocicleta?.placa || 'N/A',
+      "Marca": reg.motocicleta?.marca || 'N/A',
+      "Fecha Registro": new Date(reg.registradoEl).toLocaleDateString()
+    }));
+    
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Pilotos");
+    
+    XLSX.writeFile(workbook, `Pilotos_F2R_${filterStatus}_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
   const countTodos = registrations.length;
   const countEnRevision = registrations.filter(r => r.estadoPago === 'en_revision' || r.estadoPago === 'revision_saldo').length;
   const countAprobados = registrations.filter(r => r.estadoPago === 'aprobado').length;
@@ -167,14 +194,18 @@ export default function PilotosPage() {
               <p className="text-zinc-400">Listado y gestión de pilotos inscritos en la Copa Stunt F2R.</p>
             </div>
           </div>
-          
-          <Dialog open={scannerOpen} onOpenChange={setScannerOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-green-600 hover:bg-green-500 text-white gap-2 h-12 px-6 w-full md:w-auto font-bold shadow-[0_0_20px_rgba(34,197,94,0.3)]">
-                <ScanLine className="w-5 h-5" /> ESCANEAR QR INGRESO
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md bg-zinc-950 border-zinc-800">
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+            <Button onClick={exportToExcel} className="bg-zinc-800 hover:bg-zinc-700 text-white gap-2 h-12 px-6 w-full sm:w-auto font-bold shadow-[0_0_20px_rgba(255,255,255,0.05)] border border-zinc-700">
+              <Download className="w-5 h-5" /> EXPORTAR EXCEL
+            </Button>
+            
+            <Dialog open={scannerOpen} onOpenChange={setScannerOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-green-600 hover:bg-green-500 text-white gap-2 h-12 px-6 w-full sm:w-auto font-bold shadow-[0_0_20px_rgba(34,197,94,0.3)]">
+                  <ScanLine className="w-5 h-5" /> ESCANEAR QR
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md bg-zinc-950 border-zinc-800">
               <DialogHeader>
                 <DialogTitle className="text-white text-center">Escáner de Validación</DialogTitle>
               </DialogHeader>
@@ -316,6 +347,7 @@ export default function PilotosPage() {
                )}
             </DialogContent>
           </Dialog>
+          </div>
 
         </div>
 
