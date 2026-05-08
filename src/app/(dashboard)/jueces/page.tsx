@@ -209,6 +209,7 @@ const GradingModal = ({
 // ---------------------------------------------------------------------------
 export default function JuecesPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
   const [currentUid, setCurrentUid] = useState<string | null>(null);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
