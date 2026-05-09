@@ -634,7 +634,7 @@ export default function PilotDetailPage() {
                   {pilot.estadoPago === 'rechazado_saldo' && (
                     <span className="flex items-center gap-1.5 text-red-400 font-bold text-lg"><XCircle className="w-5 h-5"/> RECHAZADO SALDO</span>
                   )}
-                  {pilot.estadoPago === 'pendiente' && (
+                  {(pilot.estadoPago === 'pendiente' || pilot.estadoPago === 'borrador') && (
                     <span className="flex items-center gap-1.5 text-zinc-400 font-bold text-lg"><AlertCircle className="w-5 h-5"/> PENDIENTE DE PAGO</span>
                   )}
                   {pilot.estadoPago === 'saldo_pendiente' && (
