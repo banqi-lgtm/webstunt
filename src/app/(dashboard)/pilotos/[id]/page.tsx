@@ -56,6 +56,8 @@ interface PilotDetail {
   parentescoTutor?: string;
   rol: string;
   documentosRechazados?: string[];
+  motivoSaldoFaltante?: string;
+  historialSaldos?: string[];
 }
 
 export default function PilotDetailPage() {
@@ -68,6 +70,8 @@ export default function PilotDetailPage() {
   const [updating, setUpdating] = useState(false);
   const [isSaldoDialogOpen, setIsSaldoDialogOpen] = useState(false);
   const [saldoAmount, setSaldoAmount] = useState('');
+  const [motivoSaldo, setMotivoSaldo] = useState<string>('Fecha de pago después del 11 de mayo $350.000');
+  const [motivoPersonalizado, setMotivoPersonalizado] = useState('');
   const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
   const [newRole, setNewRole] = useState<'piloto' | 'staff' | 'juez'>('piloto');
   const [isAdmin, setIsAdmin] = useState(false);
@@ -140,6 +144,8 @@ export default function PilotDetailPage() {
         comprobanteUrl: data.comprobanteUrl || '',
         comprobanteSaldoUrl: data.comprobanteSaldoUrl || '',
         saldoFaltante: data.saldoFaltante || '',
+        motivoSaldoFaltante: data.motivoSaldoFaltante || '',
+        historialSaldos: data.historialSaldos || [],
         nombres: userData.nombres || 'Desconocido',
         apellidos: userData.apellidos || '',
         email: userData.email || 'N/A',
@@ -169,7 +175,7 @@ export default function PilotDetailPage() {
     }
   };
 
-  const updatePaymentStatus = async (status: 'aprobado' | 'rechazado' | 'en_revision') => {
+  const updatePaymentStatus = async (status: 'aprobado' | 'rechazado' | 'en_revision' | 'rechazado_saldo') => {
     if (!pilot) return;
     setUpdating(true);
     try {
@@ -180,6 +186,8 @@ export default function PilotDetailPage() {
         toast({ title: 'Pago Aprobado', description: 'El piloto ya tiene acceso a su código QR.' });
       } else if (status === 'rechazado') {
         toast({ title: 'Pago Rechazado', description: 'El estado de pago ha sido marcado como rechazado.' });
+      } else if (status === 'rechazado_saldo') {
+        toast({ title: 'Saldo Rechazado', description: 'El comprobante de saldo ha sido rechazado.' });
       } else {
         toast({ title: 'Revertido', description: 'El pago ha vuelto a revisión.' });
       }
@@ -193,13 +201,21 @@ export default function PilotDetailPage() {
 
   const handleReportarSaldo = async () => {
     if (!pilot || !saldoAmount) return;
+    
+    const finalMotivo = motivoSaldo === 'Otra' ? motivoPersonalizado : motivoSaldo;
+    if (motivoSaldo === 'Otra' && !motivoPersonalizado.trim()) {
+      toast({ title: "Atención", description: "Debes escribir el motivo del saldo", variant: "destructive" });
+      return;
+    }
+
     setUpdating(true);
     try {
       await updateDoc(doc(db, 'event_registrations', pilot.id), { 
         estadoPago: 'saldo_pendiente',
-        saldoFaltante: saldoAmount
+        saldoFaltante: saldoAmount,
+        motivoSaldoFaltante: finalMotivo
       });
-      setPilot({ ...pilot, estadoPago: 'saldo_pendiente', saldoFaltante: saldoAmount });
+      setPilot({ ...pilot, estadoPago: 'saldo_pendiente', saldoFaltante: saldoAmount, motivoSaldoFaltante: finalMotivo });
       setIsSaldoDialogOpen(false);
       toast({ title: 'Saldo Reportado', description: `Se ha notificado al piloto que debe $${saldoAmount}.` });
     } catch (e) {
@@ -615,6 +631,9 @@ export default function PilotDetailPage() {
                   {pilot.estadoPago === 'rechazado' && (
                     <span className="flex items-center gap-1.5 text-red-400 font-bold text-lg"><XCircle className="w-5 h-5"/> RECHAZADO</span>
                   )}
+                  {pilot.estadoPago === 'rechazado_saldo' && (
+                    <span className="flex items-center gap-1.5 text-red-400 font-bold text-lg"><XCircle className="w-5 h-5"/> RECHAZADO SALDO</span>
+                  )}
                   {pilot.estadoPago === 'pendiente' && (
                     <span className="flex items-center gap-1.5 text-zinc-400 font-bold text-lg"><AlertCircle className="w-5 h-5"/> PENDIENTE DE PAGO</span>
                   )}
@@ -623,17 +642,30 @@ export default function PilotDetailPage() {
                   )}
                 </div>
                 
-                {pilot.estadoPago === 'en_revision' && (
+                {(pilot.estadoPago === 'en_revision' || pilot.estadoPago === 'revision_saldo') && (
                   <div className="flex flex-wrap gap-2 w-full md:w-auto">
-                    <Button 
-                      onClick={() => updatePaymentStatus('rechazado')} 
-                      disabled={updating}
-                      variant="outline" 
-                      className="border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300 w-full sm:w-auto"
-                    >
-                      <XCircle className="w-4 h-4 mr-1" /> Rechazar
-                    </Button>
+                    {pilot.estadoPago === 'en_revision' && (
+                      <Button 
+                        onClick={() => updatePaymentStatus('rechazado')} 
+                        disabled={updating}
+                        variant="outline" 
+                        className="border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300 w-full sm:w-auto"
+                      >
+                        <XCircle className="w-4 h-4 mr-1" /> Rechazar
+                      </Button>
+                    )}
                     
+                    {pilot.estadoPago === 'revision_saldo' && (
+                      <Button 
+                        onClick={() => updatePaymentStatus('rechazado_saldo')} 
+                        disabled={updating}
+                        variant="outline" 
+                        className="border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300 w-full sm:w-auto"
+                      >
+                        <XCircle className="w-4 h-4 mr-1" /> Rechazar Saldo
+                      </Button>
+                    )}
+
                     <Dialog open={isSaldoDialogOpen} onOpenChange={setIsSaldoDialogOpen}>
                       <DialogTrigger asChild>
                         <Button 
@@ -647,15 +679,37 @@ export default function PilotDetailPage() {
                         <DialogHeader>
                           <DialogTitle className="text-white">Reportar Saldo Faltante</DialogTitle>
                         </DialogHeader>
-                        <div className="py-4">
-                          <label className="text-sm text-zinc-400 mb-2 block">Monto que quedó debiendo el piloto (Ej: 50.000):</label>
-                          <Input 
-                            value={saldoAmount} 
-                            onChange={(e) => setSaldoAmount(e.target.value)} 
-                            className="bg-zinc-900 border-zinc-700 text-white"
-                            placeholder="$ Ej. 35.000"
-                            type="number"
-                          />
+                        <div className="py-4 space-y-4">
+                          <div>
+                            <label className="text-sm text-zinc-400 mb-2 block">Monto que quedó debiendo el piloto (Ej: 50.000):</label>
+                            <Input 
+                              value={saldoAmount} 
+                              onChange={(e) => setSaldoAmount(e.target.value)} 
+                              className="bg-zinc-900 border-zinc-700 text-white"
+                              placeholder="$ Ej. 35.000"
+                              type="number"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-sm text-zinc-400 mb-2 block">Motivo del saldo <span className="text-red-500">*</span></label>
+                            <select 
+                              value={motivoSaldo}
+                              onChange={(e) => setMotivoSaldo(e.target.value)}
+                              className="w-full bg-zinc-900 border border-zinc-700 text-white rounded-md p-2 mb-2 text-sm focus:outline-none focus:border-[#39FF14]"
+                            >
+                              <option value="Fecha de pago después del 11 de mayo $350.000">Fecha de pago después del 11 de mayo $350.000</option>
+                              <option value="Pago incompleto por error de transferencia">Pago incompleto por error de transferencia</option>
+                              <option value="Otra">Otra (escribir manualmente)</option>
+                            </select>
+                            {motivoSaldo === 'Otra' && (
+                              <Input 
+                                value={motivoPersonalizado}
+                                onChange={(e) => setMotivoPersonalizado(e.target.value)}
+                                className="bg-zinc-900 border-zinc-700 text-white mt-2"
+                                placeholder="Escribe el motivo del saldo..."
+                              />
+                            )}
+                          </div>
                         </div>
                         <DialogFooter>
                           <Button onClick={() => setIsSaldoDialogOpen(false)} variant="ghost" className="text-zinc-400">Cancelar</Button>
@@ -664,25 +718,25 @@ export default function PilotDetailPage() {
                       </DialogContent>
                     </Dialog>
 
-                    <Button 
-                      onClick={() => updatePaymentStatus('aprobado')} 
-                      disabled={updating}
-                      className="bg-green-600 hover:bg-green-500 text-white w-full sm:w-auto"
-                    >
-                      <CheckCircle2 className="w-4 h-4 mr-1" /> Aprobar 100%
-                    </Button>
-                  </div>
-                )}
+                    {pilot.estadoPago === 'en_revision' && (
+                      <Button 
+                        onClick={() => updatePaymentStatus('aprobado')} 
+                        disabled={updating}
+                        className="bg-green-600 hover:bg-green-500 text-white w-full sm:w-auto"
+                      >
+                        <CheckCircle2 className="w-4 h-4 mr-1" /> Aprobar 100%
+                      </Button>
+                    )}
 
-                {pilot.estadoPago === 'revision_saldo' && (
-                  <div className="flex gap-2 w-full md:w-auto">
-                    <Button 
-                      onClick={() => updatePaymentStatus('aprobado')} 
-                      disabled={updating}
-                      className="bg-green-600 hover:bg-green-500 text-white w-full sm:w-auto"
-                    >
-                      <CheckCircle2 className="w-4 h-4 mr-1" /> Aprobar Faltante (Liberar QR)
-                    </Button>
+                    {pilot.estadoPago === 'revision_saldo' && (
+                      <Button 
+                        onClick={() => updatePaymentStatus('aprobado')} 
+                        disabled={updating}
+                        className="bg-green-600 hover:bg-green-500 text-white w-full sm:w-auto"
+                      >
+                        <CheckCircle2 className="w-4 h-4 mr-1" /> Aprobar Faltante (Liberar QR)
+                      </Button>
+                    )}
                   </div>
                 )}
 
@@ -716,15 +770,61 @@ export default function PilotDetailPage() {
                 </Card>
               )}
 
-              {pilot.comprobanteSaldoUrl && (
+              {pilot.historialSaldos && pilot.historialSaldos.length > 0 ? (
+                pilot.historialSaldos.map((url, index) => (
+                  <Card key={index} className="bg-zinc-950/80 backdrop-blur-xl border-orange-500/30">
+                    <CardHeader className="border-b border-zinc-800/50 pb-4 flex flex-row items-center justify-between">
+                      <div>
+                        <CardTitle className="text-orange-400 text-lg flex items-center gap-2">
+                          <CreditCard className="w-5 h-5" /> Comprobante de Saldo {pilot.historialSaldos!.length > 1 ? `#${index + 1}` : ''}
+                        </CardTitle>
+                        {pilot.estadoPago === 'revision_saldo' && index === pilot.historialSaldos!.length - 1 && (
+                          <CardDescription className="text-zinc-400 mt-1">
+                            Saldo reportado: ${pilot.saldoFaltante}
+                          </CardDescription>
+                        )}
+                      </div>
+                      {pilot.estadoPago === 'revision_saldo' && index === pilot.historialSaldos!.length - 1 && (
+                        <div className="flex gap-1">
+                          <Button onClick={() => window.open(url, '_blank')} variant="ghost" size="icon" className="text-zinc-400 hover:text-white" title="Ver comprobante en nueva pestaña">
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button onClick={() => updatePaymentStatus('rechazado_saldo')} variant="ghost" size="icon" className="text-red-500 hover:text-red-400 hover:bg-red-500/10" title="Rechazar saldo">
+                            <XCircle className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </CardHeader>
+                    <CardContent className="pt-6">
+                      <div className="h-48 w-full mx-auto">
+                        <DocumentPreview title={`Transferencia Saldo ${index + 1}`} url={url} />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : pilot.comprobanteSaldoUrl ? (
                 <Card className="bg-zinc-950/80 backdrop-blur-xl border-orange-500/30">
-                  <CardHeader className="border-b border-zinc-800/50 pb-4">
-                    <CardTitle className="text-orange-400 text-lg flex items-center gap-2">
-                      <CreditCard className="w-5 h-5" /> Comprobante de Saldo
-                    </CardTitle>
-                    <CardDescription className="text-zinc-400">
-                      Saldo reportado: ${pilot.saldoFaltante}
-                    </CardDescription>
+                  <CardHeader className="border-b border-zinc-800/50 pb-4 flex flex-row items-center justify-between">
+                    <div>
+                      <CardTitle className="text-orange-400 text-lg flex items-center gap-2">
+                        <CreditCard className="w-5 h-5" /> Comprobante de Saldo
+                      </CardTitle>
+                      {pilot.estadoPago === 'revision_saldo' && (
+                        <CardDescription className="text-zinc-400 mt-1">
+                          Saldo reportado: ${pilot.saldoFaltante}
+                        </CardDescription>
+                      )}
+                    </div>
+                    {pilot.estadoPago === 'revision_saldo' && (
+                      <div className="flex gap-1">
+                        <Button onClick={() => window.open(pilot.comprobanteSaldoUrl, '_blank')} variant="ghost" size="icon" className="text-zinc-400 hover:text-white" title="Ver comprobante en nueva pestaña">
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button onClick={() => updatePaymentStatus('rechazado')} variant="ghost" size="icon" className="text-red-500 hover:text-red-400 hover:bg-red-500/10" title="Rechazar saldo">
+                          <XCircle className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    )}
                   </CardHeader>
                   <CardContent className="pt-6">
                     <div className="h-48 w-full mx-auto">
@@ -732,7 +832,7 @@ export default function PilotDetailPage() {
                     </div>
                   </CardContent>
                 </Card>
-              )}
+              ) : null}
             </div>
 
           </div>

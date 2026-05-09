@@ -31,6 +31,7 @@ interface Registration {
   email: string;
   numeroIdentificacion?: string;
   telefono?: string;
+  prioridadRechazado?: boolean;
 }
 
 export default function PilotosPage() {
@@ -121,6 +122,7 @@ export default function PilotosPage() {
           email: userData.email || 'N/A',
           numeroIdentificacion: userData.numeroIdentificacion || regData.numeroIdentificacion || 'N/A',
           telefono: userData.telefono || regData.telefono || 'N/A',
+          prioridadRechazado: regData.prioridadRechazado || false,
         });
       });
       
@@ -145,7 +147,8 @@ export default function PilotosPage() {
     
     const matchesFilter = filterStatus === 'todos' || 
                           r.estadoPago === filterStatus ||
-                          (filterStatus === 'en_revision' && r.estadoPago === 'revision_saldo');
+                          (filterStatus === 'en_revision' && r.estadoPago === 'revision_saldo') ||
+                          (filterStatus === 'pendiente' && r.estadoPago === 'rechazado');
     
     return matchesSearch && matchesFilter;
   });
@@ -175,7 +178,7 @@ export default function PilotosPage() {
   const countTodos = registrations.length;
   const countEnRevision = registrations.filter(r => r.estadoPago === 'en_revision' || r.estadoPago === 'revision_saldo').length;
   const countAprobados = registrations.filter(r => r.estadoPago === 'aprobado').length;
-  const countSinPagar = registrations.filter(r => r.estadoPago === 'pendiente').length;
+  const countSinPagar = registrations.filter(r => r.estadoPago === 'pendiente' || r.estadoPago === 'rechazado').length;
   const countDebenSaldo = registrations.filter(r => r.estadoPago === 'saldo_pendiente').length;
 
   return (
@@ -446,6 +449,11 @@ export default function PilotosPage() {
                             <AlertCircle className="w-4 h-4" /> <span className="font-bold text-xs">PENDIENTE</span>
                           </div>
                         )}
+                        {reg.estadoPago === 'rechazado' && (
+                          <div style={{ color: '#FF073A', backgroundColor: 'rgba(255, 7, 58, 0.1)', borderColor: 'rgba(255, 7, 58, 0.2)', textShadow: '0 0 10px rgba(255, 7, 58, 0.4)' }} className="flex items-center gap-2 px-3 py-1 rounded-full border w-fit">
+                            <AlertCircle className="w-4 h-4" /> <span className="font-bold text-xs">RECHAZADO</span>
+                          </div>
+                        )}
                         {reg.estadoPago === 'saldo_pendiente' && (
                           <div style={{ color: '#FF5E00', backgroundColor: 'rgba(255, 94, 0, 0.1)', borderColor: 'rgba(255, 94, 0, 0.2)', textShadow: '0 0 10px rgba(255, 94, 0, 0.4)' }} className="flex items-center gap-2 px-3 py-1 rounded-full border w-fit">
                             <AlertCircle className="w-4 h-4" /> <span className="font-bold text-xs">DEBE SALDO</span>
@@ -477,7 +485,10 @@ export default function PilotosPage() {
                           {reg.registradoEl ? new Date(reg.registradoEl).toLocaleDateString() : 'N/A'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-6 py-4 text-right relative">
+                        {reg.prioridadRechazado && (
+                          <div className="absolute top-4 right-12 w-3 h-3 bg-red-500 rounded-full shadow-[0_0_10px_rgba(239,68,68,0.8)] animate-pulse z-10" title="Re-subida de comprobante rechazado"></div>
+                        )}
                         <Link href={`/pilotos/${reg.id}`}>
                           <button className="inline-flex items-center justify-center p-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white transition-colors">
                             <ChevronRight className="w-4 h-4" />

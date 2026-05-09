@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { collection, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { ClipboardList, Search, Play, ShieldAlert, User, Phone, Mail, MapPin, Instagram } from 'lucide-react';
+import { ClipboardList, Search, Play, ShieldAlert, User, Phone, Mail, MapPin, Instagram, Info, Flame, Gamepad2, Star, AlertTriangle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -88,13 +88,13 @@ const dummyOpen: Registration[] = [
 // MODAL CALIFICACIÓN (TODO EN UNA PANTALLA)
 // ---------------------------------------------------------------------------
 const criteriaList = [
-  { id: 'combos', label: 'COMBOS' },
-  { id: 'drif', label: 'DRIF' },
-  { id: 'acro', label: 'ACRO' },
-  { id: 'endos', label: 'ENDOS' },
-  { id: 'flow', label: 'FLOW' },
-  { id: 'agres', label: 'AGRES' },
-  { id: 'error', label: 'ERROR' }
+  { id: 'combos', label: 'COMBOS', max: 20 },
+  { id: 'drif', label: 'DRIF', max: 10 },
+  { id: 'acro', label: 'ACRO', max: 10 },
+  { id: 'endos', label: 'ENDOS', max: 10 },
+  { id: 'flow', label: 'FLOW', max: 10 },
+  { id: 'agres', label: 'AGRES', max: 10 },
+  { id: 'error', label: 'ERROR', max: 9999 }
 ];
 
 const GradingModal = ({
@@ -129,12 +129,9 @@ const GradingModal = ({
     try {
       const calificacionData: Calificacion = { ...scores, total: totalTemp };
       
-      // Save to Firebase only if it's not a dummy ID
-      if (!pilot.id.startsWith('dummy')) {
-        await setDoc(doc(db, 'event_registrations', pilot.id), {
-          calificaciones: { [currentUid]: calificacionData }
-        }, { merge: true });
-      }
+      await setDoc(doc(db, 'calificaciones', pilot.id), {
+        [currentUid]: calificacionData
+      }, { merge: true });
       
       // Update local state instantly
       if (!pilot.calificaciones) pilot.calificaciones = {};
@@ -150,55 +147,178 @@ const GradingModal = ({
   };
 
   const handleScoreChange = (id: string, val: string) => {
-    const num = parseInt(val, 10) || 0;
+    let num = parseInt(val, 10) || 0;
+    const criterion = criteriaList.find(c => c.id === id);
+    if (criterion) {
+      num = Math.max(0, Math.min(num, criterion.max));
+    }
     setScores(prev => ({ ...prev, [id as keyof typeof scores]: num }));
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm overflow-y-auto">
-      <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl w-full max-w-2xl overflow-hidden flex flex-col shadow-2xl relative my-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md overflow-y-auto">
+      {/* Background patterns */}
+      <div className="absolute inset-0 z-0 opacity-10 pointer-events-none" style={{
+        backgroundImage: 'linear-gradient(45deg, #0a0a0a 25%, transparent 25%, transparent 75%, #0a0a0a 75%, #0a0a0a), linear-gradient(45deg, #0a0a0a 25%, transparent 25%, transparent 75%, #0a0a0a 75%, #0a0a0a)',
+        backgroundSize: '20px 20px',
+        backgroundPosition: '0 0, 10px 10px'
+      }}></div>
+      <div className="absolute inset-0 z-0 flex items-center justify-center opacity-[0.03] pointer-events-none overflow-hidden">
+        <span className="text-[40rem] font-black text-white leading-none select-none">X</span>
+      </div>
+
+      {/* Main Modal Container */}
+      <div className="relative z-10 bg-[#0a0a0a] border-2 border-[#00ff44] rounded-xl w-full max-w-2xl flex flex-col shadow-[0_0_30px_rgba(0,255,68,0.3)] my-auto">
         
-        {/* Header del Modal */}
-        <div className="px-6 py-5 border-b border-[#2A2A2A] flex justify-between items-center bg-[#0D0D0D]">
-          <div>
-            <h2 className="text-[#E8E8E8] text-2xl font-bold uppercase tracking-widest">{pilot.nombres} {pilot.apellidos}</h2>
-            <div className="flex items-center gap-3 mt-1">
-              <span className="bg-[#2A2A2A] text-[#E8E8E8] font-mono font-bold px-2 py-0.5 rounded text-sm">#{pilot.numeroIdentificacion}</span>
-              <span className="text-[#F5C200] font-bold text-sm tracking-wider uppercase">{Array.isArray(pilot.categoria) ? pilot.categoria.join(', ') : pilot.categoria}</span>
+        {/* Decorative corner screws */}
+        <div className="absolute top-2 left-2 w-3 h-3 rounded-full border border-[#555] bg-[#1a1a1a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] flex items-center justify-center z-20"><div className="w-1.5 h-[1px] bg-[#555] rotate-45"></div></div>
+        <div className="absolute top-2 right-2 w-3 h-3 rounded-full border border-[#555] bg-[#1a1a1a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] flex items-center justify-center z-20"><div className="w-1.5 h-[1px] bg-[#555] -rotate-45"></div></div>
+        <div className="absolute bottom-2 left-2 w-3 h-3 rounded-full border border-[#555] bg-[#1a1a1a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] flex items-center justify-center z-20"><div className="w-1.5 h-[1px] bg-[#555] rotate-90"></div></div>
+        <div className="absolute bottom-2 right-2 w-3 h-3 rounded-full border border-[#555] bg-[#1a1a1a] shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] flex items-center justify-center z-20"><div className="w-1.5 h-[1px] bg-[#555] rotate-0"></div></div>
+
+        {/* Header */}
+        <div className="px-2 sm:px-4 py-1.5 sm:py-3 border-b-2 border-[#1a1a1a] flex flex-col sm:flex-row justify-between items-start sm:items-center relative overflow-hidden bg-gradient-to-b from-[#111] to-[#0a0a0a] rounded-t-xl gap-1.5 sm:gap-0">
+          {/* Subtle top scanline */}
+          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00ff44]/50 to-transparent"></div>
+          
+          <div className="flex gap-2 sm:gap-3 items-center">
+            {/* Custom Category Badge */}
+            <div className="relative group shrink-0">
+              <div className="absolute -inset-1 bg-[#00ff44] blur opacity-25"></div>
+              <div className="relative bg-[#00220a] border border-[#00ff44] rounded-lg p-0.5 sm:p-1 w-8 h-8 sm:w-12 sm:h-12 flex flex-col items-center justify-center shadow-[inset_0_0_10px_rgba(0,255,68,0.2)]">
+                <Flame className="w-3 h-3 sm:w-5 sm:h-5 text-[#00ff44] drop-shadow-[0_0_5px_rgba(0,255,68,0.8)]" />
+                <span className="text-[#00ff44] font-black text-[6px] sm:text-[8px] mt-0 sm:mt-0.5 tracking-widest uppercase truncate max-w-full text-center">
+                  {Array.isArray(pilot.categoria) ? pilot.categoria[0] : pilot.categoria}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-col">
+              <h2 className="text-base sm:text-xl font-black uppercase tracking-widest bg-clip-text text-transparent bg-gradient-to-b from-[#ffffff] to-[#888888] drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] leading-tight">
+                {pilot.nombres} {pilot.apellidos}
+              </h2>
+              <div className="text-[#888888] font-mono text-[9px] sm:text-xs tracking-widest mt-0 sm:mt-0.5">
+                #{pilot.numeroIdentificacion}
+              </div>
             </div>
           </div>
-          <div className="text-right">
-            <span className="text-[#888888] text-xs font-bold uppercase tracking-widest block">Total</span>
-            <span className="text-4xl font-black text-[#00FF88] drop-shadow-[0_0_10px_rgba(0,255,136,0.3)] leading-none">{totalTemp}</span>
+
+          {/* HUD Total Circle */}
+          <div className="relative shrink-0 sm:ml-4 self-end sm:self-auto -mt-6 sm:mt-0">
+             <div className="absolute -inset-2 bg-[#00ff44] blur opacity-20 rounded-full"></div>
+             <div className="relative w-10 h-10 sm:w-16 sm:h-16 rounded-full border-2 border-[#00ff44] bg-[#001105] flex flex-col items-center justify-center shadow-[inset_0_0_15px_rgba(0,255,68,0.5),0_0_15px_rgba(0,255,68,0.3)]">
+               <span className="text-[#00ff44] text-[5px] sm:text-[8px] font-black tracking-widest absolute top-1 sm:top-2 drop-shadow-[0_0_2px_rgba(0,255,68,0.8)]">TOTAL</span>
+               <span className="text-lg sm:text-2xl font-black text-[#00ff44] drop-shadow-[0_0_8px_#00ff44] mt-1.5 sm:mt-2 font-mono leading-none">{totalTemp}</span>
+             </div>
           </div>
         </div>
 
-        {/* Contenido (Grilla de inputs) */}
-        <div className="p-6 grid grid-cols-2 sm:grid-cols-3 gap-6">
-          {criteriaList.map((crit) => (
-            <div key={crit.id} className="flex flex-col">
-              <label className={`text-xs font-bold uppercase tracking-widest mb-2 ${crit.id === 'error' ? 'text-[#FF4444]' : 'text-[#888888]'}`}>
+        {/* Separator */}
+        <div className="w-full h-1 bg-[#111] flex items-center justify-center relative z-10">
+          <div className="w-1/3 h-[1px] bg-[#00ff44]/30"></div>
+        </div>
+
+        {/* Content Grid */}
+        <div className="px-2 py-1.5 sm:p-4 grid grid-cols-2 sm:grid-cols-3 gap-x-2 sm:gap-x-5 gap-y-1.5 sm:gap-y-3 bg-transparent">
+          {criteriaList.filter(c => c.id !== 'error').map((crit) => (
+            <div key={crit.id} className="flex flex-col items-center relative group">
+              <label className="text-[#cccccc] text-[8px] sm:text-[10px] font-black uppercase tracking-widest mb-0.5 drop-shadow-[0_0_2px_rgba(255,255,255,0.3)] z-10">
                 {crit.label}
               </label>
-              <Input 
-                type="number" 
-                value={scores[crit.id as keyof typeof scores] || ''}
-                onChange={e => handleScoreChange(crit.id, e.target.value)}
-                className={`text-2xl h-14 font-mono text-center border bg-[#0D0D0D] focus-visible:ring-0 ${crit.id === 'error' ? 'text-[#FF4444] border-red-900/50 focus-visible:border-[#FF4444]' : 'text-[#E8E8E8] border-[#2A2A2A] focus-visible:border-[#00FF88] focus-visible:text-[#00FF88]'}`}
-              />
+              
+              {/* LCD Input Container */}
+              <div className="relative w-full">
+                {/* HUD Angled Borders (Clip Path simulation via CSS) */}
+                <div className="absolute inset-0 bg-[#00ff44]/5 blur-sm rounded"></div>
+                <div 
+                  className="relative bg-[#1a1a1a] border border-[#333] shadow-[inset_0_2px_10px_rgba(0,255,68,0.15)] flex items-center justify-center p-0.5"
+                  style={{ clipPath: 'polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px)' }}
+                >
+                  {/* Subtle top edge glow */}
+                  <div className="absolute top-0 left-1/4 w-1/2 h-[1px] bg-[#00ff44]/40"></div>
+                  
+                  <Input 
+                    type="number" 
+                    min="0"
+                    max={crit.max}
+                    value={scores[crit.id as keyof typeof scores] === 0 ? '' : scores[crit.id as keyof typeof scores]}
+                    onChange={e => handleScoreChange(crit.id, e.target.value)}
+                    placeholder="0"
+                    className="text-base sm:text-xl h-6 sm:h-10 w-full font-mono font-bold text-center bg-transparent border-none text-[#e8e8e8] placeholder:text-[#333] focus-visible:ring-0 focus-visible:text-[#00ff44] drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] px-0"
+                  />
+                </div>
+              </div>
+              
+              <span className="text-[6px] sm:text-[8px] text-[#555] font-black uppercase tracking-[0.1em] sm:tracking-[0.2em] mt-0.5 flex items-center w-full justify-center opacity-70 whitespace-nowrap">
+                <span className="w-full h-[1px] bg-[#333] mr-1 sm:mr-2"></span>
+                ( 0 A {crit.max} )
+                <span className="w-full h-[1px] bg-[#333] ml-1 sm:ml-2"></span>
+              </span>
             </div>
           ))}
         </div>
 
-        {/* Footer Controles */}
-        <div className="px-6 py-5 bg-[#222222] border-t border-[#2A2A2A] flex justify-between gap-4 mt-auto">
-          <button onClick={onClose} disabled={saving} className="border border-[#333333] text-[#888888] font-bold px-6 py-3 rounded hover:bg-[#1A1A1A] transition-colors w-1/3 uppercase tracking-wider">
+        {/* ERROR Section */}
+        <div className="px-2 sm:px-5 pb-1 sm:pb-2 pt-0 w-full flex flex-col items-center">
+           <div className="w-full max-w-xs sm:max-w-sm flex flex-col items-center">
+             <label className="text-[#ff2200] text-[9px] sm:text-xs font-black uppercase tracking-widest mb-0.5 flex items-center gap-1 sm:gap-2 drop-shadow-[0_0_8px_rgba(255,34,0,0.6)]">
+                <AlertTriangle className="w-3 h-3" /> ERROR <AlertTriangle className="w-3 h-3" />
+             </label>
+             <div className="relative w-full">
+                <div className="absolute inset-0 bg-[#ff2200]/10 blur-md rounded"></div>
+                <div 
+                  className="relative bg-[#1a0505] border border-[#ff2200] shadow-[inset_0_0_15px_rgba(255,34,0,0.3),0_0_10px_rgba(255,34,0,0.2)] flex items-center justify-center p-0.5"
+                  style={{ clipPath: 'polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px)' }}
+                >
+                  <Input 
+                    type="number" 
+                    min="0"
+                    max={9999}
+                    value={scores.error === 0 ? '' : scores.error}
+                    onChange={e => handleScoreChange('error', e.target.value)}
+                    placeholder="0"
+                    className="text-base sm:text-2xl h-6 sm:h-10 w-full font-mono font-black text-center bg-transparent border-none text-[#00ff44] placeholder:text-[#550000] focus-visible:ring-0 focus-visible:text-[#00ff44] drop-shadow-[0_0_8px_#00ff44] px-0"
+                  />
+                </div>
+             </div>
+             <span className="text-[6px] sm:text-[9px] text-[#ff2200] font-black uppercase tracking-[0.1em] mt-0.5 flex items-center w-full justify-center whitespace-nowrap">
+                <span className="w-full h-[1px] bg-[#ff2200]/30 mr-1 sm:mr-2"></span>
+                ⚠ ( 0 A INFINITO ) ⚠
+                <span className="w-full h-[1px] bg-[#ff2200]/30 ml-1 sm:ml-2"></span>
+              </span>
+           </div>
+        </div>
+
+        {/* Footer Actions */}
+        <div className="px-2 sm:px-4 py-1.5 sm:py-2 bg-[#111] border-t-2 border-[#222] flex justify-between items-center gap-1.5 sm:gap-3 relative overflow-hidden rounded-b-xl z-10">
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#050505] opacity-50 pointer-events-none"></div>
+          
+          <button 
+            onClick={onClose} 
+            disabled={saving} 
+            className="relative z-10 bg-[#8b0000] border border-[#ff2200]/50 text-white font-black px-2 sm:px-5 py-1.5 sm:py-2 hover:bg-[#a00000] transition-colors w-1/3 uppercase tracking-widest text-[8px] sm:text-[10px] shadow-[inset_0_0_10px_rgba(0,0,0,0.5)] flex items-center justify-center text-center"
+            style={{ clipPath: 'polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px)' }}
+          >
             Cancelar
           </button>
-          <button onClick={handleConfirm} disabled={saving} className="bg-[#00FF88] text-[#0D0D0D] font-bold px-6 py-3 rounded hover:bg-[#00E67A] transition-colors w-2/3 uppercase tracking-wider shadow-[0_0_15px_rgba(0,255,136,0.2)]">
-            {saving ? 'Guardando...' : 'Confirmar Puntuación'}
+          
+          {/* Metallic separator */}
+          <div className="w-1 h-5 sm:h-8 bg-[#333] border-x border-[#555] rounded-sm relative z-10 shadow-[inset_0_0_5px_rgba(0,0,0,0.8)] flex-none"></div>
+
+          <button 
+            onClick={handleConfirm} 
+            disabled={saving} 
+            className="relative z-10 bg-[#1a1a1a] border border-[#666] text-[#e8e8e8] font-black px-2 sm:px-5 py-1.5 sm:py-2 hover:bg-[#2a2a2a] hover:border-[#00ff44] hover:text-[#00ff44] transition-all w-2/3 uppercase tracking-widest text-[8px] sm:text-[10px] shadow-[inset_0_0_15px_rgba(0,0,0,0.8)] flex items-center justify-between"
+            style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))' }}
+          >
+            <div className="flex items-center gap-1 sm:gap-2">
+              <Gamepad2 className="w-3 h-3 sm:w-4 sm:h-4 opacity-70" />
+              <span>{saving ? 'Guardando...' : 'Confirmar'}</span>
+            </div>
+            <Star className="w-3 h-3 sm:w-4 sm:h-4 opacity-50 fill-current hidden sm:block" />
           </button>
         </div>
+
       </div>
     </div>
   );
@@ -221,6 +341,7 @@ export default function JuecesPage() {
   const [judgeProfiles, setJudgeProfiles] = useState<any[]>([]);
   const [masterCategory, setMasterCategory] = useState<string>('OPEN');
   const [isDirectoryOpen, setIsDirectoryOpen] = useState(false);
+  const [isRulesOpen, setIsRulesOpen] = useState(false);
 
   // Wizard State
   const [activePilotIndex, setActivePilotIndex] = useState<number | null>(null);
@@ -281,6 +402,13 @@ export default function JuecesPage() {
       setAllJudgeUids(officialJueces);
       setJudgeProfiles(officialJuecesProfiles);
 
+      // Fetch Calificaciones
+      const califSnap = await getDocs(collection(db, 'calificaciones'));
+      const califMap = new Map();
+      califSnap.forEach(docSnap => {
+        califMap.set(docSnap.id, docSnap.data());
+      });
+
       const regSnap = await getDocs(collection(db, 'event_registrations'));
       const fetched: Registration[] = [];
       
@@ -298,7 +426,7 @@ export default function JuecesPage() {
             nombres: userData.nombres || 'Desconocido',
             apellidos: userData.apellidos || '',
             numeroIdentificacion: userData.numeroIdentificacion || 'N/A',
-            calificaciones: data.calificaciones || {}
+            calificaciones: califMap.get(docSnap.id) || {}
           });
         }
       });
@@ -376,159 +504,236 @@ export default function JuecesPage() {
     }
   };
 
+
+  const getCatColor = (cat: string) => {
+    if (cat.includes('OPEN')) return 'border-[#00ff88] text-[#00ff88] shadow-[0_0_15px_rgba(0,255,136,0.2)]';
+    if (cat.includes('TIEMPOS')) return 'border-[#ff6b00] text-[#ff6b00] shadow-[0_0_15px_rgba(255,107,0,0.2)]';
+    if (cat.includes('ALTO')) return 'border-[#ffd700] text-[#ffd700] shadow-[0_0_15px_rgba(255,215,0,0.2)]';
+    return 'border-[#00cfff] text-[#00cfff]';
+  };
+
+  const getCatGlow = (cat: string) => {
+    if (cat.includes('OPEN')) return 'shadow-[0_0_15px_rgba(0,255,136,0.2)] shadow-[inset_0_0_15px_rgba(0,255,136,0.05)] border-[#00ff88]';
+    if (cat.includes('TIEMPOS')) return 'shadow-[0_0_15px_rgba(255,107,0,0.2)] shadow-[inset_0_0_15px_rgba(255,107,0,0.05)] border-[#ff6b00]';
+    if (cat.includes('ALTO')) return 'shadow-[0_0_15px_rgba(255,215,0,0.2)] shadow-[inset_0_0_15px_rgba(255,215,0,0.05)] border-[#ffd700]';
+    return 'border-[#00cfff]';
+  };
+
+  const getCatTextGlow = (cat: string) => {
+    if (cat.includes('OPEN')) return 'text-[#00ff88] drop-shadow-[0_0_8px_rgba(0,255,136,0.8)]';
+    if (cat.includes('TIEMPOS')) return 'text-[#ff6b00] drop-shadow-[0_0_8px_rgba(255,107,0,0.8)]';
+    if (cat.includes('ALTO')) return 'text-[#ffd700] drop-shadow-[0_0_8px_rgba(255,215,0,0.8)]';
+    return 'text-[#00cfff]';
+  };
+
+  const getCatTextColor = (cat: string) => {
+    if (cat.includes('OPEN')) return 'text-[#00ff88]';
+    if (cat.includes('TIEMPOS')) return 'text-[#ff6b00]';
+    if (cat.includes('ALTO')) return 'text-[#ffd700]';
+    return 'text-[#00cfff]';
+  };
+
   return (
-    <div className="min-h-screen bg-[#0D0D0D] text-[#E8E8E8] font-sans">
+    <div className="min-h-screen w-full flex flex-col bg-black font-sans text-[#E8E8E8] relative">
+      {/* Background Tech Grid */}
+      <div className="absolute inset-0 z-0 pointer-events-none opacity-20 bg-[linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:40px_40px]"></div>
+      
       {/* HEADER */}
-      <header className="px-6 py-8 md:px-10 max-w-[1600px] mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-        <div className="max-w-[1600px] mx-auto px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-white uppercase tracking-widest">Panel de Jueces</h1>
-            <p className="text-[#888888]">Sistema centralizado de calificaciones.</p>
+      <header className="flex-none min-h-[90px] py-4 px-4 md:px-8 flex flex-col md:flex-row items-center justify-between z-10 border-b border-[#1A2540] bg-black backdrop-blur-md gap-6">
+          <div className="w-full md:w-[60%] flex items-center min-w-0 md:mr-4">
+            <img src="/sponsors/Logosp.png" alt="Sponsors" className="w-full h-auto max-h-[120px] object-contain object-left" />
           </div>
-          
-          <Dialog open={isDirectoryOpen} onOpenChange={setIsDirectoryOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="border-[#00FF88]/50 text-[#00FF88] hover:bg-[#00FF88]/10 hover:text-[#00FF88] font-bold uppercase tracking-widest h-11 px-6">
-                <ShieldAlert className="w-5 h-5 mr-2" /> Directorio de Jueces
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-3xl bg-[#1A1A1A] border-[#2A2A2A] max-h-[85vh] overflow-y-auto custom-scrollbar">
-              <DialogHeader>
-                <DialogTitle className="text-xl font-bold text-white uppercase tracking-widest flex items-center gap-2 border-b border-[#2A2A2A] pb-4">
-                  <ShieldAlert className="w-5 h-5 text-yellow-500"/> Hoja de Vida de Jueces
-                </DialogTitle>
-              </DialogHeader>
-              <div className="flex flex-col gap-4 mt-2">
-                {judgeProfiles.length === 0 ? (
-                   <p className="text-[#888888] text-center py-10 font-mono">No hay jueces registrados en el sistema.</p>
-                ) : (
-                   judgeProfiles.map(juez => (
-                      <div key={juez.id} className="p-5 rounded-lg bg-[#222222] border border-[#2A2A2A] flex flex-col gap-4 transition-colors hover:border-[#00FF88]/50">
-                         <div className="flex items-center gap-4">
-                           <div className="w-14 h-14 rounded-full bg-[#0D0D0D] border-2 border-[#00FF88] flex items-center justify-center font-bold text-[#00FF88] text-2xl shadow-[0_0_15px_rgba(0,255,136,0.2)]">
-                             {juez.nombres?.charAt(0)}
-                           </div>
-                           <div>
-                             <h3 className="text-xl font-bold text-white uppercase tracking-wider">{juez.nombres} {juez.apellidos}</h3>
-                             <div className="flex items-center gap-2 mt-1">
-                               <span className="text-xs text-yellow-500 font-mono bg-yellow-500/10 px-2 py-0.5 rounded border border-yellow-500/20">CC: {juez.numeroIdentificacion}</span>
-                               <span className="text-xs text-purple-400 font-bold uppercase bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">Juez Oficial</span>
+
+        <div className="w-full md:w-[40%] flex flex-col items-center justify-center gap-2">
+          <h1 className="text-lg md:text-xl font-black tracking-widest leading-none drop-shadow-[0_0_5px_rgba(255,255,255,0.5)] text-center">
+            PANEL DE JUECES
+          </h1>
+          <div className="flex gap-2">
+            <Dialog open={isRulesOpen} onOpenChange={setIsRulesOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="border-[#00cfff]/50 text-[#00cfff] bg-[#00cfff]/5 hover:bg-[#00cfff]/20 hover:text-[#00cfff] font-bold uppercase tracking-widest h-9 px-4 text-xs shadow-[0_0_10px_rgba(0,207,255,0.2)]">
+                  <Info className="w-4 h-4 mr-2" /> Instructivo
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-xl bg-[#0a1628] border-[#00cfff] text-[#E8E8E8] shadow-[0_0_30px_rgba(0,207,255,0.3)]">
+                <DialogHeader>
+                  <DialogTitle className="text-xl font-bold text-white uppercase tracking-widest flex items-center gap-2 border-b border-[#1A2540] pb-4">
+                    <Info className="w-5 h-5 text-[#00cfff]"/> Instructivo de Calificación
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="mt-4 space-y-4 text-sm text-[#888888]">
+                  <p>Límites de puntuación permitidos:</p>
+                  <ul className="list-disc pl-5 space-y-2 text-[#E8E8E8] font-mono">
+                    <li><strong className="text-[#ff6b00]">COMBOS:</strong> 0 a 20 puntos</li>
+                    <li><strong className="text-[#ff00cc]">DRIFT:</strong> 0 a 10 puntos</li>
+                    <li><strong className="text-[#b026ff]">ACRO:</strong> 0 a 10 puntos</li>
+                    <li><strong className="text-[#00cfff]">ENDOS:</strong> 0 a 10 puntos</li>
+                    <li><strong className="text-[#00ff88]">FLOW:</strong> 0 a 10 puntos</li>
+                    <li><strong className="text-[#ffd700]">AGRES:</strong> 0 a 10 puntos</li>
+                    <li><strong className="text-[#ff3333]">ERROR:</strong> 0 a infinito (Se resta del total)</li>
+                  </ul>
+                  <p className="mt-4 pt-4 border-t border-[#1A2540] text-[10px] font-bold uppercase tracking-widest text-[#00cfff]">
+                    * El sistema ajustará automáticamente cualquier valor que exceda estos límites.
+                  </p>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={isDirectoryOpen} onOpenChange={setIsDirectoryOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="border-[#00ff88]/50 text-[#00ff88] bg-[#00ff88]/5 hover:bg-[#00ff88]/20 hover:text-[#00ff88] font-bold uppercase tracking-widest h-9 px-4 text-xs shadow-[0_0_10px_rgba(0,255,136,0.2)]">
+                  <ShieldAlert className="w-4 h-4 mr-2" /> Directorio
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-3xl bg-[#0a1628] border-[#00ff88] max-h-[85vh] overflow-y-auto custom-scrollbar shadow-[0_0_30px_rgba(0,255,136,0.2)]">
+                <DialogHeader>
+                  <DialogTitle className="text-xl font-bold text-white uppercase tracking-widest flex items-center gap-2 border-b border-[#1A2540] pb-4">
+                    <ShieldAlert className="w-5 h-5 text-[#00ff88]"/> Hoja de Vida de Jueces
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="flex flex-col gap-4 mt-2">
+                  {judgeProfiles.length === 0 ? (
+                     <p className="text-[#888888] text-center py-10 font-mono">No hay jueces registrados en el sistema.</p>
+                  ) : (
+                     judgeProfiles.map(juez => (
+                        <div key={juez.id} className="p-4 rounded-lg bg-[#0d1b2e] border border-[#1A2540] flex flex-col gap-4 transition-colors hover:border-[#00FF88]/50">
+                           <div className="flex items-center gap-4">
+                             <div className="w-12 h-12 rounded-full bg-[#050B14] border-2 border-[#00FF88] flex items-center justify-center font-bold text-[#00FF88] text-xl shadow-[0_0_10px_rgba(0,255,136,0.2)]">
+                               {juez.nombres?.charAt(0)}
+                             </div>
+                             <div>
+                               <h3 className="text-lg font-bold text-white uppercase tracking-wider">{juez.nombres} {juez.apellidos}</h3>
+                               <div className="flex items-center gap-2 mt-1">
+                                 <span className="text-[10px] text-yellow-500 font-mono bg-yellow-500/10 px-2 py-0.5 rounded border border-yellow-500/20">CC: {juez.numeroIdentificacion}</span>
+                                 <span className="text-[10px] text-purple-400 font-bold uppercase bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">Juez Oficial</span>
+                               </div>
                              </div>
                            </div>
-                         </div>
-                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm border-t border-[#2A2A2A] pt-4">
-                           <div className="flex items-center gap-2 text-[#E8E8E8]"><Mail className="w-4 h-4 text-[#888888] shrink-0"/> <span className="truncate">{juez.email}</span></div>
-                           <div className="flex items-center gap-2 text-[#E8E8E8]"><Phone className="w-4 h-4 text-[#888888] shrink-0"/> <span>{juez.telefono || 'N/A'}</span></div>
-                           <div className="flex items-center gap-2 text-[#E8E8E8]"><MapPin className="w-4 h-4 text-[#888888] shrink-0"/> <span className="truncate">{juez.ciudad || 'N/A'} - {juez.direccion || 'N/A'}</span></div>
-                           <div className="flex items-center gap-2 text-[#E8E8E8]"><Instagram className="w-4 h-4 text-[#888888] shrink-0"/> <span className="truncate">{juez.instagram || 'N/A'}</span></div>
-                         </div>
-                      </div>
-                   ))
-                )}
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-        <div className="relative w-full md:w-80">
-          <Input 
-            placeholder="Buscar..." 
-            className="w-full bg-[#1A1A1A] border-[#2A2A2A] text-[#E8E8E8] h-10 px-4 pr-10 focus-visible:ring-[#00FF88] rounded"
-          />
-          <Search className="absolute right-3 top-2.5 h-5 w-5 text-[#00FF88]" />
+                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs border-t border-[#1A2540] pt-3">
+                             <div className="flex items-center gap-2 text-[#E8E8E8]"><Mail className="w-3 h-3 text-[#888888] shrink-0"/> <span className="truncate">{juez.email}</span></div>
+                             <div className="flex items-center gap-2 text-[#E8E8E8]"><Phone className="w-3 h-3 text-[#888888] shrink-0"/> <span>{juez.telefono || 'N/A'}</span></div>
+                             <div className="flex items-center gap-2 text-[#E8E8E8]"><MapPin className="w-3 h-3 text-[#888888] shrink-0"/> <span className="truncate">{juez.ciudad || 'N/A'} - {juez.direccion || 'N/A'}</span></div>
+                             <div className="flex items-center gap-2 text-[#E8E8E8]"><Instagram className="w-3 h-3 text-[#888888] shrink-0"/> <span className="truncate">{juez.instagram || 'N/A'}</span></div>
+                           </div>
+                        </div>
+                     ))
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+
         </div>
       </header>
 
-      {/* CARDS GRID - 4 columnas */}
-      <main className="px-6 md:px-10 pb-20 max-w-[1600px] mx-auto">
+      {/* TOP SECTION: CATEGORY CARDS */}
+      <section className="flex-none p-4 md:p-6 z-10">
         {loading ? (
-          <div className="flex justify-center py-20"><div className="w-10 h-10 border-4 border-[#00FF88] border-t-transparent rounded-full animate-spin"></div></div>
+          <div className="flex justify-center py-20"><div className="w-10 h-10 border-4 border-[#00cfff] border-t-transparent rounded-full animate-spin"></div></div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
             {displayCategories.map(cat => {
               const pilots = groupedByCategory[cat] || [];
               const graded = pilots.filter(p => p.calificaciones && p.calificaciones[currentUid]).length;
               const progress = pilots.length > 0 ? (graded / pilots.length) * 100 : 0;
+              const circumference = 2 * Math.PI * 18;
+              const strokeDashoffset = circumference - (progress / 100) * circumference;
 
               return (
-                <div key={cat} className="bg-[#1A1A1A] border border-[#2A2A2A] flex flex-col h-full rounded shadow-xl overflow-hidden">
+                <div key={cat} className={`bg-[#0d1b2e] border rounded-xl flex flex-col h-[280px] relative overflow-hidden ${getCatGlow(cat)}`}>
                   
                   {/* CARD HEADER */}
-                  <div className="p-5 pb-4">
-                    <div className="flex justify-between items-start mb-4">
-                      <h2 className="text-2xl font-black text-[#F5C200] uppercase tracking-widest">{cat}</h2>
-                      <span className="bg-[#003320] text-[#00FF88] text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">
-                        EN CURSO
-                      </span>
+                  <div className="p-4 pb-2">
+                    <div className="flex justify-between items-start">
+                      <h2 className={`text-xl font-black uppercase tracking-widest leading-none w-2/3 ${getCatTextGlow(cat)}`}>{cat}</h2>
+                      
+                      {/* Gauge Speedometer */}
+                      <div className="relative w-12 h-12 flex-none">
+                        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 40 40">
+                          <circle cx="20" cy="20" r="18" fill="none" stroke="#1A2540" strokeWidth="3" />
+                          <circle cx="20" cy="20" r="18" fill="none" stroke="currentColor" strokeWidth="3" 
+                            className={`${getCatTextColor(cat)} transition-all duration-1000`}
+                            strokeDasharray={circumference}
+                            strokeDashoffset={strokeDashoffset}
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center font-mono font-bold text-sm text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.8)]">
+                          {graded}
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex justify-between items-end mb-2">
-                      <span className="text-[#888888] text-[10px] font-bold uppercase tracking-wider">Progreso</span>
-                      <span className="font-mono text-xs"><span className="text-[#00FF88] font-bold">{graded}</span> <span className="text-[#888888]">/ {pilots.length}</span></span>
+                    
+                    <div className="flex justify-between items-end mt-1">
+                      <span className="text-[#888888] text-[9px] font-bold uppercase tracking-wider">Progreso</span>
+                      <span className="font-mono text-[10px]"><span className={`font-bold ${getCatTextColor(cat)}`}>{graded}</span> <span className="text-[#555]">/ {pilots.length}</span></span>
                     </div>
-                    {/* Progress Bar */}
-                    <div className="w-full bg-[#2A2A2A] h-1 rounded-[2px] overflow-hidden">
-                      <div className="bg-[#00FF88] h-full transition-all" style={{ width: `${progress}%` }}></div>
+                    {/* Progress Bar linear */}
+                    <div className="w-full bg-[#1A2540] h-[3px] mt-1 rounded-full overflow-hidden shadow-[inset_0_0_5px_rgba(0,0,0,0.5)]">
+                      <div className={`h-full transition-all bg-current ${getCatTextColor(cat)}`} style={{ width: `${progress}%` }}></div>
                     </div>
                   </div>
 
-                  {/* TABLE (In-Card, always visible, no horizontal scroll) */}
-                  <div className="flex-grow">
-                    <table className="w-full text-left table-fixed text-xs border-t border-[#2A2A2A]">
+                  {/* TABLE (In-Card, scrollable) */}
+                  <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-1 mt-2">
+                    <table className="w-full text-left table-fixed text-[10px]">
                       <colgroup>
-                        <col className="w-12 sm:w-16" />
+                        <col className="w-10" />
                         <col className="w-auto" />
-                        <col className="w-16 sm:w-20" />
-                        <col className="w-12 sm:w-16" />
+                        <col className="w-12" />
+                        <col className="w-10" />
                       </colgroup>
-                      <thead className="bg-[#1A1A1A] text-[#888888] font-bold uppercase text-[10px] border-b border-[#2A2A2A]">
+                      <thead className="text-[#888888] font-bold uppercase tracking-wider border-b border-[#1A2540] sticky top-0 bg-[#0d1b2e] z-10">
                         <tr>
-                          <th className="px-3 py-2">#</th>
-                          <th className="px-2 py-2">Piloto</th>
-                          <th className="px-2 py-2 text-center">Estado</th>
-                          <th className="px-3 py-2 text-right">Pts</th>
+                          <th className="px-2 py-1.5 font-mono">#</th>
+                          <th className="px-1 py-1.5">Piloto</th>
+                          <th className="px-1 py-1.5 text-center">Estado</th>
+                          <th className="px-2 py-1.5 text-right">Pts</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-[#2A2A2A]">
+                      <tbody className="divide-y divide-[#1A2540]">
                         {pilots.length === 0 ? (
                           <tr>
-                            <td colSpan={4} className="px-4 py-8 text-center text-[#555] font-bold uppercase tracking-widest text-xs">
-                              Sin inscritos
+                            <td colSpan={4} className="px-4 py-8 text-center">
+                              <div className="flex flex-col items-center justify-center text-[#555] gap-2">
+                                <ShieldAlert className="w-6 h-6 opacity-50" />
+                                <span className="font-bold uppercase tracking-widest text-[9px]">No hay inscritos aún<br/>en esta categoría</span>
+                              </div>
                             </td>
                           </tr>
                         ) : (
                           pilots.map((pilot, index) => {
                             const isGraded = !!(pilot.calificaciones && pilot.calificaciones[currentUid]);
                             const score = isGraded ? pilot.calificaciones![currentUid].total : null;
-                            const statusBg = isGraded ? 'bg-[#003320]' : 'bg-[#1A1200]';
-                            const statusText = isGraded ? 'text-[#00FF88]' : 'text-[#F5C200]';
-                            const statusLabel = isGraded ? 'Cal.' : 'Pend.';
+                            const statusBg = isGraded ? 'bg-[#003320] text-[#00ff88] border-[#00ff88]/30' : 'bg-[#331800] text-[#ff6b00] border-[#ff6b00]/30';
+                            const statusLabel = isGraded ? 'CAL.' : 'PEND.';
 
                             return (
                               <tr 
                                 key={pilot.id} 
                                 onClick={() => handleEvaluateSpecific(cat, index)}
-                                className="even:bg-[#222222] odd:bg-[#1A1A1A] hover:bg-[#2A2A2A] transition-colors cursor-pointer"
-                                title="Clic para evaluar a este piloto"
+                                className="hover:bg-[#1A2540] transition-colors cursor-pointer group"
                               >
-                                <td className="px-3 py-3">
-                                  <span className="font-mono font-bold text-[#E8E8E8] bg-[#2A2A2A] px-1.5 py-0.5 rounded text-xs">
+                                <td className="px-2 py-2">
+                                  <span className="font-mono text-[#888888] group-hover:text-white transition-colors">
                                     {pilot.numeroIdentificacion.slice(-4)}
                                   </span>
                                 </td>
-                                <td className="px-2 py-3 truncate">
-                                  <div className="text-[#E8E8E8] font-bold text-xs uppercase truncate">
+                                <td className="px-1 py-2 truncate">
+                                  <div className="text-[#E8E8E8] font-bold uppercase truncate group-hover:text-white transition-colors">
                                     {pilot.nombres.split(' ')[0]} {pilot.apellidos.split(' ')[0]}
                                   </div>
                                 </td>
-                                <td className="px-2 py-3 text-center">
-                                  <span className={`${statusBg} ${statusText} text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider`}>
+                                <td className="px-1 py-2 text-center">
+                                  <span className={`${statusBg} border text-[8px] font-bold px-1.5 py-0.5 rounded uppercase`}>
                                     {statusLabel}
                                   </span>
                                 </td>
-                                <td className="px-3 py-3 text-right">
+                                <td className="px-2 py-2 text-right">
                                   {isGraded ? (
-                                    <span className="text-[#00FF88] font-bold font-mono text-sm">{score}</span>
+                                    <span className={`font-bold font-mono ${getCatTextColor(cat)}`}>{score}</span>
                                   ) : (
-                                    <span className="text-[#555555] font-bold font-mono text-sm">—</span>
+                                    <span className="text-[#555] font-bold font-mono">-</span>
                                   )}
                                 </td>
                               </tr>
@@ -540,57 +745,75 @@ export default function JuecesPage() {
                   </div>
 
                   {/* BOTTOM ACTION */}
-                  <button 
-                    onClick={() => handleStartSequential(cat)}
-                    disabled={pilots.length === 0}
-                    className="w-full bg-[#00FF88] hover:bg-[#00E67A] disabled:bg-[#1A1A1A] disabled:text-[#333] disabled:border-t disabled:border-[#2A2A2A] text-[#0D0D0D] font-black text-sm h-12 flex items-center justify-center uppercase tracking-widest transition-all mt-auto shadow-[0_0_15px_rgba(0,255,136,0.15)] hover:shadow-[0_0_25px_rgba(0,255,136,0.3)] disabled:shadow-none"
-                  >
-                    <Play className="w-4 h-4 mr-2 fill-current" />
-                    INICIAR
-                  </button>
+                  <div className="p-3 bg-[#050B14]/50 border-t border-[#1A2540] flex-none">
+                    <button 
+                      onClick={() => handleStartSequential(cat)}
+                      disabled={pilots.length === 0}
+                      className="w-full bg-[#00ff88] hover:bg-[#00e67a] disabled:bg-[#1A2540] disabled:text-[#555] disabled:shadow-none text-[#050B14] font-black text-xs h-9 rounded-lg flex items-center justify-center uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(0,255,136,0.4)]"
+                    >
+                      <Play className="w-3 h-3 mr-2 fill-current" />
+                      INICIAR
+                    </button>
+                  </div>
 
                 </div>
               );
             })}
           </div>
         )}
-      </main>
+      </section>
 
-      {/* MASTER LEADERBOARD TABLE */}
-      <section className="px-6 md:px-10 pb-20 max-w-[1600px] mx-auto mt-10">
-        <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded shadow-xl overflow-hidden">
-          {/* Tabs */}
-          <div className="flex flex-wrap border-b border-[#2A2A2A] bg-[#0D0D0D]">
-            {displayCategories.map(cat => (
-              <button 
-                key={cat}
-                onClick={() => setMasterCategory(cat)}
-                className={`px-6 py-4 font-bold uppercase tracking-widest text-sm transition-colors border-b-2 ${masterCategory === cat ? 'border-[#00FF88] text-[#00FF88] bg-[#1A1A1A]' : 'border-transparent text-[#888888] hover:text-[#E8E8E8] hover:bg-[#111111]'}`}
-              >
-                {cat}
-              </button>
-            ))}
+      {/* BOTTOM SECTION: DATA CONSOLE */}
+      <section className="px-4 md:px-6 pb-12 z-10 flex flex-col mt-4">
+        <div className="flex flex-col bg-[#0a1628]/80 backdrop-blur-md border border-[#00cfff] rounded-xl shadow-[0_0_20px_rgba(0,207,255,0.15)] relative w-full overflow-hidden">
+          
+          {/* Decorative corner markers */}
+          <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-[#00cfff] z-20"></div>
+          <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-[#00cfff] z-20"></div>
+          <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-[#00cfff] z-20"></div>
+          <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-[#00cfff] z-20"></div>
+
+          {/* Console Header / Tabs */}
+          <div className="flex-none flex items-center justify-between border-b border-[#00cfff]/30 bg-[#050B14]/60 px-4 py-3 w-full">
+            <div className="flex gap-2 overflow-x-auto no-scrollbar pr-4 flex-1">
+              {displayCategories.map(cat => (
+                <button 
+                  key={cat}
+                  onClick={() => setMasterCategory(cat)}
+                  className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${masterCategory === cat ? 'bg-[#00ff88]/10 text-[#00ff88] border border-[#00ff88] shadow-[0_0_10px_rgba(0,255,136,0.2)]' : 'bg-transparent text-[#888888] border border-transparent hover:text-white'}`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-3 flex-none pl-2 md:pl-0 border-l md:border-l-0 border-[#1A2540]">
+              <span className="text-[#00cfff] font-mono text-[10px] tracking-[0.2em] uppercase font-bold drop-shadow-[0_0_5px_rgba(0,207,255,0.5)] whitespace-nowrap">DATA CONSOLE</span>
+              <div className="flex gap-1 hidden md:flex">
+                <div className="w-4 h-4 rounded-sm border border-[#ffd700] flex items-center justify-center text-[#ffd700] cursor-pointer hover:bg-[#ffd700]/20"><div className="w-2 h-0.5 bg-current"></div></div>
+                <div className="w-4 h-4 rounded-sm border border-[#ff3333] flex items-center justify-center text-[#ff3333] cursor-pointer hover:bg-[#ff3333]/20"><div className="w-2 h-2 border border-current"></div></div>
+              </div>
+            </div>
           </div>
 
-          {/* Table Container */}
-          <div className="p-6">
-            <div className="overflow-x-auto border border-[#2A2A2A] rounded-md">
+          {/* Console Table Container */}
+          <div className="w-full overflow-x-auto custom-scrollbar pb-4">
             {(() => {
               const masterPilots = groupedByCategory[masterCategory] || [];
               const gradedJudgeUids = Array.from(new Set(
                 masterPilots.flatMap(p => Object.keys(p.calificaciones || {}))
               ));
               
-              // Mostrar jueces oficiales + cualquiera que ya haya calificado
               let displayJudgeUids = Array.from(new Set([...allJudgeUids, ...gradedJudgeUids]));
-              
-              // Si no hay jueces oficiales ni calificaciones, mostramos 3 columnas genéricas por defecto
               if (displayJudgeUids.length === 0) {
                 displayJudgeUids = ['juez_1', 'juez_2', 'juez_3'];
               }
 
               if (masterPilots.length === 0) {
-                return <div className="text-center text-[#888888] py-10 font-bold tracking-widest uppercase">No hay pilotos inscritos en {masterCategory}.</div>;
+                return (
+                  <div className="h-full flex items-center justify-center text-[#555] font-mono text-sm tracking-widest uppercase">
+                    No data available for {masterCategory}
+                  </div>
+                );
               }
 
               const getJudgeName = (uid: string) => {
@@ -600,62 +823,78 @@ export default function JuecesPage() {
                 return judgeNames[uid] || 'Jurado';
               };
 
+              // Re-create criteria with neon colors
+              const neonCriteria = [
+                { id: 'combos', label: 'COMBOS', color: 'text-[#ff6b00]', border: 'border-[#ff6b00]' },
+                { id: 'drif', label: 'DRIFT', color: 'text-[#ff00cc]', border: 'border-[#ff00cc]' },
+                { id: 'acro', label: 'ACRO', color: 'text-[#b026ff]', border: 'border-[#b026ff]' },
+                { id: 'endos', label: 'ENDOS', color: 'text-[#00cfff]', border: 'border-[#00cfff]' },
+                { id: 'flow', label: 'FLOW', color: 'text-[#00ff88]', border: 'border-[#00ff88]' },
+                { id: 'agres', label: 'AGRESSIVITY', color: 'text-[#ffd700]', border: 'border-[#ffd700]' },
+                { id: 'error', label: 'ERROR', color: 'text-[#ff3333]', border: 'border-[#ff3333]' }
+              ];
+
+              const sortedMasterPilots = [...masterPilots].map(pilot => {
+                const califs = pilot.calificaciones || {};
+                const globalTotal = displayJudgeUids.reduce((sum, uid) => sum + (califs[uid]?.total || 0), 0);
+                return { ...pilot, _globalTotal: globalTotal };
+              }).sort((a, b) => b._globalTotal - a._globalTotal);
+
               return (
-                <table className="w-full text-left border-collapse min-w-[800px]">
-                  <thead className="bg-[#0D0D0D] text-[#E8E8E8] text-xs font-bold uppercase tracking-widest border-b border-[#2A2A2A]">
+                <table className="w-full text-left border-collapse min-w-[1000px] font-mono text-xs">
+                  <thead className="sticky top-0 z-40 bg-[#0a1628] shadow-[0_5px_15px_rgba(0,0,0,0.5)]">
                     <tr>
-                      <th rowSpan={2} className="w-[60px] min-w-[60px] px-2 py-3 border-r border-[#2A2A2A] bg-[#0D0D0D] sticky left-0 z-30 text-center">#</th>
-                      <th rowSpan={2} className="px-4 py-3 border-r border-[#2A2A2A] w-[200px] min-w-[200px] max-w-[200px] bg-[#0D0D0D] sticky left-[60px] z-30 shadow-[10px_0_15px_-5px_rgba(0,0,0,0.8)]">Piloto</th>
-                      {criteriaList.map(c => (
-                        <th key={c.id} colSpan={displayJudgeUids.length} className="px-4 py-2 border-r border-[#2A2A2A] text-center border-b">
-                          {c.label}
+                      <th rowSpan={2} className="w-12 px-2 py-2 text-center text-[#888888] sticky left-0 z-30 bg-[#0a1628]">#</th>
+                      <th rowSpan={2} className="px-4 py-2 text-[#888888] w-[180px] sticky left-[48px] z-30 bg-[#0a1628] shadow-[5px_0_15px_rgba(0,0,0,0.5)]">PILOTO</th>
+                      
+                      {neonCriteria.map(c => (
+                        <th key={c.id} colSpan={displayJudgeUids.length} className={`px-2 py-2 text-center ${c.color} ${c.border} border-x border-t bg-[#050B14]`}>
+                          <span className="drop-shadow-[0_0_5px_currentColor]">{c.label}</span>
                         </th>
                       ))}
-                      <th colSpan={displayJudgeUids.length} className="px-4 py-2 border-r border-[#2A2A2A] text-center text-[#F5C200] border-b">Subtotal</th>
-                      <th rowSpan={2} className="px-4 py-3 text-center text-[#00FF88] min-w-[80px]">Total</th>
+                      
+                      <th colSpan={displayJudgeUids.length} className="px-2 py-2 text-center text-[#ffd700] border-x border-t border-[#ffd700] bg-[#050B14] min-w-[80px]">
+                        <span className="drop-shadow-[0_0_5px_currentColor]">SUBTOTAL</span>
+                      </th>
+                      <th rowSpan={2} className="px-4 py-2 text-center text-[#00cfff] border border-[#00cfff] bg-[#050B14] shadow-[inset_0_0_10px_rgba(0,207,255,0.1)] min-w-[80px]">
+                        <span className="drop-shadow-[0_0_5px_currentColor]">TOTAL</span>
+                      </th>
                     </tr>
                     <tr>
-                      {criteriaList.map(c => 
+                      {neonCriteria.map(c => 
                         displayJudgeUids.map(uid => (
-                          <th key={`${c.id}-${uid}`} className="px-2 py-1 border-r border-[#2A2A2A] text-center text-[10px] text-[#888888] font-normal truncate max-w-[80px]" title={getJudgeName(uid)}>
-                            {getJudgeName(uid)}
+                          <th key={`${c.id}-${uid}`} className={`px-1 py-1 text-center text-[8px] text-[#888888] border-x border-b ${c.border} bg-[#0a1628] truncate max-w-[80px]`} title={getJudgeName(uid)}>
+                            {getJudgeName(uid).split(' ')[0]}
                           </th>
                         ))
                       )}
                       {displayJudgeUids.map(uid => (
-                        <th key={`sub-${uid}`} className="px-2 py-1 border-r border-[#2A2A2A] text-center text-[10px] text-[#F5C200] font-normal truncate max-w-[80px]" title={getJudgeName(uid)}>
-                          {getJudgeName(uid)}
+                        <th key={`sub-${uid}`} className="px-1 py-1 text-center text-[8px] text-[#ffd700]/70 border-x border-b border-[#ffd700] bg-[#0a1628] truncate max-w-[80px]" title={getJudgeName(uid)}>
+                          {getJudgeName(uid).split(' ')[0]}
                         </th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#2A2A2A]">
-                    {masterPilots.map((pilot, index) => {
+                  <tbody className="divide-y divide-[#1A2540]">
+                    {sortedMasterPilots.map((pilot, index) => {
                       const califs = pilot.calificaciones || {};
-                      
-                      // Calculate global total
-                      const globalTotal = displayJudgeUids.reduce((sum, uid) => {
-                        return sum + (califs[uid]?.total || 0);
-                      }, 0);
-
-                      const rowBg = index % 2 === 0 ? 'bg-[#1A1A1A]' : 'bg-[#222222]';
+                      const globalTotal = pilot._globalTotal;
 
                       return (
-                        <tr key={pilot.id} className={`group ${rowBg} hover:bg-[#2A2A2A] transition-colors`}>
-                          <td className={`w-[60px] min-w-[60px] px-2 py-3 border-r border-[#2A2A2A] text-center sticky left-0 z-20 ${rowBg} group-hover:bg-[#2A2A2A]`}>
-                            <span className="font-mono font-bold text-[#E8E8E8] bg-[#2A2A2A] px-2 py-1 rounded text-xs">
-                              {pilot.numeroIdentificacion.slice(-4)}
-                            </span>
+                        <tr key={pilot.id} className="hover:bg-[#1A2540]/50 transition-colors">
+                          <td className="px-2 py-3 text-center text-[#555] sticky left-0 z-20 bg-[#0a1628] group-hover:bg-[#1A2540]">
+                            {pilot.numeroIdentificacion.slice(-4)}
                           </td>
-                          <td className={`px-4 py-3 border-r border-[#2A2A2A] font-bold text-sm uppercase truncate w-[200px] min-w-[200px] max-w-[200px] sticky left-[60px] z-20 ${rowBg} group-hover:bg-[#2A2A2A] shadow-[10px_0_15px_-5px_rgba(0,0,0,0.8)]`}>
-                            {pilot.nombres} {pilot.apellidos}
+                          <td className="px-4 py-3 font-bold text-[#E8E8E8] uppercase truncate sticky left-[48px] z-20 bg-[#0a1628] shadow-[5px_0_15px_rgba(0,0,0,0.5)] group-hover:bg-[#1A2540]">
+                            {pilot.nombres.split(' ')[0]} {pilot.apellidos.split(' ')[0]}
                           </td>
                           
-                          {criteriaList.map(c => 
+                          {neonCriteria.map(c => 
                             displayJudgeUids.map(uid => {
-                              const score = califs[uid]?.[c.id as keyof typeof califs[string]] || 0;
+                              const score = califs[uid]?.[c.id as keyof Calificacion] || 0;
+                              const isError = c.id === 'error';
                               return (
-                                <td key={`${pilot.id}-${c.id}-${uid}`} className={`px-2 py-3 border-r border-[#2A2A2A] text-center font-mono ${c.id === 'error' ? 'text-[#FF4444]' : 'text-[#E8E8E8]'}`}>
+                                <td key={`${pilot.id}-${c.id}-${uid}`} className={`px-1 py-3 text-center border-x border-[#1A2540] bg-[#050B14]/20 ${isError && score > 0 ? 'text-[#ff3333]' : 'text-[#E8E8E8]'}`}>
                                   {score}
                                 </td>
                               );
@@ -665,14 +904,16 @@ export default function JuecesPage() {
                           {displayJudgeUids.map(uid => {
                             const subtotal = califs[uid]?.total || 0;
                             return (
-                              <td key={`sub-${pilot.id}-${uid}`} className="px-2 py-3 border-r border-[#2A2A2A] text-center font-mono font-bold text-[#F5C200]">
+                              <td key={`sub-${pilot.id}-${uid}`} className="px-1 py-3 text-center font-bold text-[#ffd700] border-x border-[#1A2540] bg-[#ffd700]/5">
                                 {subtotal}
                               </td>
                             );
                           })}
 
-                          <td className="px-4 py-3 text-center font-mono font-black text-lg text-[#00FF88]">
-                            {globalTotal}
+                          <td className="px-4 py-3 text-center border border-[#00cfff] bg-[#00cfff]/5">
+                            <div className="w-full h-full min-h-[28px] rounded border border-[#00cfff]/50 flex items-center justify-center font-black text-base text-[#00cfff] drop-shadow-[0_0_8px_rgba(0,207,255,0.8)] shadow-[inset_0_0_10px_rgba(0,207,255,0.2)]">
+                              {globalTotal}
+                            </div>
                           </td>
                         </tr>
                       );
@@ -681,7 +922,6 @@ export default function JuecesPage() {
                 </table>
               );
             })()}
-            </div>
           </div>
         </div>
       </section>
@@ -689,8 +929,9 @@ export default function JuecesPage() {
       {/* RENDERIZADO DEL MODAL */}
       {activePilotIndex !== null && (
         <GradingModal 
+          key={activeCategoryList[activePilotIndex].id}
           pilot={activeCategoryList[activePilotIndex]}
-          currentUid={currentUid as string}
+          currentUid={currentUid}
           onClose={() => setActivePilotIndex(null)}
           onSaveAndNext={handleWizardNext}
         />

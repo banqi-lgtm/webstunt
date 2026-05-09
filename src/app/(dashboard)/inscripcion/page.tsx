@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth, db, storage } from '@/lib/firebase';
-import { doc, setDoc, getDoc, updateDoc, getDocs, collection } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, getDocs, collection, arrayUnion } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { UploadCloud, AlertTriangle, CheckCircle2, ChevronRight, Gift, Trophy, Star, ShieldAlert, CreditCard, Clock, Image as ImageIcon, XCircle, ArrowLeft, CheckCircle, Smartphone, Phone, Lock, Camera, Instagram } from 'lucide-react';
+import { UploadCloud, AlertTriangle, CheckCircle2, ChevronRight, Gift, Trophy, Star, ShieldAlert, CreditCard, Clock, Image as ImageIcon, XCircle, ArrowLeft, CheckCircle, Smartphone, Phone, Lock, Camera, Instagram, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { CameraModal } from '@/components/camera-modal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -28,8 +28,9 @@ export default function InscripcionPage() {
   const [uid, setUid] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState<1 | 2 | 3>(1); // 1: Form, 2: Payment, 3: Pending/Success
-  const [estadoPago, setEstadoPago] = useState<'pendiente' | 'en_revision' | 'aprobado' | 'rechazado' | 'saldo_pendiente' | 'revision_saldo'>('pendiente');
+  const [estadoPago, setEstadoPago] = useState<'pendiente' | 'en_revision' | 'aprobado' | 'rechazado' | 'saldo_pendiente' | 'revision_saldo' | 'rechazado_saldo'>('pendiente');
   const [saldoFaltante, setSaldoFaltante] = useState('');
+  const [motivoSaldoFaltante, setMotivoSaldoFaltante] = useState('');
   const { toast } = useToast();
   const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
   const [categoryCounts, setCategoryCounts] = useState<{ [key: string]: number }>({ open: 0, '2t': 0, '4t': 0, alto: 0 });
@@ -40,6 +41,7 @@ export default function InscripcionPage() {
   const [cameraOpen, setCameraOpen] = useState(false);
   const [sponsorsModalOpen, setSponsorsModalOpen] = useState(false);
   const [correctionDialogOpen, setCorrectionDialogOpen] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isCheckingStatus, setIsCheckingStatus] = useState(true);
   const [mounted, setMounted] = useState(false);
 
@@ -207,16 +209,17 @@ export default function InscripcionPage() {
                if (data.documentos.soatUrl) setFotoSoat({ url: data.documentos.soatUrl, name: 'SOAT Guardado' });
                if (data.documentos.deportistaUrl) setFotoDeportista({ url: data.documentos.deportistaUrl, name: 'Foto Deportista Guardada' });
              }
-             if (data.comprobanteUrl) {
+             if (data.comprobanteUrl && data.estadoPago !== 'rechazado' && data.estadoPago !== 'saldo_pendiente' && data.estadoPago !== 'rechazado_saldo') {
                setComprobantePago({ url: data.comprobanteUrl, name: 'Comprobante Guardado' });
              }
              setEstadoPago(data.estadoPago || 'pendiente');
              setSaldoFaltante(data.saldoFaltante || '');
+             setMotivoSaldoFaltante(data.motivoSaldoFaltante || '');
              setDocumentosRechazados(data.documentosRechazados || []);
-             if (data.estadoPago === 'aprobado' || data.estadoPago === 'en_revision' || data.estadoPago === 'rechazado' || data.estadoPago === 'revision_saldo') {
+             if (data.estadoPago === 'aprobado' || data.estadoPago === 'en_revision' || data.estadoPago === 'rechazado' || data.estadoPago === 'revision_saldo' || data.estadoPago === 'saldo_pendiente' || data.estadoPago === 'rechazado_saldo') {
                 setStep(3);
              } else {
-                setStep(1); // pendiente, saldo_pendiente, o borrador
+                setStep(1); // pendiente o borrador
              }
           }
         } catch (e) {
@@ -407,23 +410,45 @@ export default function InscripcionPage() {
     
     setIsLoading(true);
     try {
-      const isSaldo = estadoPago === 'saldo_pendiente';
+      const isSaldo = estadoPago === 'saldo_pendiente' || estadoPago === 'rechazado_saldo';
       const pathPrefix = isSaldo ? 'comprobante_saldo' : 'comprobante';
-      const url = await handleFileUpload(comprobantePago, pathPrefix);
+      
+      let url = comprobantePago.url;
+      if (!url && comprobantePago instanceof File) {
+         url = await handleFileUpload(comprobantePago, pathPrefix);
+      } else if (!url && comprobantePago.file) {
+         url = await handleFileUpload(comprobantePago.file, pathPrefix);
+      }
       
       const docRef = doc(db, 'event_registrations', `f2r_${uid}`);
       
       if (isSaldo) {
-        await updateDoc(docRef, {
+        const docSnap = await getDoc(docRef);
+        const updates: any = {
           estadoPago: 'revision_saldo',
           comprobanteSaldoUrl: url
-        });
+        };
+
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.comprobanteSaldoUrl && (!data.historialSaldos || data.historialSaldos.length === 0)) {
+            // Migrar el comprobante anterior al historial
+            updates.historialSaldos = [data.comprobanteSaldoUrl, url];
+          } else {
+            updates.historialSaldos = arrayUnion(url);
+          }
+        } else {
+          updates.historialSaldos = arrayUnion(url);
+        }
+
+        await updateDoc(docRef, updates);
         setEstadoPago('revision_saldo');
         toast({ title: "Comprobante de Saldo Enviado", description: "Tu pago del saldo está en validación." });
       } else {
         await updateDoc(docRef, {
           estadoPago: 'en_revision',
-          comprobanteUrl: url
+          comprobanteUrl: url,
+          prioridadRechazado: estadoPago === 'rechazado'
         });
         setEstadoPago('en_revision');
         toast({ title: "Comprobante Enviado", description: "Tu pago está en validación. Te notificaremos cuando sea aprobado." });
@@ -825,7 +850,7 @@ export default function InscripcionPage() {
         {step === 3 && (
           <div className="flex flex-col items-center justify-center p-5 sm:p-8 bg-zinc-950/80 backdrop-blur-xl border border-zinc-800 rounded-3xl shadow-2xl animate-in fade-in zoom-in-95 duration-500 max-w-lg mx-auto w-full mt-4 sm:mt-8">
             
-            {documentosRechazados.length > 0 && (
+            {documentosRechazados.length > 0 && estadoPago !== 'rechazado' && (
               <div className="w-full bg-red-500/10 border border-red-500/60 rounded-2xl p-4 sm:p-5 mb-6 flex flex-col items-center text-center shadow-[0_0_30px_rgba(239,68,68,0.25)] relative overflow-hidden">
                 {/* Glow sutil de fondo */}
                 <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-500 to-transparent"></div>
@@ -850,18 +875,207 @@ export default function InscripcionPage() {
                   <XCircle className="w-12 h-12 text-red-500" />
                 </div>
                 <h2 className="text-3xl font-extrabold text-white mb-2 text-center">Pago Rechazado</h2>
-                <p className="text-zinc-400 text-center mb-8">
+                <p className="text-zinc-400 text-center mb-6">
                   Lo sentimos, tu comprobante de pago no fue aceptado. Esto puede suceder si la imagen no es legible, el monto es incorrecto o si no corresponde a los datos bancarios.
                   <br/><br/>
                   Por favor, sube un comprobante válido para asegurar tu cupo.
                 </p>
+
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsPaymentModalOpen(true)}
+                  className="w-full border-[#39FF14]/50 text-[#39FF14] hover:bg-[#39FF14] hover:text-black uppercase tracking-widest text-xs font-bold h-12 transition-colors flex items-center justify-between px-4 mb-4"
+                >
+                  MÉTODOS DE PAGO
+                  <ChevronRight className="w-5 h-5" />
+                </Button>
+
+                <div className="w-full bg-[#1A1A1A] p-5 rounded-2xl border border-red-500/30 shadow-[0_0_15px_rgba(0,0,0,0.5)] mb-6">
+                  <Label className="text-white text-xs font-bold flex items-center gap-2 mb-3">
+                    <UploadCloud className="text-[#39FF14] w-4 h-4" /> Nuevo Comprobante <span className="text-[#39FF14]">*</span>
+                  </Label>
+                  <div onClick={() => { setComprobantePago(null); openOptions('comprobante'); }} className={`border-2 border-dashed border-[#2A2A2A] bg-[#121212] py-6 rounded-xl text-center hover:border-[#39FF14]/50 transition-all cursor-pointer hover:bg-[#1A1A1A] ${comprobantePago ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_15px_rgba(57,255,20,0.1)]' : ''}`}>
+                    <div className="flex flex-col items-center px-4 pointer-events-none">
+                      {comprobantePago ? (
+                        <>
+                          <CheckCircle2 className="w-8 h-8 mb-2 text-[#39FF14]" />
+                          <span className="text-sm font-bold text-[#39FF14] truncate w-full px-2">{comprobantePago.name}</span>
+                          <span className="text-[10px] text-[#B0B0B0] mt-1 uppercase font-bold tracking-widest">Listo para enviar</span>
+                        </>
+                      ) : (
+                        <>
+                          <ImageIcon className="w-8 h-8 mb-2 text-[#424242]" />
+                          <span className="text-xs font-semibold text-[#B0B0B0]">Seleccionar imagen o PDF</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  {comprobantePago && comprobantePago.name !== 'Comprobante Guardado' && (
+                    <Button 
+                      onClick={handlePaymentSubmit} 
+                      disabled={isLoading}
+                      className="w-full bg-[#39FF14] text-black hover:bg-[#39FF14]/90 h-12 font-bold mt-4 uppercase tracking-wider rounded-xl"
+                    >
+                      {isLoading ? "Enviando..." : "Enviar Comprobante"}
+                    </Button>
+                  )}
+                </div>
+
                 <div className="flex flex-col w-full gap-3">
-                  <Button 
-                    onClick={() => setStep(2)} 
-                    className="w-full bg-red-600 text-white hover:bg-red-500 h-12 font-bold"
-                  >
-                    Volver a subir comprobante
-                  </Button>
+                  <Link href="/profile" className="w-full">
+                    <Button variant="outline" className="w-full border-zinc-700 text-zinc-300 hover:bg-zinc-800 h-12">
+                      Salir por ahora
+                    </Button>
+                  </Link>
+                </div>
+              </>
+            )}
+
+            {estadoPago === 'saldo_pendiente' && (
+              <>
+                <div className="w-20 h-20 bg-orange-500/20 rounded-full flex items-center justify-center mb-6 border border-orange-500/30 shadow-[0_0_30px_rgba(249,115,22,0.2)]">
+                  <AlertCircle className="w-12 h-12 text-orange-500" />
+                </div>
+                <h2 className="text-3xl font-extrabold text-white mb-2 text-center">Saldo Pendiente</h2>
+                <p className="text-zinc-400 text-center mb-4">
+                  Tu inscripción tiene un saldo pendiente de pago. 
+                  Para completar tu inscripción y asegurar tu cupo, debes realizar el pago por el monto restante.
+                </p>
+                {saldoFaltante && (
+                  <div className="w-full bg-orange-500/10 border border-orange-500/30 rounded-xl p-4 mb-6 flex flex-col items-center">
+                    <span className="text-xs text-orange-500 font-bold uppercase tracking-widest mb-1">Valor Reportado</span>
+                    <span className="text-2xl text-white font-black">
+                      {isNaN(parseInt(saldoFaltante.replace(/\D/g, ''))) 
+                        ? saldoFaltante 
+                        : `$ ${parseInt(saldoFaltante.replace(/\D/g, '')).toLocaleString('es-CO')}`}
+                    </span>
+                    {motivoSaldoFaltante && (
+                      <div className="mt-3 pt-3 border-t border-orange-500/20 w-full text-center">
+                        <span className="text-[10px] text-orange-500 font-bold uppercase tracking-widest block mb-1">Motivo / Observación</span>
+                        <p className="text-sm text-zinc-300 italic">"{motivoSaldoFaltante}"</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsPaymentModalOpen(true)}
+                  className="w-full border-[#39FF14]/50 text-[#39FF14] hover:bg-[#39FF14] hover:text-black uppercase tracking-widest text-xs font-bold h-12 transition-colors flex items-center justify-between px-4 mb-4"
+                >
+                  MÉTODOS DE PAGO
+                  <ChevronRight className="w-5 h-5" />
+                </Button>
+
+                <div className="w-full bg-[#1A1A1A] p-5 rounded-2xl border border-orange-500/30 shadow-[0_0_15px_rgba(0,0,0,0.5)] mb-6">
+                  <Label className="text-white text-xs font-bold flex items-center gap-2 mb-3">
+                    <UploadCloud className="text-[#39FF14] w-4 h-4" /> Comprobante de Saldo <span className="text-[#39FF14]">*</span>
+                  </Label>
+                  <div onClick={() => { setComprobantePago(null); openOptions('comprobante'); }} className={`border-2 border-dashed border-[#2A2A2A] bg-[#121212] py-6 rounded-xl text-center hover:border-[#39FF14]/50 transition-all cursor-pointer hover:bg-[#1A1A1A] ${comprobantePago ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_15px_rgba(57,255,20,0.1)]' : ''}`}>
+                    <div className="flex flex-col items-center px-4 pointer-events-none">
+                      {comprobantePago ? (
+                        <>
+                          <CheckCircle2 className="w-8 h-8 mb-2 text-[#39FF14]" />
+                          <span className="text-sm font-bold text-[#39FF14] truncate w-full px-2">{comprobantePago.name}</span>
+                          <span className="text-[10px] text-[#B0B0B0] mt-1 uppercase font-bold tracking-widest">Listo para enviar</span>
+                        </>
+                      ) : (
+                        <>
+                          <ImageIcon className="w-8 h-8 mb-2 text-[#424242]" />
+                          <span className="text-xs font-semibold text-[#B0B0B0]">Seleccionar imagen o PDF</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  {comprobantePago && comprobantePago.name !== 'Comprobante Guardado' && (
+                    <Button 
+                      onClick={handlePaymentSubmit} 
+                      disabled={isLoading}
+                      className="w-full bg-[#39FF14] text-black hover:bg-[#39FF14]/90 h-12 font-bold mt-4 uppercase tracking-wider rounded-xl"
+                    >
+                      {isLoading ? "Enviando..." : "Enviar Comprobante"}
+                    </Button>
+                  )}
+                </div>
+
+                <div className="flex flex-col w-full gap-3">
+                  <Link href="/profile" className="w-full">
+                    <Button variant="outline" className="w-full border-zinc-700 text-zinc-300 hover:bg-zinc-800 h-12">
+                      Salir por ahora
+                    </Button>
+                  </Link>
+                </div>
+              </>
+            )}
+
+            {estadoPago === 'rechazado_saldo' && (
+              <>
+                <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mb-6 border border-red-500/30 shadow-[0_0_30px_rgba(239,68,68,0.2)]">
+                  <XCircle className="w-12 h-12 text-red-500" />
+                </div>
+                <h2 className="text-3xl font-extrabold text-white mb-2 text-center">Saldo Rechazado</h2>
+                <p className="text-zinc-400 text-center mb-4">
+                  El comprobante de saldo que subiste fue rechazado.
+                </p>
+                
+                {saldoFaltante && (
+                  <div className="w-full bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-6 flex flex-col items-center">
+                    <span className="text-xs text-red-500 font-bold uppercase tracking-widest mb-1">Pago Requerido</span>
+                    <span className="text-2xl text-white font-black">
+                      {isNaN(parseInt(saldoFaltante.replace(/\D/g, ''))) 
+                        ? saldoFaltante 
+                        : `$ ${parseInt(saldoFaltante.replace(/\D/g, '')).toLocaleString('es-CO')}`}
+                    </span>
+                    {motivoSaldoFaltante && (
+                      <div className="mt-3 pt-3 border-t border-red-500/20 w-full text-center">
+                        <span className="text-[10px] text-red-500 font-bold uppercase tracking-widest block mb-1">Motivo del Rechazo</span>
+                        <p className="text-sm text-zinc-300 italic">"{motivoSaldoFaltante}"</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsPaymentModalOpen(true)}
+                  className="w-full border-[#39FF14]/50 text-[#39FF14] hover:bg-[#39FF14] hover:text-black uppercase tracking-widest text-xs font-bold h-12 transition-colors flex items-center justify-between px-4 mb-4"
+                >
+                  MÉTODOS DE PAGO
+                  <ChevronRight className="w-5 h-5" />
+                </Button>
+
+                <div className="w-full bg-[#1A1A1A] p-5 rounded-2xl border border-red-500/30 shadow-[0_0_15px_rgba(0,0,0,0.5)] mb-6">
+                  <Label className="text-white text-xs font-bold flex items-center gap-2 mb-3">
+                    <UploadCloud className="text-red-500 w-4 h-4" /> Nuevo Comprobante <span className="text-red-500">*</span>
+                  </Label>
+                  <div onClick={() => { setComprobantePago(null); openOptions('comprobante'); }} className={`border-2 border-dashed border-[#2A2A2A] bg-[#121212] py-6 rounded-xl text-center hover:border-red-500/50 transition-all cursor-pointer hover:bg-[#1A1A1A] ${comprobantePago ? 'border-red-500 bg-red-500/5 shadow-[0_0_15px_rgba(239,68,68,0.1)]' : ''}`}>
+                    <div className="flex flex-col items-center px-4 pointer-events-none">
+                      {comprobantePago ? (
+                        <>
+                          <CheckCircle2 className="w-8 h-8 mb-2 text-[#39FF14]" />
+                          <span className="text-sm font-bold text-[#39FF14] truncate w-full px-2">{comprobantePago.name}</span>
+                          <span className="text-[10px] text-[#B0B0B0] mt-1 uppercase font-bold tracking-widest">Listo para enviar</span>
+                        </>
+                      ) : (
+                        <>
+                          <ImageIcon className="w-8 h-8 mb-2 text-[#424242]" />
+                          <span className="text-xs font-semibold text-[#B0B0B0]">Seleccionar imagen o PDF</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  {comprobantePago && comprobantePago.name !== 'Comprobante Guardado' && (
+                    <Button 
+                      onClick={handlePaymentSubmit} 
+                      disabled={isLoading}
+                      className="w-full bg-red-600 text-white hover:bg-red-500 h-12 font-bold mt-4 uppercase tracking-wider rounded-xl shadow-[0_0_15px_rgba(239,68,68,0.4)]"
+                    >
+                      {isLoading ? "Enviando..." : "Reenviar Comprobante"}
+                    </Button>
+                  )}
+                </div>
+
+                <div className="flex flex-col w-full gap-3">
                   <Link href="/profile" className="w-full">
                     <Button variant="outline" className="w-full border-zinc-700 text-zinc-300 hover:bg-zinc-800 h-12">
                       Salir por ahora
@@ -1073,6 +1287,58 @@ export default function InscripcionPage() {
                 </div>
               </div>
             ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Details Modal */}
+      <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
+        <DialogContent className="sm:max-w-[400px] w-[95vw] bg-[#121212] border-2 border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] text-white p-0 overflow-hidden rounded-2xl z-[100]">
+          <DialogHeader className="p-4 pb-2 border-b border-[#2A2A2A]/50 bg-black/40">
+            <DialogTitle className="text-lg md:text-xl font-black uppercase text-[#39FF14] tracking-wider flex items-center justify-center gap-2">
+              <span className="text-xl md:text-2xl">💰</span> Detalles de Pago
+            </DialogTitle>
+          </DialogHeader>
+          <div className="p-4 pt-4 max-h-[90vh] overflow-hidden">
+            <div className="bg-[#1A1A1A] p-4 rounded-xl border border-[#2A2A2A] shadow-[0_0_15px_rgba(0,0,0,0.5)]">
+              <div className="flex flex-col gap-2 mb-3">
+                <div className="flex justify-between items-baseline">
+                  <span className="text-[11px] text-[#B0B0B0] font-medium uppercase tracking-wider">Costo (16 Abr - 10 May)</span>
+                  <span className="text-lg text-[#39FF14] font-black tracking-wider shadow-[#39FF14]/20">$280.000</span>
+                </div>
+                <div className="flex justify-between items-baseline pt-2 border-t border-[#2A2A2A]">
+                  <span className="text-[9px] text-[#424242] font-medium uppercase tracking-wider">Costo (11 May - 15 May)</span>
+                  <span className="text-xs text-[#B0B0B0] font-bold tracking-wider">$350.000</span>
+                </div>
+              </div>
+
+              <div className="space-y-2.5">
+                <div className="bg-[#121212] p-3 rounded-xl border border-[#2A2A2A] flex flex-row items-center gap-4 text-xs text-[#B0B0B0]">
+                  <div className="shrink-0 bg-white p-1.5 rounded-lg shadow-[0_0_20px_rgba(57,255,20,0.15)]">
+                    <img src="/sponsors/QR BANCOLOMBIA.jpg" alt="QR Bancolombia" className="w-20 h-20 object-contain rounded-md" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="font-black text-white mb-1.5 text-[10px] md:text-xs uppercase tracking-widest border-b border-[#2A2A2A] pb-1.5">Ahorros Bancolombia</p>
+                    <ul className="space-y-0.5 font-mono text-[#B0B0B0]">
+                      <li className="text-sm md:text-base text-[#39FF14] font-bold tracking-wider">316-376847-80</li>
+                      <li className="text-[8px] md:text-[9px] text-[#424242] uppercase font-sans tracking-wide">Titular: <span className="text-[#B0B0B0]">Daniela Rojas Valencia</span></li>
+                    </ul>
+                  </div>
+                </div>
+                <div className="bg-[#121212] p-2.5 rounded-xl border border-[#2A2A2A] flex items-center justify-between px-4">
+                  <p className="font-bold text-[#424242] uppercase tracking-wide text-[10px]">Pago por LLAVE</p>
+                  <p className="text-sm md:text-base font-mono text-[#B0B0B0] font-bold tracking-wider">1214720768</p>
+                </div>
+              </div>
+            </div>
+            <div className="mt-4">
+              <Button 
+                onClick={() => setIsPaymentModalOpen(false)} 
+                className="w-full bg-[#39FF14] hover:bg-[#00C853] text-black font-black uppercase tracking-wider h-12 rounded-xl shadow-[0_0_15px_rgba(57,255,20,0.2)]"
+              >
+                Entendido
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
