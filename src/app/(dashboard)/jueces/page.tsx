@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { collection, getDocs, doc, getDoc, setDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { ClipboardList, Search, Play, ShieldAlert, User, Phone, Mail, MapPin, Instagram, Info, Flame, Gamepad2, Star, AlertTriangle } from 'lucide-react';
@@ -331,6 +331,7 @@ export default function JuecesPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [currentUid, setCurrentUid] = useState<string | null>(null);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
@@ -347,6 +348,17 @@ export default function JuecesPage() {
   const [activePilotIndex, setActivePilotIndex] = useState<number | null>(null);
   const [activeCategoryList, setActiveCategoryList] = useState<Registration[]>([]);
 
+  const handleRoleChange = async (userId: string, newRole: string) => {
+    try {
+      await updateDoc(doc(db, 'users', userId), { rol: newRole });
+      toast({ title: 'Rol actualizado', description: 'El rol ha sido cambiado exitosamente.' });
+      fetchRegistrations();
+    } catch (error) {
+      console.error(error);
+      toast({ title: 'Error', description: 'No se pudo cambiar el rol.', variant: 'destructive' });
+    }
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
@@ -362,6 +374,7 @@ export default function JuecesPage() {
         const interfaces = data?.interfaces || [];
         
         const isSuperAdmin = ['wg12435@hotmail.com', 'walter12345@hotmail.com'].includes(user.email || '') || interfaces.includes('admin');
+        setIsAdmin(isSuperAdmin);
         
         if (isSuperAdmin || interfaces.includes('jueces')) {
           setHasAccess(true);
@@ -431,7 +444,8 @@ export default function JuecesPage() {
         }
       });
       
-      fetched.sort((a, b) => a.nombres.localeCompare(b.nombres));
+      // Orden aleatorio de pilotos
+      fetched.sort(() => Math.random() - 0.5);
 
       // Inject Dummy Data if empty to ensure design is visible
       const openCount = fetched.filter(f => {
@@ -467,6 +481,8 @@ export default function JuecesPage() {
     cats.forEach(cat => {
       let finalCat = cat;
       if (finalCat === 'ALTO') finalCat = 'ALTO CILINDRAJE';
+      if (finalCat === '2T') finalCat = '2 TIEMPOS';
+      if (finalCat === '4T') finalCat = '4 TIEMPOS';
 
       if (!acc[finalCat]) acc[finalCat] = [];
       if (!acc[finalCat].find(p => p.id === reg.id)) {
@@ -606,6 +622,17 @@ export default function JuecesPage() {
                                <div className="flex items-center gap-2 mt-1">
                                  <span className="text-[10px] text-yellow-500 font-mono bg-yellow-500/10 px-2 py-0.5 rounded border border-yellow-500/20">CC: {juez.numeroIdentificacion}</span>
                                  <span className="text-[10px] text-purple-400 font-bold uppercase bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">Juez Oficial</span>
+                                 {isAdmin && (
+                                   <select 
+                                     value={juez.rol || 'juez'}
+                                     onChange={(e) => handleRoleChange(juez.id, e.target.value)}
+                                     className="bg-[#050B14] border border-[#00FF88]/30 text-[#00FF88] text-[10px] rounded px-2 py-0.5 outline-none font-bold uppercase cursor-pointer"
+                                   >
+                                     <option value="piloto">Piloto</option>
+                                     <option value="staff">Staff</option>
+                                     <option value="juez">Juez</option>
+                                   </select>
+                                 )}
                                </div>
                              </div>
                            </div>

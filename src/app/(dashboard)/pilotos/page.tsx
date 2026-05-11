@@ -90,8 +90,9 @@ export default function PilotosPage() {
       const regsMap = new Map();
       regSnap.forEach(docSnap => {
         const data = docSnap.data();
-        if (data.uid) {
-          regsMap.set(data.uid, { id: docSnap.id, ...data });
+        const extractedUid = data.uid || docSnap.id.replace('f2r_', '');
+        if (extractedUid) {
+          regsMap.set(extractedUid, { id: docSnap.id, ...data });
         }
       });
 
@@ -283,7 +284,7 @@ export default function PilotosPage() {
                      <li className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-lg border border-zinc-800 bg-zinc-900/50 gap-2">
                         <span className="text-zinc-300 font-semibold text-base sm:text-lg">1. Pago de Inscripción</span>
                         {scannedPilot.estadoPago === 'aprobado' || scannedPilot.estadoPago === 'pago_dia_evento' ? (
-                          <span className="flex items-center text-green-400 font-bold text-base sm:text-lg"><CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 mr-1" /> {scannedPilot.estadoPago === 'pago_dia_evento' ? 'Pago Día Evento' : 'Aprobado'}</span>
+                          <span className={`flex items-center font-bold text-base sm:text-lg ${scannedPilot.estadoPago === 'pago_dia_evento' ? 'text-blue-400' : 'text-green-400'}`}><CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 mr-1" /> {scannedPilot.estadoPago === 'pago_dia_evento' ? 'Pago Día Evento' : 'Aprobado'}</span>
                         ) : (
                           <span className="flex items-center text-red-400 font-bold text-base sm:text-lg"><XCircle className="w-5 h-5 sm:w-6 sm:h-6 mr-1" /> Pendiente</span>
                         )}
@@ -469,7 +470,7 @@ export default function PilotosPage() {
                       </td>
                       <td className="px-6 py-4">
                         <span style={{ color: '#00FFFF', backgroundColor: 'rgba(0, 255, 255, 0.1)', borderColor: 'rgba(0, 255, 255, 0.2)', textShadow: '0 0 10px rgba(0, 255, 255, 0.4)' }} className="inline-block px-2.5 py-1 rounded-full text-xs font-bold border uppercase tracking-wider">
-                          {reg.categoria}
+                          {Array.isArray(reg.categoria) && reg.categoria.length > 0 ? reg.categoria.join(' / ') : (!reg.categoria || reg.categoria === 'N/A' || reg.categoria.length === 0 ? 'N/A' : reg.categoria)}
                         </span>
                       </td>
                       <td className="px-6 py-4">

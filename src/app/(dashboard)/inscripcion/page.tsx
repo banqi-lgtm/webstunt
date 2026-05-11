@@ -156,7 +156,7 @@ export default function InscripcionPage() {
         snapshot.forEach(d => {
           const data = d.data();
           const cats = data.categoria || data.categorias;
-          if (cats && data.estadoPago === 'aprobado') {
+          if (cats && (data.estadoPago === 'aprobado' || data.estadoPago === 'pago_dia_evento')) {
             if (Array.isArray(cats)) {
               cats.forEach(c => counts[c] = (counts[c] || 0) + 1);
             } else {
@@ -209,6 +209,16 @@ export default function InscripcionPage() {
                if (data.documentos.soatUrl) setFotoSoat({ url: data.documentos.soatUrl, name: 'SOAT Guardado' });
                if (data.documentos.deportistaUrl) setFotoDeportista({ url: data.documentos.deportistaUrl, name: 'Foto Deportista Guardada' });
              }
+             if (data.categoria) {
+               setCategorias(Array.isArray(data.categoria) ? data.categoria : [data.categoria]);
+             }
+             if (data.motocicleta) {
+               setPlaca(data.motocicleta.placa || '');
+               setMarca(data.motocicleta.marca || '');
+               setReferencia(data.motocicleta.referencia || '');
+             }
+             if (data.patrocinadores) setPatrocinadores(data.patrocinadores);
+             if (data.participacionPrevia) setParticipacionPrevia(data.participacionPrevia);
              if (data.comprobanteUrl && data.estadoPago !== 'rechazado' && data.estadoPago !== 'saldo_pendiente' && data.estadoPago !== 'rechazado_saldo') {
                setComprobantePago({ url: data.comprobanteUrl, name: 'Comprobante Guardado' });
              }
@@ -322,6 +332,45 @@ export default function InscripcionPage() {
     if (!fotoDeportista) return "Anexa tu foto en acción para la pantalla LED";
     if (!comprobantePago) return "Anexa tu comprobante de pago";
     return null; // OK
+  };
+
+  const saveCategoriasToDB = async (newCats: string[]) => {
+    if (!uid) return;
+    try {
+      await setDoc(doc(db, 'event_registrations', `f2r_${uid}`), { uid, categoria: newCats }, { merge: true });
+    } catch (e) {
+      console.error("Error auto-saving categorias:", e);
+    }
+  };
+
+  const saveMotocicletaToDB = async (field: 'placa'|'marca'|'referencia', val: string) => {
+    if (!uid) return;
+    try {
+      await setDoc(doc(db, 'event_registrations', `f2r_${uid}`), { 
+        uid,
+        motocicleta: { placa, marca, referencia, [field]: val } 
+      }, { merge: true });
+    } catch (e) {
+      console.error("Error auto-saving motocicleta:", e);
+    }
+  };
+
+  const saveParticipacionToDB = async (val: string) => {
+    if (!uid) return;
+    try {
+      await setDoc(doc(db, 'event_registrations', `f2r_${uid}`), { uid, participacionPrevia: val }, { merge: true });
+    } catch (e) {
+      console.error("Error auto-saving participacion:", e);
+    }
+  };
+
+  const savePatrocinadoresToDB = async () => {
+    if (!uid) return;
+    try {
+      await setDoc(doc(db, 'event_registrations', `f2r_${uid}`), { uid, patrocinadores }, { merge: true });
+    } catch (e) {
+      console.error("Error auto-saving patrocinadores:", e);
+    }
   };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
@@ -530,8 +579,10 @@ export default function InscripcionPage() {
                     if ((categoryCounts['open'] || 0) >= 30) return;
                     if (categorias.includes('open')) {
                       setCategorias([]);
+                      saveCategoriasToDB([]);
                     } else {
                       setCategorias(['open']);
+                      saveCategoriasToDB(['open']);
                     }
                   }}>
                     <div className="w-10 h-10 rounded-full bg-[#1A1A1A] flex items-center justify-center mr-3 border border-[#2A2A2A]">
@@ -550,8 +601,15 @@ export default function InscripcionPage() {
                       toast({ title: "Categoría exclusiva", description: "La categoría OPEN no se puede combinar con otras.", variant: "default" });
                       return;
                     }
-                    if (categorias.includes('2t')) setCategorias(categorias.filter(c => c !== '2t'));
-                    else setCategorias([...categorias, '2t']);
+                    if (categorias.includes('2t')) {
+                      const newCats = categorias.filter(c => c !== '2t');
+                      setCategorias(newCats);
+                      saveCategoriasToDB(newCats);
+                    } else {
+                      const newCats = [...categorias, '2t'];
+                      setCategorias(newCats);
+                      saveCategoriasToDB(newCats);
+                    }
                   }}>
                     <div className="w-10 h-10 rounded-full bg-[#1A1A1A] flex items-center justify-center mr-3 border border-[#2A2A2A]">
                       <span className="text-xl">🏍️</span>
@@ -569,8 +627,15 @@ export default function InscripcionPage() {
                       toast({ title: "Categoría exclusiva", description: "La categoría OPEN no se puede combinar con otras.", variant: "default" });
                       return;
                     }
-                    if (categorias.includes('4t')) setCategorias(categorias.filter(c => c !== '4t'));
-                    else setCategorias([...categorias, '4t']);
+                    if (categorias.includes('4t')) {
+                      const newCats = categorias.filter(c => c !== '4t');
+                      setCategorias(newCats);
+                      saveCategoriasToDB(newCats);
+                    } else {
+                      const newCats = [...categorias, '4t'];
+                      setCategorias(newCats);
+                      saveCategoriasToDB(newCats);
+                    }
                   }}>
                     <div className="w-10 h-10 rounded-full bg-[#1A1A1A] flex items-center justify-center mr-3 border border-[#2A2A2A]">
                       <span className="text-xl">🛵</span>
@@ -588,8 +653,15 @@ export default function InscripcionPage() {
                       toast({ title: "Categoría exclusiva", description: "La categoría OPEN no se puede combinar con otras.", variant: "default" });
                       return;
                     }
-                    if (categorias.includes('alto')) setCategorias(categorias.filter(c => c !== 'alto'));
-                    else setCategorias([...categorias, 'alto']);
+                    if (categorias.includes('alto')) {
+                      const newCats = categorias.filter(c => c !== 'alto');
+                      setCategorias(newCats);
+                      saveCategoriasToDB(newCats);
+                    } else {
+                      const newCats = [...categorias, 'alto'];
+                      setCategorias(newCats);
+                      saveCategoriasToDB(newCats);
+                    }
                   }}>
                     <div className="w-10 h-10 rounded-full bg-[#1A1A1A] flex items-center justify-center mr-3 border border-[#2A2A2A]">
                       <span className="text-xl">🔥</span>
@@ -607,7 +679,7 @@ export default function InscripcionPage() {
               <div className="space-y-3 pt-4 border-t border-zinc-800/50">
                 <Label className="text-white text-sm font-bold uppercase tracking-wider block">2. Experiencia y Compromiso</Label>
                 <p className="text-xs text-zinc-400 mb-2">¿Has participado en la Copa Stunt F2R en versiones anteriores?</p>
-                <RadioGroup value={participacionPrevia} onValueChange={setParticipacionPrevia} className="grid grid-cols-2 gap-3">
+                <RadioGroup value={participacionPrevia} onValueChange={(val) => { setParticipacionPrevia(val); saveParticipacionToDB(val); }} className="grid grid-cols-2 gap-3">
                   <div className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all cursor-pointer ${participacionPrevia === 'si' ? 'border-green-500 bg-green-500/5' : 'border-zinc-800 bg-zinc-900/50'}`} onClick={() => setParticipacionPrevia('si')}>
                     <RadioGroupItem value="si" id="part-si" className="sr-only" />
                     <CheckCircle2 className={`w-6 h-6 mb-2 ${participacionPrevia === 'si' ? 'text-green-500' : 'text-zinc-600'}`} />
@@ -645,12 +717,12 @@ export default function InscripcionPage() {
                 
                 <div className="space-y-1">
                   <Label className="text-[10px] text-[#B0B0B0] uppercase tracking-wider ml-1">Placa Motocicleta</Label>
-                  <Input value={placa} onChange={e => setPlaca(e.target.value)} placeholder="ABC123" className="bg-[#1A1A1A] border-[#2A2A2A] text-white h-12 uppercase rounded-xl px-4 focus:border-[#39FF14] focus:ring-[#39FF14]" maxLength={6} />
+                  <Input value={placa} onChange={e => { setPlaca(e.target.value.toUpperCase()); }} onBlur={() => saveMotocicletaToDB('placa', placa)} placeholder="ABC123" className="bg-[#1A1A1A] border-[#2A2A2A] text-white h-12 uppercase rounded-xl px-4 focus:border-[#39FF14] focus:ring-[#39FF14]" maxLength={6} />
                 </div>
                 
                 <div className="space-y-1">
                   <Label className="text-[10px] text-[#B0B0B0] uppercase tracking-wider ml-1">Marca de tu motocicleta</Label>
-                  <Select value={marca} onValueChange={setMarca}>
+                  <Select value={marca} onValueChange={(val) => { setMarca(val); saveMotocicletaToDB('marca', val); }}>
                     <SelectTrigger className="bg-[#1A1A1A] border-[#2A2A2A] text-white h-12 rounded-xl px-4 focus:ring-[#39FF14]">
                       <SelectValue placeholder="Seleccione..." />
                     </SelectTrigger>
@@ -664,7 +736,7 @@ export default function InscripcionPage() {
 
                 <div className="space-y-1">
                   <Label className="text-[10px] text-[#B0B0B0] uppercase tracking-wider ml-1">Referencia motocicleta</Label>
-                  <Input value={referencia} onChange={e => setReferencia(e.target.value)} placeholder="Ej. MT-09" className="bg-[#1A1A1A] border-[#2A2A2A] text-white h-12 rounded-xl px-4 focus:border-[#39FF14] focus:ring-[#39FF14]" />
+                  <Input value={referencia} onChange={e => setReferencia(e.target.value)} onBlur={() => saveMotocicletaToDB('referencia', referencia)} placeholder="Ej. MT-09" className="bg-[#1A1A1A] border-[#2A2A2A] text-white h-12 rounded-xl px-4 focus:border-[#39FF14] focus:ring-[#39FF14]" />
                 </div>
               </div>
 
