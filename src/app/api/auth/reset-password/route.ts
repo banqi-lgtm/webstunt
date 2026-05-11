@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { adminAuth } from '@/lib/firebase-admin';
+import { getAdminAuth } from '@/lib/firebase-admin';
 import nodemailer from 'nodemailer';
 
 export async function POST(request: Request) {
@@ -12,12 +12,10 @@ export async function POST(request: Request) {
 
     // 1. Generate the Password Reset Link using Firebase Admin
     const actionCodeSettings = {
-      // URL you want to redirect back to. The default widget will handle the code but we must give it a valid continue URL if needed.
-      // Usually, just generating the link without settings uses the Firebase hosted widget, which works perfectly fine.
       url: process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/#login` : 'http://localhost:9002/#login',
     };
     
-    const link = await adminAuth.generatePasswordResetLink(email, actionCodeSettings);
+    const link = await getAdminAuth().generatePasswordResetLink(email, actionCodeSettings);
 
     // 2. Configure Nodemailer with Gmail
     const transporter = nodemailer.createTransport({
