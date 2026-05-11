@@ -739,12 +739,8 @@ export default function InscripcionPage() {
                 <div className="bg-[#1A1A1A] p-5 rounded-2xl border border-[#2A2A2A] shadow-[0_0_15px_rgba(0,0,0,0.5)]">
                   <div className="flex flex-col gap-3 mb-5">
                     <div className="flex justify-between items-baseline">
-                      <span className="text-xs text-[#B0B0B0] font-medium uppercase tracking-wider">Costo (16 Abr - 10 May)</span>
-                      <span className="text-xl text-[#39FF14] font-black tracking-wider shadow-[#39FF14]/20">$280.000</span>
-                    </div>
-                    <div className="flex justify-between items-baseline pt-2 border-t border-[#2A2A2A]">
-                      <span className="text-[10px] text-[#424242] font-medium uppercase tracking-wider">Costo (11 May - 15 May)</span>
-                      <span className="text-sm text-[#B0B0B0] font-bold tracking-wider">$350.000</span>
+                      <span className="text-xs text-[#B0B0B0] font-medium uppercase tracking-wider">Costo (11 May - 15 May)</span>
+                      <span className="text-xl text-[#39FF14] font-black tracking-wider shadow-[#39FF14]/20">$350.000</span>
                     </div>
                   </div>
 
@@ -1303,12 +1299,8 @@ export default function InscripcionPage() {
             <div className="bg-[#1A1A1A] p-4 rounded-xl border border-[#2A2A2A] shadow-[0_0_15px_rgba(0,0,0,0.5)]">
               <div className="flex flex-col gap-2 mb-3">
                 <div className="flex justify-between items-baseline">
-                  <span className="text-[11px] text-[#B0B0B0] font-medium uppercase tracking-wider">Costo (16 Abr - 10 May)</span>
-                  <span className="text-lg text-[#39FF14] font-black tracking-wider shadow-[#39FF14]/20">$280.000</span>
-                </div>
-                <div className="flex justify-between items-baseline pt-2 border-t border-[#2A2A2A]">
-                  <span className="text-[9px] text-[#424242] font-medium uppercase tracking-wider">Costo (11 May - 15 May)</span>
-                  <span className="text-xs text-[#B0B0B0] font-bold tracking-wider">$350.000</span>
+                  <span className="text-[11px] text-[#B0B0B0] font-medium uppercase tracking-wider">Costo (11 May - 15 May)</span>
+                  <span className="text-lg text-[#39FF14] font-black tracking-wider shadow-[#39FF14]/20">$350.000</span>
                 </div>
               </div>
 

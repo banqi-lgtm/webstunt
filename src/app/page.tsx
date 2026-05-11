@@ -184,14 +184,6 @@ export default function Home() {
                 
                 <div className="flex flex-col gap-6 flex-grow">
                   <div>
-                    <h4 className="text-white font-bold text-xs uppercase mb-2">INSCRIPCIONES ORDINARIAS</h4>
-                    <div className="flex justify-between items-center bg-white/5 rounded px-3 py-2 border border-white/10">
-                      <span className="text-zinc-300 text-xs font-medium">16 ABR AL 10 MAY</span>
-                      <span className="text-[#39FF14] font-black text-sm">$280.000</span>
-                    </div>
-                  </div>
-                  
-                  <div>
                     <h4 className="text-white font-bold text-xs uppercase mb-2">INSCRIPCIONES EXTEMPORALES</h4>
                     <div className="flex justify-between items-center bg-white/5 rounded px-3 py-2 border border-white/10">
                       <span className="text-zinc-300 text-xs font-medium">11 AL 15 MAY</span>
@@ -349,12 +341,8 @@ export default function Home() {
             <div className="bg-[#1A1A1A] p-4 rounded-xl border border-[#2A2A2A] shadow-[0_0_15px_rgba(0,0,0,0.5)]">
               <div className="flex flex-col gap-2 mb-3">
                 <div className="flex justify-between items-baseline">
-                  <span className="text-[11px] text-[#B0B0B0] font-medium uppercase tracking-wider">Costo (16 Abr - 10 May)</span>
-                  <span className="text-lg text-[#39FF14] font-black tracking-wider shadow-[#39FF14]/20">$280.000</span>
-                </div>
-                <div className="flex justify-between items-baseline pt-2 border-t border-[#2A2A2A]">
-                  <span className="text-[9px] text-[#424242] font-medium uppercase tracking-wider">Costo (11 May - 15 May)</span>
-                  <span className="text-xs text-[#B0B0B0] font-bold tracking-wider">$350.000</span>
+                  <span className="text-[11px] text-[#B0B0B0] font-medium uppercase tracking-wider">Costo (11 May - 15 May)</span>
+                  <span className="text-lg text-[#39FF14] font-black tracking-wider shadow-[#39FF14]/20">$350.000</span>
                 </div>
               </div>
 
