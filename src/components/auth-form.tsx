@@ -202,14 +202,26 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogi
     
     setIsResetting(true);
     try {
-      await sendPasswordResetEmail(auth, resetPasswordEmail);
+      const response = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: resetPasswordEmail }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Error desconocido al enviar el correo');
+      }
+
       toast({ title: "Correo enviado", description: "Revisa tu bandeja de entrada o spam para restablecer tu contraseña." });
       setResetPasswordDialogOpen(false);
       setResetPasswordEmail('');
     } catch (error: any) {
+      console.error("Error enviando correo de recuperación:", error);
       toast({ 
         title: "Error", 
-        description: error.message.includes('auth/user-not-found') ? "No hay ninguna cuenta registrada con este correo." : "No se pudo enviar el correo de recuperación.", 
+        description: error.message.includes('auth/user-not-found') ? "No hay ninguna cuenta registrada con este correo." : `No se pudo enviar el correo: ${error.message}`, 
         variant: "destructive" 
       });
     } finally {

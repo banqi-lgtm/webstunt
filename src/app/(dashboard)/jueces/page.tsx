@@ -541,7 +541,7 @@ export default function JuecesPage() {
       {/* HEADER */}
       <header className="flex-none min-h-[90px] py-4 px-4 md:px-8 flex flex-col md:flex-row items-center justify-between z-10 border-b border-[#1A2540] bg-black backdrop-blur-md gap-6">
           <div className="w-full md:w-[60%] flex items-center min-w-0 md:mr-4">
-            <img src="/sponsors/Logosp.png" alt="Sponsors" className="w-full h-auto max-h-[120px] object-contain object-left" />
+            <img src="/sponsors/patro.png" alt="Sponsors" className="w-full h-auto max-h-[120px] object-contain object-left" />
           </div>
 
         <div className="w-full md:w-[40%] flex flex-col items-center justify-center gap-2">
