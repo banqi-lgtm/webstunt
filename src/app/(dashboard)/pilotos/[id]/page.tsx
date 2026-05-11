@@ -175,7 +175,7 @@ export default function PilotDetailPage() {
     }
   };
 
-  const updatePaymentStatus = async (status: 'aprobado' | 'rechazado' | 'en_revision' | 'rechazado_saldo') => {
+  const updatePaymentStatus = async (status: 'aprobado' | 'rechazado' | 'en_revision' | 'rechazado_saldo' | 'pago_dia_evento') => {
     if (!pilot) return;
     setUpdating(true);
     try {
@@ -184,6 +184,8 @@ export default function PilotDetailPage() {
       
       if (status === 'aprobado') {
         toast({ title: 'Pago Aprobado', description: 'El piloto ya tiene acceso a su código QR.' });
+      } else if (status === 'pago_dia_evento') {
+        toast({ title: 'Aprobado Especial', description: 'El piloto tiene acceso al QR pero debe pagar el día del evento.' });
       } else if (status === 'rechazado') {
         toast({ title: 'Pago Rechazado', description: 'El estado de pago ha sido marcado como rechazado.' });
       } else if (status === 'rechazado_saldo') {
@@ -303,7 +305,7 @@ export default function PilotDetailPage() {
   if (!pilot) return null;
 
   const isDocsComplete = pilot.documentos.idUrl && pilot.documentos.placaUrl && pilot.documentos.propiedadUrl && pilot.documentos.soatUrl && pilot.documentos.deportistaUrl;
-  const isPaymentApproved = pilot.estadoPago === 'aprobado';
+  const isPaymentApproved = pilot.estadoPago === 'aprobado' || pilot.estadoPago === 'pago_dia_evento';
   const isAllGreen = isDocsComplete && isPaymentApproved;
 
   const DocumentPreview = ({ title, url, docKey }: { title: string, url?: string, docKey?: string }) => {
@@ -622,6 +624,9 @@ export default function PilotDetailPage() {
                   {pilot.estadoPago === 'aprobado' && (
                     <span className="flex items-center gap-1.5 text-green-400 font-bold text-lg"><CheckCircle2 className="w-5 h-5"/> APROBADO 100%</span>
                   )}
+                  {pilot.estadoPago === 'pago_dia_evento' && (
+                    <span className="flex items-center gap-1.5 text-blue-400 font-bold text-lg"><CheckCircle2 className="w-5 h-5"/> APROBADO - PAGO DÍA DEL EVENTO</span>
+                  )}
                   {pilot.estadoPago === 'en_revision' && (
                     <span className="flex items-center gap-1.5 text-yellow-400 font-bold text-lg"><Clock className="w-5 h-5"/> EN REVISIÓN INICIAL</span>
                   )}
@@ -719,13 +724,23 @@ export default function PilotDetailPage() {
                     </Dialog>
 
                     {pilot.estadoPago === 'en_revision' && (
-                      <Button 
-                        onClick={() => updatePaymentStatus('aprobado')} 
-                        disabled={updating}
-                        className="bg-green-600 hover:bg-green-500 text-white w-full sm:w-auto"
-                      >
-                        <CheckCircle2 className="w-4 h-4 mr-1" /> Aprobar 100%
-                      </Button>
+                      <>
+                        <Button 
+                          onClick={() => updatePaymentStatus('pago_dia_evento')} 
+                          disabled={updating}
+                          variant="outline"
+                          className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10 hover:text-blue-300 w-full sm:w-auto"
+                        >
+                          <CheckCircle2 className="w-4 h-4 mr-1" /> Aprobar - Pago Día del Evento
+                        </Button>
+                        <Button 
+                          onClick={() => updatePaymentStatus('aprobado')} 
+                          disabled={updating}
+                          className="bg-green-600 hover:bg-green-500 text-white w-full sm:w-auto"
+                        >
+                          <CheckCircle2 className="w-4 h-4 mr-1" /> Aprobar 100%
+                        </Button>
+                      </>
                     )}
 
                     {pilot.estadoPago === 'revision_saldo' && (
@@ -740,7 +755,7 @@ export default function PilotDetailPage() {
                   </div>
                 )}
 
-                {pilot.estadoPago === 'aprobado' && (
+                {(pilot.estadoPago === 'aprobado' || pilot.estadoPago === 'pago_dia_evento') && (
                   <Button 
                     onClick={() => updatePaymentStatus('en_revision')} 
                     disabled={updating}

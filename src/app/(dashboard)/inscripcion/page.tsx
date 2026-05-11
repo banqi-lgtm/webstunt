@@ -28,7 +28,7 @@ export default function InscripcionPage() {
   const [uid, setUid] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState<1 | 2 | 3>(1); // 1: Form, 2: Payment, 3: Pending/Success
-  const [estadoPago, setEstadoPago] = useState<'pendiente' | 'en_revision' | 'aprobado' | 'rechazado' | 'saldo_pendiente' | 'revision_saldo' | 'rechazado_saldo'>('pendiente');
+  const [estadoPago, setEstadoPago] = useState<'pendiente' | 'en_revision' | 'aprobado' | 'pago_dia_evento' | 'rechazado' | 'saldo_pendiente' | 'revision_saldo' | 'rechazado_saldo'>('pendiente');
   const [saldoFaltante, setSaldoFaltante] = useState('');
   const [motivoSaldoFaltante, setMotivoSaldoFaltante] = useState('');
   const { toast } = useToast();
@@ -216,7 +216,7 @@ export default function InscripcionPage() {
              setSaldoFaltante(data.saldoFaltante || '');
              setMotivoSaldoFaltante(data.motivoSaldoFaltante || '');
              setDocumentosRechazados(data.documentosRechazados || []);
-             if (data.estadoPago === 'aprobado' || data.estadoPago === 'en_revision' || data.estadoPago === 'rechazado' || data.estadoPago === 'revision_saldo' || data.estadoPago === 'saldo_pendiente' || data.estadoPago === 'rechazado_saldo') {
+             if (data.estadoPago === 'aprobado' || data.estadoPago === 'pago_dia_evento' || data.estadoPago === 'en_revision' || data.estadoPago === 'rechazado' || data.estadoPago === 'revision_saldo' || data.estadoPago === 'saldo_pendiente' || data.estadoPago === 'rechazado_saldo') {
                 setStep(3);
              } else {
                 setStep(1); // pendiente o borrador
@@ -337,7 +337,7 @@ export default function InscripcionPage() {
     setIsLoading(true);
 
     // Validación estricta final de cupos antes de guardar
-    const limits: { [key: string]: number } = { open: 20, '2t': 15, '4t': 15, alto: 15 };
+    const limits: { [key: string]: number } = { open: 30, '2t': 15, '4t': 15, alto: 15 };
     for (const cat of categorias) {
       if (limits[cat] !== undefined && categoryCounts[cat] >= limits[cat]) {
         toast({ title: "Cupos Llenos", description: `Lo sentimos, los cupos para la categoría ${cat === '2t' ? '2 TIEMPOS' : cat === '4t' ? '4 TIEMPOS' : cat === 'alto' ? 'ALTO CILINDRAJE' : 'OPEN'} se acaban de llenar.`, variant: "destructive" });
@@ -470,7 +470,7 @@ export default function InscripcionPage() {
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-[#121212]">
-      {mounted && windowSize.width > 0 && estadoPago === 'aprobado' && (
+      {mounted && windowSize.width > 0 && (estadoPago === 'aprobado' || estadoPago === 'pago_dia_evento') && (
         <Confetti 
           width={windowSize.width} 
           height={windowSize.height} 
@@ -526,8 +526,8 @@ export default function InscripcionPage() {
                   1. Categoría <span className="text-[#FF9800] text-[10px] bg-[#FF9800]/10 px-2 py-0.5 rounded border border-[#FF9800]/20 flex items-center gap-1"><AlertTriangle className="w-3 h-3"/> Cupos limitados</span>
                 </Label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('open') ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_15px_rgba(57,255,20,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['open'] || 0) >= 20 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { 
-                    if ((categoryCounts['open'] || 0) >= 20) return;
+                  <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('open') ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_15px_rgba(57,255,20,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['open'] || 0) >= 30 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { 
+                    if ((categoryCounts['open'] || 0) >= 30) return;
                     if (categorias.includes('open')) {
                       setCategorias([]);
                     } else {
@@ -539,7 +539,7 @@ export default function InscripcionPage() {
                     </div>
                     <div className="flex-1">
                       <Label className="font-bold text-white text-sm cursor-pointer notranslate" translate="no">OPEN</Label>
-                      <p className="text-[10px] text-[#B0B0B0] mt-0.5 font-medium">{Math.max(0, 20 - (categoryCounts['open'] || 0))} CUPOS RESTANTES</p>
+                      <p className="text-[10px] text-[#B0B0B0] mt-0.5 font-medium">{Math.max(0, 30 - (categoryCounts['open'] || 0))} CUPOS RESTANTES</p>
                     </div>
                     {categorias.includes('open') && <CheckCircle2 className="w-5 h-5 text-[#39FF14] absolute top-2 right-2" />}
                   </div>
@@ -1104,16 +1104,25 @@ export default function InscripcionPage() {
               </>
             )}
 
-            {estadoPago === 'aprobado' && (
+            {(estadoPago === 'aprobado' || estadoPago === 'pago_dia_evento') && (
               <>
                 <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(34,197,94,0.3)] border border-green-500/30">
                   <CheckCircle2 className="w-12 h-12 text-green-500" />
                 </div>
-                <h2 className="text-3xl font-extrabold text-white mb-2 text-center">¡Inscripción Aprobada!</h2>
+                <h2 className="text-3xl font-extrabold text-white mb-2 text-center">
+                  {estadoPago === 'pago_dia_evento' ? '¡Inscripción Pre-Aprobada!' : '¡Inscripción Aprobada!'}
+                </h2>
                 <h3 className="text-xl font-bold text-green-400 mb-2 text-center">¡Gracias por ser parte de la Copa Stunt 2026!</h3>
-                <p className="text-zinc-400 text-center mb-8">
-                  Presenta este código QR en el ingreso de Plaza Mayor Medellín para validar tu identidad.
-                </p>
+                {estadoPago === 'pago_dia_evento' ? (
+                  <p className="text-orange-400 font-bold text-center mb-8 bg-orange-500/10 p-4 rounded-xl border border-orange-500/30">
+                    Recuerda que debes realizar tu pago el día del evento en la taquilla.<br/>
+                    Presenta este código QR en el ingreso de Plaza Mayor Medellín para validar tu identidad.
+                  </p>
+                ) : (
+                  <p className="text-zinc-400 text-center mb-8">
+                    Presenta este código QR en el ingreso de Plaza Mayor Medellín para validar tu identidad.
+                  </p>
+                )}
                 
                 <div className="bg-white p-6 rounded-2xl shadow-[0_0_40px_rgba(34,197,94,0.3)] mb-8">
                   <QRCode 

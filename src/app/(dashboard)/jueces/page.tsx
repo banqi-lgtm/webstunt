@@ -414,7 +414,7 @@ export default function JuecesPage() {
       
       regSnap.forEach(docSnap => {
         const data = docSnap.data();
-        if (data.uid && data.estadoPago === 'aprobado') {
+        if (data.uid && (data.estadoPago === 'aprobado' || data.estadoPago === 'pago_dia_evento')) {
           const userData = usersMap.get(data.uid) || {};
           fetched.push({
             id: docSnap.id,

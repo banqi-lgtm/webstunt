@@ -148,7 +148,8 @@ export default function PilotosPage() {
     const matchesFilter = filterStatus === 'todos' || 
                           r.estadoPago === filterStatus ||
                           (filterStatus === 'en_revision' && r.estadoPago === 'revision_saldo') ||
-                          (filterStatus === 'pendiente' && r.estadoPago === 'rechazado');
+                          (filterStatus === 'pendiente' && r.estadoPago === 'rechazado') ||
+                          (filterStatus === 'aprobado' && r.estadoPago === 'pago_dia_evento');
     
     return matchesSearch && matchesFilter;
   });
@@ -177,7 +178,7 @@ export default function PilotosPage() {
 
   const countTodos = registrations.length;
   const countEnRevision = registrations.filter(r => r.estadoPago === 'en_revision' || r.estadoPago === 'revision_saldo').length;
-  const countAprobados = registrations.filter(r => r.estadoPago === 'aprobado').length;
+  const countAprobados = registrations.filter(r => r.estadoPago === 'aprobado' || r.estadoPago === 'pago_dia_evento').length;
   const countSinPagar = registrations.filter(r => r.estadoPago === 'pendiente' || r.estadoPago === 'rechazado').length;
   const countDebenSaldo = registrations.filter(r => r.estadoPago === 'saldo_pendiente').length;
 
@@ -281,8 +282,8 @@ export default function PilotosPage() {
                      {/* Pago */}
                      <li className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-lg border border-zinc-800 bg-zinc-900/50 gap-2">
                         <span className="text-zinc-300 font-semibold text-base sm:text-lg">1. Pago de Inscripción</span>
-                        {scannedPilot.estadoPago === 'aprobado' ? (
-                          <span className="flex items-center text-green-400 font-bold text-base sm:text-lg"><CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 mr-1" /> Aprobado</span>
+                        {scannedPilot.estadoPago === 'aprobado' || scannedPilot.estadoPago === 'pago_dia_evento' ? (
+                          <span className="flex items-center text-green-400 font-bold text-base sm:text-lg"><CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 mr-1" /> {scannedPilot.estadoPago === 'pago_dia_evento' ? 'Pago Día Evento' : 'Aprobado'}</span>
                         ) : (
                           <span className="flex items-center text-red-400 font-bold text-base sm:text-lg"><XCircle className="w-5 h-5 sm:w-6 sm:h-6 mr-1" /> Pendiente</span>
                         )}
@@ -322,7 +323,7 @@ export default function PilotosPage() {
                    </ul>
 
                    {/* Acces Permitted Banner */}
-                   {scannedPilot.estadoPago === 'aprobado' && (() => {
+                   {(scannedPilot.estadoPago === 'aprobado' || scannedPilot.estadoPago === 'pago_dia_evento') && (() => {
                         const docs = scannedPilot.documentos || {};
                         const rechazos = scannedPilot.documentosRechazados || [];
                         const docsComplete = docs.idUrl && docs.placaUrl && docs.propiedadUrl && docs.soatUrl && docs.deportistaUrl && rechazos.length === 0;
@@ -434,9 +435,9 @@ export default function PilotosPage() {
                   {filteredRegistrations.map((reg) => (
                     <tr key={reg.id} className="hover:bg-zinc-900/30 transition-colors">
                       <td className="px-6 py-4">
-                        {reg.estadoPago === 'aprobado' && (
-                          <div style={{ color: '#39FF14', backgroundColor: 'rgba(57, 255, 20, 0.1)', borderColor: 'rgba(57, 255, 20, 0.2)', textShadow: '0 0 10px rgba(57, 255, 20, 0.4)' }} className="flex items-center gap-2 px-3 py-1 rounded-full border w-fit">
-                            <CheckCircle2 className="w-4 h-4" /> <span className="font-bold text-xs">APROBADO</span>
+                        {(reg.estadoPago === 'aprobado' || reg.estadoPago === 'pago_dia_evento') && (
+                          <div style={{ color: reg.estadoPago === 'aprobado' ? '#39FF14' : '#60A5FA', backgroundColor: reg.estadoPago === 'aprobado' ? 'rgba(57, 255, 20, 0.1)' : 'rgba(96, 165, 250, 0.1)', borderColor: reg.estadoPago === 'aprobado' ? 'rgba(57, 255, 20, 0.2)' : 'rgba(96, 165, 250, 0.2)', textShadow: reg.estadoPago === 'aprobado' ? '0 0 10px rgba(57, 255, 20, 0.4)' : '0 0 10px rgba(96, 165, 250, 0.4)' }} className="flex items-center gap-2 px-3 py-1 rounded-full border w-fit">
+                            <CheckCircle2 className="w-4 h-4" /> <span className="font-bold text-xs">{reg.estadoPago === 'aprobado' ? 'APROBADO' : 'DÍA EVENTO'}</span>
                           </div>
                         )}
                         {(reg.estadoPago === 'en_revision' || reg.estadoPago === 'revision_saldo') && (
