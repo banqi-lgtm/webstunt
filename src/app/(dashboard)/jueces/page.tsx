@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { collection, getDocs, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { ClipboardList, Search, Play, ShieldAlert, User, Phone, Mail, MapPin, Instagram, Info, Flame, Gamepad2, Star, AlertTriangle } from 'lucide-react';
+import { ClipboardList, Search, Play, ShieldAlert, User, Phone, Mail, MapPin, Instagram, Info, Flame, Gamepad2, Star, AlertTriangle, Edit2, Trophy } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -39,19 +39,29 @@ interface Registration {
   nombres: string;
   apellidos: string;
   numeroIdentificacion: string;
+  documentos?: {
+    deportistaUrl?: string;
+    [key: string]: any;
+  };
   calificaciones?: Record<string, Calificacion>;
 }
 
 // ---------------------------------------------------------------------------
 // DUMMY DATA FALLBACK
 // ---------------------------------------------------------------------------
-const dummyAlto: Registration[] = [
-  {
-    id: 'dummy_alto_1', uid: 'u1', categoria: 'ALTO CILINDRAJE', registradoEl: '', estadoPago: 'aprobado',
-    nombres: 'CAMILO', apellidos: 'RESTREPO', numeroIdentificacion: '10203040',
-    motocicleta: { placa: 'YTX-123', marca: 'YAMAHA', referencia: 'MT09' }
-  }
+
+const SPONSOR_LOGOS = [
+  { src: "/sponsors/Copa Stunt Nitrox Blanco.png", alt: "Copa Stunt", className: "h-8 sm:h-12 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.4)] shrink-0" },
+  { src: "/sponsors/Nitrox Blanco.png", alt: "Nitrox", className: "h-6 sm:h-8 object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.3)] shrink-0" },
+  { src: "/sponsors/Mobil Blanco.png", alt: "Mobil Super", className: "h-6 sm:h-8 object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.3)] shrink-0" },
+  { src: "/sponsors/PKS Blanco.png", alt: "PKS", className: "h-5 sm:h-7 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] shrink-0" },
+  { src: "/sponsors/copa stunt nitrox f2r.png", alt: "F2R", className: "h-6 sm:h-8 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] shrink-0" },
+  { src: "/sponsors/Trakku.png", alt: "Trakku", className: "h-5 sm:h-7 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] shrink-0" },
+  { src: "/sponsors/IRC Blanco.png", alt: "IRC", className: "h-5 sm:h-7 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] shrink-0" },
+  { src: "/sponsors/Fedemoto.png", alt: "Fedemoto", className: "h-5 sm:h-7 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] shrink-0" }
 ];
+
+const dummyAlto: Registration[] = [];
 
 const dummyOpen: Registration[] = [
   {
@@ -101,14 +111,17 @@ const GradingModal = ({
   pilot,
   currentUid,
   onClose,
-  onSaveAndNext
+  onSaveAndNext,
+  initialReadOnly = false
 }: {
   pilot: Registration;
   currentUid: string;
   onClose: () => void;
   onSaveAndNext: (isLastStep: boolean) => void;
+  initialReadOnly?: boolean;
 }) => {
   const [saving, setSaving] = useState(false);
+  const [isReadOnly, setIsReadOnly] = useState(initialReadOnly || false);
   const { toast } = useToast();
   
   const existingScore = pilot.calificaciones?.[currentUid];
@@ -204,8 +217,16 @@ const GradingModal = ({
           </div>
 
           {/* HUD Total Circle */}
-          <div className="relative shrink-0 sm:ml-4 self-end sm:self-auto -mt-6 sm:mt-0">
-             <div className="absolute -inset-2 bg-[#00ff44] blur opacity-20 rounded-full"></div>
+          <div className="relative shrink-0 sm:ml-4 self-end sm:self-auto -mt-6 sm:mt-0 flex items-center gap-3">
+             {isReadOnly && (
+               <button 
+                 onClick={() => setIsReadOnly(false)}
+                 className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-[#00cfff] bg-[#001122] flex items-center justify-center text-[#00cfff] hover:bg-[#00cfff]/20 transition-colors shadow-[0_0_10px_rgba(0,207,255,0.3)] z-50 group/edit"
+                 title="Editar Calificación"
+               >
+                 <Edit2 className="w-4 h-4 group-hover/edit:scale-110 transition-transform" />
+               </button>
+             )}
              <div className="relative w-10 h-10 sm:w-16 sm:h-16 rounded-full border-2 border-[#00ff44] bg-[#001105] flex flex-col items-center justify-center shadow-[inset_0_0_15px_rgba(0,255,68,0.5),0_0_15px_rgba(0,255,68,0.3)]">
                <span className="text-[#00ff44] text-[5px] sm:text-[8px] font-black tracking-widest absolute top-1 sm:top-2 drop-shadow-[0_0_2px_rgba(0,255,68,0.8)]">TOTAL</span>
                <span className="text-lg sm:text-2xl font-black text-[#00ff44] drop-shadow-[0_0_8px_#00ff44] mt-1.5 sm:mt-2 font-mono leading-none">{totalTemp}</span>
@@ -241,6 +262,7 @@ const GradingModal = ({
                     type="number" 
                     min="0"
                     max={crit.max}
+                    disabled={isReadOnly || saving}
                     value={scores[crit.id as keyof typeof scores] === 0 ? '' : scores[crit.id as keyof typeof scores]}
                     onChange={e => handleScoreChange(crit.id, e.target.value)}
                     placeholder="0"
@@ -274,6 +296,7 @@ const GradingModal = ({
                     type="number" 
                     min="0"
                     max={9999}
+                    disabled={isReadOnly || saving}
                     value={scores.error === 0 ? '' : scores.error}
                     onChange={e => handleScoreChange('error', e.target.value)}
                     placeholder="0"
@@ -303,20 +326,22 @@ const GradingModal = ({
           </button>
           
           {/* Metallic separator */}
-          <div className="w-1 h-5 sm:h-8 bg-[#333] border-x border-[#555] rounded-sm relative z-10 shadow-[inset_0_0_5px_rgba(0,0,0,0.8)] flex-none"></div>
+          {!isReadOnly && <div className="w-1 h-5 sm:h-8 bg-[#333] border-x border-[#555] rounded-sm relative z-10 shadow-[inset_0_0_5px_rgba(0,0,0,0.8)] flex-none"></div>}
 
-          <button 
-            onClick={handleConfirm} 
-            disabled={saving} 
-            className="relative z-10 bg-[#1a1a1a] border border-[#666] text-[#e8e8e8] font-black px-2 sm:px-5 py-1.5 sm:py-2 hover:bg-[#2a2a2a] hover:border-[#00ff44] hover:text-[#00ff44] transition-all w-2/3 uppercase tracking-widest text-[8px] sm:text-[10px] shadow-[inset_0_0_15px_rgba(0,0,0,0.8)] flex items-center justify-between"
-            style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))' }}
-          >
-            <div className="flex items-center gap-1 sm:gap-2">
-              <Gamepad2 className="w-3 h-3 sm:w-4 sm:h-4 opacity-70" />
-              <span>{saving ? 'Guardando...' : 'Confirmar'}</span>
-            </div>
-            <Star className="w-3 h-3 sm:w-4 sm:h-4 opacity-50 fill-current hidden sm:block" />
-          </button>
+          {!isReadOnly && (
+            <button 
+              onClick={handleConfirm} 
+              disabled={saving} 
+              className="relative z-10 bg-[#1a1a1a] border border-[#666] text-[#e8e8e8] font-black px-2 sm:px-5 py-1.5 sm:py-2 hover:bg-[#2a2a2a] hover:border-[#00ff44] hover:text-[#00ff44] transition-all w-2/3 uppercase tracking-widest text-[8px] sm:text-[10px] shadow-[inset_0_0_15px_rgba(0,0,0,0.8)] flex items-center justify-between"
+              style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))' }}
+            >
+              <div className="flex items-center gap-1 sm:gap-2">
+                <Gamepad2 className="w-3 h-3 sm:w-4 sm:h-4 opacity-70" />
+                <span>{saving ? 'Guardando...' : 'Confirmar'}</span>
+              </div>
+              <Star className="w-3 h-3 sm:w-4 sm:h-4 opacity-50 fill-current hidden sm:block" />
+            </button>
+          )}
         </div>
 
       </div>
@@ -332,6 +357,7 @@ export default function JuecesPage() {
   const { toast } = useToast();
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isOfficialJudge, setIsOfficialJudge] = useState(false);
   const [currentUid, setCurrentUid] = useState<string | null>(null);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
@@ -347,6 +373,8 @@ export default function JuecesPage() {
   // Wizard State
   const [activePilotIndex, setActivePilotIndex] = useState<number | null>(null);
   const [activeCategoryList, setActiveCategoryList] = useState<Registration[]>([]);
+  const [isModalReadOnly, setIsModalReadOnly] = useState(false);
+  const [isPodiumOpen, setIsPodiumOpen] = useState(false);
 
   const handleRoleChange = async (userId: string, newRole: string) => {
     try {
@@ -375,6 +403,7 @@ export default function JuecesPage() {
         
         const isSuperAdmin = ['wg12435@hotmail.com', 'walter12345@hotmail.com'].includes(user.email || '') || interfaces.includes('admin');
         setIsAdmin(isSuperAdmin);
+        setIsOfficialJudge(data?.rol === 'juez');
         
         if (isSuperAdmin || interfaces.includes('jueces')) {
           setHasAccess(true);
@@ -439,13 +468,14 @@ export default function JuecesPage() {
             nombres: userData.nombres || 'Desconocido',
             apellidos: userData.apellidos || '',
             numeroIdentificacion: userData.numeroIdentificacion || 'N/A',
+            documentos: data.documentos || {},
             calificaciones: califMap.get(docSnap.id) || {}
           });
         }
       });
       
-      // Orden aleatorio de pilotos
-      fetched.sort(() => Math.random() - 0.5);
+      // Orden fijo de pilotos (por número de identificación)
+      fetched.sort((a, b) => a.numeroIdentificacion.localeCompare(b.numeroIdentificacion));
 
       // Inject Dummy Data if empty to ensure design is visible
       const openCount = fetched.filter(f => {
@@ -497,19 +527,34 @@ export default function JuecesPage() {
   const displayCategories = ['OPEN', '2 TIEMPOS', '4 TIEMPOS', 'ALTO CILINDRAJE'];
 
   const handleStartSequential = (cat: string) => {
+    if (!isOfficialJudge) {
+      toast({ title: 'Solo Lectura', description: 'Solo los jueces oficiales pueden calificar.', variant: 'destructive' });
+      return;
+    }
     const pilots = groupedByCategory[cat] || [];
     if (pilots.length === 0) {
       toast({ title: 'Sin pilotos', description: `No hay pilotos inscritos en ${cat}.` });
       return;
     }
     setActiveCategoryList(pilots);
-    setActivePilotIndex(0);
+    
+    // Find first ungraded pilot
+    const firstUngradedIndex = pilots.findIndex(p => !(p.calificaciones && currentUid && p.calificaciones[currentUid]));
+    setActivePilotIndex(firstUngradedIndex !== -1 ? firstUngradedIndex : 0);
+    setIsModalReadOnly(false);
   };
 
   const handleEvaluateSpecific = (cat: string, index: number) => {
+    if (!isOfficialJudge) {
+      toast({ title: 'Solo Lectura', description: 'Solo los jueces oficiales pueden calificar.', variant: 'destructive' });
+      return;
+    }
     const pilots = groupedByCategory[cat] || [];
     setActiveCategoryList(pilots);
     setActivePilotIndex(index);
+    const pilot = pilots[index];
+    const isGraded = !!(pilot.calificaciones && currentUid && pilot.calificaciones[currentUid]);
+    setIsModalReadOnly(isGraded);
   };
 
   const handleWizardNext = () => {
@@ -739,7 +784,7 @@ export default function JuecesPage() {
                               <tr 
                                 key={pilot.id} 
                                 onClick={() => handleEvaluateSpecific(cat, index)}
-                                className="hover:bg-[#1A2540] transition-colors cursor-pointer group"
+                                className={`transition-colors group ${isOfficialJudge ? 'cursor-pointer hover:bg-[#1A2540]' : 'cursor-default'}`}
                               >
                                 <td className="px-2 py-2">
                                   <span className="font-mono text-[#888888] group-hover:text-white transition-colors">
@@ -775,11 +820,11 @@ export default function JuecesPage() {
                   <div className="p-3 bg-[#050B14]/50 border-t border-[#1A2540] flex-none">
                     <button 
                       onClick={() => handleStartSequential(cat)}
-                      disabled={pilots.length === 0}
+                      disabled={pilots.length === 0 || !isOfficialJudge}
                       className="w-full bg-[#00ff88] hover:bg-[#00e67a] disabled:bg-[#1A2540] disabled:text-[#555] disabled:shadow-none text-[#050B14] font-black text-xs h-9 rounded-lg flex items-center justify-center uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(0,255,136,0.4)]"
                     >
                       <Play className="w-3 h-3 mr-2 fill-current" />
-                      INICIAR
+                      {isOfficialJudge ? 'INICIAR' : 'SOLO LECTURA'}
                     </button>
                   </div>
 
@@ -812,6 +857,12 @@ export default function JuecesPage() {
                   {cat}
                 </button>
               ))}
+              <button 
+                onClick={() => setIsPodiumOpen(true)}
+                className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all bg-[#FFD700]/10 text-[#FFD700] border border-[#FFD700] hover:bg-[#FFD700]/20 hover:scale-105 shadow-[0_0_15px_rgba(255,215,0,0.3)] flex items-center gap-1.5 ml-2 shrink-0"
+              >
+                <Trophy className="w-3 h-3" /> PODIO
+              </button>
             </div>
             <div className="flex items-center gap-3 flex-none pl-2 md:pl-0 border-l md:border-l-0 border-[#1A2540]">
               <span className="text-[#00cfff] font-mono text-[10px] tracking-[0.2em] uppercase font-bold drop-shadow-[0_0_5px_rgba(0,207,255,0.5)] whitespace-nowrap">DATA CONSOLE</span>
@@ -954,16 +1005,188 @@ export default function JuecesPage() {
       </section>
 
       {/* RENDERIZADO DEL MODAL */}
-      {activePilotIndex !== null && (
+      {activePilotIndex !== null && currentUid && (
         <GradingModal 
-          key={activeCategoryList[activePilotIndex].id}
+          key={`${activeCategoryList[activePilotIndex].id}-${isModalReadOnly}`}
           pilot={activeCategoryList[activePilotIndex]}
           currentUid={currentUid}
+          initialReadOnly={isModalReadOnly}
           onClose={() => setActivePilotIndex(null)}
           onSaveAndNext={handleWizardNext}
         />
       )}
 
+      {/* RENDERIZADO DEL PODIO */}
+      <Dialog open={isPodiumOpen} onOpenChange={setIsPodiumOpen}>
+        <DialogContent className="max-w-4xl bg-[#0a0a0f] border-[#00cfff]/30 border shadow-[0_0_80px_rgba(0,207,255,0.15)] p-0 overflow-hidden sm:rounded-[2rem]">
+          <DialogTitle className="sr-only">Podio Oficial - Resultados</DialogTitle>
+          <div className="relative w-full p-3 sm:p-5 flex flex-col items-center">
+            {/* Background elements */}
+            <div className="absolute inset-0 bg-[#0a0a0f]" style={{ backgroundImage: 'radial-gradient(rgba(0, 207, 255, 0.15) 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,207,255,0.15)_0%,rgba(10,10,15,0.95)_80%)]"></div>
+            <div className="absolute inset-0 shadow-[inset_0_0_100px_rgba(0,0,0,1)] pointer-events-none z-0"></div>
+            
+            {/* Ambient Particles */}
+            <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-[#00cfff]/20 rounded-full blur-[60px] pointer-events-none z-0"></div>
+            <div className="absolute top-1/3 right-1/4 w-40 h-40 bg-[#FFD700]/10 rounded-full blur-[80px] pointer-events-none z-0"></div>
+            <div className="absolute bottom-1/4 left-1/2 w-48 h-48 bg-[#CD7F32]/10 rounded-full blur-[100px] pointer-events-none z-0"></div>
+
+            {/* Zone 1: Sponsors (10% height roughly) */}
+            <div className="relative z-20 w-full flex justify-center mt-2 mb-4 sm:mb-8">
+              <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 bg-black/50 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-2 sm:py-3 w-[95%] sm:w-[90%] shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+                {SPONSOR_LOGOS.map((logo, idx) => (
+                  <div key={idx} className="relative group flex items-center justify-center">
+                    <div className="absolute inset-0 bg-white/20 blur-md rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <img src={logo.src} alt={logo.alt} className={`${logo.className} drop-shadow-[0_0_8px_rgba(255,255,255,0.2)] relative z-10 transition-transform hover:scale-110 scale-75 sm:scale-90 origin-center`} />
+                  </div>
+                ))}
+              </div>
+              
+              {/* Category Absolute Top Right (Below sponsors visually, fixed position) */}
+              <div className="absolute -bottom-4 right-0 sm:right-4 flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-[0_0_15px_rgba(0,207,255,0.2)]">
+                 <span className="text-white text-[9px] sm:text-[11px] font-mono tracking-widest font-bold">PODIO OFICIAL</span>
+                 <span className="text-[#00cfff] text-[9px] sm:text-[11px] font-black tracking-widest drop-shadow-[0_0_5px_rgba(0,207,255,0.8)]">/ {masterCategory}</span>
+              </div>
+            </div>
+
+            {/* Zone 2: Main Title (20% height) */}
+            <div className="relative z-20 w-full flex justify-center mb-6 sm:mb-10">
+              <h2 className="text-2xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-gray-500 tracking-[0.2em] sm:tracking-[0.3em] uppercase text-center" style={{ textShadow: '0 0 15px rgba(0, 207, 255, 0.4), 0 4px 4px rgba(0,0,0,0.8)' }}>
+                COPA STUNT F2R NITROX
+              </h2>
+            </div>
+
+            {(() => {
+              // Calculate top 3
+              const masterPilots = groupedByCategory[masterCategory] || [];
+              const gradedJudgeUids = Array.from(new Set(
+                masterPilots.flatMap(p => Object.keys(p.calificaciones || {}))
+              ));
+              const displayJudgeUids = Array.from(new Set([...allJudgeUids, ...gradedJudgeUids])).length > 0 ? Array.from(new Set([...allJudgeUids, ...gradedJudgeUids])) : ['juez_1', 'juez_2', 'juez_3'];
+
+              const sortedForPodium = [...masterPilots].map(pilot => {
+                const califs = pilot.calificaciones || {};
+                const globalTotal = displayJudgeUids.reduce((sum, uid) => sum + (califs[uid]?.total || 0), 0);
+                return { ...pilot, _globalTotal: globalTotal };
+              }).sort((a, b) => b._globalTotal - a._globalTotal).slice(0, 3);
+
+              if (sortedForPodium.length === 0 || sortedForPodium[0]._globalTotal === 0) {
+                 return <div className="text-[#888888] font-mono py-16 relative z-10 text-center w-full">NO HAY RESULTADOS AÚN</div>;
+              }
+
+              const firstPlace = sortedForPodium[0];
+              const secondPlace = sortedForPodium[1];
+              const thirdPlace = sortedForPodium[2];
+
+              // Helper for Pilot Avatar
+              const PilotAvatar = ({ pilot, color, place }: { pilot: any, color: string, place: string }) => {
+                 if (!pilot) return <div className="w-24 sm:w-40 flex flex-col items-center justify-end relative z-10"></div>;
+                 
+                 // Render Ring styles based on placement
+                 const getRingStyle = () => {
+                    if (place === '1ST') return `ring-4 ring-offset-4 ring-offset-[#0a0a0f] ring-[#FFD700] shadow-[0_0_30px_rgba(255,215,0,0.6)] border-dashed border-2 border-white`;
+                    if (place === '2ND') return `ring-[6px] ring-offset-2 ring-offset-[#0a0a0f] ring-[#00cfff]/50 shadow-[0_0_25px_rgba(0,207,255,0.4)] animate-[spin_10s_linear_infinite] border-y-4 border-[#00cfff]`;
+                    if (place === '3RD') return `ring-2 ring-offset-2 ring-offset-[#0a0a0f] ring-[#CD7F32] shadow-[0_0_20px_rgba(205,127,50,0.4)] border-dotted border-[4px] border-[#CD7F32]/80`;
+                 };
+
+                 const getDecoratorColor = () => {
+                   if (place === '1ST') return "text-[#FFD700]";
+                   if (place === '2ND') return "text-[#00cfff]";
+                   return "text-[#CD7F32]";
+                 }
+
+                 return (
+                   <div className="w-full flex flex-col items-center justify-end relative z-10 group">
+                      {/* Photo Container */}
+                      <div className="relative mb-3 sm:mb-4 flex justify-center items-center">
+                         {place === '1ST' && (
+                           <div className="absolute -top-8 sm:-top-12 z-40">
+                             <Trophy className="w-10 h-10 sm:w-14 sm:h-14 text-[#FFD700] drop-shadow-[0_0_15px_rgba(255,215,0,1)] animate-pulse" />
+                           </div>
+                         )}
+                         <div className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-[#050B14] z-20 ${place !== '2ND' ? getRingStyle() : ''}`}>
+                            {pilot.documentos?.deportistaUrl ? (
+                              <img src={pilot.documentos.deportistaUrl} alt="Pilot" className="w-full h-full object-cover object-top" />
+                            ) : (
+                              <User className="w-8 h-8 sm:w-10 sm:h-10 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[#555]" />
+                            )}
+                         </div>
+                         {/* Spin layer for 2nd place */}
+                         {place === '2ND' && (
+                           <div className={`absolute inset-[-6px] rounded-full z-10 pointer-events-none ${getRingStyle()}`}></div>
+                         )}
+                      </div>
+
+                      {/* Info Container */}
+                      <div className="text-center z-10 w-full px-1 flex flex-col items-center">
+                        <div className="text-[9px] sm:text-[11px] font-mono mb-1 opacity-70" style={{ color }}>#{pilot.numeroIdentificacion}</div>
+                        
+                        {/* Name with Decorators */}
+                        <div className="flex items-center gap-1.5 sm:gap-2 justify-center w-full">
+                           <span className={`text-[9px] sm:text-[10px] ${getDecoratorColor()} drop-shadow-[0_0_5px_currentColor]`}>▐</span>
+                           <span className="text-[10px] sm:text-sm font-black text-white uppercase truncate tracking-wider drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] leading-tight">{pilot.nombres.split(' ')[0]}</span>
+                           <span className={`text-[9px] sm:text-[10px] ${getDecoratorColor()} drop-shadow-[0_0_5px_currentColor]`}>▌</span>
+                        </div>
+                        
+                        <div className="mt-1 sm:mt-1.5 text-sm sm:text-xl font-black font-mono drop-shadow-[0_0_10px_currentColor]" style={{ color }}>
+                           {pilot._globalTotal} <span className="text-[7px] sm:text-[9px] opacity-60">PTS</span>
+                        </div>
+                      </div>
+                   </div>
+                 );
+              };
+
+              // Zone 3: Podium Container using Grid for strict isolation (70% height)
+              return (
+                <div className="relative z-10 w-full max-w-3xl grid grid-cols-3 gap-2 sm:gap-4 items-end pb-4 sm:pb-6">
+                   
+                   {/* 2nd Place Column */}
+                   <div className="flex flex-col items-center justify-end w-full relative z-20">
+                     <PilotAvatar pilot={secondPlace} color="#00cfff" place="2ND" />
+                     {/* Crystal Volume separated by margin mt-5 */}
+                     <div className="mt-4 sm:mt-5 w-full h-[70px] sm:h-[110px] bg-white/[0.03] backdrop-blur-xl border-t-[4px] border-l border-r border-[#00cfff]/60 relative flex flex-col items-center justify-start pt-2 sm:pt-4 rounded-t-xl overflow-hidden shadow-[0_-5px_30px_rgba(0,207,255,0.15)] group">
+                       <div className="absolute inset-0 bg-gradient-to-t from-[#00cfff]/20 via-transparent to-transparent"></div>
+                       <div className="absolute top-0 w-full h-1/2 bg-gradient-to-b from-white/10 to-transparent"></div>
+                       <span className="text-3xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-[#00cfff] drop-shadow-[0_0_15px_rgba(0,207,255,0.8)] relative z-10">2</span>
+                       <div className="absolute bottom-0 w-full h-[2px] bg-[#00cfff] shadow-[0_0_20px_10px_rgba(0,207,255,0.5)]"></div>
+                     </div>
+                   </div>
+
+                   {/* 1st Place Column */}
+                   <div className="flex flex-col items-center justify-end w-full relative z-30">
+                     <PilotAvatar pilot={firstPlace} color="#FFD700" place="1ST" />
+                     {/* Crystal Volume separated by margin mt-5 */}
+                     <div className="mt-4 sm:mt-5 w-full h-[100px] sm:h-[160px] bg-white/[0.05] backdrop-blur-xl border-t-[4px] border-l border-r border-[#FFD700]/80 relative flex flex-col items-center justify-start pt-2 sm:pt-4 rounded-t-xl overflow-hidden shadow-[0_-10px_50px_rgba(255,215,0,0.25)]">
+                       <div className="absolute inset-0 bg-gradient-to-t from-[#FFD700]/25 via-transparent to-transparent"></div>
+                       <div className="absolute top-0 w-full h-1/2 bg-gradient-to-b from-white/15 to-transparent"></div>
+                       <span className="text-4xl sm:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-[#FFD700] drop-shadow-[0_0_20px_rgba(255,215,0,1)] relative z-10">1</span>
+                       <div className="absolute bottom-0 w-full h-[3px] bg-[#FFD700] shadow-[0_0_30px_15px_rgba(255,215,0,0.6)]"></div>
+                     </div>
+                   </div>
+
+                   {/* 3rd Place Column */}
+                   <div className="flex flex-col items-center justify-end w-full relative z-10">
+                     <PilotAvatar pilot={thirdPlace} color="#CD7F32" place="3RD" />
+                     {/* Crystal Volume separated by margin mt-5 */}
+                     <div className="mt-4 sm:mt-5 w-full h-[50px] sm:h-[80px] bg-white/[0.02] backdrop-blur-xl border-t-[4px] border-l border-r border-[#CD7F32]/60 relative flex flex-col items-center justify-start pt-2 sm:pt-4 rounded-t-xl overflow-hidden shadow-[0_-5px_25px_rgba(205,127,50,0.15)]">
+                       <div className="absolute inset-0 bg-gradient-to-t from-[#CD7F32]/20 via-transparent to-transparent"></div>
+                       <div className="absolute top-0 w-full h-1/2 bg-gradient-to-b from-white/5 to-transparent"></div>
+                       <span className="text-2xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-[#CD7F32] drop-shadow-[0_0_10px_rgba(205,127,50,0.8)] relative z-10">3</span>
+                       <div className="absolute bottom-0 w-full h-[2px] bg-[#CD7F32] shadow-[0_0_15px_8px_rgba(205,127,50,0.5)]"></div>
+                     </div>
+                   </div>
+                   
+                   {/* Floor Gradient Reflection */}
+                   <div className="absolute bottom-0 left-[0%] w-full h-16 sm:h-24 bg-gradient-to-t from-black via-[#0a0a0f]/80 to-transparent z-40 pointer-events-none"></div>
+                   
+                   {/* Connecting Energy Lines */}
+                   <div className="absolute bottom-6 sm:bottom-10 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00cfff]/30 to-transparent z-0"></div>
+                </div>
+              );
+            })()}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
