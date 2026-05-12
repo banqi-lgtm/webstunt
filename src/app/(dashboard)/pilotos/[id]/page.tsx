@@ -242,8 +242,20 @@ export default function PilotDetailPage() {
         motivoSaldoFaltante: finalMotivo
       });
       setPilot({ ...pilot, estadoPago: 'saldo_pendiente', saldoFaltante: saldoAmount, motivoSaldoFaltante: finalMotivo });
+      
+      fetch('/api/send-balance-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: pilot.email,
+          nombre: pilot.nombres,
+          saldoAmount: saldoAmount,
+          motivo: finalMotivo
+        })
+      }).catch(err => console.error('Error al enviar correo de saldo:', err));
+
       setIsSaldoDialogOpen(false);
-      toast({ title: 'Saldo Reportado', description: `Se ha notificado al piloto que debe $${saldoAmount}.` });
+      toast({ title: 'Saldo Reportado', description: `Se ha notificado al piloto por correo que debe $${saldoAmount}.` });
     } catch (e) {
       console.error(e);
       toast({ title: 'Error', description: 'No se pudo reportar el saldo.', variant: 'destructive' });
