@@ -182,14 +182,38 @@ export default function PilotDetailPage() {
       await updateDoc(doc(db, 'event_registrations', pilot.id), { estadoPago: status });
       setPilot({ ...pilot, estadoPago: status });
       
-      if (status === 'aprobado') {
-        toast({ title: 'Pago Aprobado', description: 'El piloto ya tiene acceso a su código QR.' });
-      } else if (status === 'pago_dia_evento') {
-        toast({ title: 'Aprobado Especial', description: 'El piloto tiene acceso al QR pero debe pagar el día del evento.' });
-      } else if (status === 'rechazado') {
-        toast({ title: 'Pago Rechazado', description: 'El estado de pago ha sido marcado como rechazado.' });
-      } else if (status === 'rechazado_saldo') {
-        toast({ title: 'Saldo Rechazado', description: 'El comprobante de saldo ha sido rechazado.' });
+      if (status === 'aprobado' || status === 'pago_dia_evento') {
+        fetch('/api/send-approval-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: pilot.email,
+            nombre: pilot.nombres,
+            estadoPago: status
+          })
+        }).catch(err => console.error('Error al enviar correo:', err));
+        
+        if (status === 'aprobado') {
+          toast({ title: 'Pago Aprobado', description: 'El piloto ya tiene acceso a su código QR y se envió el correo.' });
+        } else {
+          toast({ title: 'Aprobado Especial', description: 'El piloto debe pagar el día del evento. Se envió correo.' });
+        }
+      } else if (status === 'rechazado' || status === 'rechazado_saldo') {
+        fetch('/api/send-rejection-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: pilot.email,
+            nombre: pilot.nombres,
+            estadoPago: status
+          })
+        }).catch(err => console.error('Error al enviar correo de rechazo:', err));
+
+        if (status === 'rechazado') {
+          toast({ title: 'Pago Rechazado', description: 'El estado de pago ha sido marcado como rechazado. Se envió correo.' });
+        } else {
+          toast({ title: 'Saldo Rechazado', description: 'El comprobante de saldo ha sido rechazado. Se envió correo.' });
+        }
       } else {
         toast({ title: 'Revertido', description: 'El pago ha vuelto a revisión.' });
       }
