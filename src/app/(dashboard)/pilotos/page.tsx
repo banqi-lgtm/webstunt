@@ -117,7 +117,7 @@ export default function PilotosPage() {
           categoria: regData.categoria || 'N/A',
           motocicleta: regData.motocicleta || { placa: 'N/A', marca: 'N/A', referencia: 'N/A' },
           registradoEl: regData.registradoEl || userData.createdAt || new Date().toISOString(),
-          estadoPago: regData.estadoPago || 'pendiente',
+          estadoPago: (regData.estadoPago === 'borrador' ? 'pendiente' : regData.estadoPago) || 'pendiente',
           nombres: userData.nombres || 'Desconocido',
           apellidos: userData.apellidos || '',
           email: userData.email || 'N/A',
