@@ -5,3 +5,9 @@ runConfig:
   # Increase this value if you'd like to automatically spin up
   # more instances in response to increased traffic.
   maxInstances: 1
+
+env:
+  - variable: EMAIL_USER
+    value: "copastuntfrnitrox@gmail.com"
+  - variable: EMAIL_PASS
+    value: "ymti assu pjkx kngm"
