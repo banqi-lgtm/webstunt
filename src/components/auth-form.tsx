@@ -221,7 +221,9 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogi
       console.error("Error enviando correo de recuperación:", error);
       toast({ 
         title: "Error", 
-        description: error.message.includes('auth/user-not-found') ? "No hay ninguna cuenta registrada con este correo." : `No se pudo enviar el correo: ${error.message}`, 
+        description: error.message.includes('auth/user-not-found') || error.message.includes('user-not-found') 
+          ? "No hay ninguna cuenta registrada con este correo." 
+          : `No se pudo enviar el correo: ${error.message}`, 
         variant: "destructive" 
       });
     } finally {

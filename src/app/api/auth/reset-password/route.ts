@@ -166,10 +166,13 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error('Error en API de reset-password:', error);
     
-    if (error.code === 'auth/user-not-found') {
+    // El SDK de Firebase Admin lanza "INTERNAL ASSERT FAILED" si el correo no existe
+    // o si hay un problema con el dominio autorizado. Lo mapeamos a user-not-found
+    // para que el frontend pueda mostrar el mensaje correcto al usuario.
+    if (error.code === 'auth/user-not-found' || error.message?.includes('INTERNAL ASSERT FAILED')) {
       return NextResponse.json({ error: 'auth/user-not-found' }, { status: 404 });
     }
     
-    return NextResponse.json({ error: 'Error al enviar el correo de recuperación' }, { status: 500 });
+    return NextResponse.json({ error: `Error al enviar el correo de recuperación: ${error.message}` }, { status: 500 });
   }
 }
