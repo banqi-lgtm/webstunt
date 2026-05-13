@@ -20,8 +20,10 @@ const SPONSOR_LOGOS = [
 export default function Home() {
   const [isLoginState, setIsLoginState] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isWhatsappModalOpen, setIsWhatsappModalOpen] = useState(false);
 
   useEffect(() => {
+    setIsWhatsappModalOpen(true);
     if (typeof window !== 'undefined' && window.location.hash === '#login') {
       setIsLoginState(true);
     }
@@ -371,6 +373,25 @@ export default function Home() {
                 className="w-full bg-[#39FF14] hover:bg-[#00C853] text-black font-black uppercase tracking-wider h-12 rounded-xl shadow-[0_0_15px_rgba(57,255,20,0.2)]"
               >
                 Entendido
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* WhatsApp Fallback Modal */}
+      <Dialog open={isWhatsappModalOpen} onOpenChange={setIsWhatsappModalOpen}>
+        <DialogContent className="sm:max-w-[450px] w-[95vw] bg-black border-2 border-[#39FF14] shadow-[0_0_40px_rgba(57,255,20,0.4)] text-white p-0 overflow-hidden rounded-2xl">
+          <DialogTitle className="sr-only">Aviso Importante WhatsApp</DialogTitle>
+          <div className="relative w-full h-auto flex flex-col items-center">
+            {/* The user will place the image at /whatsapp-falla.jpg */}
+            <img src="/sponsors/WhatsApp%20Image%202026-05-13%20at%2009.31.52.jpeg" alt="WhatsApp presentando fallas" className="w-full h-auto object-contain" />
+            <div className="w-full p-4 bg-[#0a0a0f] border-t border-zinc-800">
+              <Button 
+                onClick={() => setIsWhatsappModalOpen(false)} 
+                className="w-full bg-[#39FF14] hover:bg-[#2CE50F] text-black font-black uppercase tracking-wider h-12 rounded-xl shadow-[0_0_15px_rgba(57,255,20,0.2)]"
+              >
+                ENTENDIDO
               </Button>
             </div>
           </div>
