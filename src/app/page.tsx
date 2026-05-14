@@ -385,14 +385,17 @@ export default function Home() {
           <DialogTitle className="sr-only">Aviso Importante WhatsApp</DialogTitle>
           <div className="relative w-full h-auto flex flex-col items-center">
             {/* The user will place the image at /whatsapp-falla.jpg */}
-            <img src="/sponsors/WhatsApp%20Image%202026-05-13%20at%2009.31.52.jpeg" alt="WhatsApp presentando fallas" className="w-full h-auto object-contain" />
+            <img src="/sponsors/Gemini_Generated_Image_d9675cd9675cd967.png" alt="WhatsApp presentando fallas" className="w-full h-auto object-contain" />
             <div className="w-full p-4 bg-[#0a0a0f] border-t border-zinc-800">
-              <Button 
+              <a 
+                href="https://wa.me/573208185796"
+                target="_blank"
+                rel="noopener noreferrer"
                 onClick={() => setIsWhatsappModalOpen(false)} 
-                className="w-full bg-[#39FF14] hover:bg-[#2CE50F] text-black font-black uppercase tracking-wider h-12 rounded-xl shadow-[0_0_15px_rgba(57,255,20,0.2)]"
+                className="w-full flex items-center justify-center bg-[#39FF14] hover:bg-[#2CE50F] text-black font-black uppercase tracking-wider h-12 rounded-xl shadow-[0_0_15px_rgba(57,255,20,0.2)] transition-colors"
               >
-                ENTENDIDO
-              </Button>
+                COMUNÍCATE AQUÍ
+              </a>
             </div>
           </div>
         </DialogContent>
