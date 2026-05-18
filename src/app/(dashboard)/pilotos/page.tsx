@@ -31,6 +31,7 @@ interface Registration {
   email: string;
   numeroIdentificacion?: string;
   telefono?: string;
+  ciudad?: string;
   prioridadRechazado?: boolean;
 }
 
@@ -123,6 +124,7 @@ export default function PilotosPage() {
           email: userData.email || 'N/A',
           numeroIdentificacion: userData.numeroIdentificacion || regData.numeroIdentificacion || 'N/A',
           telefono: userData.telefono || regData.telefono || 'N/A',
+          ciudad: userData.ciudad || regData.ciudad || 'Medellin',
           prioridadRechazado: regData.prioridadRechazado || false,
         });
       });
@@ -156,18 +158,26 @@ export default function PilotosPage() {
   });
 
   const exportToExcel = () => {
+    const getGender = (name: string) => {
+      if (!name) return 'Masculino';
+      const firstName = name.split(' ')[0].toLowerCase();
+      const femaleList = ['maria', 'maría', 'ana', 'carmen', 'isabel', 'ruth', 'luz', 'flor', 'karen', 'jenny', 'yenny', 'yuri', 'marisol', 'shirley', 'lady', 'leidy', 'astrid', 'ingrid', 'judith', 'gladys', 'doris', 'miriam', 'myriam', 'kelly', 'angie', 'lizeth', 'sharon', 'evelyn', 'gloria', 'diana'];
+      if (firstName.endsWith('a') || femaleList.includes(firstName)) {
+        return 'Femenino';
+      }
+      return 'Masculino';
+    };
+
     const data = filteredRegistrations.map(reg => ({
-      "ID": reg.id,
-      "Identificación": reg.numeroIdentificacion || 'N/A',
-      "Nombres": reg.nombres,
-      "Apellidos": reg.apellidos,
-      "Teléfono": reg.telefono || 'N/A',
-      "Email": reg.email,
-      "Estado Pago": reg.estadoPago.toUpperCase().replace('_', ' '),
-      "Categoría": Array.isArray(reg.categoria) ? reg.categoria.join(', ') : reg.categoria,
-      "Placa": reg.motocicleta?.placa || 'N/A',
-      "Marca": reg.motocicleta?.marca || 'N/A',
-      "Fecha Registro": new Date(reg.registradoEl).toLocaleDateString()
+      "idDocument": reg.numeroIdentificacion || 'N/A',
+      "company": "COPA STUNT",
+      "name": reg.nombres,
+      "lastName": reg.apellidos,
+      "country": "CO",
+      "city": reg.ciudad || "Medellin",
+      "emergencyPhone": reg.telefono || 'N/A',
+      "gender": getGender(reg.nombres),
+      "type": "Deportista"
     }));
     
     const worksheet = XLSX.utils.json_to_sheet(data);

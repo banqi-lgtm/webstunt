@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { User, CalendarDays, LogOut, Shield, Users, Menu, Star, LayoutDashboard, Search, FileText, CheckCircle, XCircle, Clock, ShieldCheck, Flag, Settings, Smartphone, Bell, Video, ClipboardList } from 'lucide-react';
+import { User, CalendarDays, LogOut, Shield, Users, Menu, Star, LayoutDashboard, Search, FileText, CheckCircle, XCircle, Clock, ShieldCheck, Flag, Settings, Smartphone, Bell, Video, ClipboardList, QrCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { auth, db } from '@/lib/firebase';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
@@ -22,6 +22,7 @@ export function MainNav() {
   const [hasStaffAccess, setHasStaffAccess] = useState(false);
   const [hasWhatsAppAccess, setHasWhatsAppAccess] = useState(false);
   const [hasJuecesAccess, setHasJuecesAccess] = useState(false);
+  const [hasQrAccess, setHasQrAccess] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -53,6 +54,11 @@ export function MainNav() {
             } else {
               setHasJuecesAccess(false);
             }
+            if (isSuperAdmin || interfaces.includes('qr')) {
+              setHasQrAccess(true);
+            } else {
+              setHasQrAccess(false);
+            }
           } else {
             const isSuperAdmin = ['wg12435@hotmail.com', 'walter12345@hotmail.com'].includes(user?.email || '');
             setIsAdmin(isSuperAdmin);
@@ -60,6 +66,7 @@ export function MainNav() {
               setHasPilotosAccess(true);
               setHasStaffAccess(true);
               setHasJuecesAccess(true);
+              setHasQrAccess(true);
             }
           }
         } catch (e) {
@@ -69,6 +76,7 @@ export function MainNav() {
         setHasPilotosAccess(false);
         setHasStaffAccess(false);
         setHasJuecesAccess(false);
+        setHasQrAccess(false);
       }
     });
     return () => unsubscribe();
@@ -93,6 +101,9 @@ export function MainNav() {
   if (hasJuecesAccess) {
     dynamicLinks.push({ href: '/jueces', label: 'Jueces', icon: ClipboardList });
   }
+  if (hasQrAccess) {
+    dynamicLinks.push({ href: '/qr', label: 'QRs', icon: QrCode });
+  }
   if (isAdmin) {
     dynamicLinks.push({ href: '/admin', label: 'Panel Admin', icon: Shield });
   }
@@ -104,6 +115,7 @@ export function MainNav() {
     const isAdminLink = link.href === '/admin';
     const isStaff = link.href === '/staff';
     const isJueces = link.href === '/jueces';
+    const isQr = link.href === '/qr';
     
     let activeClass = 'bg-zinc-800 text-white border border-transparent';
     let inactiveClass = 'text-zinc-400 hover:text-white hover:bg-zinc-900 border border-transparent';
@@ -125,6 +137,10 @@ export function MainNav() {
       activeClass = 'bg-zinc-800 text-white border border-yellow-500/20';
       inactiveClass = 'text-zinc-400 hover:text-white hover:bg-zinc-900 border border-yellow-500/10';
       iconClass = 'h-4 w-4 text-yellow-500';
+    } else if (isQr) {
+      activeClass = 'bg-zinc-800 text-white border border-cyan-500/20';
+      inactiveClass = 'text-zinc-400 hover:text-white hover:bg-zinc-900 border border-cyan-500/10';
+      iconClass = 'h-4 w-4 text-cyan-400';
     }
 
     return (
@@ -144,7 +160,7 @@ export function MainNav() {
     <>
       {/* MOBILE DRAWER MENU */}
       {isMobileMenuOpen && (
-        <div style={{position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 9999, backdropFilter: 'blur(5px)'}}>
+        <div className="print:hidden" style={{position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 9999, backdropFilter: 'blur(5px)'}}>
           <div style={{width: '280px', height: '100%', backgroundColor: '#111', borderRight: '1px solid #39FF14', padding: '20px', display: 'flex', flexDirection: 'column'}}>
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px'}}>
               <img src="/sponsors/PKS Blanco.png" alt="PKS" style={{ height: '30px' }} />
@@ -168,7 +184,7 @@ export function MainNav() {
         </div>
       )}
 
-      <header className="sticky top-0 z-50 w-full border-b border-zinc-800 bg-black/80 backdrop-blur-md">
+      <header className="sticky top-0 z-50 w-full border-b border-zinc-800 bg-black/80 backdrop-blur-md print:hidden">
       <div className="flex h-16 items-center justify-between px-3 md:px-8 w-full max-w-none">
         
         {/* Left side: Logo & Mobile Hamburger */}
