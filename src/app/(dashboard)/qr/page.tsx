@@ -139,8 +139,8 @@ export default function QrPage() {
         }
       });
       
-      // Ordenar alfabéticamente
-      fetched.sort((a, b) => a.nombres.localeCompare(b.nombres));
+      // Ordenar secuencialmente por número de kit
+      fetched.sort((a, b) => (a.kitNumber || 9999) - (b.kitNumber || 9999));
       
       setRegistrations(fetched);
     } catch (e) {
@@ -216,7 +216,7 @@ export default function QrPage() {
         
         {printMode === 'pilotos' && (
           <div className="grid grid-cols-2 gap-8">
-            {filteredRegistrations.map(pilot => (
+            {[...filteredRegistrations].sort((a, b) => (a.kitNumber || 9999) - (b.kitNumber || 9999)).map(pilot => (
               <div key={pilot.id} className="qr-card">
                 <div className="qr-card-inner">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -242,7 +242,7 @@ export default function QrPage() {
 
         {printMode === 'cajas' && (
           <div className="grid grid-cols-2 gap-8">
-            {filteredRegistrations.map((pilot, index) => {
+            {[...filteredRegistrations].sort((a, b) => (a.kitNumber || 9999) - (b.kitNumber || 9999)).map((pilot, index) => {
               const cajaId = `kit_${pilot.id}`;
               return (
                 <div key={cajaId} className="qr-card">
@@ -349,7 +349,7 @@ export default function QrPage() {
                   
                   {/* Preview Grid */}
                   <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 opacity-70">
-                    {filteredRegistrations.slice(0, 10).map(pilot => (
+                    {[...filteredRegistrations].sort((a, b) => (a.kitNumber || 9999) - (b.kitNumber || 9999)).slice(0, 10).map(pilot => (
                        <div key={pilot.id} className="border border-zinc-800 bg-zinc-900/50 rounded-lg p-3 flex flex-col items-center text-center">
                           <QRCode value={pilot.id} size={80} fgColor="#FFFFFF" bgColor="transparent" />
                           <h4 className="text-white text-xs font-bold mt-3 truncate w-full">{pilot.nombres}</h4>
