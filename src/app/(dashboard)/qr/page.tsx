@@ -28,6 +28,7 @@ interface Registration {
   numeroIdentificacion?: string;
   kitNumber?: number;
   kitEntregado?: boolean;
+  registradoEl?: string;
 }
 
 export default function QrPage() {
@@ -133,6 +134,7 @@ export default function QrPage() {
             numeroIdentificacion: userData.numeroIdentificacion || regData.numeroIdentificacion || '',
             kitNumber: kitInfo?.kitNumber,
             kitEntregado: kitInfo?.kitEntregado || false,
+            registradoEl: regData.registradoEl || userData.createdAt || new Date(0).toISOString(),
           });
         }
       });
@@ -158,8 +160,8 @@ export default function QrPage() {
          nextKitNumber = snap.docs[0].data().kitNumber + 1;
        }
        
-       // Ordenamos alfabéticamente para mantener compatibilidad de kits antiguos
-       const sortedRegs = [...registrations].sort((a, b) => a.nombres.localeCompare(b.nombres));
+       // Ordenamos por fecha de registro secuencialmente
+       const sortedRegs = [...registrations].sort((a, b) => new Date(a.registradoEl || 0).getTime() - new Date(b.registradoEl || 0).getTime());
        let synced = 0;
        
        for (const reg of sortedRegs) {
