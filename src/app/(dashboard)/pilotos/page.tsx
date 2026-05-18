@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Users, Search, Bike, ChevronRight, Clock, AlertCircle, CheckCircle2, ScanLine, User, XCircle, Download } from 'lucide-react';
@@ -47,6 +47,8 @@ export default function PilotosPage() {
   const [scannedPilot, setScannedPilot] = useState<any | null>(null);
   const [isScannedDialogOpen, setIsScannedDialogOpen] = useState(false);
   const [fetchingScan, setFetchingScan] = useState(false);
+  const [scanningKitFor, setScanningKitFor] = useState<any | null>(null);
+  const [kitScanVerified, setKitScanVerified] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -230,22 +232,35 @@ export default function PilotosPage() {
                     onScan={async (detectedCodes) => {
                       if (detectedCodes && detectedCodes.length > 0) {
                         const value = detectedCodes[0].rawValue;
-                        if (value && value.startsWith('f2r_')) {
-                          setScannerOpen(false);
-                          setFetchingScan(true);
-                          setIsScannedDialogOpen(true);
-                          try {
-                             const regDoc = await getDoc(doc(db, 'event_registrations', value));
+                        if (value) {
+                          const isPilot = value.startsWith('f2r_');
+                          const isKit = value.startsWith('kit_f2r_');
+                          
+                          if (isPilot || isKit) {
+                            const docId = isKit ? value.replace('kit_', '') : value;
+                            setScannerOpen(false);
+                            setFetchingScan(true);
+                            setIsScannedDialogOpen(true);
+                            try {
+                               const regDoc = await getDoc(doc(db, 'event_registrations', docId));
                              if (regDoc.exists()) {
                                const data = regDoc.data();
-                               const extractedUid = data.uid || value.replace('f2r_', '');
+                               const extractedUid = data.uid || docId.replace('f2r_', '');
                                const userDoc = await getDoc(doc(db, 'users', extractedUid));
                                const userData = userDoc.exists() ? userDoc.data() : {};
+                               
+                               const qrDoc = await getDoc(doc(db, 'listas_QR', docId));
+                               const kitData = qrDoc.exists() ? qrDoc.data() : null;
+
                                setScannedPilot({
                                   ...data,
                                   nombres: userData.nombres,
                                   apellidos: userData.apellidos,
                                   numeroIdentificacion: userData.numeroIdentificacion,
+                                  isKitScan: isKit,
+                                  kitNumber: kitData?.kitNumber,
+                                  kitEntregado: kitData?.kitEntregado,
+                                  docId: docId
                                });
                              } else {
                                setScannedPilot(null);
@@ -256,8 +271,9 @@ export default function PilotosPage() {
                           } finally {
                              setFetchingScan(false);
                           }
-                        } else if (value) {
+                        } else {
                           toast({ title: 'QR Inválido', description: 'Este código QR no pertenece al sistema de F2R.', variant: 'destructive' });
+                        }
                         }
                       }
                     }}
@@ -276,18 +292,81 @@ export default function PilotosPage() {
 
           <Dialog open={isScannedDialogOpen} onOpenChange={(open) => {
              setIsScannedDialogOpen(open);
-             if (!open) setScannedPilot(null);
+             if (!open) {
+                setScannedPilot(null);
+                setScanningKitFor(null);
+                setKitScanVerified(false);
+             }
           }}>
             <DialogContent className="sm:max-w-md bg-zinc-950 border-zinc-800">
                <DialogTitle className="sr-only">Resultado del Escáner</DialogTitle>
-               {fetchingScan ? (
+               {scanningKitFor ? (
+                 <div className="flex flex-col items-center justify-center py-4 w-full">
+                   <h3 className="text-lg font-bold text-white mb-4">Escanea el KIT {scanningKitFor.kitNumber}</h3>
+                   
+                   {!kitScanVerified ? (
+                     <div className="w-full aspect-square max-w-[300px] rounded-xl overflow-hidden bg-black flex items-center justify-center relative border-2 border-[#39FF14]">
+                       <Scanner
+                          onScan={async (detectedCodes) => {
+                            if (detectedCodes && detectedCodes.length > 0) {
+                              const value = detectedCodes[0].rawValue;
+                              if (value === `kit_${scanningKitFor.docId}`) {
+                                 setKitScanVerified(true);
+                                 toast({ title: 'Kit Correcto', description: 'El QR corresponde al kit de este piloto.' });
+                              } else if (value) {
+                                 toast({ title: 'QR Incorrecto', description: 'Este no es el kit asignado a este piloto.', variant: 'destructive' });
+                              }
+                            }
+                          }}
+                          components={{ finder: true }}
+                       />
+                     </div>
+                   ) : (
+                     <div className="flex flex-col items-center gap-4 py-8 w-full">
+                        <CheckCircle2 className="w-20 h-20 text-[#39FF14] animate-pulse" />
+                        <h4 className="text-xl font-bold text-white uppercase tracking-widest text-center">Kit {scanningKitFor.kitNumber} Verificado</h4>
+                        <p className="text-zinc-400 text-center mb-6">El código QR coincide con el piloto {scanningKitFor.nombres}.</p>
+                        
+                        <Button 
+                          onClick={async () => {
+                             try {
+                               await updateDoc(doc(db, 'listas_QR', scanningKitFor.docId), {
+                                 kitEntregado: true,
+                                 entregadoEl: new Date().toISOString()
+                               });
+                               setScannedPilot({ ...scanningKitFor, kitEntregado: true });
+                               setScanningKitFor(null);
+                               setKitScanVerified(false);
+                               toast({ title: '¡Entrega Guardada!', description: `Se ha registrado la entrega del Kit ${scanningKitFor.kitNumber}.` });
+                             } catch (e) {
+                               toast({ title: 'Error', description: 'No se pudo guardar la entrega', variant: 'destructive' });
+                             }
+                          }}
+                          className="w-full bg-[#39FF14] hover:bg-[#32E011] text-black font-bold h-12 shadow-[0_0_15px_rgba(57,255,20,0.3)]"
+                        >
+                          CONFIRMAR ENTREGA
+                        </Button>
+                     </div>
+                   )}
+
+                   <Button onClick={() => { setScanningKitFor(null); setKitScanVerified(false); }} variant="outline" className="mt-6 w-full border-zinc-700 text-zinc-300 hover:bg-zinc-800">
+                     Volver al Checklist
+                   </Button>
+                 </div>
+               ) : fetchingScan ? (
                  <div className="flex flex-col items-center justify-center py-10">
                    <div className="w-10 h-10 border-4 border-green-500 border-t-transparent rounded-full animate-spin mb-4"></div>
                    <p className="text-zinc-400">Verificando pase de ingreso...</p>
                  </div>
                ) : scannedPilot ? (
                  <div className="flex flex-col gap-6 pt-4">
-                   <h3 className="text-xl font-bold text-white text-center">Checklist de Ingreso</h3>
+                   <div className="flex flex-col gap-1 text-center bg-zinc-900/50 py-2 rounded-lg border border-zinc-800/50">
+                     <p className="text-sm font-bold text-zinc-200 uppercase tracking-wider">{scannedPilot.nombres} {scannedPilot.apellidos}</p>
+                     <p className="text-xs font-mono text-zinc-400">ID: {scannedPilot.numeroIdentificacion || 'N/A'}</p>
+                   </div>
+                   <h3 className="text-xl font-bold text-white text-center">
+                     {scannedPilot.isKitScan ? 'Verificación de Kit' : 'Checklist de Ingreso'}
+                   </h3>
                    
                    <ul className="space-y-3">
                      {/* Pago */}
@@ -339,8 +418,29 @@ export default function PilotosPage() {
                         const rechazos = scannedPilot.documentosRechazados || [];
                         const docsComplete = docs.idUrl && docs.placaUrl && docs.propiedadUrl && docs.soatUrl && docs.deportistaUrl && rechazos.length === 0;
                         if (docsComplete) return (
-                          <div className="w-full bg-green-600 text-white font-black text-center py-4 rounded-lg text-lg sm:text-xl uppercase tracking-widest shadow-[0_0_20px_rgba(34,197,94,0.4)] animate-pulse">
-                            ¡ACCESO PERMITIDO!
+                          <div className="flex flex-col gap-4 mt-2">
+                            <div className="w-full bg-green-600 text-white font-black text-center py-4 rounded-lg text-lg sm:text-xl uppercase tracking-widest shadow-[0_0_20px_rgba(34,197,94,0.4)] animate-pulse">
+                              ¡ACCESO PERMITIDO!
+                            </div>
+                            
+                            {scannedPilot.kitNumber && (
+                              <div className="w-full bg-zinc-900 border border-green-500/30 p-4 rounded-lg flex flex-col items-center text-center">
+                                <span className="text-zinc-400 text-sm uppercase tracking-wider mb-1">Kit Asignado</span>
+                                <span className="text-4xl font-black text-[#39FF14] mb-3 drop-shadow-[0_0_10px_rgba(57,255,20,0.3)]">KIT {scannedPilot.kitNumber}</span>
+                                {scannedPilot.kitEntregado ? (
+                                  <span className="bg-green-500/20 text-green-400 border border-green-500/30 px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2">
+                                    <CheckCircle2 className="w-5 h-5"/> ENTREGADO
+                                  </span>
+                                ) : (
+                                  <Button 
+                                    onClick={() => setScanningKitFor(scannedPilot)}
+                                    className="w-full bg-[#39FF14] hover:bg-[#32E011] text-black font-bold h-12 shadow-[0_0_15px_rgba(57,255,20,0.3)]"
+                                  >
+                                    <ScanLine className="w-5 h-5 mr-2" /> ESCANEAR QR KIT
+                                  </Button>
+                                )}
+                              </div>
+                            )}
                           </div>
                         );
                         return null;

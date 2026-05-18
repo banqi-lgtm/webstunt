@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { collection, doc, getDoc, updateDoc, deleteDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { collection, doc, getDoc, updateDoc, deleteDoc, arrayUnion, arrayRemove, query, orderBy, limit, getDocs, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { ArrowLeft, ExternalLink, User, Bike, FileText, CheckCircle2, XCircle, CreditCard, Clock, AlertCircle, FileCheck2, Star, ShieldAlert, Eye, AlertTriangle } from 'lucide-react';
@@ -183,6 +183,34 @@ export default function PilotDetailPage() {
       setPilot({ ...pilot, estadoPago: status });
       
       if (status === 'aprobado' || status === 'pago_dia_evento') {
+        try {
+          const qrDocRef = doc(db, 'listas_QR', pilot.id);
+          const qrDocSnap = await getDoc(qrDocRef);
+          
+          if (!qrDocSnap.exists()) {
+            const q = query(collection(db, 'listas_QR'), orderBy('kitNumber', 'desc'), limit(1));
+            const snap = await getDocs(q);
+            let nextKitNumber = 1;
+            if (!snap.empty) {
+              nextKitNumber = snap.docs[0].data().kitNumber + 1;
+            }
+            
+            await setDoc(qrDocRef, {
+              uid: pilot.uid,
+              pilotId: pilot.id,
+              nombres: pilot.nombres,
+              apellidos: pilot.apellidos,
+              categoria: Array.isArray(pilot.categoria) ? pilot.categoria.join(' / ') : pilot.categoria,
+              kitNumber: nextKitNumber,
+              kitEntregado: false,
+              aprobadoEl: new Date().toISOString()
+            });
+            console.log(`Asignado Kit #${nextKitNumber} al piloto ${pilot.nombres}`);
+          }
+        } catch (qrErr) {
+          console.error("Error al asignar kit en listas_QR:", qrErr);
+        }
+
         fetch('/api/send-approval-email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
