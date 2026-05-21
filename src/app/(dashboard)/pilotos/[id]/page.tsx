@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import SocialMediaCard from '@/components/social-media-card';
 
 interface PilotDetail {
   id: string;
@@ -58,6 +59,7 @@ interface PilotDetail {
   documentosRechazados?: string[];
   motivoSaldoFaltante?: string;
   historialSaldos?: string[];
+  templateConfig?: any;
 }
 
 export default function PilotDetailPage() {
@@ -164,7 +166,8 @@ export default function PilotDetailPage() {
         correoTutor: userData.correoTutor || '',
         parentescoTutor: userData.parentescoTutor || '',
         rol: userData.rol || 'piloto',
-        documentosRechazados: data.documentosRechazados || []
+        documentosRechazados: data.documentosRechazados || [],
+        templateConfig: data.templateConfig || null
       });
       
     } catch (e) {
@@ -912,6 +915,20 @@ export default function PilotDetailPage() {
                   </CardContent>
                 </Card>
               ) : null}
+            </div>
+
+            {/* Social Media Card Section */}
+            <div className="mt-6">
+              <SocialMediaCard 
+                pilotId={pilot.id}
+                pilotName={`${pilot.nombres} ${pilot.apellidos}`}
+                pilotPseudonym={pilot.seudonimo}
+                pilotCategory={pilot.categoria}
+                pilotPhotoUrl={pilot.documentos.deportistaUrl}
+                initialConfig={pilot.templateConfig}
+                isAdmin={isAdmin}
+                onSaveSuccess={fetchPilotData}
+              />
             </div>
 
           </div>

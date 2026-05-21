@@ -21,6 +21,7 @@ import { CameraModal } from '@/components/camera-modal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import QRCode from 'react-qr-code';
 import dynamic from 'next/dynamic';
+import SocialMediaCard from '@/components/social-media-card';
 const Confetti = dynamic(() => import('react-confetti'), { ssr: false });
 
 export default function InscripcionPage() {
@@ -32,6 +33,24 @@ export default function InscripcionPage() {
   const [saldoFaltante, setSaldoFaltante] = useState('');
   const [motivoSaldoFaltante, setMotivoSaldoFaltante] = useState('');
   const { toast } = useToast();
+
+  // Pilot and Card Template State
+  const [nombres, setNombres] = useState('');
+  const [apellidos, setApellidos] = useState('');
+  const [seudonimo, setSeudonimo] = useState('');
+  const [templateConfig, setTemplateConfig] = useState<any>(null);
+
+  const refetchRegistrationData = async () => {
+    if (!uid) return;
+    try {
+      const docSnap = await getDoc(doc(db, 'event_registrations', `f2r_${uid}`));
+      if (docSnap.exists()) {
+        setTemplateConfig(docSnap.data().templateConfig || null);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
   const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
   const [categoryCounts, setCategoryCounts] = useState<{ [key: string]: number }>({ open: 0, '2t': 0, '4t': 0, alto: 0 });
 
@@ -198,6 +217,16 @@ export default function InscripcionPage() {
         
         // Verifica en tiempo real si el usuario ya envió sus documentos previamente.
         try {
+          // Fetch user profile info
+          const userDocRef = doc(db, 'users', user.uid);
+          const userDocSnap = await getDoc(userDocRef);
+          if (userDocSnap.exists()) {
+            const userData = userDocSnap.data();
+            setNombres(userData.nombres || '');
+            setApellidos(userData.apellidos || '');
+            setSeudonimo(userData.seudonimo || '');
+          }
+
           const docRef = doc(db, 'event_registrations', `f2r_${user.uid}`);
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
@@ -226,6 +255,7 @@ export default function InscripcionPage() {
              setSaldoFaltante(data.saldoFaltante || '');
              setMotivoSaldoFaltante(data.motivoSaldoFaltante || '');
              setDocumentosRechazados(data.documentosRechazados || []);
+             setTemplateConfig(data.templateConfig || null);
              if (data.estadoPago === 'aprobado' || data.estadoPago === 'pago_dia_evento' || data.estadoPago === 'en_revision' || data.estadoPago === 'rechazado' || data.estadoPago === 'revision_saldo' || data.estadoPago === 'saldo_pendiente' || data.estadoPago === 'rechazado_saldo') {
                 setStep(3);
              } else {
@@ -1216,6 +1246,21 @@ export default function InscripcionPage() {
               </>
             )}
             
+          </div>
+        )}
+
+        {step === 3 && (estadoPago === 'aprobado' || estadoPago === 'pago_dia_evento') && (
+          <div className="mt-8 w-full max-w-5xl mx-auto">
+            <SocialMediaCard 
+              pilotId={`f2r_${uid}`}
+              pilotName={`${nombres} ${apellidos}`}
+              pilotPseudonym={seudonimo}
+              pilotCategory={categorias.join(' / ')}
+              pilotPhotoUrl={fotoDeportista?.url || ''}
+              initialConfig={templateConfig}
+              isAdmin={true}
+              onSaveSuccess={refetchRegistrationData}
+            />
           </div>
         )}
         </>

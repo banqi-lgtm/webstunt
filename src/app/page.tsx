@@ -379,24 +379,29 @@ export default function Home() {
         </DialogContent>
       </Dialog>
 
-      {/* WhatsApp Fallback Modal */}
+      {/* Entrance Modal */}
       <Dialog open={isWhatsappModalOpen} onOpenChange={setIsWhatsappModalOpen}>
-        <DialogContent className="sm:max-w-[450px] w-[95vw] bg-black border-2 border-[#39FF14] shadow-[0_0_40px_rgba(57,255,20,0.4)] text-white p-0 overflow-hidden rounded-2xl">
-          <DialogTitle className="sr-only">Aviso Importante WhatsApp</DialogTitle>
-          <div className="relative w-full h-auto flex flex-col items-center">
-            {/* The user will place the image at /whatsapp-falla.jpg */}
-            <img src="/sponsors/Gemini_Generated_Image_d9675cd9675cd967.png" alt="WhatsApp presentando fallas" className="w-full h-auto object-contain" />
-            <div className="w-full p-4 bg-[#0a0a0f] border-t border-zinc-800">
-              <a 
-                href="https://wa.me/573208185796"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setIsWhatsappModalOpen(false)} 
-                className="w-full flex items-center justify-center bg-[#39FF14] hover:bg-[#2CE50F] text-black font-black uppercase tracking-wider h-12 rounded-xl shadow-[0_0_15px_rgba(57,255,20,0.2)] transition-colors"
-              >
-                COMUNÍCATE AQUÍ
-              </a>
-            </div>
+        <DialogContent className="sm:max-w-[450px] w-[95vw] bg-black border-2 border-[#39FF14] shadow-[0_0_40px_rgba(57,255,20,0.4)] text-white p-0 overflow-hidden rounded-2xl flex flex-col">
+          <DialogTitle className="sr-only">Aviso de Entrada</DialogTitle>
+          
+          <div className="relative w-full flex flex-col items-center justify-center bg-black">
+            {/* New Entrance Image */}
+            <img src="/sponsors/chat.png" alt="Información de Entrada" className="w-full h-auto object-cover" />
+          </div>
+          
+          <div className="w-full p-3 md:p-4 bg-[#0a0a0f] border-t border-zinc-800 flex flex-row gap-2 md:gap-3 shrink-0">
+            <Button 
+              disabled
+              className="w-full bg-black border-2 border-[#39FF14] text-[#39FF14] text-[10px] md:text-xs font-black uppercase tracking-widest h-10 md:h-12 rounded-xl shadow-[0_0_15px_rgba(57,255,20,0.15)] opacity-50 cursor-not-allowed px-1"
+            >
+              PROGRAMACIÓN
+            </Button>
+            <Button 
+              disabled
+              className="w-full bg-black border-2 border-[#39FF14] text-[#39FF14] text-[10px] md:text-xs font-black uppercase tracking-widest h-10 md:h-12 rounded-xl shadow-[0_0_15px_rgba(57,255,20,0.15)] opacity-50 cursor-not-allowed px-1"
+            >
+              REGLAMENTO
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
