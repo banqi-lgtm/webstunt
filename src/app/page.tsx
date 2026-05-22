@@ -21,7 +21,7 @@ export default function Home() {
   const [isLoginState, setIsLoginState] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isWhatsappModalOpen, setIsWhatsappModalOpen] = useState(false);
-  const [modalView, setModalView] = useState<'flyer' | 'reglamento'>('flyer');
+  const [modalView, setModalView] = useState<'flyer' | 'reglamento' | 'programacion'>('flyer');
 
   useEffect(() => {
     setIsWhatsappModalOpen(true);
@@ -129,14 +129,19 @@ export default function Home() {
               </div>
             </div>
 
-            {/* CTA Button */}
-            <div className="relative z-10 mt-8 mb-6">
+            {/* CTA Buttons */}
+            <div className="relative z-10 mt-6 md:mt-8 mb-6 flex flex-row flex-wrap gap-3 md:gap-4 w-fit">
               <Button 
-                onClick={() => { window.location.hash = '#login'; document.getElementById('auth-form-section')?.scrollIntoView({ behavior: 'smooth' }); }}
-                className="bg-gradient-to-r from-[#FFB700] to-[#FFD500] text-black font-black uppercase tracking-widest text-sm md:text-base px-8 py-6 rounded-md hover:scale-105 transition-transform shadow-[0_0_20px_rgba(255,183,0,0.4)] flex items-center gap-3 w-fit"
+                onClick={() => { setModalView('programacion'); setIsWhatsappModalOpen(true); }}
+                className="bg-gradient-to-r from-[#FFB700] to-[#FFD500] text-black font-black uppercase tracking-widest text-[10px] md:text-xs px-4 md:px-8 h-10 md:h-14 rounded-md hover:scale-105 transition-transform shadow-[0_0_15px_rgba(255,183,0,0.4)] flex items-center justify-center w-fit"
               >
-                ¡INSCRÍBETE AHORA!
-                <ChevronRight className="w-5 h-5" strokeWidth={3} />
+                PROGRAMACIÓN
+              </Button>
+              <Button 
+                onClick={() => { setModalView('reglamento'); setIsWhatsappModalOpen(true); }}
+                className="bg-gradient-to-r from-[#FFB700] to-[#FFD500] text-black font-black uppercase tracking-widest text-[10px] md:text-xs px-4 md:px-8 h-10 md:h-14 rounded-md hover:scale-105 transition-transform shadow-[0_0_15px_rgba(255,183,0,0.4)] flex items-center justify-center w-fit"
+              >
+                REGLAMENTO
               </Button>
             </div>
 
@@ -390,25 +395,50 @@ export default function Home() {
           
           <div className="relative flex flex-col items-center justify-center bg-black w-full">
             {/* Modal Image */}
-            <img 
-              src={modalView === 'flyer' ? "/sponsors/chat.png" : "/sponsors/reglamento.jpg"} 
-              alt={modalView === 'flyer' ? "Información de Entrada" : "Reglamento Oficial"} 
-              className="w-auto h-auto max-h-[70vh] md:max-h-[80vh] max-w-full object-contain mx-auto" 
-            />
+            {modalView === 'programacion' ? (
+              <div className="flex flex-col items-center justify-center p-8 gap-6 min-h-[40vh] md:min-h-[50vh] w-full">
+                <h3 className="text-[#39FF14] text-xl md:text-2xl font-black uppercase tracking-wider text-center drop-shadow-[0_0_10px_rgba(57,255,20,0.4)]">
+                  Programación Oficial
+                </h3>
+                <p className="text-zinc-300 text-sm md:text-base text-center max-w-sm mb-2">
+                  Selecciona cómo deseas visualizar la programación del evento:
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md px-4">
+                  <a href="/sponsors/AVANCE-PROGRAMACION-2026-DIGITAL-2.pdf" target="_blank" rel="noopener noreferrer" className="w-full">
+                    <Button className="w-full bg-[#39FF14] hover:bg-[#32e210] text-black font-black uppercase tracking-widest h-12 md:h-14 rounded-xl shadow-[0_0_15px_rgba(57,255,20,0.4)] flex items-center justify-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                      VER ONLINE
+                    </Button>
+                  </a>
+                  <a href="/sponsors/AVANCE-PROGRAMACION-2026-DIGITAL-2.pdf" download="PROGRAMACION-COPA-STUNT-2026.pdf" className="w-full">
+                    <Button className="w-full bg-black border-2 border-[#39FF14] text-[#39FF14] hover:bg-[#39FF14] hover:text-black font-black uppercase tracking-widest h-12 md:h-14 rounded-xl shadow-[0_0_15px_rgba(57,255,20,0.15)] transition-colors flex items-center justify-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                      DESCARGAR
+                    </Button>
+                  </a>
+                </div>
+              </div>
+            ) : (
+              <img 
+                src={modalView === 'flyer' ? "/sponsors/chat.png" : "/sponsors/reglamento.jpg"} 
+                alt={modalView === 'flyer' ? "Información de Entrada" : "Reglamento Oficial"} 
+                className="w-auto h-auto max-h-[70vh] md:max-h-[80vh] max-w-full object-contain mx-auto" 
+              />
+            )}
           </div>
           
           <div className="w-full p-3 md:p-4 bg-[#0a0a0f] border-t border-zinc-800 flex flex-row gap-2 md:gap-3 shrink-0">
             {modalView === 'flyer' ? (
               <>
                 <Button 
-                  disabled
-                  className="w-full bg-black border-2 border-[#39FF14] text-[#39FF14] text-[10px] md:text-xs font-black uppercase tracking-widest h-10 md:h-12 rounded-xl shadow-[0_0_15px_rgba(57,255,20,0.15)] opacity-50 cursor-not-allowed px-1"
+                  onClick={() => setModalView('programacion')}
+                  className="w-full bg-black border-2 border-[#39FF14] text-[#39FF14] hover:bg-[#39FF14] hover:text-black transition-colors text-[10px] md:text-xs font-black uppercase tracking-widest h-10 md:h-12 rounded-xl shadow-[0_0_15px_rgba(57,255,20,0.15)] ring-2 ring-offset-2 ring-offset-black ring-[#38bdf8] px-1"
                 >
                   PROGRAMACIÓN
                 </Button>
                 <Button 
                   onClick={() => setModalView('reglamento')}
-                  className="w-full bg-[#39FF14] hover:bg-[#32e210] text-black text-[10px] md:text-xs font-black uppercase tracking-widest h-10 md:h-12 rounded-xl shadow-[0_0_15px_rgba(57,255,20,0.4)] transition-colors px-1"
+                  className="w-full bg-black border-2 border-[#39FF14] text-[#39FF14] hover:bg-[#39FF14] hover:text-black transition-colors text-[10px] md:text-xs font-black uppercase tracking-widest h-10 md:h-12 rounded-xl shadow-[0_0_15px_rgba(57,255,20,0.15)] ring-2 ring-offset-2 ring-offset-black ring-[#38bdf8] px-1"
                 >
                   REGLAMENTO
                 </Button>
@@ -416,7 +446,7 @@ export default function Home() {
             ) : (
               <Button 
                 onClick={() => setModalView('flyer')}
-                className="w-full bg-[#39FF14] hover:bg-[#32e210] text-black text-[10px] md:text-xs font-black uppercase tracking-widest h-10 md:h-12 rounded-xl shadow-[0_0_15px_rgba(57,255,20,0.4)] transition-colors px-1"
+                className="w-full bg-black border-2 border-[#39FF14] text-[#39FF14] hover:bg-[#39FF14] hover:text-black transition-colors text-[10px] md:text-xs font-black uppercase tracking-widest h-10 md:h-12 rounded-xl shadow-[0_0_15px_rgba(57,255,20,0.15)] ring-2 ring-offset-2 ring-offset-black ring-[#38bdf8] px-1"
               >
                 VOLVER AL INICIO
               </Button>
