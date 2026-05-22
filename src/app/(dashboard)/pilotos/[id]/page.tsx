@@ -925,6 +925,8 @@ export default function PilotDetailPage() {
                 pilotPseudonym={pilot.seudonimo}
                 pilotCategory={pilot.categoria}
                 pilotPhotoUrl={pilot.documentos.deportistaUrl}
+                pilotCity={pilot.ciudad}
+                pilotInstagram={pilot.instagram}
                 initialConfig={pilot.templateConfig}
                 isAdmin={isAdmin}
                 onSaveSuccess={fetchPilotData}

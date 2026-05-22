@@ -21,6 +21,7 @@ export default function Home() {
   const [isLoginState, setIsLoginState] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isWhatsappModalOpen, setIsWhatsappModalOpen] = useState(false);
+  const [modalView, setModalView] = useState<'flyer' | 'reglamento'>('flyer');
 
   useEffect(() => {
     setIsWhatsappModalOpen(true);
@@ -380,28 +381,46 @@ export default function Home() {
       </Dialog>
 
       {/* Entrance Modal */}
-      <Dialog open={isWhatsappModalOpen} onOpenChange={setIsWhatsappModalOpen}>
-        <DialogContent className="sm:max-w-[450px] w-[95vw] bg-black border-2 border-[#39FF14] shadow-[0_0_40px_rgba(57,255,20,0.4)] text-white p-0 overflow-hidden rounded-2xl flex flex-col">
+      <Dialog open={isWhatsappModalOpen} onOpenChange={(open) => {
+        setIsWhatsappModalOpen(open);
+        if (!open) setModalView('flyer'); // reset when closed
+      }}>
+        <DialogContent className="w-auto max-w-[95vw] sm:max-w-[450px] bg-black border-2 border-[#39FF14] shadow-[0_0_40px_rgba(57,255,20,0.4)] text-white p-0 overflow-hidden rounded-2xl flex flex-col mx-auto">
           <DialogTitle className="sr-only">Aviso de Entrada</DialogTitle>
           
-          <div className="relative w-full flex flex-col items-center justify-center bg-black">
-            {/* New Entrance Image */}
-            <img src="/sponsors/chat.png" alt="Información de Entrada" className="w-full h-auto object-cover" />
+          <div className="relative flex flex-col items-center justify-center bg-black w-full">
+            {/* Modal Image */}
+            <img 
+              src={modalView === 'flyer' ? "/sponsors/chat.png" : "/sponsors/reglamento.jpg"} 
+              alt={modalView === 'flyer' ? "Información de Entrada" : "Reglamento Oficial"} 
+              className="w-auto h-auto max-h-[70vh] md:max-h-[80vh] max-w-full object-contain mx-auto" 
+            />
           </div>
           
           <div className="w-full p-3 md:p-4 bg-[#0a0a0f] border-t border-zinc-800 flex flex-row gap-2 md:gap-3 shrink-0">
-            <Button 
-              disabled
-              className="w-full bg-black border-2 border-[#39FF14] text-[#39FF14] text-[10px] md:text-xs font-black uppercase tracking-widest h-10 md:h-12 rounded-xl shadow-[0_0_15px_rgba(57,255,20,0.15)] opacity-50 cursor-not-allowed px-1"
-            >
-              PROGRAMACIÓN
-            </Button>
-            <Button 
-              disabled
-              className="w-full bg-black border-2 border-[#39FF14] text-[#39FF14] text-[10px] md:text-xs font-black uppercase tracking-widest h-10 md:h-12 rounded-xl shadow-[0_0_15px_rgba(57,255,20,0.15)] opacity-50 cursor-not-allowed px-1"
-            >
-              REGLAMENTO
-            </Button>
+            {modalView === 'flyer' ? (
+              <>
+                <Button 
+                  disabled
+                  className="w-full bg-black border-2 border-[#39FF14] text-[#39FF14] text-[10px] md:text-xs font-black uppercase tracking-widest h-10 md:h-12 rounded-xl shadow-[0_0_15px_rgba(57,255,20,0.15)] opacity-50 cursor-not-allowed px-1"
+                >
+                  PROGRAMACIÓN
+                </Button>
+                <Button 
+                  onClick={() => setModalView('reglamento')}
+                  className="w-full bg-[#39FF14] hover:bg-[#32e210] text-black text-[10px] md:text-xs font-black uppercase tracking-widest h-10 md:h-12 rounded-xl shadow-[0_0_15px_rgba(57,255,20,0.4)] transition-colors px-1"
+                >
+                  REGLAMENTO
+                </Button>
+              </>
+            ) : (
+              <Button 
+                onClick={() => setModalView('flyer')}
+                className="w-full bg-[#39FF14] hover:bg-[#32e210] text-black text-[10px] md:text-xs font-black uppercase tracking-widest h-10 md:h-12 rounded-xl shadow-[0_0_15px_rgba(57,255,20,0.4)] transition-colors px-1"
+              >
+                VOLVER AL INICIO
+              </Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>

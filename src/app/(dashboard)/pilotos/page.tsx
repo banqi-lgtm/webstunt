@@ -33,6 +33,7 @@ interface Registration {
   telefono?: string;
   ciudad?: string;
   prioridadRechazado?: boolean;
+  tallaCamisa?: string;
 }
 
 export default function PilotosPage() {
@@ -128,6 +129,7 @@ export default function PilotosPage() {
           telefono: userData.telefono || regData.telefono || 'N/A',
           ciudad: userData.ciudad || regData.ciudad || 'Medellin',
           prioridadRechazado: regData.prioridadRechazado || false,
+          tallaCamisa: userData.tallaCamisa || regData.tallaCamisa || 'N/A',
         });
       });
       
@@ -179,7 +181,8 @@ export default function PilotosPage() {
       "city": reg.ciudad || "Medellin",
       "emergencyPhone": reg.telefono || 'N/A',
       "gender": getGender(reg.nombres),
-      "type": "Deportista"
+      "type": "Deportista",
+      "Talla de Camisa": reg.tallaCamisa || 'N/A'
     }));
     
     const worksheet = XLSX.utils.json_to_sheet(data);

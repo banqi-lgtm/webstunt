@@ -38,6 +38,7 @@ export default function InscripcionPage() {
   const [nombres, setNombres] = useState('');
   const [apellidos, setApellidos] = useState('');
   const [seudonimo, setSeudonimo] = useState('');
+  const [ciudad, setCiudad] = useState('');
   const [templateConfig, setTemplateConfig] = useState<any>(null);
 
   const refetchRegistrationData = async () => {
@@ -63,6 +64,11 @@ export default function InscripcionPage() {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isCheckingStatus, setIsCheckingStatus] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const [isAdminBypass, setIsAdminBypass] = useState(false);
+  const [staffNombre, setStaffNombre] = useState('');
+  const [staffCedula, setStaffCedula] = useState('');
+  const [staffCargo, setStaffCargo] = useState('');
+  const [staffTelefono, setStaffTelefono] = useState('');
 
   useEffect(() => {
     setMounted(true);
@@ -225,6 +231,11 @@ export default function InscripcionPage() {
             setNombres(userData.nombres || '');
             setApellidos(userData.apellidos || '');
             setSeudonimo(userData.seudonimo || '');
+            setCiudad(userData.ciudad || '');
+            setStaffNombre(`${userData.nombres || ''} ${userData.apellidos || ''}`.trim());
+            setStaffCedula(userData.numeroIdentificacion || '');
+            setStaffCargo(userData.cargo || '');
+            setStaffTelefono(userData.telefono || '');
           }
 
           const docRef = doc(db, 'event_registrations', `f2r_${user.uid}`);
@@ -546,6 +557,95 @@ export default function InscripcionPage() {
       setIsLoading(false);
     }
   };
+
+  const handleStaffSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!uid) return;
+    setIsLoading(true);
+    try {
+      await updateDoc(doc(db, 'users', uid), {
+        nombres: staffNombre,
+        numeroIdentificacion: staffCedula,
+        cargo: staffCargo,
+        telefono: staffTelefono,
+        rol: 'staff'
+      });
+      toast({ title: 'Staff Registrado', description: 'Has sido registrado como staff exitosamente.' });
+      router.push('/dashboard');
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isCheckingStatus || !mounted) {
+    return (
+      <div className="min-h-screen bg-[#121212] flex flex-col items-center justify-center text-white gap-4">
+        <div className="w-12 h-12 border-4 border-[#39FF14] border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-zinc-400 font-bold tracking-widest uppercase text-sm">Verificando estado...</p>
+      </div>
+    );
+  }
+
+  if (!isAdminBypass && step !== 3) {
+    return (
+      <div className="min-h-screen relative overflow-hidden bg-[#121212] flex items-center justify-center p-4">
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#39FF14]/10 blur-[150px] mix-blend-screen pointer-events-none rounded-full"></div>
+        <Card className="max-w-md w-full bg-zinc-950/80 backdrop-blur-xl border-zinc-800/50 shadow-2xl relative z-10 text-center p-8">
+          <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-6" />
+          <h2 className="text-2xl font-black text-white uppercase tracking-widest mb-4">Inscripciones Cerradas</h2>
+          <p className="text-zinc-400 mb-8">
+            Lo sentimos, el periodo de inscripciones para la Copa Stunt F2R ha finalizado.
+          </p>
+          <Button 
+            onClick={() => setIsAdminBypass(true)}
+            className="w-full bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 font-bold"
+          >
+            INSCRIBIRSE ADMIN
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
+  if (isAdminBypass) {
+    return (
+      <div className="min-h-screen relative overflow-hidden bg-[#121212] flex items-center justify-center p-4">
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-purple-600/10 blur-[150px] mix-blend-screen pointer-events-none rounded-full"></div>
+        <Card className="max-w-md w-full bg-zinc-950/80 backdrop-blur-xl border-zinc-800/50 shadow-2xl relative z-10 p-8">
+          <Star className="w-12 h-12 text-purple-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-black text-white text-center uppercase tracking-widest mb-6">Registro Staff</h2>
+          <form onSubmit={handleStaffSubmit} className="space-y-4">
+            <div className="space-y-1">
+              <Label className="text-zinc-400 text-xs uppercase">Nombre Completo</Label>
+              <Input required value={staffNombre} onChange={e => setStaffNombre(e.target.value)} className="bg-zinc-900 border-zinc-800 text-white h-12" placeholder="Juan Pérez" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-zinc-400 text-xs uppercase">Cédula</Label>
+              <Input required value={staffCedula} onChange={e => setStaffCedula(e.target.value)} className="bg-zinc-900 border-zinc-800 text-white h-12" placeholder="123456789" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-zinc-400 text-xs uppercase">Cargo</Label>
+              <Input required value={staffCargo} onChange={e => setStaffCargo(e.target.value)} className="bg-zinc-900 border-zinc-800 text-white h-12" placeholder="Ej. Logística" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-zinc-400 text-xs uppercase">Teléfono</Label>
+              <Input required value={staffTelefono} onChange={e => setStaffTelefono(e.target.value)} className="bg-zinc-900 border-zinc-800 text-white h-12" placeholder="3001234567" />
+            </div>
+            <div className="pt-4 flex gap-3 flex-col sm:flex-row">
+              <Button type="button" onClick={() => setIsAdminBypass(false)} variant="outline" className="w-full sm:w-1/3 border-zinc-700 text-zinc-300 h-12">
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isLoading} className="w-full sm:w-2/3 bg-purple-600 hover:bg-purple-500 text-white font-bold h-12 shadow-[0_0_15px_rgba(168,85,247,0.3)]">
+                {isLoading ? 'GUARDANDO...' : 'REGISTRAR'}
+              </Button>
+            </div>
+          </form>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-[#121212]">
@@ -1256,11 +1356,20 @@ export default function InscripcionPage() {
               pilotName={`${nombres} ${apellidos}`}
               pilotPseudonym={seudonimo}
               pilotCategory={categorias.join(' / ')}
+              pilotCity={ciudad}
               pilotPhotoUrl={fotoDeportista?.url || ''}
               initialConfig={templateConfig}
               isAdmin={true}
               onSaveSuccess={refetchRegistrationData}
             />
+            <div className="flex justify-center mt-6">
+              <Button 
+                onClick={() => openOptions('deportista')}
+                className="bg-zinc-800 text-white hover:bg-zinc-700 font-bold px-8 h-12"
+              >
+                Editar Foto
+              </Button>
+            </div>
           </div>
         )}
         </>

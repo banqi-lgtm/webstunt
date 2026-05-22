@@ -3,10 +3,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { auth } from '@/lib/firebase';
-import { signOut } from 'firebase/auth';
+import { auth, db, storage } from '@/lib/firebase';
+import { signOut, onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
-const useWindowSize = () => {
+function useWindowSize() {
   const [size, setSize] = useState({ 
     width: typeof window !== 'undefined' ? window.innerWidth : 1200, 
     height: typeof window !== 'undefined' ? window.innerHeight : 800 
@@ -18,7 +20,9 @@ const useWindowSize = () => {
     return () => window.removeEventListener('resize', handler);
   }, []);
   return size;
-};// === TIPOS DE DATOS ===
+}
+
+// === TIPOS DE DATOS ===
 type ReactionType = 'fast' | 'champ' | 'fire' | 'eyes';
 
 interface Comment {
@@ -143,12 +147,81 @@ export default function PskPitxDashboard() {
   
   const chatEndRef = useRef<HTMLDivElement>(null);
   
-  // Usuario logueado mock
-  const currentUser = {
-    name: 'Walter Garzon',
-    number: '99',
-    avatar: '🇨🇴'
+  // Usuario logueado (ahora con estado real de Firebase)
+  const [currentUser, setCurrentUser] = useState({
+    uid: '',
+    name: 'Cargando...',
+    number: '--',
+    avatar: '🇨🇴',
+    photoUrl: ''
+  });
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentUser.uid) return;
+    
+    try {
+      setIsUploadingPhoto(true);
+      const storageRef = ref(storage, `events/f2r/${currentUser.uid}/deportista_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      
+      const docRef = doc(db, 'event_registrations', `f2r_${currentUser.uid}`);
+      await setDoc(docRef, {
+        documentos: {
+          deportistaUrl: url
+        }
+      }, { merge: true });
+      
+      setCurrentUser(prev => ({ ...prev, photoUrl: url }));
+    } catch (e) {
+      console.error('Error uploading photo', e);
+      alert('Error al subir la foto.');
+    } finally {
+      setIsUploadingPhoto(false);
+    }
   };
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          const regDoc = await getDoc(doc(db, 'event_registrations', `f2r_${user.uid}`));
+          
+          let name = user.email?.split('@')[0] || 'Piloto';
+          if (userDoc.exists()) {
+            const d = userDoc.data();
+            name = `${d.nombres || ''} ${d.apellidos || ''}`.trim();
+          }
+          
+          let number = '00';
+          let photoUrl = '';
+          if (regDoc.exists()) {
+            const r = regDoc.data();
+            number = r.dorsal || '00';
+            if (r.documentos?.deportistaUrl) {
+              photoUrl = r.documentos.deportistaUrl;
+            }
+          }
+          
+          setCurrentUser({
+            uid: user.uid,
+            name,
+            number,
+            avatar: '🇨🇴',
+            photoUrl
+          });
+        } catch (e) {
+          console.error("Error al cargar datos del usuario", e);
+        }
+      } else {
+        router.push('/');
+      }
+    });
+    return () => unsubscribe();
+  }, [router]);
 
   useEffect(() => {
     if (isChatOpen) {
@@ -1009,31 +1082,60 @@ export default function PskPitxDashboard() {
               ⏱️ TRACK STATUS
             </div>
             <div style={{ padding: '1rem', textAlign: 'center' }}>
-              <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '10px' }}>
-                {getEventStatus()}
-              </div>
-              
-              {/* Contained Countdown */}
-              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginBottom: '15px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span className="font-display" style={{ fontSize: isMobile ? '2.8rem' : '2rem', fontWeight: 900, color: 'var(--accent-green)', textShadow: '0 0 10px rgba(57,255,20,0.3)', lineHeight: 1 }}>{String(timeLeft.days).padStart(2, '0')}</span>
-                  <span style={{ fontSize: isMobile ? '10px' : '0.7rem', color: 'var(--text-muted)' }}>DÍAS</span>
-                </div>
-                <span className="font-display" style={{ fontSize: isMobile ? '2rem' : '1.8rem', color: 'var(--text-muted)', transform: isMobile ? 'translateY(5px)' : 'none' }}>:</span>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span className="font-display" style={{ fontSize: isMobile ? '2.8rem' : '2rem', fontWeight: 900, color: 'white', lineHeight: 1 }}>{String(timeLeft.hours).padStart(2, '0')}</span>
-                  <span style={{ fontSize: isMobile ? '10px' : '0.7rem', color: 'var(--text-muted)' }}>HRS</span>
-                </div>
-                <span className="font-display" style={{ fontSize: isMobile ? '2rem' : '1.8rem', color: 'var(--text-muted)', transform: isMobile ? 'translateY(5px)' : 'none' }}>:</span>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span className="font-display" style={{ fontSize: isMobile ? '2.8rem' : '2rem', fontWeight: 900, color: 'white', lineHeight: 1 }}>{String(timeLeft.minutes).padStart(2, '0')}</span>
-                  <span style={{ fontSize: isMobile ? '10px' : '0.7rem', color: 'var(--text-muted)' }}>MIN</span>
-                </div>
-                <span className="font-display" style={{ fontSize: isMobile ? '2rem' : '1.8rem', color: 'var(--text-muted)', transform: isMobile ? 'translateY(5px)' : 'none' }}>:</span>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span className="font-display" style={{ fontSize: isMobile ? '2.8rem' : '2rem', fontWeight: 900, color: 'white', lineHeight: 1 }}>{String(timeLeft.seconds).padStart(2, '0')}</span>
-                  <span style={{ fontSize: isMobile ? '10px' : '0.7rem', color: 'var(--text-muted)' }}>SEG</span>
-                </div>
+              <div style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '15px' }}>
+                {currentUser?.photoUrl ? (
+                  <div style={{ display: 'flex', justifyContent: 'center' }}>
+                    <div style={{ position: 'relative', width: '100%', maxWidth: '200px' }}>
+                      <img 
+                        src={currentUser.photoUrl} 
+                        alt="Foto del Piloto" 
+                        style={{ 
+                          width: '100%', 
+                          borderRadius: '8px',
+                          border: '2px solid var(--accent-green)',
+                          boxShadow: '0 0 15px rgba(57,255,20,0.3)',
+                          objectFit: 'cover',
+                          aspectRatio: '1/1',
+                          opacity: isUploadingPhoto ? 0.5 : 1
+                        }} 
+                      />
+                      {isUploadingPhoto && (
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <span className="blink-fast" style={{ color: 'var(--accent-green)' }}>Subiendo...</span>
+                        </div>
+                      )}
+                      <label 
+                        style={{ 
+                          position: 'absolute', 
+                          top: '10px', 
+                          right: '10px', 
+                          background: 'rgba(0,0,0,0.7)', 
+                          border: '1px solid var(--accent-green)',
+                          borderRadius: '50%',
+                          width: '36px',
+                          height: '36px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          transition: 'transform 0.2s'
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                        onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                      >
+                        <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoUpload} disabled={isUploadingPhoto} />
+                        <span style={{ fontSize: '16px' }}>✏️</span>
+                      </label>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ padding: '20px', color: 'var(--text-muted)' }}>
+                    <label style={{ cursor: 'pointer', color: 'var(--accent-green)', textDecoration: 'underline' }}>
+                      <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoUpload} disabled={isUploadingPhoto} />
+                      {isUploadingPhoto ? 'Subiendo...' : 'Subir Foto'}
+                    </label>
+                  </div>
+                )}
               </div>
               
               <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', letterSpacing: '1px', borderTop: '1px solid #333', paddingTop: '8px' }}>

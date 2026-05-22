@@ -15,6 +15,8 @@ interface SocialMediaCardProps {
   initialConfig?: any;
   isAdmin?: boolean;
   onSaveSuccess?: () => void;
+  pilotCity?: string;
+  pilotInstagram?: string;
 }
 
 export default function SocialMediaCard({
@@ -22,27 +24,80 @@ export default function SocialMediaCard({
   pilotPseudonym,
   pilotCategory,
   pilotPhotoUrl,
+  pilotCity = '',
+  pilotInstagram = '',
 }: SocialMediaCardProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
 
   const [photoLoaded, setPhotoLoaded] = useState(false);
   const photoImgRef = useRef<HTMLImageElement | null>(null);
-  const sponsorsImgRef = useRef<HTMLImageElement | null>(null);
+  
+  // Sponsors Array
   const [sponsorsLoaded, setSponsorsLoaded] = useState(false);
+  const sponsorsRefs = useRef<HTMLImageElement[]>([]);
+
+  const [mainLogoLoaded, setMainLogoLoaded] = useState(false);
+  const mainLogoRef = useRef<HTMLImageElement | null>(null);
+
+  const [igLogoLoaded, setIgLogoLoaded] = useState(false);
+  const igLogoRef = useRef<HTMLImageElement | null>(null);
 
   useEffect(() => {
-    // 1. Cargar tira de patrocinadores
-    const sponsors = new Image();
-    sponsors.crossOrigin = 'anonymous';
-    sponsors.onload = () => {
-      sponsorsImgRef.current = sponsors;
-      setSponsorsLoaded(true);
+    // Load main logo
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      mainLogoRef.current = img;
+      setMainLogoLoaded(true);
     };
-    sponsors.onerror = () => {
-      console.error('Error loading sponsors strip');
+    img.src = '/sponsors/main-logo.png';
+
+    // Load IG logo
+    const igImg = new Image();
+    igImg.onload = () => {
+      igLogoRef.current = igImg;
+      setIgLogoLoaded(true);
     };
-    sponsors.src = '/sponsors/patro.png';
+    igImg.src = "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='url(%23igGrad)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cdefs%3E%3ClinearGradient id='igGrad' x1='0%25' y1='100%25' x2='100%25' y2='0%25'%3E%3Cstop offset='0%25' stop-color='%23f09433' /%3E%3Cstop offset='25%25' stop-color='%23e6683c' /%3E%3Cstop offset='50%25' stop-color='%23dc2743' /%3E%3Cstop offset='75%25' stop-color='%23cc2366' /%3E%3Cstop offset='100%25' stop-color='%23bc1888' /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='2' y='2' width='20' height='20' rx='5' ry='5'/%3E%3Cpath d='M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z'/%3E%3Cline x1='17.5' y1='6.5' x2='17.51' y2='6.5'/%3E%3C/svg%3E";
+  }, []);
+
+  useEffect(() => {
+    // 1. Cargar logos individuales de patrocinadores
+    const sponsorPaths = [
+      '/sponsors/Nitrox Blanco.png',
+      '/sponsors/Mobil Blanco.png',
+      '/sponsors/PKS Blanco.png',
+      '/sponsors/copa stunt nitrox f2r.png',
+      '/sponsors/Trakku.png',
+      '/sponsors/IRC Blanco.png',
+      '/sponsors/Fedemoto.png',
+      '/sponsors/Victory Blanco.png'
+    ];
+
+    let loadedCount = 0;
+    const loadedImages: HTMLImageElement[] = [];
+
+    sponsorPaths.forEach((path, index) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        loadedCount++;
+        loadedImages[index] = img;
+        if (loadedCount === sponsorPaths.length) {
+          sponsorsRefs.current = loadedImages;
+          setSponsorsLoaded(true);
+        }
+      };
+      img.onerror = () => {
+        loadedCount++; // Ignore errors but continue counting
+        if (loadedCount === sponsorPaths.length) {
+          sponsorsRefs.current = loadedImages;
+          setSponsorsLoaded(true);
+        }
+      };
+      img.src = path;
+    });
 
     // 2. Cargar foto del piloto
     if (pilotPhotoUrl) {
@@ -77,7 +132,7 @@ export default function SocialMediaCard({
 
   useEffect(() => {
     drawCanvas();
-  }, [photoLoaded, sponsorsLoaded, pilotName, pilotPseudonym, pilotCategory]);
+  }, [photoLoaded, sponsorsLoaded, mainLogoLoaded, igLogoLoaded, pilotName, pilotPseudonym, pilotCategory, pilotCity, pilotInstagram]);
 
   const drawCanvas = () => {
     const canvas = canvasRef.current;
@@ -91,8 +146,11 @@ export default function SocialMediaCard({
     canvas.width = cw;
     canvas.height = ch;
 
-    // 1. Black/Dark Racing Background
-    ctx.fillStyle = '#050505';
+    // 1. Black/Dark Racing Background with Gradient
+    const bgGradient = ctx.createLinearGradient(0, 0, 0, ch);
+    bgGradient.addColorStop(0, '#0a0a0a');
+    bgGradient.addColorStop(1, '#051005'); // Dark military green tint at the bottom
+    ctx.fillStyle = bgGradient;
     ctx.fillRect(0, 0, cw, ch);
 
     // Dynamic geometric neon green accents
@@ -103,7 +161,7 @@ export default function SocialMediaCard({
     ctx.moveTo(0, 0);
     ctx.lineTo(cw * 0.5, 0);
     ctx.lineTo(0, ch * 0.5);
-    ctx.fillStyle = 'rgba(57, 255, 20, 0.05)';
+    ctx.fillStyle = 'rgba(57, 255, 20, 0.03)';
     ctx.fill();
 
     // Bottom-right triangle
@@ -111,7 +169,7 @@ export default function SocialMediaCard({
     ctx.moveTo(cw, ch);
     ctx.lineTo(cw * 0.5, ch);
     ctx.lineTo(cw, ch * 0.5);
-    ctx.fillStyle = 'rgba(57, 255, 20, 0.05)';
+    ctx.fillStyle = 'rgba(57, 255, 20, 0.03)';
     ctx.fill();
 
     // Angled lines
@@ -135,14 +193,14 @@ export default function SocialMediaCard({
     ctx.restore();
 
     // 2. Draw Frame & Photo
-    const fw = cw * 0.65;
+    const fw = cw * 0.70;
     const fh = ch * 0.45;
     const fx = (cw - fw) / 2;
-    const fy = ch * 0.22; // Place it in the middle
+    const fy = ch * 0.23; // Place it in the middle
     
     ctx.save();
     ctx.beginPath();
-    const skew = 40; // pixels to skew
+    const skew = 30; // pixels to skew
     ctx.moveTo(fx + skew, fy);
     ctx.lineTo(fx + fw, fy);
     ctx.lineTo(fx + fw - skew, fy + fh);
@@ -157,14 +215,23 @@ export default function SocialMediaCard({
 
     const photo = photoImgRef.current;
     if (photo && photoLoaded) {
-      // Auto-fill logic
-      const scale = Math.max(fw / photo.width, fh / photo.height);
+      // Auto-fill logic with 8% zoom
+      const baseScale = Math.max(fw / photo.width, fh / photo.height);
+      const scale = baseScale * 1.08;
       const drawW = photo.width * scale;
       const drawH = photo.height * scale;
       const cx = fx + fw / 2;
       const cy = fy + fh / 2;
       ctx.translate(cx, cy);
-      ctx.drawImage(photo, -drawW / 2, -drawH / 2, drawW, drawH);
+      
+      // Offset vertical center to focus more on face/upper torso
+      // Shift up very slightly to center the face/torso and avoid cutting off hats
+      let offsetY = 0;
+      if (drawH > fh) {
+        offsetY = -(drawH - fh) * 0.08; 
+      }
+      
+      ctx.drawImage(photo, -drawW / 2, -drawH / 2 + offsetY, drawW, drawH);
     } else {
       ctx.fillStyle = '#FFFFFF';
       ctx.font = '24px Orbitron, sans-serif';
@@ -183,10 +250,10 @@ export default function SocialMediaCard({
     ctx.lineTo(fx, fy + fh);
     ctx.closePath();
     
-    ctx.lineWidth = 8;
+    ctx.lineWidth = 6;
     ctx.strokeStyle = '#39FF14';
     ctx.shadowColor = '#39FF14';
-    ctx.shadowBlur = 25;
+    ctx.shadowBlur = 20;
     ctx.stroke();
     
     ctx.lineWidth = 2;
@@ -195,80 +262,217 @@ export default function SocialMediaCard({
     ctx.stroke();
     ctx.restore();
 
-    // 3. Texts
+    // Instagram handle (Top Left of the entire card)
+    if (igLogoLoaded && igLogoRef.current) {
+      ctx.save();
+      const igLogo = igLogoRef.current;
+      const igX = 40; // Top left of the card
+      const igY = 40;
+      const iconSize = 28;
+
+      // Draw IG Icon (original colors)
+      ctx.shadowBlur = 0; // No shadow so original colors are clean
+      ctx.drawImage(igLogo, igX, igY, iconSize, iconSize);
+
+      // Draw IG Handle
+      ctx.font = 'bold 22px "Orbitron", sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      
+      const fallbackIg = pilotPseudonym !== 'N/A' && pilotPseudonym ? pilotPseudonym.replace(/\s+/g, '') : pilotName.split(' ')[0];
+      const displayIg = pilotInstagram && pilotInstagram !== 'N/A' ? pilotInstagram : fallbackIg;
+      const igText = displayIg.startsWith('@') ? displayIg : `@${displayIg}`;
+      
+      // Contorno azul neon
+      ctx.strokeStyle = '#00F0FF';
+      ctx.lineWidth = 4;
+      ctx.strokeText(igText, igX + iconSize + 12, igY + iconSize / 2);
+      
+      // Letra blanca
+      ctx.fillStyle = '#FFFFFF';
+      ctx.shadowBlur = 0;
+      ctx.fillText(igText, igX + iconSize + 12, igY + iconSize / 2);
+      
+      ctx.restore();
+    }
+
+    // 3. Texts and Main Logo
     ctx.save();
     ctx.textAlign = 'center';
 
-    // Title 
-    ctx.font = 'bold 30px "Orbitron", sans-serif';
-    ctx.fillStyle = '#AAAAAA';
-    ctx.fillText('COPA STUNT COLOMBIA F2R 2026', cw / 2, fy - 110);
+    // Title / Main Logo
+    if (mainLogoLoaded && mainLogoRef.current) {
+      const mainLogo = mainLogoRef.current;
+      const aspect = mainLogo.width / mainLogo.height;
+      const logoH = 110;
+      const logoW = logoH * aspect;
+      
+      // Add a nice drop shadow to make it pop
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+      ctx.shadowBlur = 20;
+      ctx.shadowOffsetY = 10;
+      
+      ctx.drawImage(mainLogo, (cw - logoW) / 2, fy - 190, logoW, logoH);
+      
+      // Reset shadows
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
+    }
 
-    // Pilot Name
-    ctx.font = '900 80px "Orbitron", sans-serif';
+    // Pilot Name (Auto-scaling)
     ctx.fillStyle = '#FFFFFF';
-    ctx.shadowColor = 'rgba(0,0,0,0.8)';
+    ctx.shadowColor = 'rgba(0,0,0,0.9)';
     ctx.shadowBlur = 15;
-    ctx.fillText(pilotName.toUpperCase(), cw / 2, fy - 30);
+    
+    let nameSize = 60;
+    ctx.font = `900 ${nameSize}px "Orbitron", sans-serif`;
+    let nameWidth = ctx.measureText(pilotName.toUpperCase()).width;
+    const maxNameWidth = cw * 0.9;
+    
+    while (nameWidth > maxNameWidth && nameSize > 30) {
+      nameSize -= 2;
+      ctx.font = `900 ${nameSize}px "Orbitron", sans-serif`;
+      nameWidth = ctx.measureText(pilotName.toUpperCase()).width;
+    }
+    
+    ctx.fillText(pilotName.toUpperCase(), cw / 2, fy - 25);
 
     // Pilot Pseudonym
     if (pilotPseudonym && pilotPseudonym !== 'N/A') {
       ctx.font = 'italic 900 55px "Orbitron", sans-serif';
+      
+      // Add strong dark background shadow for legibility
+      ctx.shadowColor = 'black';
+      ctx.shadowBlur = 25;
+      
+      // Draw shadow multiple times for stronger effect
+      ctx.fillStyle = 'black';
+      ctx.fillText(`"${pilotPseudonym.toUpperCase()}"`, cw / 2, fy + fh + 65);
+      ctx.fillText(`"${pilotPseudonym.toUpperCase()}"`, cw / 2, fy + fh + 65);
+      
       ctx.fillStyle = '#39FF14';
-      ctx.fillText(`"${pilotPseudonym.toUpperCase()}"`, cw / 2, fy + fh + 60);
+      ctx.shadowBlur = 0;
+      ctx.fillText(`"${pilotPseudonym.toUpperCase()}"`, cw / 2, fy + fh + 65);
     }
 
-    // Category Pill
+    // 3. Sponsors Background & Logos
+    if (sponsorsLoaded && sponsorsRefs.current.length > 0) {
+      ctx.save();
+      
+      const gradient = ctx.createLinearGradient(0, ch - 220, 0, ch);
+      gradient.addColorStop(0, 'rgba(0,0,0,0)');
+      gradient.addColorStop(0.3, 'rgba(0,0,0,0.8)');
+      gradient.addColorStop(1, 'rgba(0,0,0,1)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, ch - 220, cw, 220);
+      
+      const totalAvailableWidth = cw * 0.90;
+      const validSponsors = sponsorsRefs.current.filter(img => img);
+      
+      const drawSponsorRow = (rowSponsors: HTMLImageElement[], yOffset: number, sHeight: number) => {
+        const numSponsors = rowSponsors.length;
+        if (numSponsors === 0) return;
+        
+        const spacing = 15; // reduced spacing to fit more logos
+        const individualMaxWidth = (totalAvailableWidth - (spacing * (numSponsors - 1))) / numSponsors;
+        
+        let totalUsedWidth = 0;
+        const dimensions = rowSponsors.map(img => {
+          const aspect = img.width / img.height;
+          let drawW = sHeight * aspect;
+          if (drawW > individualMaxWidth) {
+            drawW = individualMaxWidth;
+          }
+          totalUsedWidth += drawW;
+          return { drawW, drawH: drawW / aspect };
+        });
+        
+        totalUsedWidth += spacing * (numSponsors - 1);
+        let currentX = (cw - totalUsedWidth) / 2;
+
+        rowSponsors.forEach((img, index) => {
+          const dims = dimensions[index];
+          
+          ctx.shadowColor = '#39FF14';
+          ctx.shadowBlur = 15;
+          ctx.globalAlpha = 0.05;
+          ctx.fillRect(currentX, yOffset + (sHeight - dims.drawH) / 2, dims.drawW, dims.drawH);
+          
+          ctx.globalAlpha = 1.0;
+          ctx.shadowBlur = 0;
+          ctx.drawImage(img, currentX, yOffset + (sHeight - dims.drawH) / 2, dims.drawW, dims.drawH);
+          
+          currentX += dims.drawW + spacing;
+        });
+      };
+
+      // Always draw in a single row as requested
+      drawSponsorRow(validSponsors, ch - 80, 50); // Single row, pushed down to ch - 80 to fit city text
+      
+      ctx.restore();
+    }
+
+    // 4. Category Pill
     const catText = Array.isArray(pilotCategory) ? pilotCategory.join(' / ') : pilotCategory;
-    ctx.font = 'bold 45px "Orbitron", sans-serif';
+    const displayCatText = `CATEGORÍA: ${catText.toUpperCase()}`;
     
-    const textMetrics = ctx.measureText(catText.toUpperCase());
-    const pillWidth = Math.max(textMetrics.width + 100, 300);
-    const pillHeight = 70;
+    ctx.font = 'bold 35px "Orbitron", sans-serif';
+    
+    const textMetrics = ctx.measureText(displayCatText);
+    const pillWidth = Math.max(textMetrics.width + 80, 250);
+    const pillHeight = 60;
     const pillX = (cw - pillWidth) / 2;
-    const pillY = fy + fh + 100;
+    const pillY = fy + fh + 105; // Placed below pseudonym
 
     // Outer glow for pill
     ctx.shadowColor = '#39FF14';
-    ctx.shadowBlur = 20;
-    ctx.fillStyle = '#39FF14';
+    ctx.shadowBlur = 15;
+    ctx.fillStyle = '#051005';
+    ctx.strokeStyle = '#39FF14';
+    ctx.lineWidth = 3;
+    
     ctx.beginPath();
-    ctx.roundRect(pillX, pillY, pillWidth, pillHeight, 35);
+    ctx.roundRect(pillX, pillY, pillWidth, pillHeight, 30);
     ctx.fill();
+    ctx.stroke();
 
-    // Inner black text
-    ctx.fillStyle = '#000000';
+    // Inner text
+    ctx.fillStyle = '#FFFFFF';
     ctx.shadowBlur = 0;
     ctx.textBaseline = 'middle';
-    ctx.fillText(catText.toUpperCase(), cw / 2, pillY + pillHeight / 2);
+    ctx.fillText(displayCatText, cw / 2, pillY + pillHeight / 2);
     
     ctx.restore();
 
-    // 4. Sponsors
-    const sponsors = sponsorsImgRef.current;
-    if (sponsors && sponsorsLoaded) {
+    // 5. City Badge (Below Category)
+    if (pilotCity && pilotCity !== 'N/A') {
       ctx.save();
-      const aspect = sponsors.width / sponsors.height;
-      const drawW = cw * 0.90;
-      const drawH = drawW / aspect;
-      const drawX = (cw - drawW) / 2;
-      const drawY = ch - drawH - 30;
+      ctx.font = 'bold 22px "Orbitron", sans-serif';
+      const cityText = pilotCity.toUpperCase();
+      const cityMetrics = ctx.measureText(cityText);
+      const cityWidth = Math.max(cityMetrics.width + 40, 150);
+      const cityHeight = 45;
       
-      const gradient = ctx.createLinearGradient(0, ch - drawH - 80, 0, ch);
-      gradient.addColorStop(0, 'rgba(0,0,0,0)');
-      gradient.addColorStop(0.3, 'rgba(0,0,0,0.9)');
-      gradient.addColorStop(1, 'rgba(0,0,0,1)');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, ch - drawH - 80, cw, drawH + 80);
+      const cityX = (cw - cityWidth) / 2; 
+      const cityY = pillY + pillHeight + 15; // Placed below category pill
       
+      // Neon green pill matching category
       ctx.shadowColor = '#39FF14';
-      ctx.shadowBlur = 10;
-      ctx.globalAlpha = 0.1;
-      ctx.fillRect(drawX, drawY, drawW, drawH);
+      ctx.shadowBlur = 15;
+      ctx.fillStyle = '#051005';
+      ctx.strokeStyle = '#39FF14';
+      ctx.lineWidth = 3; // Match category lineWidth
       
-      ctx.globalAlpha = 1.0;
-      ctx.shadowBlur = 0;
-      ctx.drawImage(sponsors, drawX, drawY, drawW, drawH);
+      ctx.beginPath();
+      ctx.roundRect(cityX, cityY, cityWidth, cityHeight, cityHeight / 2);
+      ctx.fill();
+      ctx.stroke();
+      
+      ctx.fillStyle = '#FFFFFF'; // Letra blanca
+      ctx.shadowBlur = 0; // Disable shadow for clean text
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(cityText, cityX + cityWidth / 2, cityY + cityHeight / 2);
       ctx.restore();
     }
   };

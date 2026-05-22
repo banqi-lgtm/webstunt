@@ -349,19 +349,13 @@ export default function QrPage() {
                   
                   {/* Preview Grid */}
                   <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 opacity-70">
-                    {[...filteredRegistrations].sort((a, b) => (a.kitNumber || 9999) - (b.kitNumber || 9999)).slice(0, 10).map(pilot => (
+                    {[...filteredRegistrations].sort((a, b) => (a.kitNumber || 9999) - (b.kitNumber || 9999)).map(pilot => (
                        <div key={pilot.id} className="border border-zinc-800 bg-zinc-900/50 rounded-lg p-3 flex flex-col items-center text-center">
                           <QRCode value={pilot.id} size={80} fgColor="#FFFFFF" bgColor="transparent" />
                           <h4 className="text-white text-xs font-bold mt-3 truncate w-full">{pilot.nombres}</h4>
                           <span className="text-zinc-500 text-[10px]">{pilot.motocicleta.placa}</span>
                        </div>
                     ))}
-                    {filteredRegistrations.length > 10 && (
-                      <div className="border border-zinc-800 bg-zinc-900/20 border-dashed rounded-lg flex flex-col items-center justify-center text-zinc-500 p-4">
-                        <span className="font-bold text-xl">+{filteredRegistrations.length - 10}</span>
-                        <span className="text-xs">Pilotos ocultos en vista previa</span>
-                      </div>
-                    )}
                   </div>
                 </TabsContent>
                 
@@ -392,7 +386,7 @@ export default function QrPage() {
 
                   {/* Preview Grid */}
                   <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 opacity-70">
-                    {[...filteredRegistrations].sort((a,b)=>(a.kitNumber || 999)-(b.kitNumber || 999)).slice(0, 10).map((pilot) => (
+                    {[...filteredRegistrations].sort((a,b)=>(a.kitNumber || 999)-(b.kitNumber || 999)).map((pilot) => (
                        <div key={`preview_kit_${pilot.id}`} className="border border-zinc-800 bg-zinc-900/50 rounded-lg p-3 flex flex-col items-center text-center relative overflow-hidden">
                           {pilot.kitEntregado && <div className="absolute top-0 right-0 bg-green-500 text-black text-[8px] font-bold px-2 py-0.5 rounded-bl-lg z-10">ENTREGADO</div>}
                           <QRCode value={`kit_${pilot.id}`} size={80} fgColor="#39FF14" bgColor="transparent" />
@@ -400,12 +394,6 @@ export default function QrPage() {
                           <span className="text-zinc-500 text-[10px] font-bold">KIT {pilot.kitNumber || '?'}</span>
                        </div>
                     ))}
-                    {filteredRegistrations.length > 10 && (
-                      <div className="border border-zinc-800 bg-zinc-900/20 border-dashed rounded-lg flex flex-col items-center justify-center text-zinc-500 p-4">
-                        <span className="font-bold text-xl">+{filteredRegistrations.length - 10}</span>
-                        <span className="text-xs">Kits ocultos en vista previa</span>
-                      </div>
-                    )}
                   </div>
                 </TabsContent>
 
