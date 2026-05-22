@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import Link from 'next/link';
 import * as XLSX from 'xlsx';
+import BulkSocialMediaExport from '@/components/bulk-social-media-export';
 
 interface Registration {
   id: string;
@@ -215,6 +216,8 @@ export default function PilotosPage() {
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+            <BulkSocialMediaExport pilots={filteredRegistrations} />
+            
             <Button onClick={exportToExcel} className="bg-zinc-800 hover:bg-zinc-700 text-white gap-2 h-12 px-6 w-full sm:w-auto font-bold shadow-[0_0_20px_rgba(255,255,255,0.05)] border border-zinc-700">
               <Download className="w-5 h-5" /> EXPORTAR EXCEL
             </Button>

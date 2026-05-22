@@ -17,6 +17,7 @@ interface SocialMediaCardProps {
   onSaveSuccess?: () => void;
   pilotCity?: string;
   pilotInstagram?: string;
+  onRenderComplete?: (dataUrl: string) => void;
 }
 
 export default function SocialMediaCard({
@@ -26,9 +27,15 @@ export default function SocialMediaCard({
   pilotPhotoUrl,
   pilotCity = '',
   pilotInstagram = '',
+  onRenderComplete,
 }: SocialMediaCardProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
+
+  // Drag states for photo adjustment
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
   const [photoLoaded, setPhotoLoaded] = useState(false);
   const photoImgRef = useRef<HTMLImageElement | null>(null);
@@ -104,13 +111,16 @@ export default function SocialMediaCard({
       setPhotoLoaded(false);
       photoImgRef.current = null;
 
-      const isExternal = pilotPhotoUrl.startsWith('http');
+      const isBlob = pilotPhotoUrl.startsWith('blob:');
+      const isExternal = !isBlob && pilotPhotoUrl.startsWith('http');
       const finalUrl = isExternal 
         ? `/api/proxy-image?url=${encodeURIComponent(pilotPhotoUrl)}&cb=${Date.now()}` 
         : pilotPhotoUrl;
 
       const photo = new Image();
-      photo.crossOrigin = 'anonymous';
+      if (!isBlob) {
+        photo.crossOrigin = 'anonymous';
+      }
       
       photo.onload = () => {
         photoImgRef.current = photo;
@@ -123,16 +133,21 @@ export default function SocialMediaCard({
           photoImgRef.current = fallback;
           setPhotoLoaded(true);
         };
+        fallback.onerror = () => {
+          setPhotoLoaded(true);
+        };
         fallback.src = pilotPhotoUrl;
       };
       
       photo.src = finalUrl;
+    } else {
+      setPhotoLoaded(true);
     }
   }, [pilotPhotoUrl]);
 
   useEffect(() => {
     drawCanvas();
-  }, [photoLoaded, sponsorsLoaded, mainLogoLoaded, igLogoLoaded, pilotName, pilotPseudonym, pilotCategory, pilotCity, pilotInstagram]);
+  }, [photoLoaded, sponsorsLoaded, mainLogoLoaded, igLogoLoaded, pilotName, pilotPseudonym, pilotCategory, pilotCity, pilotInstagram, panOffset.x, panOffset.y]);
 
   const drawCanvas = () => {
     const canvas = canvasRef.current;
@@ -215,29 +230,34 @@ export default function SocialMediaCard({
 
     const photo = photoImgRef.current;
     if (photo && photoLoaded) {
-      // Auto-fill logic with 8% zoom
+      // Auto-fill logic with 3% zoom
       const baseScale = Math.max(fw / photo.width, fh / photo.height);
-      const scale = baseScale * 1.08;
+      const scale = baseScale * 1.03; // Menos zoom ("no tan cerca")
       const drawW = photo.width * scale;
       const drawH = photo.height * scale;
       const cx = fx + fw / 2;
       const cy = fy + fh / 2;
       ctx.translate(cx, cy);
       
-      // Offset vertical center to focus more on face/upper torso
-      // Shift up very slightly to center the face/torso and avoid cutting off hats
+      // Offset vertical center to focus on face/upper torso
+      // Un offset suave de 15% hacia abajo favorece la mitad superior (donde suele estar la cara) 
+      // sin empujar la foto al extremo inferior como lo hacía la división por 2.
       let offsetY = 0;
       if (drawH > fh) {
-        offsetY = -(drawH - fh) * 0.08; 
+        offsetY = (drawH - fh) * 0.15; 
       }
       
-      ctx.drawImage(photo, -drawW / 2, -drawH / 2 + offsetY, drawW, drawH);
+      ctx.drawImage(photo, -drawW / 2 + panOffset.x, -drawH / 2 + offsetY + panOffset.y, drawW, drawH);
     } else {
       ctx.fillStyle = '#FFFFFF';
       ctx.font = '24px Orbitron, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('Cargando foto...', fx + fw / 2, fy + fh / 2);
+      if (photoLoaded) {
+        ctx.fillText('Sin Foto / Error', fx + fw / 2, fy + fh / 2);
+      } else {
+        ctx.fillText('Cargando foto...', fx + fw / 2, fy + fh / 2);
+      }
     }
     ctx.restore();
 
@@ -270,31 +290,53 @@ export default function SocialMediaCard({
       const igY = 40;
       const iconSize = 28;
 
-      // Draw IG Icon (original colors)
-      ctx.shadowBlur = 0; // No shadow so original colors are clean
-      ctx.drawImage(igLogo, igX, igY, iconSize, iconSize);
-
-      // Draw IG Handle
       ctx.font = 'bold 22px "Orbitron", sans-serif';
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'middle';
       
       const fallbackIg = pilotPseudonym !== 'N/A' && pilotPseudonym ? pilotPseudonym.replace(/\s+/g, '') : pilotName.split(' ')[0];
       const displayIg = pilotInstagram && pilotInstagram !== 'N/A' ? pilotInstagram : fallbackIg;
       const igText = displayIg.startsWith('@') ? displayIg : `@${displayIg}`;
       
-      // Contorno azul neon
+      const textMetrics = ctx.measureText(igText);
+      const pillWidth = iconSize + textMetrics.width + 35;
+      const pillHeight = 44;
+      const pillX = igX - 10;
+      const pillY = igY - (pillHeight - iconSize) / 2;
+
+      // Draw blue pill background
+      ctx.shadowColor = '#00F0FF';
+      ctx.shadowBlur = 12;
+      ctx.fillStyle = '#001015';
       ctx.strokeStyle = '#00F0FF';
-      ctx.lineWidth = 4;
-      ctx.strokeText(igText, igX + iconSize + 12, igY + iconSize / 2);
+      ctx.lineWidth = 2;
       
-      // Letra blanca
+      ctx.beginPath();
+      ctx.roundRect(pillX, pillY, pillWidth, pillHeight, pillHeight / 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Draw IG Icon (original colors)
+      ctx.shadowBlur = 0; // No shadow so original colors are clean
+      ctx.drawImage(igLogo, igX, igY, iconSize, iconSize);
+
+      // Draw IG Handle Text (Letra blanca)
       ctx.fillStyle = '#FFFFFF';
-      ctx.shadowBlur = 0;
-      ctx.fillText(igText, igX + iconSize + 12, igY + iconSize / 2);
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(igText, igX + iconSize + 10, igY + iconSize / 2);
       
       ctx.restore();
     }
+
+    // PILOTO CONFIRMADO (Top Right of the entire card)
+    ctx.save();
+    ctx.font = 'bold 24px "Orbitron", sans-serif';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = '#39FF14'; // Green glow
+    ctx.shadowBlur = 15;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillText('PILOTO CONFIRMADO', cw - 40, 54); // Y matches IG handle baseline
+    ctx.restore();
 
     // 3. Texts and Main Logo
     ctx.save();
@@ -412,17 +454,54 @@ export default function SocialMediaCard({
       ctx.restore();
     }
 
-    // 4. Category Pill
+    // 4. City Badge (Ahora Arriba)
+    let nextY = fy + fh + 105;
+
+    if (pilotCity && pilotCity !== 'N/A') {
+      ctx.save();
+      ctx.font = 'bold 22px "Orbitron", sans-serif';
+      const cityText = pilotCity.toUpperCase();
+      const cityMetrics = ctx.measureText(cityText);
+      const cityWidth = Math.max(cityMetrics.width + 30, 150); // Un poco mas corta de padding
+      const cityHeight = 40; // Mas corta de altura
+      
+      const cityX = (cw - cityWidth) / 2; 
+      const cityY = nextY;
+      
+      // Contorno azul neon para la ciudad
+      ctx.shadowColor = '#00F0FF';
+      ctx.shadowBlur = 15;
+      ctx.fillStyle = '#001015'; // Fondo oscuro con tinte azul
+      ctx.strokeStyle = '#00F0FF';
+      ctx.lineWidth = 3; 
+      
+      ctx.beginPath();
+      ctx.roundRect(cityX, cityY, cityWidth, cityHeight, cityHeight / 2);
+      ctx.fill();
+      ctx.stroke();
+      
+      ctx.fillStyle = '#FFFFFF'; // Letra blanca
+      ctx.shadowBlur = 0; // Disable shadow for clean text
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(cityText, cityX + cityWidth / 2, cityY + cityHeight / 2);
+      ctx.restore();
+
+      nextY += cityHeight + 15; // Movemos el Y para la siguiente capsula (Categoría)
+    }
+
+    // 5. Category Pill (Ahora Abajo)
     const catText = Array.isArray(pilotCategory) ? pilotCategory.join(' / ') : pilotCategory;
     const displayCatText = `CATEGORÍA: ${catText.toUpperCase()}`;
     
+    ctx.save();
     ctx.font = 'bold 35px "Orbitron", sans-serif';
     
     const textMetrics = ctx.measureText(displayCatText);
     const pillWidth = Math.max(textMetrics.width + 80, 250);
     const pillHeight = 60;
     const pillX = (cw - pillWidth) / 2;
-    const pillY = fy + fh + 105; // Placed below pseudonym
+    const pillY = nextY;
 
     // Outer glow for pill
     ctx.shadowColor = '#39FF14';
@@ -440,40 +519,20 @@ export default function SocialMediaCard({
     ctx.fillStyle = '#FFFFFF';
     ctx.shadowBlur = 0;
     ctx.textBaseline = 'middle';
+    ctx.textAlign = 'center';
     ctx.fillText(displayCatText, cw / 2, pillY + pillHeight / 2);
     
     ctx.restore();
 
-    // 5. City Badge (Below Category)
-    if (pilotCity && pilotCity !== 'N/A') {
-      ctx.save();
-      ctx.font = 'bold 22px "Orbitron", sans-serif';
-      const cityText = pilotCity.toUpperCase();
-      const cityMetrics = ctx.measureText(cityText);
-      const cityWidth = Math.max(cityMetrics.width + 40, 150);
-      const cityHeight = 45;
-      
-      const cityX = (cw - cityWidth) / 2; 
-      const cityY = pillY + pillHeight + 15; // Placed below category pill
-      
-      // Neon green pill matching category
-      ctx.shadowColor = '#39FF14';
-      ctx.shadowBlur = 15;
-      ctx.fillStyle = '#051005';
-      ctx.strokeStyle = '#39FF14';
-      ctx.lineWidth = 3; // Match category lineWidth
-      
-      ctx.beginPath();
-      ctx.roundRect(cityX, cityY, cityWidth, cityHeight, cityHeight / 2);
-      ctx.fill();
-      ctx.stroke();
-      
-      ctx.fillStyle = '#FFFFFF'; // Letra blanca
-      ctx.shadowBlur = 0; // Disable shadow for clean text
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(cityText, cityX + cityWidth / 2, cityY + cityHeight / 2);
-      ctx.restore();
+    // Trigger completion callback if all assets are loaded
+    if (onRenderComplete && sponsorsLoaded && mainLogoLoaded && igLogoLoaded && photoLoaded) {
+      setTimeout(() => {
+        try {
+          onRenderComplete(canvas.toDataURL('image/png'));
+        } catch(e) {
+          console.error("Export error", e);
+        }
+      }, 100); // short delay to ensure painting is complete
     }
   };
 
@@ -530,7 +589,29 @@ export default function SocialMediaCard({
         <div className="relative w-full max-w-[600px] aspect-square rounded-xl overflow-hidden border-2 border-zinc-800 shadow-2xl">
           <canvas
             ref={canvasRef}
-            className="w-full h-full object-cover"
+            className={`w-full h-full object-cover touch-none select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+            onPointerDown={(e) => {
+              setIsDragging(true);
+              setDragStart({ x: e.clientX, y: e.clientY });
+              e.currentTarget.setPointerCapture(e.pointerId);
+            }}
+            onPointerMove={(e) => {
+              if (!isDragging) return;
+              const canvas = e.currentTarget;
+              const scaleRatio = 1080 / (canvas.clientWidth || 1);
+              const dx = (e.clientX - dragStart.x) * scaleRatio;
+              const dy = (e.clientY - dragStart.y) * scaleRatio;
+              setPanOffset(prev => ({ x: prev.x + dx, y: prev.y + dy }));
+              setDragStart({ x: e.clientX, y: e.clientY });
+            }}
+            onPointerUp={(e) => {
+              setIsDragging(false);
+              e.currentTarget.releasePointerCapture(e.pointerId);
+            }}
+            onPointerCancel={(e) => {
+              setIsDragging(false);
+              e.currentTarget.releasePointerCapture(e.pointerId);
+            }}
           />
         </div>
       </CardContent>

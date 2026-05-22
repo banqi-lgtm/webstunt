@@ -200,6 +200,14 @@ export default function PskPitxDashboard() {
           let photoUrl = '';
           if (regDoc.exists()) {
             const r = regDoc.data();
+            
+            // Prefer pilot's name from registration over account owner's name
+            if (r.nombres || r.apellidos) {
+              name = `${r.nombres || ''} ${r.apellidos || ''}`.trim();
+            } else if (r.seudonimo) {
+              name = r.seudonimo;
+            }
+            
             number = r.dorsal || '00';
             if (r.documentos?.deportistaUrl) {
               photoUrl = r.documentos.deportistaUrl;
@@ -1078,9 +1086,6 @@ export default function PskPitxDashboard() {
         <aside className="sidebar-left" style={{ display: isMobile ? 'contents' : 'flex' }}>
           
           <div className="panel" style={{ flexShrink: 0, order: isMobile ? -1 : 0 }}>
-            <div className="panel-header font-display" style={{ color: 'var(--accent-green)' }}>
-              ⏱️ TRACK STATUS
-            </div>
             <div style={{ padding: '1rem', textAlign: 'center' }}>
               <div style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '15px' }}>
                 {currentUser?.photoUrl ? (
@@ -1129,11 +1134,32 @@ export default function PskPitxDashboard() {
                     </div>
                   </div>
                 ) : (
-                  <div style={{ padding: '20px', color: 'var(--text-muted)' }}>
-                    <label style={{ cursor: 'pointer', color: 'var(--accent-green)', textDecoration: 'underline' }}>
-                      <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoUpload} disabled={isUploadingPhoto} />
-                      {isUploadingPhoto ? 'Subiendo...' : 'Subir Foto'}
-                    </label>
+                  <div style={{ display: 'flex', justifyContent: 'center' }}>
+                    <div style={{ position: 'relative', width: '100%', maxWidth: '200px', aspectRatio: '1/1', borderRadius: '8px', border: '2px dashed var(--accent-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(57,255,20,0.05)' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>{isUploadingPhoto ? 'Subiendo...' : 'Sin Foto'}</span>
+                      <label 
+                        style={{ 
+                          position: 'absolute', 
+                          top: '10px', 
+                          right: '10px', 
+                          background: 'rgba(0,0,0,0.7)', 
+                          border: '1px solid var(--accent-green)',
+                          borderRadius: '50%',
+                          width: '36px',
+                          height: '36px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          transition: 'transform 0.2s'
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                        onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                      >
+                        <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoUpload} disabled={isUploadingPhoto} />
+                        <span style={{ fontSize: '16px' }}>✏️</span>
+                      </label>
+                    </div>
                   </div>
                 )}
               </div>
