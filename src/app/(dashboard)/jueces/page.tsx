@@ -5,11 +5,12 @@ import { useRouter } from 'next/navigation';
 import { collection, getDocs, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { ClipboardList, Search, Play, ShieldAlert, User, Phone, Mail, MapPin, Instagram, Info, Flame, Gamepad2, Star, AlertTriangle, Edit2, Trophy } from 'lucide-react';
+import { ClipboardList, Search, Play, ShieldAlert, User, Phone, Mail, MapPin, Instagram, Info, Flame, Gamepad2, Star, AlertTriangle, Edit2, Trophy, Download, FileText } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import * as XLSX from 'xlsx';
 
 // ---------------------------------------------------------------------------
 // TYPES
@@ -39,6 +40,8 @@ interface Registration {
   nombres: string;
   apellidos: string;
   numeroIdentificacion: string;
+  seudonimo?: string;
+  instagram?: string;
   documentos?: {
     deportistaUrl?: string;
     [key: string]: any;
@@ -469,6 +472,8 @@ export default function JuecesPage() {
             nombres: userData.nombres || 'Desconocido',
             apellidos: userData.apellidos || '',
             numeroIdentificacion: userData.numeroIdentificacion || 'N/A',
+            seudonimo: userData.seudonimo || data.seudonimo || '',
+            instagram: userData.instagram || data.instagram || '',
             documentos: data.documentos || {},
             calificaciones: califMap.get(docSnap.id) || {}
           });
@@ -566,6 +571,82 @@ export default function JuecesPage() {
     }
   };
 
+  const handleDownloadExcel = () => {
+    try {
+      const masterPilots = groupedByCategory[masterCategory] || [];
+      if (masterPilots.length === 0) {
+        toast({ title: 'Sin datos', description: 'No hay datos para exportar en esta categoría.' });
+        return;
+      }
+
+      const gradedJudgeUids = Array.from(new Set(masterPilots.flatMap(p => Object.keys(p.calificaciones || {}))));
+      let displayJudgeUids = Array.from(new Set([...allJudgeUids, ...gradedJudgeUids]));
+      if (displayJudgeUids.length === 0) displayJudgeUids = ['juez_1', 'juez_2', 'juez_3'];
+
+      const sortedMasterPilots = [...masterPilots].map(pilot => {
+        const califs = pilot.calificaciones || {};
+        const globalTotal = displayJudgeUids.reduce((sum, uid) => sum + (califs[uid]?.total || 0), 0);
+        return { ...pilot, _globalTotal: globalTotal };
+      }).sort((a, b) => b._globalTotal - a._globalTotal);
+
+      const getJudgeNameStr = (uid: string) => {
+        if (uid === 'juez_1') return 'Juez 1';
+        if (uid === 'juez_2') return 'Juez 2';
+        if (uid === 'juez_3') return 'Juez 3';
+        return judgeNames[uid] || 'Jurado';
+      };
+
+      const exportData = sortedMasterPilots.map((pilot, index) => {
+        const rowData: any = {
+          'Posición': index + 1,
+          '#': pilot.numeroIdentificacion.slice(-4),
+          'Piloto': `${pilot.nombres} ${pilot.apellidos}`.trim(),
+          'Documento': pilot.numeroIdentificacion,
+        };
+
+        const califs = pilot.calificaciones || {};
+
+        const criteriaList = [
+          { id: 'combos', label: 'Combos' },
+          { id: 'drif', label: 'Drift' },
+          { id: 'acro', label: 'Acro' },
+          { id: 'endos', label: 'Endos' },
+          { id: 'flow', label: 'Flow' },
+          { id: 'agres', label: 'Agres' },
+          { id: 'error', label: 'Error' },
+        ];
+
+        criteriaList.forEach(crit => {
+          displayJudgeUids.forEach(uid => {
+            const jName = getJudgeNameStr(uid).split(' ')[0];
+            rowData[`${jName} - ${crit.label}`] = califs[uid]?.[crit.id as keyof Calificacion] || 0;
+          });
+          // Spacer column for visual separation in Excel
+          rowData[` | ${crit.label} | `] = ''; 
+        });
+
+        displayJudgeUids.forEach(uid => {
+          const jName = getJudgeNameStr(uid).split(' ')[0];
+          rowData[`${jName} - SUBTOTAL`] = califs[uid]?.total || 0;
+        });
+
+        rowData['  | TOTAL |  '] = '';
+        rowData['PUNTAJE TOTAL'] = pilot._globalTotal;
+
+        return rowData;
+      });
+
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, `Planilla_${masterCategory}`);
+      XLSX.writeFile(workbook, `Planilla_Jueces_${masterCategory.replace(/ /g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+      toast({ title: 'Éxito', description: 'La planilla se descargó correctamente.' });
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'Error', description: 'Hubo un error al exportar la planilla.', variant: 'destructive' });
+    }
+  };
 
   const getCatColor = (cat: string) => {
     if (cat.includes('OPEN')) return 'border-[#00ff88] text-[#00ff88] shadow-[0_0_15px_rgba(0,255,136,0.2)]';
@@ -596,7 +677,8 @@ export default function JuecesPage() {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col bg-black font-sans text-[#E8E8E8] relative">
+    <>
+    <div className="min-h-screen w-full flex flex-col bg-black font-sans text-[#E8E8E8] relative print:hidden">
       {/* Background Tech Grid */}
       <div className="absolute inset-0 z-0 pointer-events-none opacity-20 bg-[linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:40px_40px]"></div>
       
@@ -987,6 +1069,18 @@ export default function JuecesPage() {
               >
                 <Trophy className="w-3 h-3" /> PODIO
               </button>
+              <button 
+                onClick={handleDownloadExcel}
+                className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all bg-[#00ff88]/10 text-[#00ff88] border border-[#00ff88] hover:bg-[#00ff88]/20 hover:scale-105 shadow-[0_0_15px_rgba(0,255,136,0.3)] flex items-center gap-1.5 ml-2 shrink-0"
+              >
+                <Download className="w-3 h-3" /> EXPORTAR
+              </button>
+              <button 
+                onClick={() => window.print()}
+                className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all bg-[#ff0055]/10 text-[#ff0055] border border-[#ff0055] hover:bg-[#ff0055]/20 hover:scale-105 shadow-[0_0_15px_rgba(255,0,85,0.3)] flex items-center gap-1.5 ml-2 shrink-0"
+              >
+                <FileText className="w-3 h-3" /> PDF
+              </button>
             </div>
             <div className="flex items-center gap-3 flex-none pl-2 md:pl-0 border-l md:border-l-0 border-[#1A2540]">
               <span className="text-[#00cfff] font-mono text-[10px] tracking-[0.2em] uppercase font-bold drop-shadow-[0_0_5px_rgba(0,207,255,0.5)] whitespace-nowrap">DATA CONSOLE</span>
@@ -1312,5 +1406,57 @@ export default function JuecesPage() {
         </DialogContent>
       </Dialog>
     </div>
+
+      {/* RENDERIZADO PARA IMPRESIÓN (PDF) */}
+      <div className="hidden print:block w-full bg-white text-black font-sans">
+        {/* ENCABEZADO OSCURO CON LOGOS */}
+        <div className="flex flex-wrap items-center justify-center gap-6 bg-black p-6 border-b-4 border-gray-400" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+          {SPONSOR_LOGOS.map((logo, idx) => (
+            <img 
+              key={`print-logo-${idx}`} 
+              src={logo.src} 
+              alt={logo.alt} 
+              className="h-10 object-contain" 
+            />
+          ))}
+        </div>
+        
+        <div className="p-8">
+          {/* TÍTULO */}
+          <h1 className="text-3xl font-black uppercase text-center mb-6">Listado de Pilotos - {masterCategory}</h1>
+        
+          {/* TABLA DE PILOTOS */}
+          <table className="w-full text-left border-collapse border border-gray-400">
+            <thead>
+              <tr className="bg-gray-200" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+                <th className="border border-gray-400 px-4 py-3 font-bold">#</th>
+                <th className="border border-gray-400 px-4 py-3 font-bold">PILOTO</th>
+                <th className="border border-gray-400 px-4 py-3 font-bold">SEUDÓNIMO</th>
+                <th className="border border-gray-400 px-4 py-3 font-bold">INSTAGRAM</th>
+                <th className="border border-gray-400 px-4 py-3 font-bold">CATEGORÍA</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(groupedByCategory[masterCategory] || []).map((pilot: any) => (
+                <tr key={`print-${pilot.id}`}>
+                  <td className="border border-gray-400 px-4 py-3 font-mono font-bold text-gray-700">#{pilot.numeroIdentificacion?.slice(-4) || 'N/A'}</td>
+                  <td className="border border-gray-400 px-4 py-3 font-bold uppercase">{pilot.nombres} {pilot.apellidos}</td>
+                  <td className="border border-gray-400 px-4 py-3 capitalize">{pilot.seudonimo || 'N/A'}</td>
+                  <td className="border border-gray-400 px-4 py-3">{pilot.instagram || 'N/A'}</td>
+                  <td className="border border-gray-400 px-4 py-3 uppercase">{Array.isArray(pilot.categoria) ? pilot.categoria.join(', ') : pilot.categoria}</td>
+                </tr>
+              ))}
+              {(groupedByCategory[masterCategory] || []).length === 0 && (
+                <tr>
+                  <td colSpan={5} className="border border-gray-400 px-4 py-8 text-center text-gray-500">
+                    No hay pilotos registrados en esta categoría
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
   );
 }
