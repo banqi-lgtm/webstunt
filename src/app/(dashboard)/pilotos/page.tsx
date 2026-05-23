@@ -15,6 +15,7 @@ import { Scanner } from '@yudiel/react-qr-scanner';
 import Link from 'next/link';
 import * as XLSX from 'xlsx';
 import BulkSocialMediaExport from '@/components/bulk-social-media-export';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 interface Registration {
   id: string;
@@ -146,6 +147,21 @@ export default function PilotosPage() {
     }
   };
 
+  const handleUpdateCategory = async (regId: string, newCategory: string) => {
+    try {
+      const newCats = [newCategory];
+      const docId = regId;
+      await updateDoc(doc(db, 'event_registrations', docId), {
+        categoria: newCats
+      });
+      setRegistrations(prev => prev.map(r => r.id === regId ? { ...r, categoria: newCats as any } : r));
+      toast({ title: 'Categoría actualizada', description: 'La categoría se ha actualizado exitosamente.' });
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'Error', description: 'No se pudo actualizar la categoría.', variant: 'destructive' });
+    }
+  };
+
   if (hasAccess === null) return null;
 
   const filteredRegistrations = registrations.filter(r => {
@@ -183,6 +199,7 @@ export default function PilotosPage() {
       "emergencyPhone": reg.telefono || 'N/A',
       "gender": getGender(reg.nombres),
       "type": "Deportista",
+      "Categoría": Array.isArray(reg.categoria) && reg.categoria.length > 0 ? reg.categoria.join(' / ') : (!reg.categoria || reg.categoria === 'N/A' || reg.categoria.length === 0 ? 'N/A' : reg.categoria),
       "Talla de Camisa": reg.tallaCamisa || 'N/A'
     }));
     
@@ -585,9 +602,20 @@ export default function PilotosPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span style={{ color: '#00FFFF', backgroundColor: 'rgba(0, 255, 255, 0.1)', borderColor: 'rgba(0, 255, 255, 0.2)', textShadow: '0 0 10px rgba(0, 255, 255, 0.4)' }} className="inline-block px-2.5 py-1 rounded-full text-xs font-bold border uppercase tracking-wider">
-                          {Array.isArray(reg.categoria) && reg.categoria.length > 0 ? reg.categoria.join(' / ') : (!reg.categoria || reg.categoria === 'N/A' || reg.categoria.length === 0 ? 'N/A' : reg.categoria)}
-                        </span>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger className="focus:outline-none">
+                            <span style={{ color: '#00FFFF', backgroundColor: 'rgba(0, 255, 255, 0.1)', borderColor: 'rgba(0, 255, 255, 0.2)', textShadow: '0 0 10px rgba(0, 255, 255, 0.4)' }} className="inline-block px-2.5 py-1 rounded-full text-xs font-bold border uppercase tracking-wider cursor-pointer hover:bg-cyan-900/30 transition-colors">
+                              {Array.isArray(reg.categoria) && reg.categoria.length > 0 ? reg.categoria.join(' / ') : (!reg.categoria || reg.categoria === 'N/A' || reg.categoria.length === 0 ? 'N/A' : reg.categoria)}
+                            </span>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent className="bg-zinc-900 border-zinc-800 text-zinc-300 min-w-[120px]">
+                            <DropdownMenuItem onClick={() => handleUpdateCategory(reg.id, 'open')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">OPEN</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleUpdateCategory(reg.id, '2t')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">2T</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleUpdateCategory(reg.id, '4t')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">4T</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleUpdateCategory(reg.id, 'alto')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">ALTO</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleUpdateCategory(reg.id, 'novatos')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">NOVATOS</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">

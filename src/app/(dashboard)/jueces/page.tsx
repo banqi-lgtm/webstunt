@@ -369,6 +369,7 @@ export default function JuecesPage() {
   const [masterCategory, setMasterCategory] = useState<string>('OPEN');
   const [isDirectoryOpen, setIsDirectoryOpen] = useState(false);
   const [isRulesOpen, setIsRulesOpen] = useState(false);
+  const [maximizedCategory, setMaximizedCategory] = useState<string | null>(null);
 
   // Wizard State
   const [activePilotIndex, setActivePilotIndex] = useState<number | null>(null);
@@ -718,7 +719,130 @@ export default function JuecesPage() {
                   {/* CARD HEADER */}
                   <div className="p-4 pb-2">
                     <div className="flex justify-between items-start">
-                      <h2 className={`text-xl font-black uppercase tracking-widest leading-none w-2/3 ${getCatTextGlow(cat)}`}>{cat}</h2>
+                      <div className="flex flex-col gap-1 w-2/3">
+                        <h2 className={`text-xl font-black uppercase tracking-widest leading-none ${getCatTextGlow(cat)}`}>{cat}</h2>
+                        <div className="flex gap-1 z-20 mt-1">
+                           <div className="w-5 h-5 rounded-[4px] border-2 border-[#ffd700] flex items-center justify-center text-[#ffd700] cursor-not-allowed opacity-50"><div className="w-2.5 h-0.5 bg-current"></div></div>
+                           <Dialog>
+                             <DialogTrigger asChild>
+                               <div className="w-5 h-5 rounded-[4px] border-2 border-[#ff3333] flex items-center justify-center text-[#ff3333] cursor-pointer hover:bg-[#ff3333]/20 transition-colors" title="Maximizar en nueva ventana">
+                                 <div className="w-2 h-2 border-[1.5px] border-current"></div>
+                               </div>
+                             </DialogTrigger>
+                             <DialogContent className={`max-w-4xl h-[85vh] bg-[#0d1b2e] border p-0 flex flex-col overflow-hidden shadow-2xl ${getCatGlow(cat)}`}>
+                               {/* Modal Category Content */}
+                               <div className="p-6 pr-14 pb-2 border-b border-[#1A2540] flex-none">
+                                  <div className="flex justify-between items-start">
+                                    <div className="flex flex-col gap-2">
+                                      <DialogTitle className={`text-3xl font-black uppercase tracking-widest leading-none ${getCatTextGlow(cat)}`}>{cat}</DialogTitle>
+                                      <span className="text-[#888888] text-xs font-bold uppercase tracking-wider">VISTA DETALLADA</span>
+                                    </div>
+                                    <div className="relative w-16 h-16 flex-none">
+                                      <svg className="w-full h-full transform -rotate-90" viewBox="0 0 40 40">
+                                        <circle cx="20" cy="20" r="18" fill="none" stroke="#1A2540" strokeWidth="3" />
+                                        <circle cx="20" cy="20" r="18" fill="none" stroke="currentColor" strokeWidth="3" 
+                                          className={`${getCatTextColor(cat)} transition-all duration-1000`}
+                                          strokeDasharray={circumference}
+                                          strokeDashoffset={strokeDashoffset}
+                                        />
+                                      </svg>
+                                      <div className="absolute inset-0 flex items-center justify-center font-mono font-bold text-lg text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.8)]">
+                                        {graded}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="flex justify-between items-end mt-2">
+                                    <span className="text-[#888888] text-[10px] font-bold uppercase tracking-wider">Progreso de calificación</span>
+                                    <span className="font-mono text-xs"><span className={`font-bold ${getCatTextColor(cat)}`}>{graded}</span> <span className="text-[#555]">/ {pilots.length}</span></span>
+                                  </div>
+                                  <div className="w-full bg-[#1A2540] h-[4px] mt-2 rounded-full overflow-hidden shadow-[inset_0_0_5px_rgba(0,0,0,0.5)]">
+                                    <div className={`h-full transition-all bg-current ${getCatTextColor(cat)}`} style={{ width: `${progress}%` }}></div>
+                                  </div>
+                               </div>
+
+                               <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#0a1525]">
+                                  <table className="w-full text-left table-fixed text-xs">
+                                    <colgroup>
+                                      <col className="w-16" />
+                                      <col className="w-auto" />
+                                      <col className="w-28" />
+                                      <col className="w-20" />
+                                    </colgroup>
+                                    <thead className="text-[#888888] font-bold uppercase tracking-wider border-b border-[#1A2540] sticky top-0 bg-[#0a1525] z-30 shadow-md">
+                                      <tr>
+                                        <th className="px-6 py-4 font-mono">#</th>
+                                        <th className="px-2 py-4">Piloto</th>
+                                        <th className="px-2 py-4 text-center">Estado</th>
+                                        <th className="px-6 py-4 text-right">Pts</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-[#1A2540]">
+                                      {pilots.length === 0 ? (
+                                        <tr>
+                                          <td colSpan={4} className="px-6 py-12 text-center">
+                                            <div className="flex flex-col items-center justify-center text-[#555] gap-3">
+                                              <ShieldAlert className="w-8 h-8 opacity-50" />
+                                              <span className="font-bold uppercase tracking-widest text-xs">No hay inscritos aún en esta categoría</span>
+                                            </div>
+                                          </td>
+                                        </tr>
+                                      ) : (
+                                        pilots.map((pilot, index) => {
+                                          const isGraded = !!(pilot.calificaciones && pilot.calificaciones[currentUid]);
+                                          const score = isGraded ? pilot.calificaciones![currentUid].total : null;
+                                          const statusBg = isGraded ? 'bg-[#003320] text-[#00ff88] border-[#00ff88]/30' : 'bg-[#331800] text-[#ff6b00] border-[#ff6b00]/30';
+                                          const statusLabel = isGraded ? 'CALIFICADO' : 'PENDIENTE';
+
+                                          return (
+                                            <tr 
+                                              key={`modal-${pilot.id}`} 
+                                              onClick={() => handleEvaluateSpecific(cat, index)}
+                                              className={`transition-colors group ${isOfficialJudge ? 'cursor-pointer hover:bg-[#1A2540]' : 'cursor-default'}`}
+                                            >
+                                              <td className="px-6 py-4">
+                                                <span className="font-mono text-[#888888] group-hover:text-white transition-colors text-sm">
+                                                  {pilot.numeroIdentificacion.slice(-4)}
+                                                </span>
+                                              </td>
+                                              <td className="px-2 py-4 truncate">
+                                                <div className="text-[#E8E8E8] font-bold uppercase truncate group-hover:text-white transition-colors text-sm">
+                                                  {pilot.nombres} {pilot.apellidos}
+                                                </div>
+                                              </td>
+                                              <td className="px-2 py-4 text-center">
+                                                <span className={`${statusBg} border text-[10px] font-bold px-2 py-1 rounded uppercase`}>
+                                                  {statusLabel}
+                                                </span>
+                                              </td>
+                                              <td className="px-6 py-4 text-right">
+                                                {isGraded ? (
+                                                  <span className={`font-bold font-mono text-sm ${getCatTextColor(cat)}`}>{score}</span>
+                                                ) : (
+                                                  <span className="text-[#555] font-bold font-mono text-sm">-</span>
+                                                )}
+                                              </td>
+                                            </tr>
+                                          );
+                                        })
+                                      )}
+                                    </tbody>
+                                  </table>
+                               </div>
+
+                               <div className="p-4 bg-[#050B14]/80 border-t border-[#1A2540] flex-none">
+                                 <button 
+                                   onClick={() => handleStartSequential(cat)}
+                                   disabled={pilots.length === 0 || !isOfficialJudge}
+                                   className="w-full bg-[#00ff88] hover:bg-[#00e67a] disabled:bg-[#1A2540] disabled:text-[#555] disabled:shadow-none text-[#050B14] font-black text-sm h-12 rounded-lg flex items-center justify-center uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(0,255,136,0.4)]"
+                                 >
+                                   <Play className="w-4 h-4 mr-2 fill-current" />
+                                   {isOfficialJudge ? 'INICIAR CALIFICACIÓN' : 'SOLO LECTURA'}
+                                 </button>
+                               </div>
+                             </DialogContent>
+                           </Dialog>
+                        </div>
+                      </div>
                       
                       {/* Gauge Speedometer */}
                       <div className="relative w-12 h-12 flex-none">

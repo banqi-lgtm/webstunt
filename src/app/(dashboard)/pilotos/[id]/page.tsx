@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import SocialMediaCard from '@/components/social-media-card';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 interface PilotDetail {
   id: string;
@@ -361,6 +362,24 @@ export default function PilotDetailPage() {
     }
   };
 
+  const handleUpdateCategory = async (newCategory: string) => {
+    if (!pilot || !isAdmin) return;
+    setUpdating(true);
+    try {
+      const newCats = [newCategory];
+      await updateDoc(doc(db, 'event_registrations', pilot.id), {
+        categoria: newCats
+      });
+      setPilot({ ...pilot, categoria: newCats as any });
+      toast({ title: 'Categoría actualizada', description: 'La categoría se ha actualizado exitosamente.' });
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'Error', description: 'No se pudo actualizar la categoría.', variant: 'destructive' });
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   if (hasAccess === null || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-zinc-500">
@@ -508,9 +527,26 @@ export default function PilotDetailPage() {
                     </div>
                   </div>
                   <p className="text-zinc-400 flex flex-wrap items-center gap-2 mt-2 break-all text-xs sm:text-sm">
-                    <span className="inline-block px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold bg-green-500/10 text-green-400 border border-green-500/20 uppercase tracking-wider">
-                      {pilot.categoria}
-                    </span>
+                    {isAdmin ? (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger className="focus:outline-none">
+                          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold bg-green-500/10 text-green-400 border border-green-500/20 uppercase tracking-wider cursor-pointer hover:bg-green-500/20 transition-colors">
+                            {Array.isArray(pilot.categoria) && pilot.categoria.length > 0 ? pilot.categoria.join(' / ') : (!pilot.categoria || pilot.categoria === 'N/A' || pilot.categoria.length === 0 ? 'N/A' : pilot.categoria)}
+                          </span>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="bg-zinc-900 border-zinc-800 text-zinc-300 min-w-[120px]">
+                          <DropdownMenuItem onClick={() => handleUpdateCategory('open')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">OPEN</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleUpdateCategory('2t')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">2T</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleUpdateCategory('4t')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">4T</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleUpdateCategory('alto')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">ALTO</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleUpdateCategory('novatos')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">NOVATOS</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    ) : (
+                      <span className="inline-block px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold bg-green-500/10 text-green-400 border border-green-500/20 uppercase tracking-wider">
+                        {Array.isArray(pilot.categoria) && pilot.categoria.length > 0 ? pilot.categoria.join(' / ') : (!pilot.categoria || pilot.categoria === 'N/A' || pilot.categoria.length === 0 ? 'N/A' : pilot.categoria)}
+                      </span>
+                    )}
                     <span className="hidden sm:inline">•</span> {pilot.email}
                   </p>
                 </div>
