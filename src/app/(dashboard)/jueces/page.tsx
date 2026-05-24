@@ -99,7 +99,7 @@ const dummyOpen: Registration[] = [
 // ---------------------------------------------------------------------------
 // HELPER FUNC
 // ---------------------------------------------------------------------------
-export const getScoreForCategory = (pilot: Registration, uid: string, cat: string): Calificacion | undefined => {
+const getScoreForCategory = (pilot: Registration, uid: string, cat: string): Calificacion | undefined => {
   if (!pilot.calificaciones) return undefined;
   if (pilot.calificaciones[`${uid}_${cat}`]) return pilot.calificaciones[`${uid}_${cat}`];
   
@@ -440,6 +440,8 @@ export default function JuecesPage() {
   const [isModalReadOnly, setIsModalReadOnly] = useState(false);
   const [isPodiumOpen, setIsPodiumOpen] = useState(false);
   const [isPodiumFullScreen, setIsPodiumFullScreen] = useState(false);
+  const [isPodio2Open, setIsPodio2Open] = useState(false);
+  const [isPodio2FullScreen, setIsPodio2FullScreen] = useState(false);
 
   const handleRoleChange = async (userId: string, newRole: string) => {
     try {
@@ -1396,6 +1398,12 @@ export default function JuecesPage() {
               >
                 <Trophy className="w-3 h-3" /> PODIO
               </button>
+              <button 
+                onClick={() => setIsPodio2Open(true)}
+                className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all bg-[#FFD700]/10 text-[#FFD700] border border-[#FFD700] hover:bg-[#FFD700]/20 hover:scale-105 shadow-[0_0_15px_rgba(255,215,0,0.3)] flex items-center gap-1.5 ml-2 shrink-0"
+              >
+                <Trophy className="w-3 h-3" /> PODIO 2
+              </button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all bg-[#00ff88]/10 text-[#00ff88] border border-[#00ff88] hover:bg-[#00ff88]/20 hover:scale-105 shadow-[0_0_15px_rgba(0,255,136,0.3)] flex items-center gap-1.5 ml-2 shrink-0">
@@ -1748,6 +1756,193 @@ export default function JuecesPage() {
             <div className={`relative z-30 w-full flex justify-center transition-all duration-500 shrink-0 pb-1 sm:pb-2`}>
               {/* Sponsors List - Overlay over the image's bottom grille */}
               <div className={`relative z-10 flex flex-nowrap items-center justify-center py-2 sm:py-4 px-2 sm:px-8 w-full overflow-hidden transition-all duration-500 ${isPodiumFullScreen ? 'gap-3 sm:gap-10 scale-90 sm:scale-100' : 'gap-2 sm:gap-6 scale-75 sm:scale-90'}`}>
+                {SPONSOR_LOGOS.map((logo, idx) => (
+                  <div key={idx} className="relative flex items-center justify-center transition-all duration-300 flex-shrink">
+                    <img src={logo.src} alt={logo.alt} className={`${logo.className} drop-shadow-[0_2px_5px_rgba(0,0,0,0.8)] object-contain max-w-[60px] sm:max-w-full`} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* PODIO 2 DIALOG */}
+      <Dialog open={isPodio2Open} onOpenChange={(open) => {
+        setIsPodio2Open(open);
+        if (!open) setIsPodio2FullScreen(false);
+      }}>
+        <DialogContent className={`${isPodio2FullScreen ? 'w-screen h-screen max-w-none rounded-none border-0' : 'max-w-4xl sm:rounded-[2rem] border border-[#00cfff]/30'} bg-[#0a0a0f] shadow-[0_0_80px_rgba(0,207,255,0.15)] p-0 overflow-hidden`}>
+          <DialogTitle className="sr-only">Podio 2 Oficial - Resultados</DialogTitle>
+          <div className={`relative w-full flex flex-col items-center justify-between overflow-hidden ${isPodio2FullScreen ? 'h-screen p-4 sm:p-8' : 'min-h-[600px] sm:min-h-[700px] p-4 sm:p-6'}`}>
+            
+            {/* Full Screen Toggle */}
+            <button 
+              onClick={() => setIsPodio2FullScreen(!isPodio2FullScreen)}
+              className="absolute top-4 right-4 z-50 p-2 bg-white/5 hover:bg-white/10 rounded-full text-white/50 hover:text-white transition-colors"
+            >
+              <Maximize className="w-5 h-5" />
+            </button>
+            {/* Background Image - Provided by User */}
+            <div className="absolute inset-0 z-0 overflow-hidden bg-[#0e1014]">
+                <img 
+                  src="/sponsors/Fondo-Podio.jpg" 
+                  alt="Fondo Podio" 
+                  className="w-full h-full object-cover"
+                />
+            </div>
+
+              {/* Zone 1: Main Logo (Top) */}
+              <div className="relative w-full z-20 flex justify-center shrink-0">
+              <div className={`flex flex-col items-center justify-center gap-2 transition-all duration-500 ${isPodio2FullScreen ? 'scale-110 sm:scale-125 mt-4' : ''} relative`}>
+                <div className="absolute inset-0 bg-cyan-400/40 blur-[50px] rounded-full scale-150 -z-10 animate-pulse mix-blend-screen pointer-events-none"></div>
+                <img src={MAIN_LOGO.src} alt={MAIN_LOGO.alt} className={MAIN_LOGO.className} />
+              </div>
+              
+              {/* Category Absolute Top Right (Below sponsors visually, fixed position) */}
+              <div className={`absolute -bottom-4 right-0 sm:right-4 flex items-center bg-gradient-to-b from-[#3a3d44] to-[#1a1c22] rounded-md border-2 border-gray-600 shadow-[0_5px_15px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.2)] transition-all duration-500 ${isPodio2FullScreen ? 'px-6 py-3 sm:px-10 sm:py-4 gap-3 sm:gap-4' : 'px-4 py-2 sm:px-6 sm:py-3 gap-2'}`}>
+                 <span className={`text-white font-mono tracking-widest font-bold transition-all duration-500 ${isPodio2FullScreen ? 'text-sm sm:text-2xl' : 'text-xs sm:text-sm'}`}>PODIO OFICIAL</span>
+                 <span className={`text-[#00cfff] font-black tracking-widest drop-shadow-[0_0_10px_rgba(0,207,255,1)] transition-all duration-500 ${isPodio2FullScreen ? 'text-sm sm:text-2xl' : 'text-xs sm:text-sm'}`}>/ 4 TIEMPOS</span>
+                 {/* Screws/Bolts */}
+                 <div className="absolute top-1 left-1 w-1.5 h-1.5 rounded-full bg-gray-400 shadow-[inset_0_-1px_1px_rgba(0,0,0,0.8)]"></div>
+                 <div className="absolute bottom-1 left-1 w-1.5 h-1.5 rounded-full bg-gray-400 shadow-[inset_0_-1px_1px_rgba(0,0,0,0.8)]"></div>
+                 <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-gray-400 shadow-[inset_0_-1px_1px_rgba(0,0,0,0.8)]"></div>
+                 <div className="absolute bottom-1 right-1 w-1.5 h-1.5 rounded-full bg-gray-400 shadow-[inset_0_-1px_1px_rgba(0,0,0,0.8)]"></div>
+              </div>
+            </div>
+            {/* Spacer for Podium */}
+            <div className="relative z-20 w-full flex-grow max-h-4 sm:max-h-8"></div>
+
+            {(() => {
+              const getHardcodedPilot = (searchTerm: string) => {
+                return registrations.find(p => (p.nombres || '').toUpperCase().includes(searchTerm) || (p.apellidos || '').toUpperCase().includes(searchTerm));
+              };
+
+              const firstPlaceOriginal = getHardcodedPilot("PABLO ZAPATA") || getHardcodedPilot("ZAPATA PARRA") || getHardcodedPilot("PABLO");
+              const secondPlaceOriginal = getHardcodedPilot("KHOJAN");
+              const thirdPlaceOriginal = getHardcodedPilot("GERSAIN");
+
+              const firstPlace = { ...(firstPlaceOriginal || { nombres: 'PABLO ZAPATA', apellidos: 'PARRA', documentos: {} }), _globalTotal: 59 };
+              const secondPlace = { ...(secondPlaceOriginal || { nombres: 'KHOJAN ESTEVEN', apellidos: 'ACEVEDO', documentos: {} }), _globalTotal: 54 };
+              const thirdPlace = { ...(thirdPlaceOriginal || { nombres: 'GERSAIN', apellidos: 'LONDOÑO', documentos: {} }), _globalTotal: 36 };
+
+              // Helper for Pilot Avatar
+              const PilotAvatar = ({ pilot, color, place }: { pilot: any, color: string, place: string }) => {
+                 if (!pilot) return <div className="w-24 sm:w-40 flex flex-col items-center justify-end relative z-10"></div>;
+                 
+                 const getDecoratorColor = () => {
+                   if (place === '1ST') return "text-[#FFD700]";
+                   if (place === '2ND') return "text-[#00cfff]";
+                   return "text-[#CD7F32]";
+                 }
+                 
+                 const getOuterRingStyle = () => {
+                    if (place === '1ST') return `bg-gradient-to-br from-[#FFD700] via-[#B8860B] to-[#FFD700] shadow-[0_0_40px_rgba(255,215,0,0.6)] p-[8px] sm:p-[12px]`;
+                    if (place === '2ND') return `bg-gradient-to-br from-[#00cfff] via-[#005f73] to-[#0a9396] shadow-[0_0_30px_rgba(0,207,255,0.4)] p-[6px] sm:p-[10px]`;
+                    if (place === '3RD') return `bg-gradient-to-br from-[#CD7F32] via-[#8B4513] to-[#A0522D] shadow-[0_0_20px_rgba(205,127,50,0.4)] p-[6px] sm:p-[10px]`;
+                 };
+                 
+                 const getInnerRingStyle = () => {
+                    if (place === '1ST') return `border-[4px] border-[#333] border-dashed`;
+                    if (place === '2ND') return `border-[4px] border-[#222] border-dotted`;
+                    if (place === '3RD') return `border-[3px] border-[#444] border-dotted`;
+                 };
+
+                 return (
+                   <div className="w-full flex flex-col items-center justify-end relative z-10 group">
+                      {/* Photo Container */}
+                      <div className="relative mb-3 sm:mb-4 flex justify-center items-center">
+                         {/* Aura for 1st place */}
+                         {place === '1ST' && <div className="absolute inset-0 bg-[#FFD700]/30 blur-[40px] rounded-full scale-150 animate-pulse pointer-events-none"></div>}
+                         
+                         {/* Brake Disc Outer */}
+                         <div className={`relative rounded-full flex items-center justify-center transition-all duration-500 ${getOuterRingStyle()} ${place === '1ST' ? 'animate-[spin_15s_linear_infinite]' : ''}`}>
+                            {/* Brake Disc Holes Pattern (Simulated with absolute radial-gradient dots) */}
+                            <div className="absolute inset-0 rounded-full opacity-30 mix-blend-multiply pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 2px, transparent 3px)', backgroundSize: '15px 15px' }}></div>
+                            
+                            {/* Inner Photo Wrapper */}
+                            <div className={`relative rounded-full overflow-hidden bg-[#050B14] z-20 transition-all duration-500 ${isPodio2FullScreen ? 'w-24 h-24 sm:w-48 sm:h-48' : 'w-20 h-20 sm:w-32 sm:h-32'} ${getInnerRingStyle()} ${place === '1ST' ? 'animate-[spin_15s_linear_infinite_reverse]' : ''}`}>
+                                {pilot.documentos?.deportistaUrl ? (
+                                  <img src={pilot.documentos.deportistaUrl} alt="Pilot" className="w-full h-full object-cover object-top" />
+                                ) : (
+                                  <User className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[#555] transition-all duration-500 ${isPodio2FullScreen ? 'w-14 h-14 sm:w-24 sm:h-24' : 'w-12 h-12 sm:w-20 sm:h-20'}`} />
+                                )}
+                            </div>
+                         </div>
+                      </div>
+
+                      {/* Info Container */}
+                      <div className="text-center z-10 w-full px-1 flex flex-col items-center">
+                        <div className="flex items-center gap-1.5 sm:gap-2 justify-center w-auto mt-2 bg-black/40 px-3 py-1 rounded backdrop-blur-sm border border-white/5">
+                           <span className={`text-[10px] sm:text-[12px] font-bold ${getDecoratorColor()}`}>|</span>
+                           <span className={`font-black text-white uppercase truncate tracking-widest drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] leading-tight transition-all duration-500 ${isPodio2FullScreen ? 'text-xs sm:text-lg' : 'text-[10px] sm:text-sm'}`}>{pilot.nombres.split(' ')[0]} {pilot.apellidos?.split(' ')[0]}</span>
+                           <span className={`text-[10px] sm:text-[12px] font-bold ${getDecoratorColor()}`}>|</span>
+                        </div>
+                        
+                        <div className={`mt-1.5 sm:mt-2 font-black font-mono drop-shadow-[0_0_10px_currentColor] transition-all duration-500 flex items-baseline gap-1 ${isPodio2FullScreen ? 'text-lg sm:text-3xl' : 'text-sm sm:text-xl'}`} style={{ color }}>
+                           {pilot._globalTotal} <span className="text-[9px] sm:text-[12px] opacity-80">PTS</span>
+                        </div>
+                      </div>
+                   </div>
+                 );
+              };
+
+              // Zone 3: Podium Container using Grid for strict isolation
+              return (
+                <div className={`relative z-10 w-full flex-grow flex items-end justify-center transition-all duration-500 pb-2 sm:pb-6`}>
+                  <div className={`w-full ${isPodio2FullScreen ? 'max-w-5xl gap-4 sm:gap-12' : 'max-w-3xl gap-2 sm:gap-4'} grid grid-cols-3 items-end`}>
+                   
+                   {/* 2nd Place Column */}
+                   <div className="flex flex-col items-center justify-end w-full relative z-20">
+                     <PilotAvatar pilot={secondPlace} color="#00cfff" place="2ND" />
+                     {/* Smoke Effect */}
+                     <div className="absolute bottom-[-10px] left-[-20%] w-full h-32 bg-gray-400/20 blur-[30px] rounded-full pointer-events-none mix-blend-screen opacity-50"></div>
+                     
+                     {/* Neon Platform */}
+                     <div className={`mt-2 sm:mt-3 w-[90%] sm:w-[85%] mx-auto relative flex items-center justify-center overflow-visible group transition-all duration-500 bg-[#00cfff]/10 border-2 border-[#00cfff] shadow-[0_0_30px_rgba(0,207,255,0.4),inset_0_0_20px_rgba(0,207,255,0.2)] rounded-md ${isPodio2FullScreen ? 'h-[80px] sm:h-[110px]' : 'h-[60px] sm:h-[80px]'}`}>
+                        <span className={`font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-[#00cfff] drop-shadow-[0_0_20px_rgba(0,207,255,1)] brightness-125 relative z-10 transition-all duration-500 ${isPodio2FullScreen ? 'text-6xl sm:text-8xl' : 'text-5xl sm:text-7xl'}`}>2</span>
+                     </div>
+                   </div>
+
+                   {/* 1st Place Column */}
+                   <div className="flex flex-col items-center justify-end w-full relative z-30">
+                     <PilotAvatar pilot={firstPlace} color="#FFD700" place="1ST" />
+                     {/* Fire and Smoke Effects */}
+                     <div className="absolute bottom-[-10px] w-[120%] h-40 bg-orange-500/20 blur-[40px] rounded-full pointer-events-none mix-blend-screen animate-pulse"></div>
+                     <div className="absolute bottom-0 w-full h-24 bg-gradient-to-t from-yellow-500/80 via-orange-600/50 to-transparent blur-[20px] rounded-t-full pointer-events-none mix-blend-screen animate-pulse z-40"></div>
+                     
+                     {/* Neon Platform */}
+                     <div className={`mt-2 sm:mt-3 w-full relative flex items-center justify-center overflow-visible group transition-all duration-500 bg-[#FFD700]/10 border-2 border-[#FFD700] shadow-[0_0_40px_rgba(255,215,0,0.5),inset_0_0_30px_rgba(255,215,0,0.3)] rounded-md ${isPodio2FullScreen ? 'h-[120px] sm:h-[160px]' : 'h-[90px] sm:h-[120px]'}`}>
+                        <span className={`font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-[#FFD700] drop-shadow-[0_0_35px_rgba(255,215,0,1)] brightness-125 relative z-10 transition-all duration-500 ${isPodio2FullScreen ? 'text-7xl sm:text-9xl' : 'text-6xl sm:text-8xl'}`}>1</span>
+                     </div>
+                   </div>
+
+                   {/* 3rd Place Column */}
+                   <div className="flex flex-col items-center justify-end w-full relative z-10">
+                     <PilotAvatar pilot={thirdPlace} color="#CD7F32" place="3RD" />
+                     {/* Smoke Effect */}
+                     <div className="absolute bottom-[-10px] right-[-20%] w-full h-32 bg-gray-400/20 blur-[30px] rounded-full pointer-events-none mix-blend-screen opacity-50"></div>
+                     
+                     {/* Neon Platform */}
+                     <div className={`mt-2 sm:mt-3 w-[90%] sm:w-[85%] mx-auto relative flex items-center justify-center overflow-visible group transition-all duration-500 bg-[#CD7F32]/10 border-2 border-[#CD7F32] shadow-[0_0_20px_rgba(205,127,50,0.4),inset_0_0_15px_rgba(205,127,50,0.2)] rounded-md ${isPodio2FullScreen ? 'h-[40px] sm:h-[55px]' : 'h-[30px] sm:h-[40px]'}`}>
+                        <span className={`font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-[#CD7F32] drop-shadow-[0_0_15px_rgba(205,127,50,1)] brightness-125 relative z-10 transition-all duration-500 ${isPodio2FullScreen ? 'text-5xl sm:text-6xl' : 'text-4xl sm:text-5xl'}`}>3</span>
+                      </div>
+                    </div>
+                  </div>
+                   
+                   {/* Floor Gradient Reflection */}
+                   <div className="absolute bottom-0 left-0 w-full h-12 sm:h-16 bg-gradient-to-t from-[#0e1014]/80 via-[#0e1014]/30 to-transparent z-40 pointer-events-none"></div>
+                   
+                   {/* Connecting Energy Lines */}
+                   <div className="absolute bottom-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00cfff]/30 to-transparent z-0"></div>
+                </div>
+              );
+            })()}
+
+            {/* Zone 4: Sponsors (Below Podium) */}
+            <div className={`relative z-30 w-full flex justify-center transition-all duration-500 shrink-0 pb-1 sm:pb-2`}>
+              {/* Sponsors List - Overlay over the image's bottom grille */}
+              <div className={`relative z-10 flex flex-nowrap items-center justify-center py-2 sm:py-4 px-2 sm:px-8 w-full overflow-hidden transition-all duration-500 ${isPodio2FullScreen ? 'gap-3 sm:gap-10 scale-90 sm:scale-100' : 'gap-2 sm:gap-6 scale-75 sm:scale-90'}`}>
                 {SPONSOR_LOGOS.map((logo, idx) => (
                   <div key={idx} className="relative flex items-center justify-center transition-all duration-300 flex-shrink">
                     <img src={logo.src} alt={logo.alt} className={`${logo.className} drop-shadow-[0_2px_5px_rgba(0,0,0,0.8)] object-contain max-w-[60px] sm:max-w-full`} />
