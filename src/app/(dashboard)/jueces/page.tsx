@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { collection, getDocs, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import * as XLSX from 'xlsx';
 
 // ---------------------------------------------------------------------------
@@ -96,6 +97,33 @@ const dummyOpen: Registration[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// HELPER FUNC
+// ---------------------------------------------------------------------------
+export const getScoreForCategory = (pilot: Registration, uid: string, cat: string): Calificacion | undefined => {
+  if (!pilot.calificaciones) return undefined;
+  if (pilot.calificaciones[`${uid}_${cat}`]) return pilot.calificaciones[`${uid}_${cat}`];
+  
+  if (pilot.calificaciones[uid]) {
+    let cats: string[] = [];
+    if (Array.isArray(pilot.categoria)) {
+      cats = pilot.categoria.map(c => String(c).toUpperCase());
+    } else {
+      cats = String(pilot.categoria || 'N/A').toUpperCase().split(',').map(c => c.trim());
+    }
+    
+    let firstCat = cats[0] || '';
+    if (firstCat.includes('ALTO') || firstCat === 'CATEGORIA NITROX' || firstCat === 'NITROX') firstCat = 'NITROX';
+    if (firstCat === '2T') firstCat = '2 TIEMPOS';
+    if (firstCat === '4T') firstCat = '4 TIEMPOS';
+    
+    if (firstCat === cat) {
+      return pilot.calificaciones[uid];
+    }
+  }
+  return undefined;
+};
+
+// ---------------------------------------------------------------------------
 // MODAL WIZARD SECUENCIAL
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
@@ -114,12 +142,14 @@ const criteriaList = [
 const GradingModal = ({
   pilot,
   currentUid,
+  currentCategory,
   onClose,
   onSaveAndNext,
   initialReadOnly = false
 }: {
   pilot: Registration;
   currentUid: string;
+  currentCategory: string;
   onClose: () => void;
   onSaveAndNext: (isLastStep: boolean) => void;
   initialReadOnly?: boolean;
@@ -128,7 +158,7 @@ const GradingModal = ({
   const [isReadOnly, setIsReadOnly] = useState(initialReadOnly || false);
   const { toast } = useToast();
   
-  const existingScore = pilot.calificaciones?.[currentUid];
+  const existingScore = getScoreForCategory(pilot, currentUid, currentCategory);
   const [scores, setScores] = useState({
     combos: existingScore?.combos || 0,
     drif: existingScore?.drif || 0,
@@ -148,12 +178,12 @@ const GradingModal = ({
       const calificacionData: Calificacion = { ...scores, total: totalTemp };
       
       await setDoc(doc(db, 'calificaciones', pilot.id), {
-        [currentUid]: calificacionData
+        [`${currentUid}_${currentCategory}`]: calificacionData
       }, { merge: true });
       
       // Update local state instantly
       if (!pilot.calificaciones) pilot.calificaciones = {};
-      pilot.calificaciones[currentUid] = calificacionData;
+      pilot.calificaciones[`${currentUid}_${currentCategory}`] = calificacionData;
       
       onSaveAndNext(true); // Tell parent to jump to next pilot or close
     } catch (e) {
@@ -406,6 +436,7 @@ export default function JuecesPage() {
   // Wizard State
   const [activePilotIndex, setActivePilotIndex] = useState<number | null>(null);
   const [activeCategoryList, setActiveCategoryList] = useState<Registration[]>([]);
+  const [activeCategory, setActiveCategory] = useState<string>('');
   const [isModalReadOnly, setIsModalReadOnly] = useState(false);
   const [isPodiumOpen, setIsPodiumOpen] = useState(false);
   const [isPodiumFullScreen, setIsPodiumFullScreen] = useState(false);
@@ -573,9 +604,10 @@ export default function JuecesPage() {
       return;
     }
     setActiveCategoryList(pilots);
+    setActiveCategory(cat);
     
     // Find first ungraded pilot
-    const firstUngradedIndex = pilots.findIndex(p => !(p.calificaciones && currentUid && p.calificaciones[currentUid]));
+    const firstUngradedIndex = pilots.findIndex(p => !(currentUid && getScoreForCategory(p, currentUid, cat)));
     setActivePilotIndex(firstUngradedIndex !== -1 ? firstUngradedIndex : 0);
     setIsModalReadOnly(false);
   };
@@ -587,9 +619,10 @@ export default function JuecesPage() {
     }
     const pilots = groupedByCategory[cat] || [];
     setActiveCategoryList(pilots);
+    setActiveCategory(cat);
     setActivePilotIndex(index);
     const pilot = pilots[index];
-    const isGraded = !!(pilot.calificaciones && currentUid && pilot.calificaciones[currentUid]);
+    const isGraded = !!(currentUid && getScoreForCategory(pilot, currentUid, cat));
     setIsModalReadOnly(isGraded);
   };
 
@@ -637,13 +670,12 @@ export default function JuecesPage() {
         return;
       }
 
-      const gradedJudgeUids = Array.from(new Set(masterPilots.flatMap(p => Object.keys(p.calificaciones || {}))));
+      const gradedJudgeUids = Array.from(new Set(masterPilots.flatMap(p => Object.keys(p.calificaciones || {}).map(k => k.split('_')[0]))));
       let displayJudgeUids = Array.from(new Set([...allJudgeUids, ...gradedJudgeUids]));
       if (displayJudgeUids.length === 0) displayJudgeUids = ['juez_1', 'juez_2', 'juez_3'];
 
       const sortedMasterPilots = [...masterPilots].map(pilot => {
-        const califs = pilot.calificaciones || {};
-        const globalTotal = displayJudgeUids.reduce((sum, uid) => sum + (califs[uid]?.total || 0), 0);
+        const globalTotal = displayJudgeUids.reduce((sum, uid) => sum + (getScoreForCategory(pilot, uid, masterCategory)?.total || 0), 0);
         return { ...pilot, _globalTotal: globalTotal };
       }).sort((a, b) => b._globalTotal - a._globalTotal);
 
@@ -677,7 +709,7 @@ export default function JuecesPage() {
         criteriaList.forEach(crit => {
           displayJudgeUids.forEach(uid => {
             const jName = getJudgeNameStr(uid).split(' ')[0];
-            rowData[`${jName} - ${crit.label}`] = califs[uid]?.[crit.id as keyof Calificacion] || 0;
+            rowData[`${jName} - ${crit.label}`] = getScoreForCategory(pilot, uid, masterCategory)?.[crit.id as keyof Calificacion] || 0;
           });
           // Spacer column for visual separation in Excel
           rowData[` | ${crit.label} | `] = ''; 
@@ -685,7 +717,7 @@ export default function JuecesPage() {
 
         displayJudgeUids.forEach(uid => {
           const jName = getJudgeNameStr(uid).split(' ')[0];
-          rowData[`${jName} - SUBTOTAL`] = califs[uid]?.total || 0;
+          rowData[`${jName} - SUBTOTAL`] = getScoreForCategory(pilot, uid, masterCategory)?.total || 0;
         });
 
         rowData['  | TOTAL |  '] = '';
@@ -703,6 +735,163 @@ export default function JuecesPage() {
     } catch (e) {
       console.error(e);
       toast({ title: 'Error', description: 'Hubo un error al exportar la planilla.', variant: 'destructive' });
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    try {
+      const { jsPDF } = await import('jspdf');
+      const autoTable = (await import('jspdf-autotable')).default;
+
+      const masterPilots = groupedByCategory[masterCategory] || [];
+      if (masterPilots.length === 0) {
+        toast({ title: 'Sin datos', description: 'No hay datos para exportar en esta categoría.' });
+        return;
+      }
+
+      const gradedJudgeUids = Array.from(new Set(masterPilots.flatMap(p => Object.keys(p.calificaciones || {}).map(k => k.split('_')[0]))));
+      let displayJudgeUids = Array.from(new Set([...allJudgeUids, ...gradedJudgeUids]));
+      if (displayJudgeUids.length === 0) displayJudgeUids = ['juez_1', 'juez_2', 'juez_3'];
+
+      const sortedMasterPilots = [...masterPilots].map(pilot => {
+        const globalTotal = displayJudgeUids.reduce((sum, uid) => sum + (getScoreForCategory(pilot, uid, masterCategory)?.total || 0), 0);
+        return { ...pilot, _globalTotal: globalTotal };
+      }).sort((a, b) => b._globalTotal - a._globalTotal);
+
+      const getJudgeNameStr = (uid: string) => {
+        if (uid === 'juez_1') return 'Juez 1';
+        if (uid === 'juez_2') return 'Juez 2';
+        if (uid === 'juez_3') return 'Juez 3';
+        return judgeNames[uid] || 'Jurado';
+      };
+
+      const doc = new jsPDF('landscape', 'mm', 'letter');
+      const pdfWidth = doc.internal.pageSize.getWidth();
+      let startY = 14;
+
+      try {
+        const allLogos = [MAIN_LOGO, ...SPONSOR_LOGOS];
+        const loadedImages = await Promise.all(allLogos.map(async (logo) => {
+          const img = new Image();
+          img.src = logo.src;
+          return new Promise<HTMLImageElement | null>((resolve) => {
+            img.onload = () => resolve(img);
+            img.onerror = () => resolve(null);
+          });
+        }));
+
+        const validImages = loadedImages.filter((img): img is HTMLImageElement => img !== null);
+        
+        if (validImages.length > 0) {
+           const maxLogoHeight = 10;
+           const spacing = 8;
+           
+           let totalWidth = 0;
+           const dimensions = validImages.map(img => {
+             const ratio = img.height / img.width;
+             const h = maxLogoHeight;
+             const w = h / ratio;
+             totalWidth += w;
+             return { img, w, h };
+           });
+           
+           totalWidth += spacing * (validImages.length - 1);
+           
+           // Scale down if total width exceeds page width
+           const maxAllowedWidth = pdfWidth - 16;
+           let scale = 1;
+           if (totalWidth > maxAllowedWidth) {
+             scale = maxAllowedWidth / totalWidth;
+             totalWidth = maxAllowedWidth;
+           }
+
+           const finalHeight = maxLogoHeight * scale;
+           const headerHeight = finalHeight + 8; // 4mm padding top/bottom
+           
+           // Draw dark background for logos
+           doc.setFillColor(26, 37, 64); // Dark slate/navy to match theme
+           doc.roundedRect(8, startY, pdfWidth - 16, headerHeight, 2, 2, 'F');
+
+           let currentX = pdfWidth / 2 - totalWidth / 2;
+           const logoStartY = startY + 4;
+           dimensions.forEach(({ img, w, h }) => {
+             const finalW = w * scale;
+             const finalH = h * scale;
+             doc.addImage(img, 'PNG', currentX, logoStartY, finalW, finalH);
+             currentX += finalW + (spacing * scale);
+           });
+           
+           startY += headerHeight + 8;
+        }
+
+      } catch (err) {
+        console.log("No se pudo cargar los logos", err);
+      }
+
+      doc.setFontSize(16);
+      doc.text(`PLANILLA DE CALIFICACIONES - ${masterCategory}`, pdfWidth / 2, startY, { align: 'center' });
+      startY += 10;
+
+      const criteriaList = [
+        { id: 'combos', label: 'Cmb' },
+        { id: 'drif', label: 'Drf' },
+        { id: 'acro', label: 'Acr' },
+        { id: 'endos', label: 'End' },
+        { id: 'flow', label: 'Flw' },
+        { id: 'agres', label: 'Agr' },
+        { id: 'error', label: 'Err' },
+      ];
+
+      const head = [
+        [
+          { content: 'Pos', rowSpan: 2, styles: { halign: 'center', valign: 'middle' } },
+          { content: 'Piloto', rowSpan: 2, styles: { halign: 'center', valign: 'middle' } },
+          ...criteriaList.map(c => ({ content: c.label, colSpan: displayJudgeUids.length, styles: { halign: 'center' } })),
+          { content: 'SUBTOTAL', colSpan: displayJudgeUids.length, styles: { halign: 'center' } },
+          { content: 'TOTAL', rowSpan: 2, styles: { halign: 'center', valign: 'middle', fillColor: [0, 207, 255] } }
+        ],
+        [
+          ...criteriaList.flatMap(() => displayJudgeUids.map(uid => getJudgeNameStr(uid).split(' ')[0])),
+          ...displayJudgeUids.map(uid => getJudgeNameStr(uid).split(' ')[0])
+        ]
+      ];
+
+      const body = sortedMasterPilots.map((pilot, index) => {
+        const row = [index + 1, `${pilot.nombres} ${pilot.apellidos}`.trim()];
+
+        criteriaList.forEach(crit => {
+          displayJudgeUids.forEach(uid => {
+            row.push(getScoreForCategory(pilot, uid, masterCategory)?.[crit.id as keyof Calificacion] || 0);
+          });
+        });
+
+        displayJudgeUids.forEach(uid => {
+          row.push(getScoreForCategory(pilot, uid, masterCategory)?.total || 0);
+        });
+
+        row.push(pilot._globalTotal);
+        return row;
+      });
+
+      autoTable(doc, {
+        head: head,
+        body: body,
+        startY: startY,
+        theme: 'grid',
+        margin: { left: 8, right: 8 },
+        styles: { fontSize: 5, cellPadding: 0.8, halign: 'center' },
+        headStyles: { fillColor: [10, 22, 40], textColor: [255, 255, 255] },
+        columnStyles: { 
+          0: { cellWidth: 7 },
+          1: { halign: 'left', cellWidth: 32 },
+        },
+      });
+
+      doc.save(`Planilla_Jueces_${masterCategory.replace(/ /g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
+      toast({ title: 'Éxito', description: 'El PDF se descargó correctamente.' });
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'Error', description: 'Hubo un error al exportar el PDF.', variant: 'destructive' });
     }
   };
 
@@ -848,7 +1037,7 @@ export default function JuecesPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
             {displayCategories.map(cat => {
               const pilots = groupedByCategory[cat] || [];
-              const graded = pilots.filter(p => p.calificaciones && p.calificaciones[currentUid]).length;
+              const graded = pilots.filter(p => currentUid && getScoreForCategory(p, currentUid, cat)).length;
               const progress = pilots.length > 0 ? (graded / pilots.length) * 100 : 0;
               const circumference = 2 * Math.PI * 18;
               const strokeDashoffset = circumference - (progress / 100) * circumference;
@@ -1008,8 +1197,8 @@ export default function JuecesPage() {
                                         </tr>
                                       ) : (
                                         pilots.map((pilot, index) => {
-                                          const isGraded = !!(pilot.calificaciones && pilot.calificaciones[currentUid]);
-                                          const score = isGraded ? pilot.calificaciones![currentUid].total : null;
+                                          const isGraded = !!(currentUid && getScoreForCategory(pilot, currentUid, cat));
+                                          const score = isGraded ? getScoreForCategory(pilot, currentUid, cat)!.total : null;
                                           const statusBg = isGraded ? 'bg-[#003320] text-[#00ff88] border-[#00ff88]/30' : 'bg-[#331800] text-[#ff6b00] border-[#ff6b00]/30';
                                           const statusLabel = isGraded ? 'CALIFICADO' : 'PENDIENTE';
 
@@ -1119,8 +1308,8 @@ export default function JuecesPage() {
                           </tr>
                         ) : (
                           pilots.map((pilot, index) => {
-                            const isGraded = !!(pilot.calificaciones && pilot.calificaciones[currentUid]);
-                            const score = isGraded ? pilot.calificaciones![currentUid].total : null;
+                            const isGraded = !!(currentUid && getScoreForCategory(pilot, currentUid, cat));
+                            const score = isGraded ? getScoreForCategory(pilot, currentUid, cat)!.total : null;
                             const statusBg = isGraded ? 'bg-[#003320] text-[#00ff88] border-[#00ff88]/30' : 'bg-[#331800] text-[#ff6b00] border-[#ff6b00]/30';
                             const statusLabel = isGraded ? 'CAL.' : 'PEND.';
 
@@ -1207,18 +1396,21 @@ export default function JuecesPage() {
               >
                 <Trophy className="w-3 h-3" /> PODIO
               </button>
-              <button 
-                onClick={handleDownloadExcel}
-                className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all bg-[#00ff88]/10 text-[#00ff88] border border-[#00ff88] hover:bg-[#00ff88]/20 hover:scale-105 shadow-[0_0_15px_rgba(0,255,136,0.3)] flex items-center gap-1.5 ml-2 shrink-0"
-              >
-                <Download className="w-3 h-3" /> EXPORTAR
-              </button>
-              <button 
-                onClick={() => window.print()}
-                className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all bg-[#ff0055]/10 text-[#ff0055] border border-[#ff0055] hover:bg-[#ff0055]/20 hover:scale-105 shadow-[0_0_15px_rgba(255,0,85,0.3)] flex items-center gap-1.5 ml-2 shrink-0"
-              >
-                <FileText className="w-3 h-3" /> PDF
-              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all bg-[#00ff88]/10 text-[#00ff88] border border-[#00ff88] hover:bg-[#00ff88]/20 hover:scale-105 shadow-[0_0_15px_rgba(0,255,136,0.3)] flex items-center gap-1.5 ml-2 shrink-0">
+                    <Download className="w-3 h-3" /> EXPORTAR
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="bg-[#0a1628] border-[#00ff88]/30 text-white min-w-[150px]">
+                  <DropdownMenuItem onClick={handleDownloadPDF} className="hover:bg-[#00ff88]/20 hover:text-[#00ff88] cursor-pointer font-bold font-mono text-xs focus:bg-[#00ff88]/20 focus:text-[#00ff88]">
+                    <FileText className="w-4 h-4 mr-2" /> PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleDownloadExcel} className="hover:bg-[#00ff88]/20 hover:text-[#00ff88] cursor-pointer font-bold font-mono text-xs focus:bg-[#00ff88]/20 focus:text-[#00ff88]">
+                    <Download className="w-4 h-4 mr-2" /> EXCEL
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
             <div className="flex items-center gap-3 flex-none pl-2 md:pl-0 border-l md:border-l-0 border-[#1A2540]">
               <span className="text-[#00cfff] font-mono text-[10px] tracking-[0.2em] uppercase font-bold drop-shadow-[0_0_5px_rgba(0,207,255,0.5)] whitespace-nowrap">DATA CONSOLE</span>
@@ -1234,7 +1426,7 @@ export default function JuecesPage() {
             {(() => {
               const masterPilots = groupedByCategory[masterCategory] || [];
               const gradedJudgeUids = Array.from(new Set(
-                masterPilots.flatMap(p => Object.keys(p.calificaciones || {}))
+                masterPilots.flatMap(p => Object.keys(p.calificaciones || {}).map(k => k.split('_')[0]))
               ));
               
               let displayJudgeUids = Array.from(new Set([...allJudgeUids, ...gradedJudgeUids]));
@@ -1269,8 +1461,7 @@ export default function JuecesPage() {
               ];
 
               const sortedMasterPilots = [...masterPilots].map(pilot => {
-                const califs = pilot.calificaciones || {};
-                const globalTotal = displayJudgeUids.reduce((sum, uid) => sum + (califs[uid]?.total || 0), 0);
+                const globalTotal = displayJudgeUids.reduce((sum, uid) => sum + (getScoreForCategory(pilot, uid, masterCategory)?.total || 0), 0);
                 return { ...pilot, _globalTotal: globalTotal };
               }).sort((a, b) => b._globalTotal - a._globalTotal);
 
@@ -1304,39 +1495,39 @@ export default function JuecesPage() {
                       )}
                       {displayJudgeUids.map(uid => (
                         <th key={`sub-${uid}`} className="px-1 py-1 text-center text-[8px] text-[#ffd700]/70 border-x border-b border-[#ffd700] bg-[#0a1628] truncate max-w-[80px]" title={getJudgeName(uid)}>
-                          {getJudgeName(uid).split(' ')[0]}
+                              {getJudgeName(uid).split(' ')[0]}
                         </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#1A2540]">
-                    {sortedMasterPilots.map((pilot, index) => {
-                      const califs = pilot.calificaciones || {};
+                    {sortedMasterPilots.map((pilot, idx) => {
                       const globalTotal = pilot._globalTotal;
 
                       return (
-                        <tr key={pilot.id} className="hover:bg-[#1A2540]/50 transition-colors">
-                          <td className="px-2 py-3 text-center text-[#555] sticky left-0 z-20 bg-[#0a1628] group-hover:bg-[#1A2540]">
-                            {pilot.numeroIdentificacion.slice(-4)}
+                        <tr key={`master-${pilot.id}`} className="border-b border-[#1A2540] hover:bg-[#1A2540]/30 transition-colors group">
+                          <td className="px-2 py-3 text-center text-[#888888] font-mono text-sm sticky left-0 z-20 bg-[#0a1628] group-hover:bg-[#111c2e]">{idx + 1}</td>
+                          <td className="px-4 py-3 font-bold uppercase truncate sticky left-[48px] z-20 bg-[#0a1628] shadow-[5px_0_15px_rgba(0,0,0,0.5)] group-hover:bg-[#111c2e]">
+                            {pilot.nombres} {pilot.apellidos}
+                            <div className="text-[9px] text-[#555] font-mono font-normal">#{pilot.numeroIdentificacion}</div>
                           </td>
-                          <td className="px-4 py-3 font-bold text-[#E8E8E8] uppercase truncate sticky left-[48px] z-20 bg-[#0a1628] shadow-[5px_0_15px_rgba(0,0,0,0.5)] group-hover:bg-[#1A2540]">
-                            {pilot.nombres.split(' ')[0]} {pilot.apellidos.split(' ')[0]}
-                          </td>
-                          
-                          {neonCriteria.map(c => 
-                            displayJudgeUids.map(uid => {
-                              const score = califs[uid]?.[c.id as keyof Calificacion] || 0;
-                              const isError = c.id === 'error';
-                              return (
-                                <td key={`${pilot.id}-${c.id}-${uid}`} className={`px-1 py-3 text-center border-x border-[#1A2540] bg-[#050B14]/20 ${isError && Number(score) > 0 ? 'text-[#ff3333]' : 'text-[#E8E8E8]'}`}>
-                                  {score}
-                                </td>
-                              );
-                            })
-                          )}
+
+                          {neonCriteria.map(c => (
+                            <React.Fragment key={`${pilot.id}-${c.id}`}>
+                              {displayJudgeUids.map((uid, jIdx) => {
+                                const score = getScoreForCategory(pilot, uid, masterCategory)?.[c.id as keyof Calificacion] || 0;
+                                const isError = c.id === 'error';
+                                return (
+                                  <td key={`val-${pilot.id}-${c.id}-${uid}`} className={`px-1 py-3 text-center ${c.color} border-x border-[#1A2540] ${jIdx % 2 === 0 ? 'bg-transparent' : 'bg-[#1A2540]/10'} ${isError && Number(score) > 0 ? 'text-[#ff3333]' : ''}`}>
+                                    {score}
+                                  </td>
+                                );
+                              })}
+                            </React.Fragment>
+                          ))}
                           
                           {displayJudgeUids.map(uid => {
-                            const subtotal = califs[uid]?.total || 0;
+                            const subtotal = getScoreForCategory(pilot, uid, masterCategory)?.total || 0;
                             return (
                               <td key={`sub-${pilot.id}-${uid}`} className="px-1 py-3 text-center font-bold text-[#ffd700] border-x border-[#1A2540] bg-[#ffd700]/5">
                                 {subtotal}
@@ -1363,9 +1554,10 @@ export default function JuecesPage() {
       {/* RENDERIZADO DEL MODAL */}
       {activePilotIndex !== null && currentUid && (
         <GradingModal 
-          key={`${activeCategoryList[activePilotIndex].id}-${isModalReadOnly}`}
+          key={`${activeCategoryList[activePilotIndex].id}-${activeCategory}-${isModalReadOnly}`}
           pilot={activeCategoryList[activePilotIndex]}
           currentUid={currentUid}
+          currentCategory={activeCategory}
           initialReadOnly={isModalReadOnly}
           onClose={() => setActivePilotIndex(null)}
           onSaveAndNext={handleWizardNext}
@@ -1422,13 +1614,12 @@ export default function JuecesPage() {
               // Calculate top 3
               const masterPilots = groupedByCategory[masterCategory] || [];
               const gradedJudgeUids = Array.from(new Set(
-                masterPilots.flatMap(p => Object.keys(p.calificaciones || {}))
+                masterPilots.flatMap(p => Object.keys(p.calificaciones || {}).map(k => k.split('_')[0]))
               ));
               const displayJudgeUids = Array.from(new Set([...allJudgeUids, ...gradedJudgeUids])).length > 0 ? Array.from(new Set([...allJudgeUids, ...gradedJudgeUids])) : ['juez_1', 'juez_2', 'juez_3'];
 
               const sortedForPodium = [...masterPilots].map(pilot => {
-                const califs = pilot.calificaciones || {};
-                const globalTotal = displayJudgeUids.reduce((sum, uid) => sum + (califs[uid]?.total || 0), 0);
+                const globalTotal = displayJudgeUids.reduce((sum, uid) => sum + (getScoreForCategory(pilot, uid, masterCategory)?.total || 0), 0);
                 return { ...pilot, _globalTotal: globalTotal };
               }).sort((a, b) => b._globalTotal - a._globalTotal).slice(0, 3);
 
