@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { collection, getDocs, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { ClipboardList, Search, Play, ShieldAlert, User, Phone, Mail, MapPin, Instagram, Info, Flame, Gamepad2, Star, AlertTriangle, Edit2, Trophy, Download, FileText } from 'lucide-react';
+import { ClipboardList, Search, Play, ShieldAlert, User, Phone, Mail, MapPin, Instagram, Info, Flame, Gamepad2, Star, AlertTriangle, Edit2, Trophy, Download, FileText, Maximize } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -24,6 +24,7 @@ interface Calificacion {
   agres: number;
   error: number;
   total: number;
+  mejoras?: string;
 }
 
 interface Registration {
@@ -53,18 +54,18 @@ interface Registration {
 // DUMMY DATA FALLBACK
 // ---------------------------------------------------------------------------
 
+const MAIN_LOGO = { src: "/sponsors/copa stunt nitrox f2r.png", alt: "Copa Stunt F2R", className: "h-20 sm:h-32 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.4)] shrink-0 mx-2 sm:mx-6" };
+
 const SPONSOR_LOGOS = [
-  { src: "/sponsors/Copa Stunt Nitrox Blanco.png", alt: "Copa Stunt", className: "h-8 sm:h-12 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.4)] shrink-0" },
-  { src: "/sponsors/Nitrox Blanco.png", alt: "Nitrox", className: "h-6 sm:h-8 object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.3)] shrink-0" },
-  { src: "/sponsors/Mobil Blanco.png", alt: "Mobil Super", className: "h-6 sm:h-8 object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.3)] shrink-0" },
-  { src: "/sponsors/PKS Blanco.png", alt: "PKS", className: "h-5 sm:h-7 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] shrink-0" },
-  { src: "/sponsors/copa stunt nitrox f2r.png", alt: "F2R", className: "h-6 sm:h-8 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] shrink-0" },
-  { src: "/sponsors/Trakku.png", alt: "Trakku", className: "h-5 sm:h-7 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] shrink-0" },
-  { src: "/sponsors/IRC Blanco.png", alt: "IRC", className: "h-5 sm:h-7 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] shrink-0" },
-  { src: "/sponsors/Fedemoto.png", alt: "Fedemoto", className: "h-5 sm:h-7 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] shrink-0" }
+  { src: "/sponsors/Nitrox Blanco.png", alt: "Nitrox", className: "h-10 sm:h-14 object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.3)] shrink-0" },
+  { src: "/sponsors/Mobil Blanco.png", alt: "Mobil Super", className: "h-10 sm:h-14 object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.3)] shrink-0" },
+  { src: "/sponsors/PKS Blanco.png", alt: "PKS", className: "h-8 sm:h-12 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] shrink-0" },
+  { src: "/sponsors/Trakku.png", alt: "Trakku", className: "h-8 sm:h-12 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] shrink-0" },
+  { src: "/sponsors/IRC Blanco.png", alt: "IRC", className: "h-8 sm:h-12 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] shrink-0" },
+  { src: "/sponsors/Fedemoto.png", alt: "Fedemoto", className: "h-8 sm:h-12 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] shrink-0" }
 ];
 
-const dummyAlto: Registration[] = [];
+const dummyNitrox: Registration[] = [];
 
 const dummyOpen: Registration[] = [
   {
@@ -136,6 +137,7 @@ const GradingModal = ({
     flow: existingScore?.flow || 0,
     agres: existingScore?.agres || 0,
     error: existingScore?.error || 0,
+    mejoras: existingScore?.mejoras || '',
   });
 
   const totalTemp = scores.combos + scores.drif + scores.acro + scores.endos + scores.flow + scores.agres - scores.error;
@@ -315,6 +317,32 @@ const GradingModal = ({
            </div>
         </div>
 
+        {/* MEJORAS Section */}
+        <div className="px-2 sm:px-5 pb-2 sm:pb-4 w-full flex flex-col items-center">
+           <div className="w-full max-w-sm sm:max-w-md flex flex-col items-center">
+             <label className="text-[#00cfff] text-[9px] sm:text-xs font-black uppercase tracking-widest mb-1 flex items-center gap-1 sm:gap-2 drop-shadow-[0_0_8px_rgba(0,207,255,0.6)]">
+                <FileText className="w-3 h-3" /> MEJORAS <FileText className="w-3 h-3" />
+             </label>
+             <div className="relative w-full">
+                <div className="absolute inset-0 bg-[#00cfff]/5 blur-sm rounded"></div>
+                <div 
+                  className="relative bg-[#1a1a1a] border border-[#333] shadow-[inset_0_2px_10px_rgba(0,207,255,0.1)] flex items-center justify-center p-1"
+                  style={{ clipPath: 'polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px)' }}
+                >
+                  <div className="absolute top-0 left-1/4 w-1/2 h-[1px] bg-[#00cfff]/40"></div>
+                  <textarea 
+                    disabled={isReadOnly || saving}
+                    value={scores.mejoras}
+                    onChange={e => setScores(prev => ({ ...prev, mejoras: e.target.value }))}
+                    placeholder="Observaciones o mejoras..."
+                    rows={2}
+                    className="text-xs sm:text-sm w-full font-mono text-left bg-transparent border-none text-[#e8e8e8] placeholder:text-[#555] focus-visible:ring-0 focus-visible:outline-none drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] p-2 resize-none"
+                  />
+                </div>
+             </div>
+           </div>
+        </div>
+
         {/* Footer Actions */}
         <div className="px-2 sm:px-4 py-1.5 sm:py-2 bg-[#111] border-t-2 border-[#222] flex justify-between items-center gap-1.5 sm:gap-3 relative overflow-hidden rounded-b-xl z-10">
           <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#050505] opacity-50 pointer-events-none"></div>
@@ -373,12 +401,14 @@ export default function JuecesPage() {
   const [isDirectoryOpen, setIsDirectoryOpen] = useState(false);
   const [isRulesOpen, setIsRulesOpen] = useState(false);
   const [maximizedCategory, setMaximizedCategory] = useState<string | null>(null);
+  const [nitroxSearchQuery, setNitroxSearchQuery] = useState('');
 
   // Wizard State
   const [activePilotIndex, setActivePilotIndex] = useState<number | null>(null);
   const [activeCategoryList, setActiveCategoryList] = useState<Registration[]>([]);
   const [isModalReadOnly, setIsModalReadOnly] = useState(false);
   const [isPodiumOpen, setIsPodiumOpen] = useState(false);
+  const [isPodiumFullScreen, setIsPodiumFullScreen] = useState(false);
 
   const handleRoleChange = async (userId: string, newRole: string) => {
     try {
@@ -488,13 +518,13 @@ export default function JuecesPage() {
         const c = Array.isArray(f.categoria) ? f.categoria.join(' ') : String(f.categoria);
         return c.toUpperCase().includes('OPEN');
       }).length;
-      const altoCount = fetched.filter(f => {
+      const nitroxCount = fetched.filter(f => {
         const c = Array.isArray(f.categoria) ? f.categoria.join(' ') : String(f.categoria);
-        return c.toUpperCase().includes('ALTO CILINDRAJE');
+        return c.toUpperCase().includes('ALTO CILINDRAJE') || c.toUpperCase().includes('NITROX');
       }).length;
       
       if (openCount === 0) fetched.push(...dummyOpen);
-      if (altoCount === 0) fetched.push(...dummyAlto);
+      if (nitroxCount === 0) fetched.push(...dummyNitrox);
 
       setRegistrations(fetched);
     } catch (e) {
@@ -516,7 +546,7 @@ export default function JuecesPage() {
 
     cats.forEach(cat => {
       let finalCat = cat;
-      if (finalCat === 'ALTO') finalCat = 'ALTO CILINDRAJE';
+      if (finalCat.includes('ALTO') || finalCat === 'CATEGORIA NITROX' || finalCat === 'NITROX') finalCat = 'NITROX';
       if (finalCat === '2T') finalCat = '2 TIEMPOS';
       if (finalCat === '4T') finalCat = '4 TIEMPOS';
 
@@ -530,7 +560,7 @@ export default function JuecesPage() {
   }, {} as Record<string, Registration[]>);
 
   // Forzar las 4 categorías principales siempre
-  const displayCategories = ['OPEN', '2 TIEMPOS', '4 TIEMPOS', 'ALTO CILINDRAJE'];
+  const displayCategories = ['OPEN', '2 TIEMPOS', '4 TIEMPOS', 'NITROX'];
 
   const handleStartSequential = (cat: string) => {
     if (!isOfficialJudge) {
@@ -561,6 +591,34 @@ export default function JuecesPage() {
     const pilot = pilots[index];
     const isGraded = !!(pilot.calificaciones && currentUid && pilot.calificaciones[currentUid]);
     setIsModalReadOnly(isGraded);
+  };
+
+  const handleAddNitrox = async (e: any, pilotId: string, currentCategories: string | string[]) => {
+    e.stopPropagation();
+    if (!isAdmin && !isOfficialJudge) return;
+    
+    let catsArray: string[] = [];
+    if (Array.isArray(currentCategories)) {
+      catsArray = [...currentCategories];
+    } else {
+      catsArray = String(currentCategories).split(',').map(c => c.trim());
+    }
+    
+    const hasNitrox = catsArray.some(c => c.toUpperCase().includes('NITROX') || c.toUpperCase().includes('ALTO'));
+    if (hasNitrox) return;
+
+    catsArray.push('NITROX');
+    
+    try {
+      await updateDoc(doc(db, 'event_registrations', pilotId), {
+        categoria: catsArray
+      });
+      toast({ title: 'Añadido a NITROX', description: 'El piloto ahora participa en la categoría NITROX.' });
+      fetchRegistrations();
+    } catch (err) {
+      console.error(err);
+      toast({ title: 'Error', description: 'No se pudo agregar a NITROX.', variant: 'destructive' });
+    }
   };
 
   const handleWizardNext = () => {
@@ -651,28 +709,28 @@ export default function JuecesPage() {
   const getCatColor = (cat: string) => {
     if (cat.includes('OPEN')) return 'border-[#00ff88] text-[#00ff88] shadow-[0_0_15px_rgba(0,255,136,0.2)]';
     if (cat.includes('TIEMPOS')) return 'border-[#ff6b00] text-[#ff6b00] shadow-[0_0_15px_rgba(255,107,0,0.2)]';
-    if (cat.includes('ALTO')) return 'border-[#ffd700] text-[#ffd700] shadow-[0_0_15px_rgba(255,215,0,0.2)]';
+    if (cat.includes('NITROX')) return 'border-[#ffd700] text-[#ffd700] shadow-[0_0_15px_rgba(255,215,0,0.2)]';
     return 'border-[#00cfff] text-[#00cfff]';
   };
 
   const getCatGlow = (cat: string) => {
     if (cat.includes('OPEN')) return 'shadow-[0_0_15px_rgba(0,255,136,0.2)] shadow-[inset_0_0_15px_rgba(0,255,136,0.05)] border-[#00ff88]';
     if (cat.includes('TIEMPOS')) return 'shadow-[0_0_15px_rgba(255,107,0,0.2)] shadow-[inset_0_0_15px_rgba(255,107,0,0.05)] border-[#ff6b00]';
-    if (cat.includes('ALTO')) return 'shadow-[0_0_15px_rgba(255,215,0,0.2)] shadow-[inset_0_0_15px_rgba(255,215,0,0.05)] border-[#ffd700]';
+    if (cat.includes('NITROX')) return 'shadow-[0_0_15px_rgba(255,215,0,0.2)] shadow-[inset_0_0_15px_rgba(255,215,0,0.05)] border-[#ffd700]';
     return 'border-[#00cfff]';
   };
 
   const getCatTextGlow = (cat: string) => {
     if (cat.includes('OPEN')) return 'text-[#00ff88] drop-shadow-[0_0_8px_rgba(0,255,136,0.8)]';
     if (cat.includes('TIEMPOS')) return 'text-[#ff6b00] drop-shadow-[0_0_8px_rgba(255,107,0,0.8)]';
-    if (cat.includes('ALTO')) return 'text-[#ffd700] drop-shadow-[0_0_8px_rgba(255,215,0,0.8)]';
+    if (cat.includes('NITROX')) return 'text-[#ffd700] drop-shadow-[0_0_8px_rgba(255,215,0,0.8)]';
     return 'text-[#00cfff]';
   };
 
   const getCatTextColor = (cat: string) => {
     if (cat.includes('OPEN')) return 'text-[#00ff88]';
     if (cat.includes('TIEMPOS')) return 'text-[#ff6b00]';
-    if (cat.includes('ALTO')) return 'text-[#ffd700]';
+    if (cat.includes('NITROX')) return 'text-[#ffd700]';
     return 'text-[#00cfff]';
   };
 
@@ -804,6 +862,86 @@ export default function JuecesPage() {
                       <div className="flex flex-col gap-1 w-2/3">
                         <h2 className={`text-xl font-black uppercase tracking-widest leading-none ${getCatTextGlow(cat)}`}>{cat}</h2>
                         <div className="flex gap-1 z-20 mt-1">
+                           {cat === 'NITROX' && (isAdmin || isOfficialJudge) && (
+                             <Dialog>
+                               <DialogTrigger asChild>
+                                 <div className="w-5 h-5 rounded-[4px] border-2 border-[#00ff44] flex items-center justify-center text-[#00ff44] cursor-pointer hover:bg-[#00ff44]/20 transition-colors" title="Añadir piloto a NITROX">
+                                   <div className="text-sm font-black leading-none pb-[1px]">+</div>
+                                 </div>
+                               </DialogTrigger>
+                               <DialogContent className="max-w-2xl bg-[#0d1b2e] border-[#00ff44] max-h-[80vh] flex flex-col p-0 shadow-[0_0_30px_rgba(0,255,68,0.3)]">
+                                 <DialogHeader className="p-4 border-b border-[#1A2540]">
+                                   <div className="flex justify-between items-center gap-4">
+                                     <DialogTitle className="text-xl font-bold uppercase tracking-widest text-[#00ff44]">Añadir Piloto a NITROX</DialogTitle>
+                                     <div className="relative">
+                                       <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-[#888]" />
+                                       <input 
+                                         type="text" 
+                                         placeholder="Buscar piloto o categoría..." 
+                                         value={nitroxSearchQuery}
+                                         onChange={(e) => setNitroxSearchQuery(e.target.value)}
+                                         className="bg-[#1A2540] border border-[#334155] rounded-md pl-8 pr-3 py-1.5 text-xs text-white placeholder-[#888] focus:outline-none focus:border-[#00ff44] transition-colors w-48 sm:w-64"
+                                       />
+                                     </div>
+                                   </div>
+                                 </DialogHeader>
+                                 <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
+                                   <table className="w-full text-left text-xs text-white">
+                                     <thead className="bg-[#1A2540] sticky top-0 z-10">
+                                        <tr>
+                                          <th className="px-4 py-2 font-mono text-[#888888]">#</th>
+                                          <th className="px-4 py-2 text-[#888888]">Piloto</th>
+                                          <th className="px-4 py-2 text-[#888888]">Categoría Actual</th>
+                                          <th className="px-4 py-2 text-right">Acción</th>
+                                        </tr>
+                                     </thead>
+                                     <tbody>
+                                       {registrations.filter(r => {
+                                          let rCats = Array.isArray(r.categoria) ? r.categoria : String(r.categoria).split(',');
+                                          const notInNitrox = !rCats.some(c => String(c).trim().toUpperCase().includes('NITROX') || String(c).trim().toUpperCase().includes('ALTO'));
+                                          if (!notInNitrox) return false;
+                                          if (!nitroxSearchQuery) return true;
+                                          const searchLower = nitroxSearchQuery.toLowerCase();
+                                          const fullName = `${r.nombres} ${r.apellidos}`.toLowerCase();
+                                          const catsString = Array.isArray(r.categoria) ? r.categoria.join(' ').toLowerCase() : String(r.categoria).toLowerCase();
+                                          return fullName.includes(searchLower) || catsString.includes(searchLower);
+                                       }).map(r => (
+                                         <tr key={`add-${r.id}`} className="border-b border-[#1A2540] hover:bg-[#1A2540]/50 transition-colors">
+                                            <td className="px-4 py-3 font-mono text-[#888888]">{r.numeroIdentificacion.slice(-4)}</td>
+                                            <td className="px-4 py-3 font-bold uppercase">{r.nombres} {r.apellidos}</td>
+                                            <td className="px-4 py-3 text-[#888888] uppercase text-[10px]">{Array.isArray(r.categoria) ? r.categoria.join(', ') : r.categoria}</td>
+                                            <td className="px-4 py-3 text-right">
+                                              <button 
+                                                onClick={(e) => handleAddNitrox(e, r.id, r.categoria)}
+                                                className="bg-[#00ff44]/10 border border-[#00ff44]/50 text-[#00ff44] rounded px-3 py-1.5 text-[10px] hover:bg-[#00ff44] hover:text-black transition-colors shadow-[0_0_10px_rgba(0,255,68,0.2)] font-bold tracking-widest uppercase"
+                                              >
+                                                Agregar
+                                              </button>
+                                            </td>
+                                         </tr>
+                                       ))}
+                                       {registrations.filter(r => {
+                                          let rCats = Array.isArray(r.categoria) ? r.categoria : String(r.categoria).split(',');
+                                          const notInNitrox = !rCats.some(c => String(c).trim().toUpperCase().includes('NITROX') || String(c).trim().toUpperCase().includes('ALTO'));
+                                          if (!notInNitrox) return false;
+                                          if (!nitroxSearchQuery) return true;
+                                          const searchLower = nitroxSearchQuery.toLowerCase();
+                                          const fullName = `${r.nombres} ${r.apellidos}`.toLowerCase();
+                                          const catsString = Array.isArray(r.categoria) ? r.categoria.join(' ').toLowerCase() : String(r.categoria).toLowerCase();
+                                          return fullName.includes(searchLower) || catsString.includes(searchLower);
+                                       }).length === 0 && (
+                                         <tr>
+                                           <td colSpan={4} className="px-4 py-8 text-center text-[#888888] font-mono">
+                                             {nitroxSearchQuery ? 'No se encontraron pilotos con esa búsqueda.' : 'Todos los pilotos ya están en NITROX.'}
+                                           </td>
+                                         </tr>
+                                       )}
+                                     </tbody>
+                                   </table>
+                                 </div>
+                               </DialogContent>
+                             </Dialog>
+                           )}
                            <div className="w-5 h-5 rounded-[4px] border-2 border-[#ffd700] flex items-center justify-center text-[#ffd700] cursor-not-allowed opacity-50"><div className="w-2.5 h-0.5 bg-current"></div></div>
                            <Dialog>
                              <DialogTrigger asChild>
@@ -1235,44 +1373,50 @@ export default function JuecesPage() {
       )}
 
       {/* RENDERIZADO DEL PODIO */}
-      <Dialog open={isPodiumOpen} onOpenChange={setIsPodiumOpen}>
-        <DialogContent className="max-w-4xl bg-[#0a0a0f] border-[#00cfff]/30 border shadow-[0_0_80px_rgba(0,207,255,0.15)] p-0 overflow-hidden sm:rounded-[2rem]">
+      <Dialog open={isPodiumOpen} onOpenChange={(open) => {
+        setIsPodiumOpen(open);
+        if (!open) setIsPodiumFullScreen(false);
+      }}>
+        <DialogContent className={`${isPodiumFullScreen ? 'w-screen h-screen max-w-none rounded-none border-0' : 'max-w-4xl sm:rounded-[2rem] border border-[#00cfff]/30'} bg-[#0a0a0f] shadow-[0_0_80px_rgba(0,207,255,0.15)] p-0 overflow-hidden`}>
           <DialogTitle className="sr-only">Podio Oficial - Resultados</DialogTitle>
-          <div className="relative w-full p-3 sm:p-5 flex flex-col items-center">
-            {/* Background elements */}
-            <div className="absolute inset-0 bg-[#0a0a0f]" style={{ backgroundImage: 'radial-gradient(rgba(0, 207, 255, 0.15) 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,207,255,0.15)_0%,rgba(10,10,15,0.95)_80%)]"></div>
-            <div className="absolute inset-0 shadow-[inset_0_0_100px_rgba(0,0,0,1)] pointer-events-none z-0"></div>
+          <div className={`relative w-full flex flex-col items-center justify-between overflow-hidden ${isPodiumFullScreen ? 'h-screen p-4 sm:p-8' : 'min-h-[600px] sm:min-h-[700px] p-4 sm:p-6'}`}>
             
-            {/* Ambient Particles */}
-            <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-[#00cfff]/20 rounded-full blur-[60px] pointer-events-none z-0"></div>
-            <div className="absolute top-1/3 right-1/4 w-40 h-40 bg-[#FFD700]/10 rounded-full blur-[80px] pointer-events-none z-0"></div>
-            <div className="absolute bottom-1/4 left-1/2 w-48 h-48 bg-[#CD7F32]/10 rounded-full blur-[100px] pointer-events-none z-0"></div>
+            {/* Full Screen Toggle */}
+            <button 
+              onClick={() => setIsPodiumFullScreen(!isPodiumFullScreen)}
+              className="absolute top-4 right-4 z-50 p-2 bg-white/5 hover:bg-white/10 rounded-full text-white/50 hover:text-white transition-colors"
+            >
+              <Maximize className="w-5 h-5" />
+            </button>
+            {/* Background Image - Provided by User */}
+            <div className="absolute inset-0 z-0 overflow-hidden bg-[#0e1014]">
+                <img 
+                  src="/sponsors/Fondo-Podio.jpg" 
+                  alt="Fondo Podio" 
+                  className="w-full h-full object-cover"
+                />
+            </div>
 
-            {/* Zone 1: Sponsors (10% height roughly) */}
-            <div className="relative z-20 w-full flex justify-center mt-2 mb-4 sm:mb-8">
-              <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 bg-black/50 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-2 sm:py-3 w-[95%] sm:w-[90%] shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
-                {SPONSOR_LOGOS.map((logo, idx) => (
-                  <div key={idx} className="relative group flex items-center justify-center">
-                    <div className="absolute inset-0 bg-white/20 blur-md rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <img src={logo.src} alt={logo.alt} className={`${logo.className} drop-shadow-[0_0_8px_rgba(255,255,255,0.2)] relative z-10 transition-transform hover:scale-110 scale-75 sm:scale-90 origin-center`} />
-                  </div>
-                ))}
+              {/* Zone 1: Main Logo (Top) */}
+              <div className="relative w-full z-20 flex justify-center shrink-0">
+              <div className={`flex flex-col items-center justify-center gap-2 transition-all duration-500 ${isPodiumFullScreen ? 'scale-110 sm:scale-125 mt-4' : ''} relative`}>
+                <div className="absolute inset-0 bg-cyan-400/40 blur-[50px] rounded-full scale-150 -z-10 animate-pulse mix-blend-screen pointer-events-none"></div>
+                <img src={MAIN_LOGO.src} alt={MAIN_LOGO.alt} className={MAIN_LOGO.className} />
               </div>
               
               {/* Category Absolute Top Right (Below sponsors visually, fixed position) */}
-              <div className="absolute -bottom-4 right-0 sm:right-4 flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-[0_0_15px_rgba(0,207,255,0.2)]">
-                 <span className="text-white text-[9px] sm:text-[11px] font-mono tracking-widest font-bold">PODIO OFICIAL</span>
-                 <span className="text-[#00cfff] text-[9px] sm:text-[11px] font-black tracking-widest drop-shadow-[0_0_5px_rgba(0,207,255,0.8)]">/ {masterCategory}</span>
+              <div className={`absolute -bottom-4 right-0 sm:right-4 flex items-center bg-gradient-to-b from-[#3a3d44] to-[#1a1c22] rounded-md border-2 border-gray-600 shadow-[0_5px_15px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.2)] transition-all duration-500 ${isPodiumFullScreen ? 'px-6 py-3 sm:px-10 sm:py-4 gap-3 sm:gap-4' : 'px-4 py-2 sm:px-6 sm:py-3 gap-2'}`}>
+                 <span className={`text-white font-mono tracking-widest font-bold transition-all duration-500 ${isPodiumFullScreen ? 'text-sm sm:text-2xl' : 'text-xs sm:text-sm'}`}>PODIO OFICIAL</span>
+                 <span className={`text-[#00cfff] font-black tracking-widest drop-shadow-[0_0_10px_rgba(0,207,255,1)] transition-all duration-500 ${isPodiumFullScreen ? 'text-sm sm:text-2xl' : 'text-xs sm:text-sm'}`}>/ {masterCategory}</span>
+                 {/* Screws/Bolts */}
+                 <div className="absolute top-1 left-1 w-1.5 h-1.5 rounded-full bg-gray-400 shadow-[inset_0_-1px_1px_rgba(0,0,0,0.8)]"></div>
+                 <div className="absolute bottom-1 left-1 w-1.5 h-1.5 rounded-full bg-gray-400 shadow-[inset_0_-1px_1px_rgba(0,0,0,0.8)]"></div>
+                 <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-gray-400 shadow-[inset_0_-1px_1px_rgba(0,0,0,0.8)]"></div>
+                 <div className="absolute bottom-1 right-1 w-1.5 h-1.5 rounded-full bg-gray-400 shadow-[inset_0_-1px_1px_rgba(0,0,0,0.8)]"></div>
               </div>
             </div>
-
-            {/* Zone 2: Main Title (20% height) */}
-            <div className="relative z-20 w-full flex justify-center mb-6 sm:mb-10">
-              <h2 className="text-2xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-gray-500 tracking-[0.2em] sm:tracking-[0.3em] uppercase text-center" style={{ textShadow: '0 0 15px rgba(0, 207, 255, 0.4), 0 4px 4px rgba(0,0,0,0.8)' }}>
-                COPA STUNT F2R NITROX
-              </h2>
-            </div>
+            {/* Spacer for Podium */}
+            <div className="relative z-20 w-full flex-grow max-h-4 sm:max-h-8"></div>
 
             {(() => {
               // Calculate top 3
@@ -1300,108 +1444,126 @@ export default function JuecesPage() {
               const PilotAvatar = ({ pilot, color, place }: { pilot: any, color: string, place: string }) => {
                  if (!pilot) return <div className="w-24 sm:w-40 flex flex-col items-center justify-end relative z-10"></div>;
                  
-                 // Render Ring styles based on placement
-                 const getRingStyle = () => {
-                    if (place === '1ST') return `ring-4 ring-offset-4 ring-offset-[#0a0a0f] ring-[#FFD700] shadow-[0_0_30px_rgba(255,215,0,0.6)] border-dashed border-2 border-white`;
-                    if (place === '2ND') return `ring-[6px] ring-offset-2 ring-offset-[#0a0a0f] ring-[#00cfff]/50 shadow-[0_0_25px_rgba(0,207,255,0.4)] animate-[spin_10s_linear_infinite] border-y-4 border-[#00cfff]`;
-                    if (place === '3RD') return `ring-2 ring-offset-2 ring-offset-[#0a0a0f] ring-[#CD7F32] shadow-[0_0_20px_rgba(205,127,50,0.4)] border-dotted border-[4px] border-[#CD7F32]/80`;
-                 };
-
                  const getDecoratorColor = () => {
                    if (place === '1ST') return "text-[#FFD700]";
                    if (place === '2ND') return "text-[#00cfff]";
                    return "text-[#CD7F32]";
                  }
+                 
+                 const getOuterRingStyle = () => {
+                    if (place === '1ST') return `bg-gradient-to-br from-[#FFD700] via-[#B8860B] to-[#FFD700] shadow-[0_0_40px_rgba(255,215,0,0.6)] p-[8px] sm:p-[12px]`;
+                    if (place === '2ND') return `bg-gradient-to-br from-[#00cfff] via-[#005f73] to-[#0a9396] shadow-[0_0_30px_rgba(0,207,255,0.4)] p-[6px] sm:p-[10px]`;
+                    if (place === '3RD') return `bg-gradient-to-br from-[#CD7F32] via-[#8B4513] to-[#A0522D] shadow-[0_0_20px_rgba(205,127,50,0.4)] p-[6px] sm:p-[10px]`;
+                 };
+                 
+                 const getInnerRingStyle = () => {
+                    if (place === '1ST') return `border-[4px] border-[#333] border-dashed`;
+                    if (place === '2ND') return `border-[4px] border-[#222] border-dotted`;
+                    if (place === '3RD') return `border-[3px] border-[#444] border-dotted`;
+                 };
 
                  return (
                    <div className="w-full flex flex-col items-center justify-end relative z-10 group">
                       {/* Photo Container */}
                       <div className="relative mb-3 sm:mb-4 flex justify-center items-center">
-                         {place === '1ST' && (
-                           <div className="absolute -top-8 sm:-top-12 z-40">
-                             <Trophy className="w-10 h-10 sm:w-14 sm:h-14 text-[#FFD700] drop-shadow-[0_0_15px_rgba(255,215,0,1)] animate-pulse" />
-                           </div>
-                         )}
-                         <div className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-[#050B14] z-20 ${place !== '2ND' ? getRingStyle() : ''}`}>
-                            {pilot.documentos?.deportistaUrl ? (
-                              <img src={pilot.documentos.deportistaUrl} alt="Pilot" className="w-full h-full object-cover object-top" />
-                            ) : (
-                              <User className="w-8 h-8 sm:w-10 sm:h-10 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[#555]" />
-                            )}
+                         {/* Aura for 1st place */}
+                         {place === '1ST' && <div className="absolute inset-0 bg-[#FFD700]/30 blur-[40px] rounded-full scale-150 animate-pulse pointer-events-none"></div>}
+                         
+                         {/* Brake Disc Outer */}
+                         <div className={`relative rounded-full flex items-center justify-center transition-all duration-500 ${getOuterRingStyle()} ${place === '1ST' ? 'animate-[spin_15s_linear_infinite]' : ''}`}>
+                            {/* Brake Disc Holes Pattern (Simulated with absolute radial-gradient dots) */}
+                            <div className="absolute inset-0 rounded-full opacity-30 mix-blend-multiply pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 2px, transparent 3px)', backgroundSize: '15px 15px' }}></div>
+                            
+                            {/* Inner Photo Wrapper */}
+                            <div className={`relative rounded-full overflow-hidden bg-[#050B14] z-20 transition-all duration-500 ${isPodiumFullScreen ? 'w-24 h-24 sm:w-48 sm:h-48' : 'w-20 h-20 sm:w-32 sm:h-32'} ${getInnerRingStyle()} ${place === '1ST' ? 'animate-[spin_15s_linear_infinite_reverse]' : ''}`}>
+                                {pilot.documentos?.deportistaUrl ? (
+                                  <img src={pilot.documentos.deportistaUrl} alt="Pilot" className="w-full h-full object-cover object-top" />
+                                ) : (
+                                  <User className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[#555] transition-all duration-500 ${isPodiumFullScreen ? 'w-14 h-14 sm:w-24 sm:h-24' : 'w-12 h-12 sm:w-20 sm:h-20'}`} />
+                                )}
+                            </div>
                          </div>
-                         {/* Spin layer for 2nd place */}
-                         {place === '2ND' && (
-                           <div className={`absolute inset-[-6px] rounded-full z-10 pointer-events-none ${getRingStyle()}`}></div>
-                         )}
                       </div>
 
                       {/* Info Container */}
                       <div className="text-center z-10 w-full px-1 flex flex-col items-center">
-                        <div className="text-[9px] sm:text-[11px] font-mono mb-1 opacity-70" style={{ color }}>#{pilot.numeroIdentificacion}</div>
-                        
-                        {/* Name with Decorators */}
-                        <div className="flex items-center gap-1.5 sm:gap-2 justify-center w-full">
-                           <span className={`text-[9px] sm:text-[10px] ${getDecoratorColor()} drop-shadow-[0_0_5px_currentColor]`}>▐</span>
-                           <span className="text-[10px] sm:text-sm font-black text-white uppercase truncate tracking-wider drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] leading-tight">{pilot.nombres.split(' ')[0]}</span>
-                           <span className={`text-[9px] sm:text-[10px] ${getDecoratorColor()} drop-shadow-[0_0_5px_currentColor]`}>▌</span>
+                        <div className="flex items-center gap-1.5 sm:gap-2 justify-center w-auto mt-2 bg-black/40 px-3 py-1 rounded backdrop-blur-sm border border-white/5">
+                           <span className={`text-[10px] sm:text-[12px] font-bold ${getDecoratorColor()}`}>|</span>
+                           <span className={`font-black text-white uppercase truncate tracking-widest drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] leading-tight transition-all duration-500 ${isPodiumFullScreen ? 'text-xs sm:text-lg' : 'text-[10px] sm:text-sm'}`}>{pilot.nombres.split(' ')[0]} {pilot.apellidos?.split(' ')[0]}</span>
+                           <span className={`text-[10px] sm:text-[12px] font-bold ${getDecoratorColor()}`}>|</span>
                         </div>
                         
-                        <div className="mt-1 sm:mt-1.5 text-sm sm:text-xl font-black font-mono drop-shadow-[0_0_10px_currentColor]" style={{ color }}>
-                           {pilot._globalTotal} <span className="text-[7px] sm:text-[9px] opacity-60">PTS</span>
+                        <div className={`mt-1.5 sm:mt-2 font-black font-mono drop-shadow-[0_0_10px_currentColor] transition-all duration-500 flex items-baseline gap-1 ${isPodiumFullScreen ? 'text-lg sm:text-3xl' : 'text-sm sm:text-xl'}`} style={{ color }}>
+                           {pilot._globalTotal} <span className="text-[9px] sm:text-[12px] opacity-80">PTS</span>
                         </div>
                       </div>
                    </div>
                  );
               };
 
-              // Zone 3: Podium Container using Grid for strict isolation (70% height)
+              // Zone 3: Podium Container using Grid for strict isolation
               return (
-                <div className="relative z-10 w-full max-w-3xl grid grid-cols-3 gap-2 sm:gap-4 items-end pb-4 sm:pb-6">
+                <div className={`relative z-10 w-full flex-grow flex items-end justify-center transition-all duration-500 pb-2 sm:pb-6`}>
+                  <div className={`w-full ${isPodiumFullScreen ? 'max-w-5xl gap-4 sm:gap-12' : 'max-w-3xl gap-2 sm:gap-4'} grid grid-cols-3 items-end`}>
                    
                    {/* 2nd Place Column */}
                    <div className="flex flex-col items-center justify-end w-full relative z-20">
                      <PilotAvatar pilot={secondPlace} color="#00cfff" place="2ND" />
-                     {/* Crystal Volume separated by margin mt-5 */}
-                     <div className="mt-4 sm:mt-5 w-full h-[70px] sm:h-[110px] bg-white/[0.03] backdrop-blur-xl border-t-[4px] border-l border-r border-[#00cfff]/60 relative flex flex-col items-center justify-start pt-2 sm:pt-4 rounded-t-xl overflow-hidden shadow-[0_-5px_30px_rgba(0,207,255,0.15)] group">
-                       <div className="absolute inset-0 bg-gradient-to-t from-[#00cfff]/20 via-transparent to-transparent"></div>
-                       <div className="absolute top-0 w-full h-1/2 bg-gradient-to-b from-white/10 to-transparent"></div>
-                       <span className="text-3xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-[#00cfff] drop-shadow-[0_0_15px_rgba(0,207,255,0.8)] relative z-10">2</span>
-                       <div className="absolute bottom-0 w-full h-[2px] bg-[#00cfff] shadow-[0_0_20px_10px_rgba(0,207,255,0.5)]"></div>
+                     {/* Smoke Effect */}
+                     <div className="absolute bottom-[-10px] left-[-20%] w-full h-32 bg-gray-400/20 blur-[30px] rounded-full pointer-events-none mix-blend-screen opacity-50"></div>
+                     
+                     {/* Neon Platform */}
+                     <div className={`mt-2 sm:mt-3 w-[90%] sm:w-[85%] mx-auto relative flex items-center justify-center overflow-visible group transition-all duration-500 bg-[#00cfff]/10 border-2 border-[#00cfff] shadow-[0_0_30px_rgba(0,207,255,0.4),inset_0_0_20px_rgba(0,207,255,0.2)] rounded-md ${isPodiumFullScreen ? 'h-[80px] sm:h-[110px]' : 'h-[60px] sm:h-[80px]'}`}>
+                        <span className={`font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-[#00cfff] drop-shadow-[0_0_20px_rgba(0,207,255,1)] brightness-125 relative z-10 transition-all duration-500 ${isPodiumFullScreen ? 'text-6xl sm:text-8xl' : 'text-5xl sm:text-7xl'}`}>2</span>
                      </div>
                    </div>
 
                    {/* 1st Place Column */}
                    <div className="flex flex-col items-center justify-end w-full relative z-30">
                      <PilotAvatar pilot={firstPlace} color="#FFD700" place="1ST" />
-                     {/* Crystal Volume separated by margin mt-5 */}
-                     <div className="mt-4 sm:mt-5 w-full h-[100px] sm:h-[160px] bg-white/[0.05] backdrop-blur-xl border-t-[4px] border-l border-r border-[#FFD700]/80 relative flex flex-col items-center justify-start pt-2 sm:pt-4 rounded-t-xl overflow-hidden shadow-[0_-10px_50px_rgba(255,215,0,0.25)]">
-                       <div className="absolute inset-0 bg-gradient-to-t from-[#FFD700]/25 via-transparent to-transparent"></div>
-                       <div className="absolute top-0 w-full h-1/2 bg-gradient-to-b from-white/15 to-transparent"></div>
-                       <span className="text-4xl sm:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-[#FFD700] drop-shadow-[0_0_20px_rgba(255,215,0,1)] relative z-10">1</span>
-                       <div className="absolute bottom-0 w-full h-[3px] bg-[#FFD700] shadow-[0_0_30px_15px_rgba(255,215,0,0.6)]"></div>
+                     {/* Fire and Smoke Effects */}
+                     <div className="absolute bottom-[-10px] w-[120%] h-40 bg-orange-500/20 blur-[40px] rounded-full pointer-events-none mix-blend-screen animate-pulse"></div>
+                     <div className="absolute bottom-0 w-full h-24 bg-gradient-to-t from-yellow-500/80 via-orange-600/50 to-transparent blur-[20px] rounded-t-full pointer-events-none mix-blend-screen animate-pulse z-40"></div>
+                     
+                     {/* Neon Platform */}
+                     <div className={`mt-2 sm:mt-3 w-full relative flex items-center justify-center overflow-visible group transition-all duration-500 bg-[#FFD700]/10 border-2 border-[#FFD700] shadow-[0_0_40px_rgba(255,215,0,0.5),inset_0_0_30px_rgba(255,215,0,0.3)] rounded-md ${isPodiumFullScreen ? 'h-[120px] sm:h-[160px]' : 'h-[90px] sm:h-[120px]'}`}>
+                        <span className={`font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-[#FFD700] drop-shadow-[0_0_35px_rgba(255,215,0,1)] brightness-125 relative z-10 transition-all duration-500 ${isPodiumFullScreen ? 'text-7xl sm:text-9xl' : 'text-6xl sm:text-8xl'}`}>1</span>
                      </div>
                    </div>
 
                    {/* 3rd Place Column */}
                    <div className="flex flex-col items-center justify-end w-full relative z-10">
                      <PilotAvatar pilot={thirdPlace} color="#CD7F32" place="3RD" />
-                     {/* Crystal Volume separated by margin mt-5 */}
-                     <div className="mt-4 sm:mt-5 w-full h-[50px] sm:h-[80px] bg-white/[0.02] backdrop-blur-xl border-t-[4px] border-l border-r border-[#CD7F32]/60 relative flex flex-col items-center justify-start pt-2 sm:pt-4 rounded-t-xl overflow-hidden shadow-[0_-5px_25px_rgba(205,127,50,0.15)]">
-                       <div className="absolute inset-0 bg-gradient-to-t from-[#CD7F32]/20 via-transparent to-transparent"></div>
-                       <div className="absolute top-0 w-full h-1/2 bg-gradient-to-b from-white/5 to-transparent"></div>
-                       <span className="text-2xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-[#CD7F32] drop-shadow-[0_0_10px_rgba(205,127,50,0.8)] relative z-10">3</span>
-                       <div className="absolute bottom-0 w-full h-[2px] bg-[#CD7F32] shadow-[0_0_15px_8px_rgba(205,127,50,0.5)]"></div>
-                     </div>
-                   </div>
+                     {/* Smoke Effect */}
+                     <div className="absolute bottom-[-10px] right-[-20%] w-full h-32 bg-gray-400/20 blur-[30px] rounded-full pointer-events-none mix-blend-screen opacity-50"></div>
+                     
+                     {/* Neon Platform */}
+                     <div className={`mt-2 sm:mt-3 w-[90%] sm:w-[85%] mx-auto relative flex items-center justify-center overflow-visible group transition-all duration-500 bg-[#CD7F32]/10 border-2 border-[#CD7F32] shadow-[0_0_20px_rgba(205,127,50,0.4),inset_0_0_15px_rgba(205,127,50,0.2)] rounded-md ${isPodiumFullScreen ? 'h-[40px] sm:h-[55px]' : 'h-[30px] sm:h-[40px]'}`}>
+                        <span className={`font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-[#CD7F32] drop-shadow-[0_0_15px_rgba(205,127,50,1)] brightness-125 relative z-10 transition-all duration-500 ${isPodiumFullScreen ? 'text-5xl sm:text-6xl' : 'text-4xl sm:text-5xl'}`}>3</span>
+                      </div>
+                    </div>
+                  </div>
                    
                    {/* Floor Gradient Reflection */}
-                   <div className="absolute bottom-0 left-[0%] w-full h-16 sm:h-24 bg-gradient-to-t from-black via-[#0a0a0f]/80 to-transparent z-40 pointer-events-none"></div>
+                   <div className="absolute bottom-0 left-0 w-full h-12 sm:h-16 bg-gradient-to-t from-[#0e1014]/80 via-[#0e1014]/30 to-transparent z-40 pointer-events-none"></div>
                    
                    {/* Connecting Energy Lines */}
-                   <div className="absolute bottom-6 sm:bottom-10 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00cfff]/30 to-transparent z-0"></div>
+                   <div className="absolute bottom-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00cfff]/30 to-transparent z-0"></div>
                 </div>
               );
             })()}
+
+            {/* Zone 4: Sponsors (Below Podium) */}
+            <div className={`relative z-30 w-full flex justify-center transition-all duration-500 shrink-0 pb-1 sm:pb-2`}>
+              {/* Sponsors List - Overlay over the image's bottom grille */}
+              <div className={`relative z-10 flex flex-nowrap items-center justify-center py-2 sm:py-4 px-2 sm:px-8 w-full overflow-hidden transition-all duration-500 ${isPodiumFullScreen ? 'gap-3 sm:gap-10 scale-90 sm:scale-100' : 'gap-2 sm:gap-6 scale-75 sm:scale-90'}`}>
+                {SPONSOR_LOGOS.map((logo, idx) => (
+                  <div key={idx} className="relative flex items-center justify-center transition-all duration-300 flex-shrink">
+                    <img src={logo.src} alt={logo.alt} className={`${logo.className} drop-shadow-[0_2px_5px_rgba(0,0,0,0.8)] object-contain max-w-[60px] sm:max-w-full`} />
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -1411,7 +1573,7 @@ export default function JuecesPage() {
       <div className="hidden print:block w-full bg-white text-black font-sans">
         {/* ENCABEZADO OSCURO CON LOGOS */}
         <div className="flex flex-wrap items-center justify-center gap-6 bg-black p-6 border-b-4 border-gray-400" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
-          {SPONSOR_LOGOS.map((logo, idx) => (
+          {[MAIN_LOGO, ...SPONSOR_LOGOS].map((logo, idx) => (
             <img 
               key={`print-logo-${idx}`} 
               src={logo.src} 

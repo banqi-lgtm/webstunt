@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { collection, doc, getDoc, updateDoc, deleteDoc, arrayUnion, arrayRemove, query, orderBy, limit, getDocs, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { ArrowLeft, ExternalLink, User, Bike, FileText, CheckCircle2, XCircle, CreditCard, Clock, AlertCircle, FileCheck2, Star, ShieldAlert, Eye, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, ExternalLink, User, Bike, FileText, CheckCircle2, XCircle, CreditCard, Clock, AlertCircle, FileCheck2, Star, ShieldAlert, Eye, AlertTriangle, Download } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -404,6 +404,28 @@ export default function PilotDetailPage() {
     
     const isRejected = docKey ? pilot.documentosRechazados?.includes(docKey) : false;
 
+    const handleDownloadImage = async (e: React.MouseEvent) => {
+      e.preventDefault();
+      try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        const extension = blob.type.split('/')[1] || 'jpg';
+        const safeName = `${pilot.nombres}_${pilot.apellidos}`.replace(/[^a-zA-Z0-9ñÑáéíóúÁÉÍÓÚ]/g, '_').replace(/_+/g, '_');
+        const safeTitle = title.replace(/[^a-zA-Z0-9]/g, '_');
+        a.download = `${safeName}_${safeTitle}.${extension}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(blobUrl);
+      } catch (err) {
+        console.error('Error downloading image', err);
+        window.open(url, '_blank');
+      }
+    };
+
     return (
       <div className="flex flex-col gap-1.5 h-full">
         <div className="flex justify-between items-center">
@@ -422,6 +444,9 @@ export default function PilotDetailPage() {
             <a href={url} target="_blank" rel="noopener noreferrer" className="bg-zinc-800 hover:bg-zinc-700 p-2.5 rounded-full transition-transform hover:scale-110 shadow-lg text-white" title="Ver documento">
               <Eye className="w-5 h-5" />
             </a>
+            <button onClick={handleDownloadImage} className="bg-blue-600 hover:bg-blue-500 p-2.5 rounded-full transition-transform hover:scale-110 shadow-lg text-white" title="Descargar documento">
+              <Download className="w-5 h-5" />
+            </button>
             {isAdmin && docKey && (
               <button 
                 onClick={() => toggleDocumentStatus(docKey, !!isRejected)} 
