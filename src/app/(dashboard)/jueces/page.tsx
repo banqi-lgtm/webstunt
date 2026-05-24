@@ -1328,7 +1328,7 @@ export default function JuecesPage() {
                               const score = califs[uid]?.[c.id as keyof Calificacion] || 0;
                               const isError = c.id === 'error';
                               return (
-                                <td key={`${pilot.id}-${c.id}-${uid}`} className={`px-1 py-3 text-center border-x border-[#1A2540] bg-[#050B14]/20 ${isError && score > 0 ? 'text-[#ff3333]' : 'text-[#E8E8E8]'}`}>
+                                <td key={`${pilot.id}-${c.id}-${uid}`} className={`px-1 py-3 text-center border-x border-[#1A2540] bg-[#050B14]/20 ${isError && Number(score) > 0 ? 'text-[#ff3333]' : 'text-[#E8E8E8]'}`}>
                                   {score}
                                 </td>
                               );
