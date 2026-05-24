@@ -876,7 +876,7 @@ export default function JuecesPage() {
       });
 
       autoTable(doc, {
-        head: head,
+        head: head as any,
         body: body,
         startY: startY,
         theme: 'grid',
