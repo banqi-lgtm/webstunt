@@ -1802,7 +1802,7 @@ export default function JuecesPage() {
               {/* Category Absolute Top Right (Below sponsors visually, fixed position) */}
               <div className={`absolute -bottom-4 right-0 sm:right-4 flex items-center bg-gradient-to-b from-[#3a3d44] to-[#1a1c22] rounded-md border-2 border-gray-600 shadow-[0_5px_15px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.2)] transition-all duration-500 ${isPodio2FullScreen ? 'px-6 py-3 sm:px-10 sm:py-4 gap-3 sm:gap-4' : 'px-4 py-2 sm:px-6 sm:py-3 gap-2'}`}>
                  <span className={`text-white font-mono tracking-widest font-bold transition-all duration-500 ${isPodio2FullScreen ? 'text-sm sm:text-2xl' : 'text-xs sm:text-sm'}`}>PODIO OFICIAL</span>
-                 <span className={`text-[#00cfff] font-black tracking-widest drop-shadow-[0_0_10px_rgba(0,207,255,1)] transition-all duration-500 ${isPodio2FullScreen ? 'text-sm sm:text-2xl' : 'text-xs sm:text-sm'}`}>/ 4 TIEMPOS</span>
+                 <span className={`text-[#00cfff] font-black tracking-widest drop-shadow-[0_0_10px_rgba(0,207,255,1)] transition-all duration-500 ${isPodio2FullScreen ? 'text-sm sm:text-2xl' : 'text-xs sm:text-sm'}`}>/ ALTO CILINDRAJE</span>
                  {/* Screws/Bolts */}
                  <div className="absolute top-1 left-1 w-1.5 h-1.5 rounded-full bg-gray-400 shadow-[inset_0_-1px_1px_rgba(0,0,0,0.8)]"></div>
                  <div className="absolute bottom-1 left-1 w-1.5 h-1.5 rounded-full bg-gray-400 shadow-[inset_0_-1px_1px_rgba(0,0,0,0.8)]"></div>
@@ -1819,11 +1819,11 @@ export default function JuecesPage() {
               };
 
               const firstPlaceOriginal = getHardcodedPilot("PABLO ZAPATA") || getHardcodedPilot("ZAPATA PARRA") || getHardcodedPilot("PABLO");
-              const secondPlaceOriginal = getHardcodedPilot("KHOJAN");
+              const secondPlaceOriginal = getHardcodedPilot("JHOJAN");
               const thirdPlaceOriginal = getHardcodedPilot("GERSAIN");
 
               const firstPlace = { ...(firstPlaceOriginal || { nombres: 'PABLO ZAPATA', apellidos: 'PARRA', documentos: {} }), _globalTotal: 59 };
-              const secondPlace = { ...(secondPlaceOriginal || { nombres: 'KHOJAN ESTEVEN', apellidos: 'ACEVEDO', documentos: {} }), _globalTotal: 54 };
+              const secondPlace = { ...(secondPlaceOriginal || { nombres: 'JHOJAN ESTEVEN', apellidos: 'ACEVEDO', documentos: {} }), _globalTotal: 54 };
               const thirdPlace = { ...(thirdPlaceOriginal || { nombres: 'GERSAIN', apellidos: 'LONDOÑO', documentos: {} }), _globalTotal: 36 };
 
               // Helper for Pilot Avatar

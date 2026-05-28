@@ -70,9 +70,97 @@ export default function InscripcionPage() {
   const [staffCargo, setStaffCargo] = useState('');
   const [staffTelefono, setStaffTelefono] = useState('');
 
+  // Score Card States
+  const [puntaje, setPuntaje] = useState(0);
+  const [puesto, setPuesto] = useState(0);
+  const [totalPilotos, setTotalPilotos] = useState(0);
+  const [showQR, setShowQR] = useState(false);
+  const [categoriaStr, setCategoriaStr] = useState('N/A');
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+  const [observacionesList, setObservacionesList] = useState<{ judgeId: string, text: string }[]>([]);
+  const [isObservacionesOpen, setIsObservacionesOpen] = useState(false);
+  const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
+
+  const fetchLeaderboard = async (uidStr: string, targetCat: string) => {
+    try {
+      if (!targetCat || targetCat === 'N/A') return;
+      const [usersSnap, regSnap, califSnap] = await Promise.all([
+        getDocs(collection(db, 'users')),
+        getDocs(collection(db, 'event_registrations')),
+        getDocs(collection(db, 'calificaciones'))
+      ]);
+
+      const usersMap = new Map();
+      usersSnap.forEach(doc => usersMap.set(doc.id, doc.data()));
+
+      const califMap = new Map();
+      califSnap.forEach(doc => califMap.set(doc.id, doc.data()));
+
+      const pilots: any[] = [];
+      regSnap.forEach(docSnap => {
+        const data = docSnap.data();
+        if (data.uid && (data.estadoPago === 'aprobado' || data.estadoPago === 'pago_dia_evento')) {
+          let regCats = Array.isArray(data.categoria) ? data.categoria.map(c => String(c).toUpperCase()) : [String(data.categoria || '').toUpperCase()];
+          if (regCats.includes(targetCat)) {
+            const userData = usersMap.get(data.uid) || {};
+            const califs = califMap.get(docSnap.id) || {};
+            let total = 0;
+            const getMappedCategory = (c: string) => {
+              let f = String(c).toUpperCase().trim();
+              if (f.includes('ALTO') || f === 'CATEGORIA NITROX' || f === 'NITROX') return 'NITROX';
+              if (f === '2T') return '2 TIEMPOS';
+              if (f === '4T') return '4 TIEMPOS';
+              return f;
+            };
+            Object.entries(califs).forEach(([key, c]: [string, any]) => {
+              const safeCat = getMappedCategory(targetCat);
+              const isNewFormat = key.toUpperCase().includes('_' + safeCat);
+              const isOldFormat = !key.includes('_') && targetCat === String(regCats[0] || '').toUpperCase();
+
+              if ((isNewFormat || isOldFormat) && c && typeof c.total === 'number') {
+                total += c.total;
+              }
+            });
+            let name = userData.nombres ? `${userData.nombres} ${userData.apellidos || ''}`.trim() : 'Piloto';
+            if (data.seudonimo) name = data.seudonimo;
+            else if (data.nombres || data.apellidos) name = `${data.nombres || ''} ${data.apellidos || ''}`.trim();
+
+            pilots.push({ 
+              uid: data.uid, 
+              name,
+              number: data.dorsal || userData.numeroIdentificacion || '--',
+              photoUrl: data.documentos?.deportistaUrl || '',
+              totalScore: total 
+            });
+          }
+        }
+      });
+
+      pilots.sort((a, b) => b.totalScore - a.totalScore);
+      setLeaderboard(pilots);
+      const userIndex = pilots.findIndex(p => p.uid === uidStr);
+      setPuesto(userIndex !== -1 ? userIndex + 1 : 0);
+      setTotalPilotos(pilots.length);
+    } catch (e) {
+      console.error("Error fetching leaderboard in inscripcion", e);
+    }
+  };
+
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (isLeaderboardOpen) {
+      setTimeout(() => {
+        const el = document.getElementById(`pilot-${uid}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 150);
+    }
+  }, [isLeaderboardOpen, uid]);
 
   const openOptions = (docKey: string) => {
     setCurrentDocKey(docKey);
@@ -165,6 +253,69 @@ export default function InscripcionPage() {
   const [isDetectingFace, setIsDetectingFace] = useState(false);
 
   useEffect(() => {
+    if (!uid || categorias.length === 0) return;
+    
+    const targetCat = String(categorias[activeCategoryIndex] || '').toUpperCase();
+    if (!targetCat) return;
+
+    setCategoriaStr(targetCat);
+
+    const loadScores = async () => {
+      try {
+        const califDoc = await getDoc(doc(db, 'calificaciones', `f2r_${uid}`));
+        let obsList: { judgeId: string, text: string }[] = [];
+        if (califDoc.exists()) {
+          const califs = califDoc.data();
+          let total = 0;
+          const getMappedCategory = (c: string) => {
+            let f = String(c).toUpperCase().trim();
+            if (f.includes('ALTO') || f === 'CATEGORIA NITROX' || f === 'NITROX') return 'NITROX';
+            if (f === '2T') return '2 TIEMPOS';
+            if (f === '4T') return '4 TIEMPOS';
+            return f;
+          };
+          Object.entries(califs).forEach(([key, c]: [string, any]) => {
+            const safeCat = getMappedCategory(targetCat);
+            const isNewFormat = key.toUpperCase().includes('_' + safeCat);
+            const isOldFormat = !key.includes('_') && targetCat === String(categorias[0] || '').toUpperCase();
+
+            if (isNewFormat || isOldFormat) {
+              if (c && typeof c.total === 'number') {
+                total += c.total;
+              }
+              if (c && c.mejoras && String(c.mejoras).trim() !== '') {
+                obsList.push({ judgeId: key.split('_')[0], text: c.mejoras });
+              }
+            }
+          });
+          setPuntaje(total);
+
+          for (let i = 0; i < obsList.length; i++) {
+            try {
+              const jDoc = await getDoc(doc(db, 'users', obsList[i].judgeId));
+              if (jDoc.exists()) {
+                const jd = jDoc.data();
+                const jname = `${jd.nombres || ''} ${jd.apellidos || ''}`.trim();
+                if (jname) {
+                  obsList[i].judgeId = jname;
+                }
+              }
+            } catch (err) {}
+          }
+          setObservacionesList(obsList);
+        } else {
+          setPuntaje(0);
+          setObservacionesList([]);
+        }
+        await fetchLeaderboard(uid, targetCat);
+      } catch(e) {
+        console.error("Error fetching score in inscripcion", e);
+      }
+    };
+    loadScores();
+  }, [uid, categorias, activeCategoryIndex]);
+
+  useEffect(() => {
     // Window size for Confetti
     const updateSize = () => {
       setWindowSize({ width: window.innerWidth, height: window.innerHeight });
@@ -250,7 +401,9 @@ export default function InscripcionPage() {
                if (data.documentos.deportistaUrl) setFotoDeportista({ url: data.documentos.deportistaUrl, name: 'Foto Deportista Guardada' });
              }
              if (data.categoria) {
-               setCategorias(Array.isArray(data.categoria) ? data.categoria : [data.categoria]);
+               const cats = Array.isArray(data.categoria) ? data.categoria : [data.categoria];
+               setCategorias(cats);
+               setCategoriaStr(cats.join(' / ').toUpperCase());
              }
              if (data.motocicleta) {
                setPlaca(data.motocicleta.placa || '');
@@ -1308,41 +1461,167 @@ export default function InscripcionPage() {
 
             {(estadoPago === 'aprobado' || estadoPago === 'pago_dia_evento') && (
               <>
-                <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(34,197,94,0.3)] border border-green-500/30">
-                  <CheckCircle2 className="w-12 h-12 text-green-500" />
+                <div className="bg-[#121212] border border-[#2A2A2A] rounded-2xl overflow-hidden shadow-2xl mb-8 flex flex-col items-center" style={{ transform: 'scale(1.15)', transformOrigin: 'top center', margin: '20px auto 60px auto', maxWidth: '400px', width: '100%' }}>
+                  <div className="panel-header font-display w-full" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px 10px', borderBottom: 'none' }}>
+                    <img 
+                      src="/sponsors/copa%20stunt%20nitrox%20f2r.png" 
+                      alt="Copa Stunt F2R Nitrox" 
+                      style={{ height: '90px', objectFit: 'contain', filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.2))' }} 
+                    />
+                  </div>
+                  <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px', width: '100%' }}>
+                    <div style={{ width: '100%', padding: '0 10px' }}>
+                      <div style={{ fontSize: '0.9rem', color: '#00cfff', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 800, textAlign: 'center', marginBottom: '10px' }}>
+                        PUNTAJE VÁLIDA F2R {(() => {
+                          const getMappedCategory = (c: string) => {
+                            let f = String(c).toUpperCase().trim();
+                            if (f.includes('ALTO') || f === 'CATEGORIA NITROX' || f === 'NITROX') return 'NITROX';
+                            if (f === '2T') return '2 TIEMPOS';
+                            if (f === '4T') return '4 TIEMPOS';
+                            return f;
+                          };
+                          return getMappedCategory(categorias[activeCategoryIndex] || 'N/A');
+                        })()}
+                      </div>
+                      
+                      {categorias.length > 1 && (
+                        <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '15px', flexWrap: 'wrap' }}>
+                          {categorias.map((cat, idx) => {
+                            const getMappedCategory = (c: string) => {
+                              let f = String(c).toUpperCase().trim();
+                              if (f.includes('ALTO') || f === 'CATEGORIA NITROX' || f === 'NITROX') return 'NITROX';
+                              if (f === '2T') return '2 TIEMPOS';
+                              if (f === '4T') return '4 TIEMPOS';
+                              return f;
+                            };
+                            return (
+                              <button
+                                key={cat}
+                                onClick={() => setActiveCategoryIndex(idx)}
+                                className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${activeCategoryIndex === idx ? 'bg-[#00ff88]/10 text-[#00ff88] border border-[#00ff88] shadow-[0_0_10px_rgba(0,255,136,0.2)]' : 'bg-[#1a1a1a] text-[#888888] border border-[#2a2a2a] hover:text-white hover:border-[#444]'}`}
+                              >
+                                {getMappedCategory(cat)}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                      
+                      <div style={{ display: 'flex', justifyContent: 'center' }}>
+                        {totalPilotos > 0 && (
+                          <span style={{ color: '#00cfff', textShadow: '0 0 10px rgba(0,207,255,0.5)', fontWeight: 900, fontSize: '1.2rem' }}>
+                            POSICIÓN: {puesto}/{totalPilotos}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ fontSize: '4rem', fontWeight: 900, color: 'var(--accent-green)', textShadow: '0 0 20px var(--accent-green-glow)', fontFamily: 'Orbitron, sans-serif', textAlign: 'center', lineHeight: '1' }}>
+                      {puntaje} <span style={{ fontSize: '1.5rem', color: 'var(--text-muted)' }}>PTS</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                      <button 
+                        onClick={() => setIsLeaderboardOpen(true)}
+                        style={{
+                          padding: '8px 16px',
+                          background: 'rgba(0, 207, 255, 0.1)',
+                          border: '1px solid #00cfff',
+                          color: '#00cfff',
+                          borderRadius: '20px',
+                          cursor: 'pointer',
+                          fontWeight: 'bold',
+                          fontSize: '0.9rem',
+                          transition: 'all 0.2s',
+                          textShadow: '0 0 5px rgba(0, 207, 255, 0.5)'
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0, 207, 255, 0.2)'}
+                        onMouseOut={(e) => e.currentTarget.style.background = 'rgba(0, 207, 255, 0.1)'}
+                      >
+                        🏆 TABLA
+                      </button>
+
+                      {observacionesList.length > 0 && (
+                        <button 
+                          onClick={() => setIsObservacionesOpen(true)}
+                          style={{
+                            padding: '8px 16px',
+                            background: 'rgba(57, 255, 20, 0.1)',
+                            border: '1px solid var(--accent-green)',
+                            color: 'var(--accent-green)',
+                            borderRadius: '20px',
+                            cursor: 'pointer',
+                            fontWeight: 'bold',
+                            fontSize: '0.9rem',
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseOver={(e) => e.currentTarget.style.background = 'rgba(57, 255, 20, 0.2)'}
+                          onMouseOut={(e) => e.currentTarget.style.background = 'rgba(57, 255, 20, 0.1)'}
+                        >
+                          👁️ OBSERVACIONES
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <h2 className="text-3xl font-extrabold text-white mb-2 text-center">
-                  {estadoPago === 'pago_dia_evento' ? '¡Inscripción Pre-Aprobada!' : '¡Inscripción Aprobada!'}
-                </h2>
-                <h3 className="text-xl font-bold text-green-400 mb-2 text-center">¡Gracias por ser parte de la Copa Stunt 2026!</h3>
-                {estadoPago === 'pago_dia_evento' ? (
-                  <p className="text-orange-400 font-bold text-center mb-8 bg-orange-500/10 p-4 rounded-xl border border-orange-500/30">
-                    Recuerda que debes realizar tu pago el día del evento en la taquilla.<br/>
-                    Presenta este código QR en el ingreso de Plaza Mayor Medellín para validar tu identidad.
-                  </p>
-                ) : (
-                  <p className="text-zinc-400 text-center mb-8">
-                    Presenta este código QR en el ingreso de Plaza Mayor Medellín para validar tu identidad.
-                  </p>
-                )}
                 
-                <div className="bg-white p-6 rounded-2xl shadow-[0_0_40px_rgba(34,197,94,0.3)] mb-8">
-                  <QRCode 
-                    value={`f2r_${uid}`} 
-                    size={220}
-                    level="H"
-                    fgColor="#09090b"
-                    bgColor="#ffffff"
-                  />
-                </div>
-                
-                <div className="flex flex-col w-full gap-3">
-                  <Link href="/profile" className="w-full">
-                    <Button className="w-full bg-zinc-800 text-white hover:bg-zinc-700 h-12">
-                      Ir a mi perfil
-                    </Button>
-                  </Link>
-                </div>
+                <Dialog open={isLeaderboardOpen} onOpenChange={setIsLeaderboardOpen}>
+                  <DialogContent className="bg-[#121212] border border-[#2A2A2A] sm:max-w-md rounded-2xl p-6 custom-scrollbar overflow-x-hidden" style={{ maxHeight: '80vh', overflowY: 'auto' }}>
+                    <DialogHeader>
+                      <DialogTitle className="text-2xl font-black text-white text-center mb-4 font-display flex items-center justify-center gap-2">
+                        <Trophy className="text-[#00cfff] w-8 h-8" />
+                        TABLA DE POSICIONES
+                      </DialogTitle>
+                    </DialogHeader>
+                    <div className="flex flex-col gap-3">
+                      {leaderboard.map((pilot, idx) => (
+                        <div 
+                          key={pilot.uid}
+                          id={`pilot-${pilot.uid}`}
+                          className={`flex items-center gap-3 p-3 rounded-xl border ${pilot.uid === uid ? 'border-[#39FF14] bg-[#39FF14]/10' : 'border-[#2A2A2A] bg-[#1A1A1A]'} relative`}
+                        >
+                          <div className="font-black text-xl text-white w-8 text-center shrink-0">{idx + 1}</div>
+                          <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-zinc-700 shrink-0">
+                            {pilot.photoUrl ? (
+                              <img src={pilot.photoUrl} alt={pilot.name} className="w-full h-full object-cover shrink-0" />
+                            ) : (
+                              <div className="w-full h-full bg-zinc-800 flex items-center justify-center shrink-0">👤</div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0 overflow-hidden">
+                            <div className="font-bold text-white truncate text-sm">{pilot.name}</div>
+                            <div className="text-xs text-zinc-400">#{pilot.number}</div>
+                          </div>
+                          <div className="font-black text-lg text-[#39FF14] shrink-0">{pilot.totalScore}</div>
+                        </div>
+                      ))}
+                      {leaderboard.length === 0 && (
+                        <div className="text-center text-zinc-500 py-8">Aún no hay pilotos en esta categoría</div>
+                      )}
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                <Dialog open={isObservacionesOpen} onOpenChange={setIsObservacionesOpen}>
+                  <DialogContent className="bg-[#121212] border border-[#2A2A2A] sm:max-w-md rounded-2xl p-6 custom-scrollbar overflow-x-hidden" style={{ maxHeight: '80vh', overflowY: 'auto' }}>
+                    <DialogHeader>
+                      <DialogTitle className="text-2xl font-black text-white text-center mb-4 font-display flex items-center justify-center gap-2">
+                        👁️ OBSERVACIONES
+                      </DialogTitle>
+                      <DialogDescription className="text-center text-zinc-400 mb-4">
+                        Comentarios y sugerencias de los jueces sobre tu presentación.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex flex-col gap-4">
+                      {observacionesList.map((obs, idx) => (
+                        <div key={idx} className="bg-[#1A1A1A] border border-zinc-800 p-4 rounded-xl">
+                          <div className="font-bold text-[#00cfff] text-xs mb-2 uppercase flex items-center gap-2">
+                            <Star className="w-4 h-4" /> Juez: {obs.judgeId}
+                          </div>
+                          <p className="text-zinc-300 text-sm whitespace-pre-wrap">{obs.text}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </>
             )}
             

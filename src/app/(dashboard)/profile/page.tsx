@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { auth, db, storage } from '@/lib/firebase';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 function useWindowSize() {
@@ -21,6 +21,9 @@ function useWindowSize() {
   }, []);
   return size;
 }
+
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import QRCode from 'react-qr-code';
 
 // === TIPOS DE DATOS ===
 type ReactionType = 'fast' | 'champ' | 'fire' | 'eyes';
@@ -137,6 +140,7 @@ export default function PskPitxDashboard() {
   const [newChatText, setNewChatText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [commentInputs, setCommentInputs] = useState<Record<number, string>>({});
+  const [showQR, setShowQR] = useState(false);
   
   // Floating Chat State
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -153,8 +157,97 @@ export default function PskPitxDashboard() {
     name: 'Cargando...',
     number: '--',
     avatar: '🇨🇴',
-    photoUrl: ''
+    photoUrl: '',
+    categoria: 'N/A',
+    puntaje: 0,
+    puesto: 0,
+    totalPilotos: 0,
+    observaciones: [] as { judgeId: string, text: string, judgeName?: string }[]
   });
+
+  const [isObservacionesOpen, setIsObservacionesOpen] = useState(false);
+  const [showWelcomeScore, setShowWelcomeScore] = useState(false);
+
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+  const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
+  const [userCategories, setUserCategories] = useState<string[]>([]);
+
+  const fetchLeaderboard = async (uid: string, categoriaStr: string) => {
+    try {
+      if (!categoriaStr || categoriaStr === 'N/A') return;
+      
+      const targetCat = categoriaStr;
+      
+      const [usersSnap, regSnap, califSnap] = await Promise.all([
+        getDocs(collection(db, 'users')),
+        getDocs(collection(db, 'event_registrations')),
+        getDocs(collection(db, 'calificaciones'))
+      ]);
+
+      const usersMap = new Map();
+      usersSnap.forEach(doc => usersMap.set(doc.id, doc.data()));
+
+      const califMap = new Map();
+      califSnap.forEach(doc => califMap.set(doc.id, doc.data()));
+
+      const pilots: any[] = [];
+      regSnap.forEach(docSnap => {
+        const data = docSnap.data();
+        if (data.uid && (data.estadoPago === 'aprobado' || data.estadoPago === 'pago_dia_evento')) {
+          let regCats = Array.isArray(data.categoria) ? data.categoria.map(c => String(c).toUpperCase()) : [String(data.categoria || '').toUpperCase()];
+          
+          if (regCats.includes(targetCat)) {
+            const userData = usersMap.get(data.uid) || {};
+            const califs = califMap.get(docSnap.id) || {};
+            
+            let total = 0;
+            const getMappedCategory = (c: string) => {
+              let f = String(c).toUpperCase().trim();
+              if (f.includes('ALTO') || f === 'CATEGORIA NITROX' || f === 'NITROX') return 'NITROX';
+              if (f === '2T') return '2 TIEMPOS';
+              if (f === '4T') return '4 TIEMPOS';
+              return f;
+            };
+            Object.entries(califs).forEach(([key, c]: [string, any]) => {
+              const safeCat = getMappedCategory(targetCat);
+              const isNewFormat = key.toUpperCase().includes('_' + safeCat);
+              const isOldFormat = !key.includes('_') && targetCat === String(regCats[0] || '').toUpperCase();
+
+              if ((isNewFormat || isOldFormat) && c && typeof c.total === 'number') {
+                total += c.total;
+              }
+            });
+
+            let name = userData.nombres ? `${userData.nombres} ${userData.apellidos || ''}`.trim() : 'Piloto';
+            if (data.seudonimo) name = data.seudonimo;
+            else if (data.nombres || data.apellidos) name = `${data.nombres || ''} ${data.apellidos || ''}`.trim();
+
+            pilots.push({
+              uid: data.uid,
+              name,
+              number: data.dorsal || userData.numeroIdentificacion || '--',
+              photoUrl: data.documentos?.deportistaUrl || '',
+              totalScore: total
+            });
+          }
+        }
+      });
+
+      pilots.sort((a, b) => b.totalScore - a.totalScore);
+      setLeaderboard(pilots);
+
+      const userIndex = pilots.findIndex(p => p.uid === uid);
+      
+      setCurrentUser(prev => ({
+        ...prev,
+        puesto: userIndex !== -1 ? userIndex + 1 : 0,
+        totalPilotos: pilots.length
+      }));
+    } catch (e) {
+      console.error("Error fetching leaderboard", e);
+    }
+  };
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -198,6 +291,7 @@ export default function PskPitxDashboard() {
           
           let number = '00';
           let photoUrl = '';
+          let categoria = 'N/A';
           if (regDoc.exists()) {
             const r = regDoc.data();
             
@@ -212,6 +306,11 @@ export default function PskPitxDashboard() {
             if (r.documentos?.deportistaUrl) {
               photoUrl = r.documentos.deportistaUrl;
             }
+            if (r.categoria) {
+              const cats = Array.isArray(r.categoria) ? r.categoria.map(c => String(c).toUpperCase()) : [String(r.categoria || '').toUpperCase()];
+              setUserCategories(cats);
+              categoria = cats.join(' / ');
+            }
           }
           
           setCurrentUser({
@@ -219,8 +318,14 @@ export default function PskPitxDashboard() {
             name,
             number,
             avatar: '🇨🇴',
-            photoUrl
+            photoUrl,
+            categoria,
+            puntaje: 0,
+            puesto: 0,
+            totalPilotos: 0,
+            observaciones: []
           });
+          
         } catch (e) {
           console.error("Error al cargar datos del usuario", e);
         }
@@ -230,6 +335,72 @@ export default function PskPitxDashboard() {
     });
     return () => unsubscribe();
   }, [router]);
+  
+  useEffect(() => {
+    if (!currentUser.uid || userCategories.length === 0) return;
+
+    const targetCat = userCategories[activeCategoryIndex] || '';
+    if (!targetCat) return;
+
+    const fetchScoreData = async () => {
+      try {
+        let puntaje = 0;
+        let observacionesList: { judgeId: string, text: string, judgeName?: string }[] = [];
+
+        const califDoc = await getDoc(doc(db, 'calificaciones', `f2r_${currentUser.uid}`));
+        if (califDoc.exists()) {
+          const califs = califDoc.data();
+          let total = 0;
+          const getMappedCategory = (c: string) => {
+            let f = String(c).toUpperCase().trim();
+            if (f.includes('ALTO') || f === 'CATEGORIA NITROX' || f === 'NITROX') return 'NITROX';
+            if (f === '2T') return '2 TIEMPOS';
+            if (f === '4T') return '4 TIEMPOS';
+            return f;
+          };
+          Object.entries(califs).forEach(([key, c]: [string, any]) => {
+            const safeCat = getMappedCategory(targetCat);
+            const isNewFormat = key.toUpperCase().includes('_' + safeCat);
+            const isOldFormat = !key.includes('_') && targetCat === String(userCategories[0] || '').toUpperCase();
+
+            if (isNewFormat || isOldFormat) {
+              if (c && typeof c.total === 'number') {
+                total += c.total;
+              }
+              if (c && c.mejoras && String(c.mejoras).trim() !== '') {
+                observacionesList.push({ judgeId: key.split('_')[0], text: c.mejoras });
+              }
+            }
+          });
+          puntaje = total;
+
+          for (let obs of observacionesList) {
+            try {
+              const judgeDoc = await getDoc(doc(db, 'users', obs.judgeId));
+              if (judgeDoc.exists()) {
+                const d = judgeDoc.data();
+                obs.judgeName = `${d.nombres || ''} ${d.apellidos || ''}`.trim() || obs.judgeId;
+              }
+            } catch(e) {
+              console.error("Error fetching judge name", e);
+            }
+          }
+        }
+
+        setCurrentUser(prev => ({
+          ...prev,
+          puntaje,
+          observaciones: observacionesList
+        }));
+
+        await fetchLeaderboard(currentUser.uid, targetCat);
+      } catch(e) {
+        console.error("Error updating score data", e);
+      }
+    };
+
+    fetchScoreData();
+  }, [currentUser.uid, userCategories, activeCategoryIndex]);
 
   useEffect(() => {
     if (isChatOpen) {
@@ -237,19 +408,39 @@ export default function PskPitxDashboard() {
     }
   }, [chatMessages, isChatOpen]);
 
+  useEffect(() => {
+    if (isLeaderboardOpen && currentUser?.uid) {
+      setTimeout(() => {
+        const el = document.getElementById(`profile-pilot-${currentUser.uid}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 150);
+    }
+  }, [isLeaderboardOpen, currentUser]);
+
   // Click outside to close chat
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (chatModalRef.current && !chatModalRef.current.contains(e.target as Node) && isChatOpen) {
+    function handleClickOutside(event: MouseEvent) {
+      if (chatModalRef.current && !chatModalRef.current.contains(event.target as Node)) {
         setIsChatOpen(false);
       }
-    };
-    if (isChatOpen) {
-      // Small delay to prevent immediate close on open click
-      setTimeout(() => window.addEventListener('click', handleClickOutside), 10);
     }
-    return () => window.removeEventListener('click', handleClickOutside);
+    if (isChatOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isChatOpen]);
+
+  useEffect(() => {
+    if (currentUser.uid) {
+      const hasSeen = localStorage.getItem(`hasSeenScorePopup_${currentUser.uid}`);
+      if (!hasSeen) {
+        setShowWelcomeScore(true);
+        localStorage.setItem(`hasSeenScorePopup_${currentUser.uid}`, 'true');
+      }
+    }
+  }, [currentUser.uid]);
 
   useEffect(() => {
     // 21 de mayo de 2026 a las 08:00 AM UTC-5
@@ -1168,34 +1359,147 @@ export default function PskPitxDashboard() {
                 📍 PLAZA MAYOR MEDELLÍN
               </div>
               
+              <div style={{ width: '100%', marginTop: '10px' }}>
+                <button 
+                  onClick={() => setShowQR(true)}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    background: 'var(--text-main)',
+                    color: 'var(--bg-dark)',
+                    border: 'none',
+                    borderRadius: '12px',
+                    fontWeight: 800,
+                    fontSize: '1rem',
+                    cursor: 'pointer',
+                    boxShadow: '0 0 15px rgba(255,255,255,0.2)',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.background = '#e0e0e0'}
+                  onMouseOut={(e) => e.currentTarget.style.background = 'var(--text-main)'}
+                >
+                  MÓSTRAR QR
+                </button>
+              </div>
+              
               <div className="telemetry-bar"><div className="telemetry-fill"></div></div>
             </div>
           </div>
 
-          {/* SPONSORS PANEL */}
+          {/* PUNTAJE VALIDA F2R NITROX PANEL */}
           <div className="panel" style={{ flexShrink: 0, order: isMobile ? 5 : 0 }}>
-            <div className="panel-header font-display" style={{ color: 'var(--accent-green)' }}>
-              ⚡ SPONSORS & REDES
+            <div className="panel-header font-display" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '10px', borderBottom: 'none' }}>
+              <img 
+                src="/sponsors/copa%20stunt%20nitrox%20f2r.png" 
+                alt="Copa Stunt F2R Nitrox" 
+                style={{ 
+                  height: '90px', 
+                  objectFit: 'contain', 
+                  filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.2))' 
+                }} 
+              />
             </div>
-            <div className="sponsors-list">
-              {SPONSORS.map((sponsor, idx) => (
-                <div key={idx} className="sponsor-card">
-                  <div className="sponsor-header">
-                    <span style={{ fontSize: '14px' }}>{sponsor.emoji}</span>
-                    <span className="sponsor-name font-display">{sponsor.name}</span>
-                  </div>
-                  <div className="sponsor-badge" style={{ color: sponsor.badgeColor, border: `1px solid ${sponsor.badgeColor}` }}>
-                    {sponsor.badge}
-                  </div>
-                  <div className="sponsor-links">
-                    {sponsor.links.ig && <a href={sponsor.links.ig} data-tooltip={sponsor.links.ig.replace('https://instagram.com/','@')} target="_blank" rel="noopener noreferrer" className="sponsor-link"><IgIcon /></a>}
-                    {sponsor.links.yt && <a href={sponsor.links.yt} data-tooltip="YouTube" target="_blank" rel="noopener noreferrer" className="sponsor-link"><YtIcon /></a>}
-                    {sponsor.links.tk && <a href={sponsor.links.tk} data-tooltip={sponsor.links.tk.replace('https://tiktok.com/','')} target="_blank" rel="noopener noreferrer" className="sponsor-link"><TkIcon /></a>}
-                    {sponsor.links.fb && <a href={sponsor.links.fb} data-tooltip="Facebook" target="_blank" rel="noopener noreferrer" className="sponsor-link"><FbIcon /></a>}
-                    {sponsor.links.web && <a href={sponsor.links.web} data-tooltip="Sitio Web" target="_blank" rel="noopener noreferrer" className="sponsor-link"><WebIcon /></a>}
-                  </div>
+            <div style={{ padding: '2rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
+              <div style={{ width: '100%', padding: '0 10px' }}>
+                <div style={{ fontSize: '0.9rem', color: '#00cfff', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 800, textAlign: 'center', marginBottom: '10px' }}>
+                  PUNTAJE VÁLIDA F2R {(() => {
+                    const getMappedCategory = (c: string) => {
+                      let f = String(c).toUpperCase().trim();
+                      if (f.includes('ALTO') || f === 'CATEGORIA NITROX' || f === 'NITROX') return 'NITROX';
+                      if (f === '2T') return '2 TIEMPOS';
+                      if (f === '4T') return '4 TIEMPOS';
+                      return f;
+                    };
+                    return getMappedCategory(userCategories[activeCategoryIndex] || 'N/A');
+                  })()}
                 </div>
-              ))}
+                
+                {userCategories.length > 1 && (
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '15px', flexWrap: 'wrap' }}>
+                    {userCategories.map((cat, idx) => {
+                      const getMappedCategory = (c: string) => {
+                        let f = String(c).toUpperCase().trim();
+                        if (f.includes('ALTO') || f === 'CATEGORIA NITROX' || f === 'NITROX') return 'NITROX';
+                        if (f === '2T') return '2 TIEMPOS';
+                        if (f === '4T') return '4 TIEMPOS';
+                        return f;
+                      };
+                      return (
+                        <button
+                          key={cat}
+                          onClick={() => setActiveCategoryIndex(idx)}
+                          className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${activeCategoryIndex === idx ? 'bg-[#00ff88]/10 text-[#00ff88] border border-[#00ff88] shadow-[0_0_10px_rgba(0,255,136,0.2)]' : 'bg-[#1a1a1a] text-[#888888] border border-[#2a2a2a] hover:text-white hover:border-[#444]'}`}
+                        >
+                          {getMappedCategory(cat)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  {currentUser.totalPilotos > 0 && (
+                    <span style={{ color: '#00cfff', textShadow: '0 0 10px rgba(0,207,255,0.5)', fontWeight: 900, fontSize: '1.2rem' }}>
+                      POSICIÓN: {currentUser.puesto}/{currentUser.totalPilotos}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div 
+                style={{ 
+                  fontSize: '4rem', 
+                  fontWeight: 900, 
+                  color: 'var(--accent-green)', 
+                  textShadow: '0 0 20px var(--accent-green-glow)',
+                  fontFamily: 'Orbitron, sans-serif',
+                  textAlign: 'center',
+                  lineHeight: '1'
+                }}
+              >
+                {currentUser.puntaje} <span style={{ fontSize: '1.5rem', color: 'var(--text-muted)' }}>PTS</span>
+              </div>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                <button 
+                  onClick={() => setIsLeaderboardOpen(true)}
+                  style={{
+                    padding: '8px 16px',
+                    background: 'rgba(0, 207, 255, 0.1)',
+                    border: '1px solid #00cfff',
+                    color: '#00cfff',
+                    borderRadius: '20px',
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    fontSize: '0.9rem',
+                    transition: 'all 0.2s',
+                    textShadow: '0 0 5px rgba(0, 207, 255, 0.5)'
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0, 207, 255, 0.2)'}
+                  onMouseOut={(e) => e.currentTarget.style.background = 'rgba(0, 207, 255, 0.1)'}
+                >
+                  🏆 TABLA
+                </button>
+
+                {currentUser.observaciones.length > 0 && (
+                  <button 
+                    onClick={() => setIsObservacionesOpen(true)}
+                    style={{
+                      padding: '8px 16px',
+                      background: 'rgba(57, 255, 20, 0.1)',
+                      border: '1px solid var(--accent-green)',
+                      color: 'var(--accent-green)',
+                      borderRadius: '20px',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
+                      fontSize: '0.9rem',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.background = 'rgba(57, 255, 20, 0.2)'}
+                    onMouseOut={(e) => e.currentTarget.style.background = 'rgba(57, 255, 20, 0.1)'}
+                  >
+                    👁️ OBSERVACIONES
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -1368,6 +1672,214 @@ export default function PskPitxDashboard() {
                     {'>'}
                   </button>
                 </form>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* QR MODAL */}
+      {showQR && (
+        <>
+          <div className="chat-modal-overlay" onClick={() => setShowQR(false)}></div>
+          <div className="chat-modal" style={{ padding: '30px 20px', maxWidth: '400px', width: '90%', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', bottom: 'auto', borderRadius: '12px', zIndex: 1001, height: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+            <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(57, 255, 20, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '15px', border: '1px solid rgba(57, 255, 20, 0.3)', boxShadow: '0 0 30px rgba(57, 255, 20, 0.3)' }}>
+              <span style={{ fontSize: '30px' }}>✅</span>
+            </div>
+            
+            <h2 style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text-main)', marginBottom: '5px' }}>
+              ¡Inscripción Aprobada!
+            </h2>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--accent-green)', marginBottom: '15px' }}>
+              ¡Gracias por ser parte de la Copa Stunt 2026!
+            </h3>
+            
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '20px' }}>
+              Presenta este código QR en el ingreso de Plaza Mayor Medellín para validar tu identidad.
+            </p>
+            
+            <div style={{ background: '#ffffff', padding: '20px', borderRadius: '16px', boxShadow: '0 0 40px rgba(57, 255, 20, 0.3)', marginBottom: '20px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <QRCode 
+                value={`f2r_${currentUser.uid}`} 
+                size={200}
+                level="H"
+                fgColor="#09090b"
+                bgColor="#ffffff"
+              />
+            </div>
+            
+            <button 
+              onClick={() => setShowQR(false)} 
+              style={{
+                width: '100%',
+                padding: '12px',
+                background: 'transparent',
+                color: 'var(--text-muted)',
+                border: '1px solid var(--text-muted)',
+                borderRadius: '8px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              onMouseOver={(e) => { e.currentTarget.style.background = 'var(--bg-panel)'; e.currentTarget.style.color = 'var(--text-main)'; }}
+              onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+            >
+              Cerrar
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* LEADERBOARD MODAL */}
+      {isLeaderboardOpen && (
+        <>
+          <div className="chat-modal-overlay" onClick={() => setIsLeaderboardOpen(false)}></div>
+          <div className="chat-modal" style={{ height: '80vh', minHeight: '600px', width: isMobile ? '100%' : '500px', right: isMobile ? '0' : '50%', transform: isMobile ? '' : 'translateX(50%)', top: isMobile ? '' : '10vh', bottom: isMobile ? '0' : 'auto', borderRadius: '12px', display: 'flex', flexDirection: 'column', zIndex: 1000 }}>
+            <div className="panel-header font-display" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ color: 'var(--accent-green)' }}>🏆 TABLA DE POSICIONES - {currentUser.categoria}</span>
+              <button 
+                onClick={() => setIsLeaderboardOpen(false)}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.2rem', cursor: 'pointer' }}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="custom-scrollbar overflow-x-hidden" style={{ flex: 1, overflowY: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '10px', background: '#0a0a0a' }}>
+              {leaderboard.map((pilot, idx) => {
+                const isMe = pilot.uid === currentUser.uid;
+                return (
+                  <div key={pilot.uid} id={`profile-pilot-${pilot.uid}`} style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    padding: '10px', 
+                    background: isMe ? 'rgba(57, 255, 20, 0.1)' : 'var(--bg-panel-light)', 
+                    border: `1px solid ${isMe ? 'var(--accent-green)' : 'var(--border-color)'}`,
+                    borderRadius: '8px',
+                    gap: '15px'
+                  }}>
+                    <div style={{ 
+                      width: '30px', 
+                      height: '30px', 
+                      borderRadius: '50%', 
+                      background: idx === 0 ? '#FFD700' : idx === 1 ? '#C0C0C0' : idx === 2 ? '#CD7F32' : 'var(--bg-dark)',
+                      color: idx < 3 ? '#000' : 'var(--text-main)',
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      fontWeight: 900,
+                      fontFamily: 'Orbitron, sans-serif'
+                    }}>
+                      {idx + 1}
+                    </div>
+                    {pilot.photoUrl ? (
+                      <img src={pilot.photoUrl} alt="Foto" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
+                    ) : (
+                      <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--bg-dark)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🇨🇴</div>
+                    )}
+                    <div style={{ flex: 1, overflow: 'hidden' }}>
+                      <div style={{ fontWeight: 700, color: isMe ? 'var(--accent-green)' : 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {pilot.name}
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>#{pilot.number}</div>
+                    </div>
+                    <div style={{ 
+                      fontSize: '1.5rem', 
+                      fontWeight: 900, 
+                      color: 'var(--accent-green)', 
+                      fontFamily: 'Orbitron, sans-serif' 
+                    }}>
+                      {pilot.totalScore}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* OBSERVACIONES MODAL */}
+      {isObservacionesOpen && (
+        <>
+          <div className="chat-modal-overlay" onClick={() => setIsObservacionesOpen(false)}></div>
+          <div className="chat-modal custom-scrollbar overflow-x-hidden" style={{ padding: '20px', maxWidth: '400px', width: '90%', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', bottom: 'auto', borderRadius: '12px', zIndex: 1001, height: 'auto', maxHeight: '80vh', overflowY: 'auto' }}>
+            <div className="panel-header font-display" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+              <span style={{ color: 'var(--accent-green)' }}>📝 OBSERVACIONES</span>
+              <button 
+                onClick={() => setIsObservacionesOpen(false)}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.2rem', cursor: 'pointer' }}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="custom-scrollbar overflow-x-hidden" style={{ display: 'flex', flexDirection: 'column', gap: '15px', overflowY: 'auto', maxHeight: '60vh', paddingRight: '5px' }}>
+              {currentUser.observaciones.map((obs, idx) => (
+                <div key={idx} style={{ background: 'var(--bg-dark)', padding: '15px', borderRadius: '8px', borderLeft: '3px solid var(--accent-green)' }}>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '5px', textTransform: 'uppercase' }}>
+                    {obs.judgeName ? `JUEZ: ${obs.judgeName}` : `JUEZ O REGISTRO #${idx + 1}`}
+                  </div>
+                  <div style={{ color: 'var(--text-main)', fontStyle: 'italic' }}>"{obs.text}"</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* WELCOME SCORE MODAL */}
+      {showWelcomeScore && (
+        <>
+          <div className="chat-modal-overlay" onClick={() => setShowWelcomeScore(false)}></div>
+          <div className="chat-modal" style={{ padding: '20px', maxWidth: '400px', width: '90%', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', bottom: 'auto', borderRadius: '12px', zIndex: 1005, height: 'auto', background: 'var(--bg-panel)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <button 
+              onClick={() => setShowWelcomeScore(false)}
+              style={{ position: 'absolute', top: '10px', right: '15px', background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.2rem', cursor: 'pointer' }}
+            >
+              ✕
+            </button>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '10px', marginTop: '10px' }}>
+              <img 
+                src="/sponsors/copa%20stunt%20nitrox%20f2r.png" 
+                alt="Copa Stunt F2R Nitrox" 
+                style={{ height: '90px', objectFit: 'contain', filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.2))' }} 
+              />
+            </div>
+            <div style={{ padding: '2rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px', width: '100%' }}>
+              <div style={{ fontSize: '1.2rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 600 }}>
+                CATEGORÍA: <span style={{ color: 'var(--text-main)', fontWeight: 800 }}>{currentUser.categoria}</span>
+                {currentUser.totalPilotos > 0 && (
+                  <span style={{ color: '#00cfff', marginLeft: '10px', textShadow: '0 0 10px rgba(0,207,255,0.5)', fontWeight: 900 }}>
+                    {currentUser.puesto}/{currentUser.totalPilotos}
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: '4rem', fontWeight: 900, color: 'var(--accent-green)', textShadow: '0 0 20px var(--accent-green-glow)', fontFamily: 'Orbitron, sans-serif', textAlign: 'center', lineHeight: '1' }}>
+                {currentUser.puntaje} <span style={{ fontSize: '1.5rem', color: 'var(--text-muted)' }}>PTS</span>
+              </div>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                <button 
+                  onClick={() => { setShowWelcomeScore(false); setIsLeaderboardOpen(true); }}
+                  style={{
+                    padding: '8px 16px', background: 'rgba(0, 207, 255, 0.1)', border: '1px solid #00cfff', color: '#00cfff', borderRadius: '20px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.9rem', transition: 'all 0.2s', textShadow: '0 0 5px rgba(0, 207, 255, 0.5)'
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0, 207, 255, 0.2)'}
+                  onMouseOut={(e) => e.currentTarget.style.background = 'rgba(0, 207, 255, 0.1)'}
+                >
+                  🏆 TABLA
+                </button>
+
+                {currentUser.observaciones.length > 0 && (
+                  <button 
+                    onClick={() => { setShowWelcomeScore(false); setIsObservacionesOpen(true); }}
+                    style={{
+                      padding: '8px 16px', background: 'rgba(57, 255, 20, 0.1)', border: '1px solid var(--accent-green)', color: 'var(--accent-green)', borderRadius: '20px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.9rem', transition: 'all 0.2s'
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.background = 'rgba(57, 255, 20, 0.2)'}
+                    onMouseOut={(e) => e.currentTarget.style.background = 'rgba(57, 255, 20, 0.1)'}
+                  >
+                    👁️ OBSERVACIONES
+                  </button>
+                )}
               </div>
             </div>
           </div>
