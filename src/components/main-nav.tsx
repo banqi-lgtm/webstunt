@@ -23,6 +23,7 @@ export function MainNav() {
   const [hasWhatsAppAccess, setHasWhatsAppAccess] = useState(false);
   const [hasJuecesAccess, setHasJuecesAccess] = useState(false);
   const [hasQrAccess, setHasQrAccess] = useState(false);
+  const [hasCodigosAccess, setHasCodigosAccess] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -59,6 +60,11 @@ export function MainNav() {
             } else {
               setHasQrAccess(false);
             }
+            if (isSuperAdmin || interfaces.includes('codigos')) {
+              setHasCodigosAccess(true);
+            } else {
+              setHasCodigosAccess(false);
+            }
           } else {
             const isSuperAdmin = ['wg12435@hotmail.com', 'walter12345@hotmail.com'].includes(user?.email || '');
             setIsAdmin(isSuperAdmin);
@@ -67,6 +73,7 @@ export function MainNav() {
               setHasStaffAccess(true);
               setHasJuecesAccess(true);
               setHasQrAccess(true);
+              setHasCodigosAccess(true);
             }
           }
         } catch (e) {
@@ -77,6 +84,7 @@ export function MainNav() {
         setHasStaffAccess(false);
         setHasJuecesAccess(false);
         setHasQrAccess(false);
+        setHasCodigosAccess(false);
       }
     });
     return () => unsubscribe();
@@ -104,6 +112,9 @@ export function MainNav() {
   if (hasQrAccess) {
     dynamicLinks.push({ href: '/qr', label: 'QRs', icon: QrCode });
   }
+  if (hasCodigosAccess) {
+    dynamicLinks.push({ href: '/codigos', label: 'Códigos', icon: FileText });
+  }
   if (isAdmin) {
     dynamicLinks.push({ href: '/admin', label: 'Panel Admin', icon: Shield });
   }
@@ -116,6 +127,7 @@ export function MainNav() {
     const isStaff = link.href === '/staff';
     const isJueces = link.href === '/jueces';
     const isQr = link.href === '/qr';
+    const isCodigos = link.href === '/codigos';
     
     let activeClass = 'bg-zinc-800 text-white border border-transparent';
     let inactiveClass = 'text-zinc-400 hover:text-white hover:bg-zinc-900 border border-transparent';
@@ -141,6 +153,10 @@ export function MainNav() {
       activeClass = 'bg-zinc-800 text-white border border-cyan-500/20';
       inactiveClass = 'text-zinc-400 hover:text-white hover:bg-zinc-900 border border-cyan-500/10';
       iconClass = 'h-4 w-4 text-cyan-400';
+    } else if (isCodigos) {
+      activeClass = 'bg-zinc-800 text-white border border-rose-500/20';
+      inactiveClass = 'text-zinc-400 hover:text-white hover:bg-zinc-900 border border-rose-500/10';
+      iconClass = 'h-4 w-4 text-rose-500';
     }
 
     return (

@@ -1,0 +1,67 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { ai } from '@/ai/genkit';
+
+export async function POST(req: NextRequest) {
+  try {
+    const { descripcion, valor } = await req.json();
+
+    if (!descripcion || !valor) {
+      return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 });
+    }
+
+    const promptText = `
+Eres un contador público colombiano experto en retención en la fuente (año 2024).
+Se te proporciona el concepto/descripción del servicio: "${descripcion}" y el valor facturado: ${valor} COP.
+
+Analiza la descripción y determina el "MOTIVO" (Categoría según la tabla de retención en la fuente de Colombia) y el "PORCENTAJE" de retención que aplica, asumiendo que es para una persona natural, a menos que el concepto indique lo contrario.
+
+Ejemplos comunes (Reglas):
+- "Logística", "Mantenimiento", "Transporte", "Aseo", "Servicios": Servicios Generales (usa SIEMPRE 4% a menos que sea explícitamente otro caso).
+- "Asesoría", "Consultoría", "Abogado", "Honorarios": Honorarios y Comisiones (usa 10% o 11%).
+- "Compra de equipos", "Insumos": Compras (usa 2.5%).
+- "Arrendamiento", "Alquiler": Arrendamientos (usa 3.5%).
+- Si la descripción no se entiende, clasifícala como "Servicios Generales" al 4%.
+
+Responde SOLO con un objeto JSON válido con la siguiente estructura exacta, sin texto adicional ni bloques markdown:
+{
+  "motivo": "Motivo Determinado",
+  "porcentaje": 4
+}
+`;
+
+    const response = await ai.generate({
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { text: promptText }
+          ]
+        }
+      ],
+      output: { format: 'json' }
+    });
+
+    const textOutput = response.text;
+    
+    // Clean potential markdown blocks
+    let cleanJson = textOutput.replace(/```json/g, '').replace(/```/g, '').trim();
+    const firstBrace = cleanJson.indexOf('{');
+    const lastBrace = cleanJson.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1) {
+      cleanJson = cleanJson.substring(firstBrace, lastBrace + 1);
+    }
+    
+    let extractedData = {};
+    try {
+      extractedData = JSON.parse(cleanJson);
+    } catch (parseError) {
+      console.error('Failed to parse JSON from AI:', cleanJson);
+      return NextResponse.json({ error: 'Failed to parse AI output', raw: cleanJson }, { status: 500 });
+    }
+
+    return NextResponse.json(extractedData);
+  } catch (error: any) {
+    console.error('AI Retencion Error:', error);
+    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  }
+}

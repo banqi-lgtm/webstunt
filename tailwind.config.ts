@@ -13,6 +13,10 @@ export default {
         body: ['Montserrat', 'sans-serif'],
         headline: ['Oswald', 'sans-serif'],
         code: ['monospace'],
+        orbitron: ['Orbitron', 'sans-serif'],
+        rajdhani: ['Rajdhani', 'sans-serif'],
+        exo: ['Exo 2', 'sans-serif'],
+        bebas: ['Bebas Neue', 'sans-serif'],
       },
       colors: {
         background: 'hsl(var(--background))',

@@ -24,6 +24,7 @@ function useWindowSize() {
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import QRCode from 'react-qr-code';
+import { StaffProfileView } from './StaffProfileView';
 
 // === TIPOS DE DATOS ===
 type ReactionType = 'fast' | 'champ' | 'fire' | 'eyes';
@@ -162,7 +163,8 @@ export default function PskPitxDashboard() {
     puntaje: 0,
     puesto: 0,
     totalPilotos: 0,
-    observaciones: [] as { judgeId: string, text: string, judgeName?: string }[]
+    observaciones: [] as { judgeId: string, text: string, judgeName?: string }[],
+    rol: ''
   });
 
   const [isObservacionesOpen, setIsObservacionesOpen] = useState(false);
@@ -284,9 +286,11 @@ export default function PskPitxDashboard() {
           const regDoc = await getDoc(doc(db, 'event_registrations', `f2r_${user.uid}`));
           
           let name = user.email?.split('@')[0] || 'Piloto';
+          let rol = '';
           if (userDoc.exists()) {
             const d = userDoc.data();
             name = `${d.nombres || ''} ${d.apellidos || ''}`.trim();
+            rol = d.rol || '';
           }
           
           let number = '00';
@@ -323,7 +327,8 @@ export default function PskPitxDashboard() {
             puntaje: 0,
             puesto: 0,
             totalPilotos: 0,
-            observaciones: []
+            observaciones: [],
+            rol
           });
           
         } catch (e) {
@@ -578,6 +583,10 @@ export default function PskPitxDashboard() {
     if (timeLeft.days >= 7) return <span>PRÓXIMO EVENTO</span>;
     return <span>PREPARATIVOS EN CURSO</span>;
   };
+
+  if (currentUser.rol === 'staff') {
+    return <StaffProfileView userUid={currentUser.uid} userName={currentUser.name} userDocument={currentUser.number} />;
+  }
 
   return (
     <div className="pskpitx-app">
