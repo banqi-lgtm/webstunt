@@ -383,10 +383,10 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
               </div>
               <div>
                 <div className="flex items-center gap-3">
-                  <h1 className="text-4xl font-black text-white font-orbitron tracking-[0.2em] drop-shadow-[0_0_15px_rgba(0,229,255,0.5)]">SYS.PROTOCOLO_COBRO</h1>
+                  <h1 className="text-2xl md:text-4xl font-black text-white font-orbitron tracking-[0.1em] md:tracking-[0.2em] drop-shadow-[0_0_15px_rgba(0,229,255,0.5)]">SISTEMA PKS COBRO</h1>
                   <span className="px-2 py-0.5 bg-[#00e5ff]/10 border border-[#00e5ff]/40 text-[#00e5ff] text-[10px] font-orbitron tracking-widest animate-pulse">EN_LÍNEA</span>
                 </div>
-                <p className="text-[#00bfff] font-rajdhani text-lg uppercase tracking-[0.3em] mt-1 opacity-80">Interfaz Segura de Cobro de Códigos</p>
+                <p className="text-[#00e5ff] font-mono text-xs md:text-sm tracking-[0.3em] uppercase opacity-80 mt-1">INTERFAZ SEGURA DE PAGOS</p>
               </div>
             </div>
             <div className="hidden lg:flex flex-col items-end opacity-50">
