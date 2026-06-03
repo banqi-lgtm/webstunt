@@ -11,3 +11,5 @@ env:
     value: "copastuntfrnitrox@gmail.com"
   - variable: EMAIL_PASS
     value: "ldws zuaa adkj wljm"
+  - variable: GEMINI_API_KEY
+    secret: GEMINI_API_KEY
