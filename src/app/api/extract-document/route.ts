@@ -22,7 +22,7 @@ Your goal is to extract the following 4 fields:
 - "banco": The name of the bank (e.g. Bancolombia, Nequi, Davivienda, etc.). Look in the bank certification. If it is Nequi, just write "Nequi".
 - "tipoCuenta": The type of account (e.g. "Ahorros" or "Corriente", or "Nequi", "Daviplata"). If it's Nequi, write "Nequi" or "Ahorros".
 - "numeroCuenta": The bank account number or cell phone number. If it is a Nequi certificate, look for "Número de Depósito Nequi", "Número de producto", or the phone number.
-- "documentoIdentidad": The ID number of the person. If you see a RUT, extract the "NIT" (Número de Identificación Tributaria). The NIT is usually a long number (e.g., 1020304050-1), you can extract it with or without the dash and verification digit. Look for the box that says "NIT" or "Número de Identificación Tributaria" on the RUT. If you see a Cédula, extract the ID number.
+- "documentoIdentidad": The ID number of the person. If you see a RUT, extract the "NIT" (Número de Identificación Tributaria). IMPORTANTE: In a RUT, the NIT is inside a main box, and the DV (Dígito de Verificación) is in a separate TINY box next to it. YOU MUST IGNORE THE TINY BOX! Do not include the DV. For example, if the main box says "1034281897" and the tiny box says "9", your output MUST BE EXACTLY "1034281897". Never include the dash or the DV. If you see a Cédula, extract the ID number.
 
 Respond ONLY with a valid JSON object matching this structure. Do not include markdown formatting like \`\`\`json.
 {
@@ -55,9 +55,13 @@ Respond ONLY with a valid JSON object matching this structure. Do not include ma
       cleanJson = cleanJson.substring(firstBrace, lastBrace + 1);
     }
     
-    let extractedData = {};
+    let extractedData: any = {};
     try {
       extractedData = JSON.parse(cleanJson);
+      // Strip any dash and verification digit that AI might have included
+      if (extractedData.documentoIdentidad && typeof extractedData.documentoIdentidad === 'string') {
+        extractedData.documentoIdentidad = extractedData.documentoIdentidad.split('-')[0].trim();
+      }
     } catch (parseError) {
       console.error('Failed to parse JSON from AI:', cleanJson);
       return NextResponse.json({ error: 'Failed to parse AI output', raw: cleanJson }, { status: 500 });

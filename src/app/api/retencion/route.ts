@@ -16,15 +16,19 @@ Se te proporciona el concepto/descripción del servicio: "${descripcion}" y el v
 Analiza la descripción y determina el "MOTIVO" (Categoría según la tabla de retención en la fuente de Colombia) y el "PORCENTAJE" de retención que aplica, asumiendo que es para una persona natural, a menos que el concepto indique lo contrario.
 
 Ejemplos comunes (Reglas):
-- "Logística", "Mantenimiento", "Transporte", "Aseo", "Servicios": Servicios Generales (usa SIEMPRE 4% a menos que sea explícitamente otro caso).
-- "Asesoría", "Consultoría", "Abogado", "Honorarios": Honorarios y Comisiones (usa 10% o 11%).
-- "Compra de equipos", "Insumos": Compras (usa 2.5%).
-- "Arrendamiento", "Alquiler": Arrendamientos (usa 3.5%).
+- "Logística", "Mantenimiento", "Transporte", "Aseo", "Servicios": "Servicios Generales" (usa SIEMPRE 4% a menos que sea explícitamente otro caso).
+- "Asesoría", "Consultoría", "Abogado", "Honorarios": "Honorarios y Comisiones" (usa 10% o 11%).
+- "Compra de equipos", "Insumos": "Compras" (usa 2.5%).
+- "Arrendamiento", "Alquiler": "Arrendamientos" (usa 3.5%).
+- Transporte explícito: "Transporte" (usa 1%).
 - Si la descripción no se entiende, clasifícala como "Servicios Generales" al 4%.
+
+IMPORTANTE: El "MOTIVO" DEBE ser EXACTAMENTE una de las siguientes opciones (respeta mayúsculas y minúsculas):
+"Servicios Generales", "Honorarios y Comisiones", "Compras", "Arrendamientos", "Transporte", "Ninguna"
 
 Responde SOLO con un objeto JSON válido con la siguiente estructura exacta, sin texto adicional ni bloques markdown:
 {
-  "motivo": "Motivo Determinado",
+  "motivo": "Servicios Generales",
   "porcentaje": 4
 }
 `;

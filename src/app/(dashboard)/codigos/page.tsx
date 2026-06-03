@@ -296,8 +296,8 @@ export default function CodigosAdminPage() {
             </div>
           </div>
           <div>
-            <h1 className="text-4xl font-black text-white font-orbitron tracking-wider drop-shadow-[0_0_10px_rgba(0,229,255,0.3)]">SYS.ADMIN_CÓDIGOS</h1>
-            <p className="text-zinc-500 font-rajdhani text-lg uppercase tracking-widest mt-1">Interfaz de Generación y Gestión de Códigos</p>
+            <h1 className="text-2xl md:text-4xl font-black text-white font-orbitron tracking-[0.1em] md:tracking-[0.2em] drop-shadow-[0_0_10px_rgba(0,229,255,0.3)]">SISTEMA PKS COBRO</h1>
+            <p className="text-[#00e5ff] font-mono text-xs md:text-sm tracking-[0.3em] uppercase opacity-80 mt-1">INTERFAZ DE GENERACIÓN Y GESTIÓN DE CÓDIGOS</p>
           </div>
         </motion.div>
 

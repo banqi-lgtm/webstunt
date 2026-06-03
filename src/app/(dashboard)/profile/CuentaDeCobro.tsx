@@ -215,7 +215,7 @@ export function CuentaDeCobro({
             <div className="bg-[#0D1B3E] text-white print:text-black p-8 print:p-6 flex justify-between items-center">
               <div>
                 <h1 className="font-barlow text-4xl print:text-3xl uppercase tracking-wide font-bold">PASKINES STUNT S.A.S.</h1>
-                <p className="text-sm print:text-xs font-light opacity-80 mt-1 tracking-wider">NIT: 900.202.845-05</p>
+                <p className="text-sm print:text-xs font-light opacity-80 mt-1 tracking-wider">NIT: 902.028.450-5</p>
               </div>
               <div className="text-right">
                 <h2 className="font-barlow text-2xl print:text-xl uppercase tracking-wider font-medium text-white/90 print:text-black">Cuenta de Cobro</h2>

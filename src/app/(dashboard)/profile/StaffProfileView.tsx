@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { db, storage } from '@/lib/firebase';
 import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import { ref, uploadString } from 'firebase/storage';
-import { FileText, CheckCircle, Clock, Banknote, DollarSign, CheckSquare, Square, Upload, Loader2, Sparkles, Terminal } from 'lucide-react';
+import { ref, uploadString, getDownloadURL, listAll } from 'firebase/storage';
+import { FileText, CheckCircle, Clock, Banknote, DollarSign, CheckSquare, Square, Upload, Loader2, Sparkles, Terminal, Eye, Pencil } from 'lucide-react';
 import { CuentaDeCobro } from './CuentaDeCobro';
 import { motion, AnimatePresence } from 'framer-motion';
 interface Codigo {
@@ -52,6 +52,8 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
   const [uploadingDocs, setUploadingDocs] = useState(false);
   const [certFileBase64, setCertFileBase64] = useState<string | null>(null);
   const [rutFileBase64, setRutFileBase64] = useState<string | null>(null);
+  const [rutUrl, setRutUrl] = useState<string | null>(null);
+  const [certUrl, setCertUrl] = useState<string | null>(null);
 
   const fetchUserData = async () => {
     try {
@@ -69,6 +71,22 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
         }
         if (d.documentoIdentidad) {
           setClaimDocumento(d.documentoIdentidad);
+        }
+        
+        try {
+          const docsRef = ref(storage, `documents/${userUid}`);
+          const res = await listAll(docsRef);
+          let latestRut = null;
+          let latestCert = null;
+          const items = res.items.sort((a, b) => b.name.localeCompare(a.name));
+          for (const item of items) {
+            if (!latestRut && item.name.includes('rut_')) latestRut = item;
+            if (!latestCert && item.name.includes('certificacion_')) latestCert = item;
+          }
+          if (latestRut) setRutUrl(await getDownloadURL(latestRut));
+          if (latestCert) setCertUrl(await getDownloadURL(latestCert));
+        } catch(e) {
+          console.error("Error fetching documents from storage", e);
         }
       }
     } catch (e) {
@@ -149,6 +167,11 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
       await uploadString(storageCertRef, certFileBase64, 'data_url');
       const storageRutRef = ref(storage, `documents/${userUid}/rut_${Date.now()}`);
       await uploadString(storageRutRef, rutFileBase64, 'data_url');
+      
+      const newCertUrl = await getDownloadURL(storageCertRef);
+      const newRutUrl = await getDownloadURL(storageRutRef);
+      setCertUrl(newCertUrl);
+      setRutUrl(newRutUrl);
 
       // 2. Extraer con IA
       const reqBody = {
@@ -526,6 +549,36 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
             {/* --- RIGHT PANEL: ACUMULADO & HISTORY --- */}
             <div className="lg:col-span-7 space-y-8 flex flex-col">
               
+              {/* DOCUMENTOS */}
+              <motion.div 
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.25 }}
+                className="bg-[#081120]/60 backdrop-blur-3xl border border-[#00ff88]/30 shadow-[0_0_20px_rgba(0,255,136,0.1)] p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+              >
+                <div>
+                  <h3 className="text-white font-orbitron font-bold tracking-widest text-sm uppercase flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-[#00ff88]" /> Mis Documentos
+                  </h3>
+                  <p className="text-[10px] text-[#00ff88]/70 font-mono tracking-widest mt-1 uppercase">RUT y Certificación Bancaria</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  {rutUrl && (
+                    <a href={rutUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-3 py-1.5 bg-[#00ff88]/10 border border-[#00ff88]/40 text-[#00ff88] text-xs font-mono hover:bg-[#00ff88]/20 transition-colors">
+                      <Eye className="w-3 h-3" /> VER RUT
+                    </a>
+                  )}
+                  {certUrl && (
+                    <a href={certUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-3 py-1.5 bg-[#00ff88]/10 border border-[#00ff88]/40 text-[#00ff88] text-xs font-mono hover:bg-[#00ff88]/20 transition-colors">
+                      <Eye className="w-3 h-3" /> VER CERT
+                    </a>
+                  )}
+                  <button onClick={() => setShowUploadModal(true)} className="flex items-center gap-2 px-3 py-1.5 bg-[#00e5ff]/10 border border-[#00e5ff]/40 text-[#00e5ff] text-xs font-mono hover:bg-[#00e5ff]/20 transition-colors">
+                    <Pencil className="w-3 h-3" /> EDITAR
+                  </button>
+                </div>
+              </motion.div>
+
               {/* TOTAL ACUMULADO */}
               <motion.div 
                 initial={{ opacity: 0, y: -20 }}
@@ -661,15 +714,15 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
               {/* Top Neon Bar */}
               <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#00ff88] via-[#00e5ff] to-[#00ff88]"></div>
               
-              <div className="p-8 border-b border-[#00e5ff]/20 bg-gradient-to-r from-[#00e5ff]/10 to-transparent">
-                <h2 className="text-2xl font-orbitron font-bold text-white uppercase tracking-[0.2em] drop-shadow-[0_0_10px_rgba(0,229,255,0.6)] flex items-center gap-3">
-                  <Terminal className="w-6 h-6 text-[#00ff88]" />
+              <div className="p-4 md:p-6 border-b border-[#00e5ff]/20 bg-gradient-to-r from-[#00e5ff]/10 to-transparent">
+                <h2 className="text-lg md:text-xl font-orbitron font-bold text-white uppercase tracking-[0.2em] drop-shadow-[0_0_10px_rgba(0,229,255,0.6)] flex items-center gap-2">
+                  <Terminal className="w-5 h-5 text-[#00ff88]" />
                   DOCUMENTACIÓN_REQUERIDA
                 </h2>
-                <p className="text-[11px] text-[#00bfff] font-mono mt-3 uppercase tracking-[0.2em]">Suba la Certificación Bancaria y el RUT. El Núcleo de IA extraerá los parámetros automáticamente.</p>
+                <p className="text-[10px] text-[#00bfff] font-mono mt-2 uppercase tracking-[0.2em]">Suba la Certificación Bancaria y el RUT. El Núcleo de IA extraerá los parámetros automáticamente.</p>
               </div>
               
-              <div className="p-8 space-y-8 relative">
+              <div className="p-4 md:p-6 space-y-4 md:space-y-6 relative max-h-[60vh] overflow-y-auto custom-scrollbar">
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-[#00ff88]/5 blur-3xl pointer-events-none rounded-full"></div>
 
                 <div className="space-y-4 relative z-10">
@@ -677,10 +730,10 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
                     <label className="text-[11px] font-bold text-[#00ff88] font-orbitron uppercase tracking-[0.2em]">01 // Certificación Bancaria</label>
                     {certFileBase64 && <span className="text-[9px] text-[#00ff88] font-mono tracking-widest px-2 py-0.5 border border-[#00ff88]/30">CARGADO</span>}
                   </div>
-                  <div className={`relative overflow-hidden border ${certFileBase64 ? 'border-[#00ff88] bg-[#00ff88]/10 shadow-[0_0_20px_rgba(0,255,136,0.15)]' : 'border-[#00e5ff]/30 border-dashed bg-[#050816]/50 hover:border-[#00e5ff]/80'} p-8 text-center transition-all duration-300 group`}
+                  <div className={`relative overflow-hidden border ${certFileBase64 ? 'border-[#00ff88] bg-[#00ff88]/10 shadow-[0_0_20px_rgba(0,255,136,0.15)]' : 'border-[#00e5ff]/30 border-dashed bg-[#050816]/50 hover:border-[#00e5ff]/80'} p-4 md:p-6 text-center transition-all duration-300 group`}
                        style={{ clipPath: 'polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)' }}>
-                    <Upload className={`w-8 h-8 mx-auto mb-4 transition-colors ${certFileBase64 ? 'text-[#00ff88] drop-shadow-[0_0_8px_rgba(0,255,136,0.6)]' : 'text-[#00e5ff]/50 group-hover:text-[#00e5ff]'}`} />
-                    <p className="text-xs font-mono tracking-widest text-[#d9faff]/70 mb-5">{certFileBase64 ? 'DATOS_DE_CERTIFICACIÓN_ADQUIRIDOS' : 'HAGA CLIC O ARRASTRE EL ARCHIVO AQUÍ'}</p>
+                    <Upload className={`w-5 h-5 md:w-6 md:h-6 mx-auto mb-2 transition-colors ${certFileBase64 ? 'text-[#00ff88] drop-shadow-[0_0_8px_rgba(0,255,136,0.6)]' : 'text-[#00e5ff]/50 group-hover:text-[#00e5ff]'}`} />
+                    <p className="text-[10px] md:text-xs font-mono tracking-widest text-[#d9faff]/70 mb-3">{certFileBase64 ? 'DATOS_DE_CERTIFICACIÓN_ADQUIRIDOS' : 'HAGA CLIC O ARRASTRE EL ARCHIVO AQUÍ'}</p>
                     <input 
                       type="file" 
                       accept="image/*,application/pdf"
@@ -696,10 +749,10 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
                     <label className="text-[11px] font-bold text-[#00ff88] font-orbitron uppercase tracking-[0.2em]">02 // Identificación Tributaria (RUT)</label>
                     {rutFileBase64 && <span className="text-[9px] text-[#00ff88] font-mono tracking-widest px-2 py-0.5 border border-[#00ff88]/30">CARGADO</span>}
                   </div>
-                  <div className={`relative overflow-hidden border ${rutFileBase64 ? 'border-[#00ff88] bg-[#00ff88]/10 shadow-[0_0_20px_rgba(0,255,136,0.15)]' : 'border-[#00e5ff]/30 border-dashed bg-[#050816]/50 hover:border-[#00e5ff]/80'} p-8 text-center transition-all duration-300 group`}
+                  <div className={`relative overflow-hidden border ${rutFileBase64 ? 'border-[#00ff88] bg-[#00ff88]/10 shadow-[0_0_20px_rgba(0,255,136,0.15)]' : 'border-[#00e5ff]/30 border-dashed bg-[#050816]/50 hover:border-[#00e5ff]/80'} p-4 md:p-6 text-center transition-all duration-300 group`}
                        style={{ clipPath: 'polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)' }}>
-                    <Upload className={`w-8 h-8 mx-auto mb-4 transition-colors ${rutFileBase64 ? 'text-[#00ff88] drop-shadow-[0_0_8px_rgba(0,255,136,0.6)]' : 'text-[#00e5ff]/50 group-hover:text-[#00e5ff]'}`} />
-                    <p className="text-xs font-mono tracking-widest text-[#d9faff]/70 mb-5">{rutFileBase64 ? 'DATOS_DEL_RUT_ADQUIRIDOS' : 'HAGA CLIC O ARRASTRE EL ARCHIVO AQUÍ'}</p>
+                    <Upload className={`w-5 h-5 md:w-6 md:h-6 mx-auto mb-2 transition-colors ${rutFileBase64 ? 'text-[#00ff88] drop-shadow-[0_0_8px_rgba(0,255,136,0.6)]' : 'text-[#00e5ff]/50 group-hover:text-[#00e5ff]'}`} />
+                    <p className="text-[10px] md:text-xs font-mono tracking-widest text-[#d9faff]/70 mb-3">{rutFileBase64 ? 'DATOS_DEL_RUT_ADQUIRIDOS' : 'HAGA CLIC O ARRASTRE EL ARCHIVO AQUÍ'}</p>
                     <input 
                       type="file" 
                       accept="image/*,application/pdf"
