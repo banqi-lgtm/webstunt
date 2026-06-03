@@ -237,7 +237,7 @@ export function CuentaDeCobro({
                   <div className="p-4 print:p-3 border-r border-[#0A0A0A]">
                     <p className="text-[11px] font-bold uppercase tracking-wider text-[#0D1B3E] mb-1">Debe A:</p>
                     <p className="font-barlow text-xl uppercase font-bold text-[#0A0A0A]">{cobradorNombre}</p>
-                    <p className="text-sm print:text-xs text-[#0A0A0A] font-light mt-1">C.C. / NIT: {cobradorDocumento}</p>
+                    <p className="text-sm print:text-xs text-[#0A0A0A] font-light mt-1">C.C. {cobradorDocumento}</p>
                   </div>
                   <div className="p-4 print:p-3 flex flex-col justify-center bg-[#0D1B3E] text-white print:text-black">
                     <p className="text-[11px] font-bold uppercase tracking-wider text-white/70 print:text-black mb-1">La Suma De:</p>
@@ -261,9 +261,9 @@ export function CuentaDeCobro({
                     <tbody>
                       {conceptos.map((c, i) => (
                         <tr key={i} className="bg-white">
-                          <td className="py-2.5 px-3 text-center border border-[#0A0A0A]/20 font-light text-[#0A0A0A]">{c.item}</td>
-                          <td className="py-2.5 px-3 border border-[#0A0A0A]/20 font-light text-[#0A0A0A]">{c.descripcion}</td>
-                          <td className="py-2.5 px-3 text-right border border-[#0A0A0A]/20 font-semibold text-[#0A0A0A]">${c.valor.toLocaleString('es-CO')}</td>
+                          <td className="py-2.5 px-3 text-center border border-[#0A0A0A] font-light text-[#0A0A0A]">{c.item}</td>
+                          <td className="py-2.5 px-3 border border-[#0A0A0A] font-light text-[#0A0A0A]">{c.descripcion}</td>
+                          <td className="py-2.5 px-3 text-right border border-[#0A0A0A] font-semibold text-[#0A0A0A]">${c.valor.toLocaleString('es-CO')}</td>
                         </tr>
                       ))}
                       <tr className="bg-[#0A0A0A]/5">
@@ -293,9 +293,11 @@ export function CuentaDeCobro({
                 </div>
 
                 {/* LEGAL NOTE */}
-                <div className="border-l-4 border-[#0D1B3E] bg-[#0A0A0A]/5 p-4 print:p-3 text-xs font-light text-justify text-[#0A0A0A] leading-relaxed">
-                  <span className="font-semibold">Nota:</span> Solicito amablemente aplicar retención en la fuente de conformidad con el Art. 383 del Estatuto Tributario (retención en la fuente por honorarios/servicios para personas naturales), manifestando bajo la gravedad de juramento que no he contratado ni vinculado a dos (2) o más trabajadores asociados a la actividad por un término igual o superior a 90 días continuos o discontinuos dentro de un mismo periodo gravable.
-                </div>
+                {totalRetenido === 0 && (
+                  <div className="border-l-4 border-[#0D1B3E] bg-[#0A0A0A]/5 p-4 print:p-3 text-xs font-light text-justify text-[#0A0A0A] leading-relaxed">
+                    <span className="font-semibold">Nota:</span> Solicito amablemente aplicar retención en la fuente de conformidad con el Art. 383 del Estatuto Tributario (retención en la fuente por honorarios/servicios para personas naturales), manifestando bajo la gravedad de juramento que no he contratado ni vinculado a dos (2) o más trabajadores asociados a la actividad por un término igual o superior a 90 días continuos o discontinuos dentro de un mismo periodo gravable.
+                  </div>
+                )}
               </div>
 
               {/* FOOTER - BIPARTITE */}

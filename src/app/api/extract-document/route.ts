@@ -5,19 +5,19 @@ export async function POST(req: NextRequest) {
   try {
     const { certFile, rutFile } = await req.json();
 
-    if (!certFile) {
-      return NextResponse.json({ error: 'Falta la certificación bancaria' }, { status: 400 });
+    if (!certFile && !rutFile) {
+      return NextResponse.json({ error: 'Faltan documentos' }, { status: 400 });
     }
 
     const mediaList: any[] = [];
-    if (certFile.dataUrl) {
+    if (certFile && certFile.dataUrl) {
       mediaList.push({ media: { url: certFile.dataUrl, contentType: certFile.fileType } });
     }
     if (rutFile && rutFile.dataUrl) {
       mediaList.push({ media: { url: rutFile.dataUrl, contentType: rutFile.fileType } });
     }
 
-    const promptText = `Extract the banking information and personal identification from these two documents. One is a bank certification, and the other is a Colombian RUT (Registro Único Tributario) or Cédula.
+    const promptText = `Extract the banking information and personal identification from the provided document(s). It may be a bank certification, a Colombian RUT (Registro Único Tributario), or both.
 Your goal is to extract the following 4 fields:
 - "banco": The name of the bank (e.g. Bancolombia, Nequi, Davivienda, etc.). Look in the bank certification. If it is Nequi, just write "Nequi".
 - "tipoCuenta": The type of account (e.g. "Ahorros" or "Corriente", or "Nequi", "Daviplata"). If it's Nequi, write "Nequi" or "Ahorros".

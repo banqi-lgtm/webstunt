@@ -156,34 +156,44 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
   };
 
   const processDocumentAI = async () => {
-    if (!certFileBase64 || !rutFileBase64) {
-      toast({ title: 'Faltan documentos', description: 'Debes subir tanto la certificación como el RUT.', variant: 'destructive' });
+    if (!certFileBase64 && !rutFileBase64) {
+      toast({ title: 'Faltan documentos', description: 'Debes subir al menos un documento para procesar.', variant: 'destructive' });
       return;
     }
     setUploadingDocs(true);
     try {
       // 1. Subir a Storage
-      const storageCertRef = ref(storage, `documents/${userUid}/certificacion_${Date.now()}`);
-      await uploadString(storageCertRef, certFileBase64, 'data_url');
-      const storageRutRef = ref(storage, `documents/${userUid}/rut_${Date.now()}`);
-      await uploadString(storageRutRef, rutFileBase64, 'data_url');
+      let newCertUrl = certUrl;
+      let newRutUrl = rutUrl;
+
+      if (certFileBase64) {
+        const storageCertRef = ref(storage, `documents/${userUid}/certificacion_${Date.now()}`);
+        await uploadString(storageCertRef, certFileBase64, 'data_url');
+        newCertUrl = await getDownloadURL(storageCertRef);
+        setCertUrl(newCertUrl);
+      }
       
-      const newCertUrl = await getDownloadURL(storageCertRef);
-      const newRutUrl = await getDownloadURL(storageRutRef);
-      setCertUrl(newCertUrl);
-      setRutUrl(newRutUrl);
+      if (rutFileBase64) {
+        const storageRutRef = ref(storage, `documents/${userUid}/rut_${Date.now()}`);
+        await uploadString(storageRutRef, rutFileBase64, 'data_url');
+        newRutUrl = await getDownloadURL(storageRutRef);
+        setRutUrl(newRutUrl);
+      }
 
       // 2. Extraer con IA
-      const reqBody = {
-        certFile: {
+      const reqBody: any = {};
+      if (certFileBase64) {
+        reqBody.certFile = {
           dataUrl: certFileBase64,
           fileType: certFileBase64.split(';')[0].split(':')[1]
-        },
-        rutFile: {
+        };
+      }
+      if (rutFileBase64) {
+        reqBody.rutFile = {
           dataUrl: rutFileBase64,
           fileType: rutFileBase64.split(';')[0].split(':')[1]
-        }
-      };
+        };
+      }
 
       const res = await fetch('/api/extract-document', {
         method: 'POST',
@@ -197,35 +207,43 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
         throw new Error(data.error || 'Error en la respuesta de la IA');
       }
       
-      const newBanco = data.banco || '';
-      const newTipo = data.tipoCuenta || 'Ahorros';
-      const newNum = data.numeroCuenta || '';
+      const newBanco = data.banco || claimBanco;
+      const newTipo = data.tipoCuenta || claimTipoCuenta;
+      const newNum = data.numeroCuenta || claimNumeroCuenta;
+      const newDoc = data.documentoIdentidad || claimDocumento;
       
-      if (!newBanco || !newNum) {
+      if (certFileBase64 && (!data.banco || !data.numeroCuenta)) {
         toast({ title: 'Error de IA', description: 'La inteligencia artificial no pudo detectar el banco ni el número de cuenta. Sube imágenes más claras.', variant: 'destructive' });
+        return;
+      }
+
+      if (rutFileBase64 && !data.documentoIdentidad) {
+        toast({ title: 'Error de IA', description: 'La inteligencia artificial no pudo detectar el NIT en el RUT. Sube imágenes más claras.', variant: 'destructive' });
         return;
       }
 
       setClaimBanco(newBanco);
       setClaimTipoCuenta(newTipo);
       setClaimNumeroCuenta(newNum);
-      if (data.documentoIdentidad) setClaimDocumento(data.documentoIdentidad);
+      if (newDoc) setClaimDocumento(newDoc);
 
       // 3. Guardar en Firestore
       await updateDoc(doc(db, 'users', userUid), {
         banco: newBanco,
         tipoCuenta: newTipo,
         numeroCuenta: newNum,
-        documentoIdentidad: data.documentoIdentidad || claimDocumento,
+        documentoIdentidad: newDoc,
         documentosValidadosConIA: true
       });
 
       setHasBankDocs(true);
       setShowUploadModal(false);
+      setCertFileBase64(null);
+      setRutFileBase64(null);
       toast({ title: 'Éxito', description: 'Documentos extraídos y guardados.' });
       
       // Auto-generate invoice directly
-      generateAndShowInvoice(newBanco, newTipo, newNum, data.documentoIdentidad || claimDocumento);
+      generateAndShowInvoice(newBanco, newTipo, newNum, newDoc);
     } catch (e: any) {
       console.error(e);
       toast({ title: 'Error', description: e.message || 'Error al procesar el documento', variant: 'destructive' });
@@ -774,8 +792,8 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
                   </button>
                   <button 
                     onClick={processDocumentAI} 
-                    disabled={!certFileBase64 || !rutFileBase64 || uploadingDocs} 
-                    className={`w-2/3 h-14 flex items-center justify-center font-orbitron font-bold text-[11px] uppercase tracking-[0.2em] transition-all border ${!certFileBase64 || !rutFileBase64 || uploadingDocs ? 'bg-[#050816] border-[#00ff88]/20 text-[#00ff88]/30 cursor-not-allowed' : 'bg-[#00ff88]/20 border-[#00ff88] text-[#00ff88] hover:bg-[#00ff88]/40 hover:text-white hover:shadow-[0_0_25px_rgba(0,255,136,0.6)]'}`}
+                    disabled={(!certFileBase64 && !rutFileBase64) || uploadingDocs} 
+                    className={`w-2/3 h-14 flex items-center justify-center font-orbitron font-bold text-[11px] uppercase tracking-[0.2em] transition-all border ${(!certFileBase64 && !rutFileBase64) || uploadingDocs ? 'bg-[#050816] border-[#00ff88]/20 text-[#00ff88]/30 cursor-not-allowed' : 'bg-[#00ff88]/20 border-[#00ff88] text-[#00ff88] hover:bg-[#00ff88]/40 hover:text-white hover:shadow-[0_0_25px_rgba(0,255,136,0.6)]'}`}
                     style={{ clipPath: 'polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)' }}
                   >
                     {uploadingDocs ? (
