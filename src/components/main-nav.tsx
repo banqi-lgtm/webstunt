@@ -2,8 +2,9 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { User, CalendarDays, LogOut, Shield, Users, Menu, Star, LayoutDashboard, Search, FileText, CheckCircle, XCircle, Clock, ShieldCheck, Flag, Settings, Smartphone, Bell, Video, ClipboardList, QrCode } from 'lucide-react';
+import { User, CalendarDays, LogOut, Shield, Users, Menu, Star, LayoutDashboard, Search, FileText, CheckCircle, XCircle, Clock, ShieldCheck, Flag, Settings, Smartphone, Bell, Video, ClipboardList, QrCode, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { auth, db } from '@/lib/firebase';
 import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
@@ -99,27 +100,27 @@ export function MainNav() {
     }
   };
 
-  const dynamicLinks = [...baseLinks];
+  const adminLinks = [];
   if (hasPilotosAccess) {
-    dynamicLinks.push({ href: '/pilotos', label: 'Pilotos', icon: Users });
+    adminLinks.push({ href: '/pilotos', label: 'Pilotos', icon: Users });
   }
   if (hasStaffAccess) {
-    dynamicLinks.push({ href: '/staff', label: 'Staff', icon: Star });
+    adminLinks.push({ href: '/staff', label: 'Staff', icon: Star });
   }
   if (hasJuecesAccess) {
-    dynamicLinks.push({ href: '/jueces', label: 'Jueces', icon: ClipboardList });
+    adminLinks.push({ href: '/jueces', label: 'Jueces', icon: ClipboardList });
   }
   if (hasQrAccess) {
-    dynamicLinks.push({ href: '/qr', label: 'QRs', icon: QrCode });
+    adminLinks.push({ href: '/qr', label: 'QRs', icon: QrCode });
   }
   if (hasCodigosAccess) {
-    dynamicLinks.push({ href: '/codigos', label: 'Códigos', icon: FileText });
+    adminLinks.push({ href: '/codigos', label: 'Códigos', icon: FileText });
   }
   if (isAdmin) {
-    dynamicLinks.push({ href: '/admin', label: 'Panel Admin', icon: Shield });
+    adminLinks.push({ href: '/admin', label: 'Panel Admin', icon: Shield });
   }
 
-  const hasMoreThanTwo = dynamicLinks.length > 2;
+  const allLinks = [...baseLinks, ...adminLinks];
 
   const NavButton = ({ link, isActive }: { link: any, isActive: boolean }) => {
     const isPilotos = link.href === '/pilotos';
@@ -183,7 +184,7 @@ export function MainNav() {
               <button onClick={() => setIsMobileMenuOpen(false)} style={{background:'none', border:'none', color:'white', fontSize:'1.5rem', cursor: 'pointer'}}>✕</button>
             </div>
             <div style={{display: 'flex', flexDirection: 'column', gap: '20px', fontSize: '1.2rem', fontFamily: 'Orbitron'}}>
-              {dynamicLinks.map(link => {
+              {allLinks.map(link => {
                 const isActive = pathname === link.href;
                 return (
                   <Link key={link.href} href={link.href} style={{color: isActive ? '#39FF14' : 'white', display: 'flex', alignItems: 'center', gap: '10px'}} onClick={() => setIsMobileMenuOpen(false)}>
@@ -221,9 +222,37 @@ export function MainNav() {
           
           {/* DESKTOP NAV */}
           <nav className="hidden xl:flex items-center gap-1.5 md:gap-2">
-            {dynamicLinks.map((link) => (
+            {baseLinks.map((link) => (
               <NavButton key={link.href} link={link} isActive={pathname === link.href} />
             ))}
+            
+            {adminLinks.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="gap-2 h-9 md:h-10 px-3 md:px-4 text-zinc-400 hover:text-white hover:bg-zinc-900 border border-transparent">
+                    <Settings className="h-4 w-4 text-[#00ff88]" />
+                    <span className="font-semibold text-xs md:text-sm whitespace-nowrap">Herramientas</span>
+                    <ChevronDown className="h-4 w-4 opacity-50" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="bg-[#050816] border-[#00ff88]/30 min-w-[200px]" align="start">
+                  {adminLinks.map((link) => {
+                    const isActive = pathname === link.href;
+                    return (
+                      <DropdownMenuItem key={link.href} asChild className="focus:bg-[#00ff88]/10 cursor-pointer">
+                        <Link 
+                          href={link.href} 
+                          className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-md transition-colors ${isActive ? 'bg-[#00ff88]/10 text-[#00ff88]' : 'text-zinc-300 hover:text-white'}`}
+                        >
+                          <link.icon className={`h-4 w-4 ${isActive ? 'text-[#00ff88]' : 'text-zinc-400'}`} />
+                          <span className="font-semibold">{link.label}</span>
+                        </Link>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </nav>
           
           <div className="h-6 w-px bg-zinc-800 mx-1 md:mx-2 hidden sm:block"></div>

@@ -6,9 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { db, storage } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, query, where, getDocs, setDoc } from 'firebase/firestore';
 import { ref, uploadString, getDownloadURL, listAll } from 'firebase/storage';
-import { FileText, CheckCircle, Clock, Banknote, DollarSign, CheckSquare, Square, Upload, Loader2, Sparkles, Terminal, Eye, Pencil } from 'lucide-react';
+import { FileText, CheckCircle, Clock, Banknote, DollarSign, CheckSquare, Square, Upload, Loader2, Sparkles, Terminal, Eye, Pencil, Plus } from 'lucide-react';
 import { CuentaDeCobro } from './CuentaDeCobro';
 import { motion, AnimatePresence } from 'framer-motion';
 interface Codigo {
@@ -35,6 +35,7 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
   // User Profile details
   const [claimNombre, setClaimNombre] = useState(userName);
   const [claimDocumento, setClaimDocumento] = useState(userDocument);
+  const [claimCiudad, setClaimCiudad] = useState('');
 
   
   // Bank details
@@ -55,6 +56,14 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
   const [rutUrl, setRutUrl] = useState<string | null>(null);
   const [certUrl, setCertUrl] = useState<string | null>(null);
 
+  // Manual Invoice State
+  const [showManualInvoiceModal, setShowManualInvoiceModal] = useState(false);
+  const [manualValor, setManualValor] = useState('');
+  const [manualDescripcion, setManualDescripcion] = useState('');
+  const [manualCentroCosto, setManualCentroCosto] = useState('');
+  const [manualRetencionMotivo, setManualRetencionMotivo] = useState('');
+  const [manualRetencionPorcentaje, setManualRetencionPorcentaje] = useState('');
+
   const fetchUserData = async () => {
     try {
       const userRef = doc(db, 'users', userUid);
@@ -71,6 +80,9 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
         }
         if (d.documentoIdentidad) {
           setClaimDocumento(d.documentoIdentidad);
+        }
+        if (d.ciudad) {
+          setClaimCiudad(d.ciudad);
         }
         
         try {
@@ -211,6 +223,7 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
       const newTipo = data.tipoCuenta || claimTipoCuenta;
       const newNum = data.numeroCuenta || claimNumeroCuenta;
       const newDoc = data.documentoIdentidad || claimDocumento;
+      const newCiudad = data.ciudad || claimCiudad;
       
       if (certFileBase64 && (!data.banco || !data.numeroCuenta)) {
         toast({ title: 'Error de IA', description: 'La inteligencia artificial no pudo detectar el banco ni el número de cuenta. Sube imágenes más claras.', variant: 'destructive' });
@@ -226,6 +239,7 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
       setClaimTipoCuenta(newTipo);
       setClaimNumeroCuenta(newNum);
       if (newDoc) setClaimDocumento(newDoc);
+      if (newCiudad) setClaimCiudad(newCiudad);
 
       // 3. Guardar en Firestore
       await updateDoc(doc(db, 'users', userUid), {
@@ -233,6 +247,7 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
         tipoCuenta: newTipo,
         numeroCuenta: newNum,
         documentoIdentidad: newDoc,
+        ciudad: newCiudad,
         documentosValidadosConIA: true
       });
 
@@ -243,7 +258,7 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
       toast({ title: 'Éxito', description: 'Documentos extraídos y guardados.' });
       
       // Auto-generate invoice directly
-      generateAndShowInvoice(newBanco, newTipo, newNum, newDoc);
+      generateAndShowInvoice(newBanco, newTipo, newNum, newDoc, newCiudad);
     } catch (e: any) {
       console.error(e);
       toast({ title: 'Error', description: e.message || 'Error al procesar el documento', variant: 'destructive' });
@@ -256,7 +271,8 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
     bancoOverride?: string, 
     tipoOverride?: string, 
     numOverride?: string, 
-    docOverride?: string
+    docOverride?: string,
+    ciudadOverride?: string
   ) => {
     if (selectedIds.length === 0) return;
     
@@ -288,7 +304,8 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
       conceptos: conceptosData,
       banco: bancoOverride || claimBanco,
       tipoCuenta: tipoOverride || claimTipoCuenta,
-      numeroCuenta: numOverride || claimNumeroCuenta
+      numeroCuenta: numOverride || claimNumeroCuenta,
+      ciudad: ciudadOverride || claimCiudad
     });
     
     setShowInvoice(true);
@@ -326,6 +343,7 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
       banco: claimBanco,
       tipoCuenta: claimTipoCuenta,
       numeroCuenta: claimNumeroCuenta,
+      ciudad: claimCiudad,
       firmaPrevia: savedFirma,
       isHistorical: true
     });
@@ -343,6 +361,48 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
     generateAndShowInvoice();
   };
 
+  const generateManualInvoice = () => {
+    if (!manualValor || !manualDescripcion) return;
+    if (!hasBankDocs) {
+      setShowManualInvoiceModal(false);
+      setShowUploadModal(true);
+      return;
+    }
+
+    const numCuenta = `CC-${(historial.length + 1).toString().padStart(3, '0')}`;
+    const now = new Date().toISOString();
+    
+    setInvoiceData({
+      numero: numCuenta,
+      fecha: now,
+      cobradorNombre: claimNombre,
+      cobradorDocumento: claimDocumento,
+      valorTotal: Number(manualValor),
+      conceptos: [{
+        item: 1,
+        descripcion: `COBRO MANUAL - ${manualDescripcion}`,
+        valor: Number(manualValor),
+        retencionMotivo: manualRetencionMotivo || null,
+        retencionPorcentaje: manualRetencionPorcentaje ? Number(manualRetencionPorcentaje) : null
+      }],
+      banco: claimBanco,
+      tipoCuenta: claimTipoCuenta,
+      numeroCuenta: claimNumeroCuenta,
+      ciudad: claimCiudad,
+      isManual: true,
+      manualData: {
+        valor: Number(manualValor),
+        descripcion: manualDescripcion,
+        centroCosto: manualCentroCosto,
+        retencionMotivo: manualRetencionMotivo,
+        retencionPorcentaje: manualRetencionPorcentaje ? Number(manualRetencionPorcentaje) : null
+      }
+    });
+    
+    setShowManualInvoiceModal(false);
+    setShowInvoice(true);
+  };
+
   const handleConfirmClaim = async (firmaData: string) => {
     setIsClaiming(true);
     try {
@@ -353,16 +413,64 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
       // Guardar firma en el estado local para que no se pierda si el componente se recarga
       setInvoiceData((prev: any) => ({ ...prev, firmaPrevia: firmaData }));
 
-      for (const codigo of codigosAProcesar) {
-        const codigoRef = doc(db, 'codigos', codigo.id);
-        await updateDoc(codigoRef, {
+      if (invoiceData.isManual) {
+        const getInitials = (name: string) => {
+          const parts = name.trim().split(' ').filter(Boolean);
+          if (parts.length === 0) return 'XX';
+          if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+          return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+        };
+        const initials = getInitials(claimNombre || 'USR');
+        const prefix = `PKS-${initials}`;
+        
+        const q = query(collection(db, 'codigos'), where('asignadoAUid', '==', userUid));
+        const userCodigosSnap = await getDocs(q);
+        
+        let maxNum = 0;
+        userCodigosSnap.forEach(docSnap => {
+          const id = docSnap.id;
+          if (id.startsWith(prefix)) {
+            const numStr = id.replace(prefix, '');
+            const num = parseInt(numStr, 10);
+            if (!isNaN(num) && num > maxNum) {
+              maxNum = num;
+            }
+          }
+        });
+        
+        const nextNumStr = (maxNum + 1).toString().padStart(3, '0');
+        const manualCodeId = `${prefix}${nextNumStr}`;
+
+        const newCodeRef = doc(db, 'codigos', manualCodeId);
+        await setDoc(newCodeRef, {
+          valor: invoiceData.manualData.valor,
+          descripcion: invoiceData.manualData.descripcion,
+          centroCosto: invoiceData.manualData.centroCosto || '',
+          retencionMotivo: invoiceData.manualData.retencionMotivo || null,
+          retencionPorcentaje: invoiceData.manualData.retencionPorcentaje || null,
           estado: 'cobrado',
+          estadoAprobacion: 'pendiente',
+          creadoEl: now,
+          asignadoAUid: userUid,
+          asignadoANombre: claimNombre,
           cobradoPor: claimNombre,
           cobradoPorUid: userUid,
           cobradoEl: now,
           cuentaCobroNum: numCuenta,
           firma: firmaData
         });
+      } else {
+        for (const codigo of codigosAProcesar) {
+          const codigoRef = doc(db, 'codigos', codigo.id);
+          await updateDoc(codigoRef, {
+            estado: 'cobrado',
+            cobradoPor: claimNombre,
+            cobradoPorUid: userUid,
+            cobradoEl: now,
+            cuentaCobroNum: numCuenta,
+            firma: firmaData
+          });
+        }
       }
 
       toast({ title: '¡Éxito!', description: `Se ha generado la cuenta de cobro exitosamente.` });
@@ -594,6 +702,9 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
                   <button onClick={() => setShowUploadModal(true)} className="flex items-center gap-2 px-3 py-1.5 bg-[#00e5ff]/10 border border-[#00e5ff]/40 text-[#00e5ff] text-xs font-mono hover:bg-[#00e5ff]/20 transition-colors">
                     <Pencil className="w-3 h-3" /> EDITAR
                   </button>
+                  <button onClick={() => setShowManualInvoiceModal(true)} className="flex items-center gap-2 px-3 py-1.5 bg-[#ff007f]/10 border border-[#ff007f]/40 text-[#ff007f] text-xs font-mono hover:bg-[#ff007f]/20 transition-colors">
+                    <Plus className="w-3 h-3" /> CREAR COBRO MANUAL
+                  </button>
                 </div>
               </motion.div>
 
@@ -668,6 +779,11 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
                               <td className="px-8 py-5">
                                 <span className="text-[#d9faff] font-bold font-mono text-base tracking-widest group-hover:text-[#00e5ff] transition-colors drop-shadow-[0_0_5px_rgba(0,229,255,0)] group-hover:drop-shadow-[0_0_8px_rgba(0,229,255,0.5)]">{c.id}</span>
                                 <div className="text-[10px] text-[#00bfff]/60 font-rajdhani uppercase tracking-widest mt-1.5">{c.descripcion}</div>
+                                {c.estadoAprobacion === 'pendiente' && (
+                                  <div className="mt-1 text-yellow-400 font-orbitron text-[9px] font-bold uppercase tracking-widest animate-pulse">
+                                    PENDIENTE POR APROBACION
+                                  </div>
+                                )}
                               </td>
                               <td className="px-8 py-5">
                                 <span className="text-[#00ff88] font-mono font-bold tracking-[0.1em] drop-shadow-[0_0_5px_rgba(0,255,136,0.3)]">${Number(c.valor).toLocaleString()}</span>
@@ -781,11 +897,11 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
                   </div>
                 </div>
 
-                <div className="flex gap-6 pt-6 relative z-10">
+                <div className="flex flex-col md:flex-row gap-4 pt-6 relative z-10">
                   <button 
                     onClick={() => setShowUploadModal(false)} 
                     disabled={uploadingDocs} 
-                    className="w-1/3 h-14 bg-transparent border border-[#00e5ff]/30 text-[#00e5ff]/60 hover:bg-[#00e5ff]/10 hover:text-[#00e5ff] font-orbitron font-bold text-[11px] uppercase tracking-[0.2em] transition-all hover:shadow-[0_0_15px_rgba(0,229,255,0.2)]"
+                    className="w-full md:w-1/3 h-14 bg-transparent border border-[#00e5ff]/30 text-[#00e5ff]/60 hover:bg-[#00e5ff]/10 hover:text-[#00e5ff] font-orbitron font-bold text-[11px] uppercase tracking-[0.2em] transition-all hover:shadow-[0_0_15px_rgba(0,229,255,0.2)]"
                     style={{ clipPath: 'polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)' }}
                   >
                     ABORTAR
@@ -793,7 +909,7 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
                   <button 
                     onClick={processDocumentAI} 
                     disabled={(!certFileBase64 && !rutFileBase64) || uploadingDocs} 
-                    className={`w-2/3 h-14 flex items-center justify-center font-orbitron font-bold text-[11px] uppercase tracking-[0.2em] transition-all border ${(!certFileBase64 && !rutFileBase64) || uploadingDocs ? 'bg-[#050816] border-[#00ff88]/20 text-[#00ff88]/30 cursor-not-allowed' : 'bg-[#00ff88]/20 border-[#00ff88] text-[#00ff88] hover:bg-[#00ff88]/40 hover:text-white hover:shadow-[0_0_25px_rgba(0,255,136,0.6)]'}`}
+                    className={`w-full md:w-2/3 h-14 flex items-center justify-center font-orbitron font-bold text-[10px] md:text-[11px] uppercase tracking-[0.1em] md:tracking-[0.2em] transition-all border ${(!certFileBase64 && !rutFileBase64) || uploadingDocs ? 'bg-[#050816] border-[#00ff88]/20 text-[#00ff88]/30 cursor-not-allowed' : 'bg-[#00ff88]/20 border-[#00ff88] text-[#00ff88] hover:bg-[#00ff88]/40 hover:text-white hover:shadow-[0_0_25px_rgba(0,255,136,0.6)]'}`}
                     style={{ clipPath: 'polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)' }}
                   >
                     {uploadingDocs ? (
@@ -807,6 +923,114 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
         )}
       </AnimatePresence>
 
+      <AnimatePresence>
+        {/* MANUAL INVOICE MODAL */}
+        {showManualInvoiceModal && (
+          <motion.div 
+            initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+            animate={{ opacity: 1, backdropFilter: "blur(12px)" }}
+            exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+            className="fixed inset-0 z-50 bg-[#050816]/80 flex items-center justify-center p-4 print:hidden"
+          >
+            <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.5)_50%)] bg-[length:100%_4px] opacity-30 mix-blend-overlay z-40"></div>
+            
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-[#081120]/90 backdrop-blur-2xl border border-[#ff007f]/40 shadow-[0_0_80px_rgba(255,0,127,0.15)] w-full max-w-xl relative z-50 overflow-hidden p-6"
+              style={{ clipPath: 'polygon(30px 0, 100% 0, 100% calc(100% - 30px), calc(100% - 30px) 100%, 0 100%, 0 30px)' }}
+            >
+              <div className="flex items-center gap-4 border-b border-[#ff007f]/20 pb-4 mb-6">
+                <div className="p-3 bg-[#ff007f]/10 border border-[#ff007f]/30">
+                  <Plus className="w-6 h-6 text-[#ff007f]" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-orbitron font-bold text-white uppercase tracking-[0.2em] drop-shadow-[0_0_8px_rgba(255,0,127,0.5)]">Crear Cobro Manual</h2>
+                  <p className="text-[10px] text-[#ff007f] font-mono tracking-[0.2em] mt-1">EMISIÓN DIRECTA DE CUENTA DE COBRO</p>
+                </div>
+              </div>
+              
+              <div className="space-y-4 font-mono text-sm max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
+                <div>
+                  <label className="text-[10px] text-[#ff007f] tracking-widest block mb-1">VALOR A COBRAR *</label>
+                  <Input 
+                    type="number" 
+                    value={manualValor} 
+                    onChange={e => setManualValor(e.target.value)} 
+                    placeholder="Ej: 500000"
+                    className="bg-[#050816]/50 border-[#ff007f]/30 text-white focus-visible:ring-[#ff007f]" 
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-[#ff007f] tracking-widest block mb-1">DESCRIPCIÓN DEL COBRO *</label>
+                  <Input 
+                    type="text" 
+                    value={manualDescripcion} 
+                    onChange={e => setManualDescripcion(e.target.value)} 
+                    placeholder="Ej: Servicios de edición de video"
+                    className="bg-[#050816]/50 border-[#ff007f]/30 text-white focus-visible:ring-[#ff007f]" 
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-[#ff007f] tracking-widest block mb-1">CENTRO DE COSTO (OPCIONAL)</label>
+                  <Input 
+                    type="text" 
+                    value={manualCentroCosto} 
+                    onChange={e => setManualCentroCosto(e.target.value)} 
+                    placeholder="Ej: PROYECTO-X"
+                    className="bg-[#050816]/50 border-[#ff007f]/30 text-white focus-visible:ring-[#ff007f]" 
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] text-[#ff007f] tracking-widest block mb-1">MOTIVO DE RETENCIÓN (OPCIONAL)</label>
+                    <Input 
+                      type="text" 
+                      value={manualRetencionMotivo} 
+                      onChange={e => setManualRetencionMotivo(e.target.value)} 
+                      placeholder="Ej: Honorarios"
+                      className="bg-[#050816]/50 border-[#ff007f]/30 text-white focus-visible:ring-[#ff007f]" 
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-[#ff007f] tracking-widest block mb-1">% RETENCIÓN (OPCIONAL)</label>
+                    <Input 
+                      type="number" 
+                      step="0.1"
+                      value={manualRetencionPorcentaje} 
+                      onChange={e => setManualRetencionPorcentaje(e.target.value)} 
+                      placeholder="Ej: 11"
+                      className="bg-[#050816]/50 border-[#ff007f]/30 text-white focus-visible:ring-[#ff007f]" 
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex gap-4 pt-6 mt-4 border-t border-[#ff007f]/20">
+                <button 
+                  onClick={() => setShowManualInvoiceModal(false)}
+                  className="w-1/3 h-12 bg-transparent border border-[#ff007f]/30 text-[#ff007f]/60 hover:bg-[#ff007f]/10 hover:text-[#ff007f] font-orbitron font-bold text-[10px] uppercase tracking-widest transition-all"
+                  style={{ clipPath: 'polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)' }}
+                >
+                  CANCELAR
+                </button>
+                <button 
+                  onClick={generateManualInvoice}
+                  disabled={!manualValor || !manualDescripcion}
+                  className={`w-2/3 h-12 flex items-center justify-center font-orbitron font-bold text-[11px] uppercase tracking-[0.2em] transition-all border ${(!manualValor || !manualDescripcion) ? 'bg-[#050816] border-[#ff007f]/20 text-[#ff007f]/30 cursor-not-allowed' : 'bg-[#ff007f]/20 border-[#ff007f] text-[#ff007f] hover:bg-[#ff007f]/40 hover:text-white hover:shadow-[0_0_20px_rgba(255,0,127,0.5)]'}`}
+                  style={{ clipPath: 'polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)' }}
+                >
+                  EMITIR CUENTA
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+      </AnimatePresence>
+
+      {/* --- INVOICE MODAL --- */}
       <AnimatePresence>
         {showInvoice && invoiceData && (
           <motion.div

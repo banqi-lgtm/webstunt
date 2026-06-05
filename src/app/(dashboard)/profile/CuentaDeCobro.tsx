@@ -24,6 +24,7 @@ interface CuentaDeCobroProps {
   banco: string;
   tipoCuenta: string;
   numeroCuenta: string;
+  ciudad?: string;
   firmaPrevia?: string;
   isHistorical?: boolean;
   onClose: () => void;
@@ -40,6 +41,7 @@ export function CuentaDeCobro({
   banco,
   tipoCuenta,
   numeroCuenta,
+  ciudad,
   firmaPrevia,
   isHistorical,
   onClose,
@@ -229,7 +231,7 @@ export function CuentaDeCobro({
               <div className="space-y-6 print:space-y-4">
                 {/* FECHA */}
                 <div className="border-b border-[#0A0A0A]/20 pb-4 print:pb-2">
-                  <p className="text-sm print:text-xs font-medium text-[#0A0A0A]">Ciudad y Fecha: BELLO, ANTIOQUIA. <span className="font-light">{formattedDate}</span></p>
+                  <p className="text-sm print:text-xs font-medium text-[#0A0A0A]">Ciudad y Fecha: {(ciudad || 'BELLO, ANTIOQUIA').toUpperCase()}. <span className="font-light">{formattedDate}</span></p>
                 </div>
 
                 {/* DATA GRID */}
@@ -301,7 +303,7 @@ export function CuentaDeCobro({
               </div>
 
               {/* FOOTER - BIPARTITE */}
-              <div className="grid grid-cols-2 gap-8 print:gap-4 mt-8 pt-4 border-t border-[#0A0A0A]/20" style={{ pageBreakInside: 'avoid' }}>
+              <div className="flex flex-col sm:grid sm:grid-cols-2 gap-8 print:grid print:grid-cols-2 print:gap-4 mt-8 pt-4 border-t border-[#0A0A0A]/20" style={{ pageBreakInside: 'avoid' }}>
                 {/* SIGNATURE */}
                 <div>
                   <h3 className="font-barlow text-lg font-bold text-[#0D1B3E] uppercase tracking-wide mb-2">Firma de quien cobra</h3>

@@ -70,9 +70,13 @@ export default function InscripcionPage() {
   const [staffCargo, setStaffCargo] = useState('');
   const [staffTelefono, setStaffTelefono] = useState('');
 
-  // Score Card States
-  const [puntaje, setPuntaje] = useState(0);
-  const [puesto, setPuesto] = useState(0);
+  // Invoice view state
+  const [showInvoice, setShowInvoice] = useState(false);
+  const [invoiceData, setInvoiceData] = useState<any>(null);
+
+  // Bypass states
+  const [isPilotBypass, setIsPilotBypass] = useState(false);
+  const [staffRegistered, setStaffRegistered] = useState(false);
   const [totalPilotos, setTotalPilotos] = useState(0);
   const [showQR, setShowQR] = useState(false);
   const [categoriaStr, setCategoriaStr] = useState('N/A');
@@ -387,6 +391,10 @@ export default function InscripcionPage() {
             setStaffCedula(userData.numeroIdentificacion || '');
             setStaffCargo(userData.cargo || '');
             setStaffTelefono(userData.telefono || '');
+            
+            if (userData.rol === 'staff') {
+              setStaffRegistered(true);
+            }
           }
 
           const docRef = doc(db, 'event_registrations', `f2r_${user.uid}`);
@@ -711,20 +719,15 @@ export default function InscripcionPage() {
     }
   };
 
-  const handleStaffSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const quickAssignRole = async (role: 'staff' | 'piloto') => {
     if (!uid) return;
     setIsLoading(true);
     try {
       await updateDoc(doc(db, 'users', uid), {
-        nombres: staffNombre,
-        numeroIdentificacion: staffCedula,
-        cargo: staffCargo,
-        telefono: staffTelefono,
-        rol: 'staff'
+        rol: role
       });
-      toast({ title: 'Staff Registrado', description: 'Has sido registrado como staff exitosamente.' });
-      router.push('/dashboard');
+      toast({ title: role === 'staff' ? 'Staff Asignado' : 'Piloto Asignado', description: `Tu rol ha sido actualizado a ${role.toUpperCase()}.` });
+      setStaffRegistered(true);
     } catch (error: any) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } finally {
@@ -741,7 +744,28 @@ export default function InscripcionPage() {
     );
   }
 
-  if (!isAdminBypass && step !== 3) {
+  if (staffRegistered) {
+    return (
+      <div className="min-h-screen relative overflow-hidden bg-[#121212] flex items-center justify-center p-4">
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#39FF14]/10 blur-[150px] mix-blend-screen pointer-events-none rounded-full"></div>
+        <Card className="max-w-md w-full bg-zinc-950/80 backdrop-blur-xl border-zinc-800/50 shadow-2xl relative z-10 text-center p-8">
+          <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-6" />
+          <h2 className="text-2xl font-black text-white uppercase tracking-widest mb-4">Registro Exitoso</h2>
+          <p className="text-zinc-400 mb-8">
+            Tu rol ha sido actualizado en el sistema correctamente.
+          </p>
+          <Button 
+            onClick={() => router.push('/profile')}
+            className="w-full bg-[#39FF14] hover:bg-[#32E011] text-black font-bold"
+          >
+            VER MI PERFIL
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!isAdminBypass && !isPilotBypass && step !== 3) {
     return (
       <div className="min-h-screen relative overflow-hidden bg-[#121212] flex items-center justify-center p-4">
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#39FF14]/10 blur-[150px] mix-blend-screen pointer-events-none rounded-full"></div>
@@ -751,50 +775,23 @@ export default function InscripcionPage() {
           <p className="text-zinc-400 mb-8">
             Lo sentimos, el periodo de inscripciones para la Copa Stunt F2R ha finalizado.
           </p>
-          <Button 
-            onClick={() => setIsAdminBypass(true)}
-            className="w-full bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 font-bold"
-          >
-            INSCRIBIRSE ADMIN
-          </Button>
-        </Card>
-      </div>
-    );
-  }
-
-  if (isAdminBypass) {
-    return (
-      <div className="min-h-screen relative overflow-hidden bg-[#121212] flex items-center justify-center p-4">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-purple-600/10 blur-[150px] mix-blend-screen pointer-events-none rounded-full"></div>
-        <Card className="max-w-md w-full bg-zinc-950/80 backdrop-blur-xl border-zinc-800/50 shadow-2xl relative z-10 p-8">
-          <Star className="w-12 h-12 text-purple-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-black text-white text-center uppercase tracking-widest mb-6">Registro Staff</h2>
-          <form onSubmit={handleStaffSubmit} className="space-y-4">
-            <div className="space-y-1">
-              <Label className="text-zinc-400 text-xs uppercase">Nombre Completo</Label>
-              <Input required value={staffNombre} onChange={e => setStaffNombre(e.target.value)} className="bg-zinc-900 border-zinc-800 text-white h-12" placeholder="Juan Pérez" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-zinc-400 text-xs uppercase">Cédula</Label>
-              <Input required value={staffCedula} onChange={e => setStaffCedula(e.target.value)} className="bg-zinc-900 border-zinc-800 text-white h-12" placeholder="123456789" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-zinc-400 text-xs uppercase">Cargo</Label>
-              <Input required value={staffCargo} onChange={e => setStaffCargo(e.target.value)} className="bg-zinc-900 border-zinc-800 text-white h-12" placeholder="Ej. Logística" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-zinc-400 text-xs uppercase">Teléfono</Label>
-              <Input required value={staffTelefono} onChange={e => setStaffTelefono(e.target.value)} className="bg-zinc-900 border-zinc-800 text-white h-12" placeholder="3001234567" />
-            </div>
-            <div className="pt-4 flex gap-3 flex-col sm:flex-row">
-              <Button type="button" onClick={() => setIsAdminBypass(false)} variant="outline" className="w-full sm:w-1/3 border-zinc-700 text-zinc-300 h-12">
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isLoading} className="w-full sm:w-2/3 bg-purple-600 hover:bg-purple-500 text-white font-bold h-12 shadow-[0_0_15px_rgba(168,85,247,0.3)]">
-                {isLoading ? 'GUARDANDO...' : 'REGISTRAR'}
-              </Button>
-            </div>
-          </form>
+          <div className="flex flex-col gap-3">
+            <Button 
+              onClick={() => quickAssignRole('staff')}
+              disabled={isLoading}
+              className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold"
+            >
+              {isLoading ? 'GUARDANDO...' : 'SER STAFF'}
+            </Button>
+            <Button 
+              onClick={() => router.push('/profile')}
+              variant="outline"
+              disabled={isLoading}
+              className="w-full border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+            >
+              MI PERFIL
+            </Button>
+          </div>
         </Card>
       </div>
     );

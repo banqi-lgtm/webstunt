@@ -4,10 +4,11 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, getDocs, doc, getDoc, setDoc, deleteDoc, query, where } from 'firebase/firestore';
-import { FileText, Plus, Trash2, CheckCircle, XCircle, Search, Sparkles } from 'lucide-react';
+import { collection, getDocs, doc, getDoc, setDoc, deleteDoc, query, where, updateDoc } from 'firebase/firestore';
+import { FileText, Plus, Trash2, CheckCircle, XCircle, Search, Sparkles, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import { CuentaDeCobro } from '../profile/CuentaDeCobro';
 
 interface Codigo {
   id: string;
@@ -22,6 +23,9 @@ interface Codigo {
   centroCosto?: string;
   retencionMotivo?: string | null;
   retencionPorcentaje?: number | null;
+  estadoAprobacion?: 'pendiente' | 'aprobado' | 'rechazado';
+  cuentaCobroNum?: string;
+  firma?: string;
 }
 
 interface Usuario {
@@ -53,6 +57,10 @@ export default function CodigosAdminPage() {
   const [retencionMotivo, setRetencionMotivo] = useState<string>('');
   const [retencionPorcentaje, setRetencionPorcentaje] = useState<string>('');
   const [isCalculatingRetencion, setIsCalculatingRetencion] = useState(false);
+
+  // Invoice view state
+  const [showInvoice, setShowInvoice] = useState(false);
+  const [invoiceData, setInvoiceData] = useState<any>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -154,24 +162,77 @@ export default function CodigosAdminPage() {
     }
   };
 
-  const handleAddCC = async () => {
+  const handleAddCentroCosto = async () => {
     if (!newCCText.trim()) return;
     try {
-      const ccName = newCCText.trim();
-      await setDoc(doc(db, 'centrosCosto', ccName), {
-        nombre: ccName,
-        creadoEl: new Date().toISOString()
+      await setDoc(doc(db, 'centrosCosto', newCCText.trim().toUpperCase()), {
+        nombre: newCCText.trim().toUpperCase()
       });
-      setCentrosCostoList(prev => [...prev, ccName]);
-      setNewCentroCosto(ccName);
-      setNewCCText('');
+      setCentrosCostoList([...centrosCostoList, newCCText.trim().toUpperCase()]);
+      setNewCentroCosto(newCCText.trim().toUpperCase());
       setIsAddingCC(false);
-      toast({ title: 'Éxito', description: 'Centro de costo añadido.' });
-    } catch(e) {
-      console.error(e);
-      toast({ title: 'Error', description: 'No se pudo guardar el centro de costo.', variant: 'destructive' });
+      setNewCCText('');
+      toast({ title: "Centro de costo añadido" });
+    } catch (e) {
+      toast({ title: "Error", variant: "destructive" });
     }
   };
+
+  const handleAprobar = async (id: string) => {
+    try {
+      await updateDoc(doc(db, 'codigos', id), { estadoAprobacion: 'aprobado' });
+      setCodigos(codigos.map(c => c.id === id ? { ...c, estadoAprobacion: 'aprobado' } : c));
+      toast({ title: "Código aprobado" });
+    } catch (e) {
+      toast({ title: "Error al aprobar", variant: "destructive" });
+    }
+  };
+
+  const handleRechazar = async (id: string) => {
+    try {
+      await updateDoc(doc(db, 'codigos', id), { estadoAprobacion: 'rechazado', estado: 'disponible', cobradoEl: null, cuentaCobroNum: null, firma: null });
+      setCodigos(codigos.map(c => c.id === id ? { ...c, estadoAprobacion: 'rechazado', estado: 'disponible' } : c));
+      toast({ title: "Código rechazado", description: "El código ha vuelto a estar disponible." });
+    } catch (e) {
+      toast({ title: "Error al rechazar", variant: "destructive" });
+    }
+  };
+
+  const handleViewInvoice = async (codigo: Codigo) => {
+    // Find the user who claimed it
+    const userId = codigo.cobradoPorUid || codigo.asignadoAUid;
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    const userData = userDoc.data();
+    
+    if (!userData) {
+      toast({ title: "Error", description: "No se encontró la información del usuario.", variant: "destructive" });
+      return;
+    }
+
+    setInvoiceData({
+      numero: codigo.cuentaCobroNum || 'N/A',
+      fecha: codigo.cobradoEl || codigo.creadoEl,
+      cobradorNombre: userData.nombreCompleto || userData.nombre || codigo.cobradoPor || codigo.asignadoANombre,
+      cobradorDocumento: userData.documentoIdentidad || 'No registrado',
+      valorTotal: codigo.valor,
+      conceptos: [{
+        item: 1,
+        descripcion: codigo.descripcion,
+        valor: codigo.valor,
+        retencionMotivo: codigo.retencionMotivo || null,
+        retencionPorcentaje: codigo.retencionPorcentaje || null
+      }],
+      banco: userData.banco || 'No registrado',
+      tipoCuenta: userData.tipoCuenta || 'No registrado',
+      numeroCuenta: userData.numeroCuenta || 'No registrado',
+      ciudad: userData.ciudad || 'BELLO, ANTIOQUIA',
+      firmaPrevia: codigo.firma,
+      isHistorical: true
+    });
+    setShowInvoice(true);
+  };
+
+  if (hasAccess === null) return <div className="min-h-screen bg-[#050816] flex items-center justify-center text-[#00e5ff] font-orbitron text-xl uppercase tracking-widest animate-pulse">VERIFICANDO_ACCESO...</div>;
 
   const handleCreateCodigo = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -194,7 +255,7 @@ export default function CodigosAdminPage() {
       };
       
       const initials = getInitials(usuarioAsignado.nombre);
-      const prefix = `PASK-${initials}`;
+      const prefix = `PKS-${initials}`;
       
       // Consultar todos los códigos asignados a este usuario
       const q = query(collection(db, 'codigos'), where('asignadoAUid', '==', newAsignadoAUid));
@@ -579,6 +640,21 @@ export default function CodigosAdminPage() {
                                       COBRADO
                                     </span>
                                   </div>
+                                  {c.estadoAprobacion === 'pendiente' && (
+                                    <span className="text-yellow-400 font-orbitron text-[9px] font-bold uppercase tracking-widest ml-4">
+                                      POR APROBAR
+                                    </span>
+                                  )}
+                                  {c.estadoAprobacion === 'aprobado' && (
+                                    <span className="text-emerald-400 font-orbitron text-[9px] font-bold uppercase tracking-widest ml-4">
+                                      APROBADO
+                                    </span>
+                                  )}
+                                  {c.estadoAprobacion === 'rechazado' && (
+                                    <span className="text-rose-400 font-orbitron text-[9px] font-bold uppercase tracking-widest ml-4">
+                                      RECHAZADO
+                                    </span>
+                                  )}
                                   {c.cobradoEl && <span className="text-[9px] font-mono text-zinc-600 uppercase ml-4">Por: {c.cobradoPor}</span>}
                                 </div>
                               )}
@@ -586,14 +662,49 @@ export default function CodigosAdminPage() {
                             
                             {/* Actions */}
                             <td className="px-6 py-4 text-right">
-                              <motion.button 
-                                whileHover={{ scale: 1.1, rotate: 5 }}
-                                whileTap={{ scale: 0.9 }}
-                                onClick={() => handleDeleteCodigo(c.id)}
-                                className="inline-flex items-center justify-center w-8 h-8 rounded bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-[#ff007f] hover:border-[#ff007f]/50 hover:bg-[#ff007f]/10 transition-all shadow-[0_0_0_rgba(255,0,127,0)] hover:shadow-[0_0_15px_rgba(255,0,127,0.3)]"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </motion.button>
+                              <div className="flex items-center justify-end gap-2">
+                                {c.estado === 'cobrado' && c.estadoAprobacion === 'pendiente' && (
+                                  <>
+                                    <motion.button 
+                                      whileHover={{ scale: 1.1 }}
+                                      whileTap={{ scale: 0.9 }}
+                                      onClick={() => handleAprobar(c.id)}
+                                      className="inline-flex items-center justify-center w-8 h-8 rounded bg-zinc-900 border border-zinc-800 text-emerald-500 hover:border-emerald-500/50 hover:bg-emerald-500/10 transition-all"
+                                      title="Aprobar"
+                                    >
+                                      <CheckCircle className="w-4 h-4" />
+                                    </motion.button>
+                                    <motion.button 
+                                      whileHover={{ scale: 1.1 }}
+                                      whileTap={{ scale: 0.9 }}
+                                      onClick={() => handleRechazar(c.id)}
+                                      className="inline-flex items-center justify-center w-8 h-8 rounded bg-zinc-900 border border-zinc-800 text-rose-500 hover:border-rose-500/50 hover:bg-rose-500/10 transition-all"
+                                      title="Rechazar"
+                                    >
+                                      <XCircle className="w-4 h-4" />
+                                    </motion.button>
+                                  </>
+                                )}
+                                {c.estado === 'cobrado' && (
+                                  <motion.button 
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={() => handleViewInvoice(c)}
+                                    className="inline-flex items-center justify-center w-8 h-8 rounded bg-zinc-900 border border-zinc-800 text-[#00e5ff] hover:border-[#00e5ff]/50 hover:bg-[#00e5ff]/10 transition-all"
+                                    title="Ver Cuenta de Cobro"
+                                  >
+                                    <Eye className="w-4 h-4" />
+                                  </motion.button>
+                                )}
+                                <motion.button 
+                                  whileHover={{ scale: 1.1, rotate: 5 }}
+                                  whileTap={{ scale: 0.9 }}
+                                  onClick={() => handleDeleteCodigo(c.id)}
+                                  className="inline-flex items-center justify-center w-8 h-8 rounded bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-[#ff007f] hover:border-[#ff007f]/50 hover:bg-[#ff007f]/10 transition-all shadow-[0_0_0_rgba(255,0,127,0)] hover:shadow-[0_0_15px_rgba(255,0,127,0.3)]"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </motion.button>
+                              </div>
                             </td>
                           </motion.tr>
                         ))}
@@ -619,6 +730,29 @@ export default function CodigosAdminPage() {
           
         </div>
       </div>
+
+      {/* --- INVOICE VIEW MODAL --- */}
+      <AnimatePresence>
+        {showInvoice && invoiceData && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] bg-[#050816]/90 backdrop-blur-xl flex items-center justify-center print:static print:bg-transparent print:h-auto print:overflow-visible print:block"
+          >
+            <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#00ff8815_1px,transparent_1px),linear-gradient(to_bottom,#00ff8815_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-20 pointer-events-none print:hidden"></div>
+            <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.5)_50%)] bg-[length:100%_4px] opacity-30 mix-blend-overlay z-0 print:hidden"></div>
+
+            <div className="relative z-10 w-full max-w-4xl max-h-screen overflow-y-auto custom-scrollbar p-4 print:p-0 print:overflow-visible print:h-auto print:max-h-none">
+              <CuentaDeCobro 
+                {...invoiceData} 
+                onClose={() => setShowInvoice(false)} 
+                onConfirm={() => {}}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
