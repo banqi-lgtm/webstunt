@@ -19,6 +19,7 @@ interface Codigo {
   asignadoAUid: string;
   asignadoANombre: string;
   cobradoPor?: string;
+  cobradoPorUid?: string;
   cobradoEl?: string;
   centroCosto?: string;
   retencionMotivo?: string | null;
