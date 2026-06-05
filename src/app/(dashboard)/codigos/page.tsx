@@ -488,7 +488,7 @@ export default function CodigosAdminPage() {
                           className="w-full bg-[#0b0b0f] border border-zinc-800 text-zinc-300 rounded-md h-12 px-4 focus:outline-none focus:border-[#ff007f] focus:ring-1 focus:ring-[#ff007f] transition-all"
                           autoFocus
                         />
-                        <button type="button" onClick={handleAddCC} className="bg-[#ff007f]/20 text-[#ff007f] border border-[#ff007f]/50 px-4 rounded-md font-orbitron font-bold text-xs hover:bg-[#ff007f]/40 transition-all">
+                        <button type="button" onClick={handleAddCentroCosto} className="bg-[#ff007f]/20 text-[#ff007f] border border-[#ff007f]/50 px-4 rounded-md font-orbitron font-bold text-xs hover:bg-[#ff007f]/40 transition-all">
                           GUARDAR
                         </button>
                         <button type="button" onClick={() => {setIsAddingCC(false); setNewCCText('');}} className="bg-zinc-800 text-zinc-400 px-4 rounded-md font-orbitron font-bold text-xs hover:bg-zinc-700 hover:text-white transition-all">
