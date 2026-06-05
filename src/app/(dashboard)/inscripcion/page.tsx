@@ -85,6 +85,8 @@ export default function InscripcionPage() {
   const [observacionesList, setObservacionesList] = useState<{ judgeId: string, text: string }[]>([]);
   const [isObservacionesOpen, setIsObservacionesOpen] = useState(false);
   const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
+  const [puntaje, setPuntaje] = useState(0);
+  const [puesto, setPuesto] = useState(0);
 
   const fetchLeaderboard = async (uidStr: string, targetCat: string) => {
     try {
