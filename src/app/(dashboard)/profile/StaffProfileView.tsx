@@ -21,6 +21,9 @@ interface Codigo {
   firma?: string;
   retencionMotivo?: string | null;
   retencionPorcentaje?: number | null;
+  estadoAprobacion?: 'pendiente' | 'aprobado' | 'rechazado';
+  cobradoPorUid?: string;
+  centroCosto?: string;
 }
 
 export function StaffProfileView({ userUid, userName, userDocument }: { userUid: string, userName: string, userDocument: string }) {
