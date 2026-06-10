@@ -24,7 +24,6 @@ export default function Home() {
   const [modalView, setModalView] = useState<'flyer' | 'reglamento' | 'programacion'>('flyer');
 
   useEffect(() => {
-    setIsWhatsappModalOpen(true);
     if (typeof window !== 'undefined' && window.location.hash === '#login') {
       setIsLoginState(true);
     }
