@@ -1,455 +1,492 @@
 'use client';
 
-import { AuthForm } from '@/components/auth-form';
-import { Button } from '@/components/ui/button';
-import { Shield, Settings, Globe, MapPin, Calendar, CheckCircle2, ChevronRight, AlertTriangle, ShieldCheck, Ticket, ScrollText, Flag, Check, Gift } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AuthForm } from '@/components/auth-form';
+import { Play, ArrowRight, ArrowUpRight, Check, X, Menu, Facebook, Instagram, Trophy, TrendingUp, Zap, Target, Users, ShieldCheck, PlayCircle, MapPin, Calendar, Star, Ticket, Activity, Phone, Mail, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 
 const SPONSOR_LOGOS = [
-  { src: "/sponsors/Copa Stunt Nitrox Blanco.png", alt: "Copa Stunt", className: "h-12 md:h-16 lg:h-20 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.4)] shrink-0" },
-  { src: "/sponsors/Nitrox Blanco.png", alt: "Nitrox", className: "h-10 md:h-12 lg:h-16 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.3)] shrink-0" },
-  { src: "/sponsors/Mobil Blanco.png", alt: "Mobil Super", className: "h-10 md:h-12 lg:h-16 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.3)] shrink-0" },
-  { src: "/sponsors/PKS Blanco.png", alt: "PKS", className: "h-8 md:h-10 lg:h-12 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] shrink-0" },
-  { src: "/sponsors/copa stunt nitrox f2r.png", alt: "F2R", className: "h-10 md:h-12 lg:h-14 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] shrink-0" },
-  { src: "/sponsors/Trakku.png", alt: "Trakku", className: "h-8 md:h-10 lg:h-12 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] shrink-0" },
-  { src: "/sponsors/IRC Blanco.png", alt: "IRC", className: "h-8 md:h-10 lg:h-12 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] shrink-0" },
-  { src: "/sponsors/Fedemoto.png", alt: "Fedemoto", className: "h-8 md:h-10 lg:h-12 object-contain drop-shadow-[0_0_5px_rgba(255,255,255,0.2)] shrink-0" }
+  { src: "/sponsors/Copa Stunt Nitrox Blanco.png", alt: "Copa Stunt" },
+  { src: "/sponsors/Nitrox Blanco.png", alt: "Nitrox" },
+  { src: "/sponsors/Mobil Blanco.png", alt: "Mobil Super" },
+  { src: "/sponsors/PKS Blanco.png", alt: "PKS" },
+  { src: "/sponsors/copa stunt nitrox f2r.png", alt: "F2R" },
+  { src: "/sponsors/Trakku.png", alt: "Trakku" },
+  { src: "/sponsors/IRC Blanco.png", alt: "IRC" },
+  { src: "/sponsors/Fedemoto.png", alt: "Fedemoto" }
+];
+
+const SPORNS_IMAGES = [
+  "/sponsors/SPORNS/DSC05568.JPG", "/sponsors/SPORNS/DSC05571.JPG", "/sponsors/SPORNS/DSC05598.JPG",
+  "/sponsors/SPORNS/DSC05616.JPG", "/sponsors/SPORNS/DSC05624.JPG", "/sponsors/SPORNS/DSC05641.JPG",
+  "/sponsors/SPORNS/DSC05644.JPG", "/sponsors/SPORNS/DSC05654.JPG", "/sponsors/SPORNS/DSC05659.JPG",
+  "/sponsors/SPORNS/DSC05692.JPG", "/sponsors/SPORNS/DSC05699.JPG", "/sponsors/SPORNS/DSC05763.JPG",
+  "/sponsors/SPORNS/DSC05791.JPG", "/sponsors/SPORNS/DSC05806.JPG", "/sponsors/SPORNS/DSC05809.JPG"
 ];
 
 export default function Home() {
-  const [isLoginState, setIsLoginState] = useState(false);
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [isWhatsappModalOpen, setIsWhatsappModalOpen] = useState(false);
-  const [modalView, setModalView] = useState<'flyer' | 'reglamento' | 'programacion'>('flyer');
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [currentHeroImgIndex, setCurrentHeroImgIndex] = useState(0);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.location.hash === '#login') {
-      setIsLoginState(true);
-    }
+    const handleScroll = () => setIsScrolled(window.scrollY > 50);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentHeroImgIndex(prev => (prev + 1) % SPORNS_IMAGES.length);
+    }, 3000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
-    <main className="relative min-h-screen w-full overflow-x-hidden bg-black text-zinc-200 selection:bg-[#00FF00] selection:text-black font-body flex flex-col">
+    <main className="min-h-screen bg-[#080808] text-white selection:bg-[#B4FF00] selection:text-black font-inter overflow-x-hidden">
       
-      {/* Navigation Header */}
-      <nav className="w-full relative z-50 px-4 md:px-6 py-3 flex items-center justify-between max-w-[1800px] mx-auto drop-shadow-2xl flex-shrink-0">
-        <div className="flex items-center shrink-0 mr-2">
-          <a href="/" className="cursor-pointer transition-opacity hover:opacity-80">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/sponsors/PKS Blanco.png" alt="Paskines Stunt" className="h-5 md:h-8 w-auto object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]" />
-          </a>
-        </div>
-        
-        <div className="flex bg-[#111111]/90 backdrop-blur-md p-1 md:p-1.5 rounded-xl border border-zinc-800/80 shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
-          <Button 
-            onClick={() => { 
-              setIsLoginState(false); 
-              window.location.hash = ''; 
-              document.getElementById('auth-form-section')?.scrollIntoView({ behavior: 'smooth' });
-            }} 
-            className={`rounded-lg px-3 md:px-6 h-7 md:h-9 text-[10px] md:text-sm font-bold transition-all duration-300 ${!isLoginState ? 'bg-[#39FF14] text-black shadow-[0_0_20px_rgba(57,255,20,0.4)] hover:bg-[#2CE50F] hover:shadow-[0_0_30px_rgba(57,255,20,0.6)]' : 'bg-transparent text-zinc-500 hover:text-white hover:bg-zinc-800/50'}`}
-          >
-            Inscripción
-          </Button>
-          <Button 
-            onClick={() => { 
-              setIsLoginState(true); 
-              window.location.hash = '#login'; 
-              document.getElementById('auth-form-section')?.scrollIntoView({ behavior: 'smooth' });
-            }} 
-            className={`rounded-lg px-3 md:px-6 h-7 md:h-9 text-[10px] md:text-sm font-bold transition-all duration-300 ${isLoginState ? 'bg-[#39FF14] text-black shadow-[0_0_20px_rgba(57,255,20,0.4)] hover:bg-[#2CE50F] hover:shadow-[0_0_30px_rgba(57,255,20,0.6)]' : 'bg-transparent text-zinc-500 hover:text-white hover:bg-zinc-800/50'}`}
-          >
-            Iniciar Sesión
-          </Button>
+      {/* NAVBAR */}
+      <nav className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${isScrolled ? 'bg-[#0D0D0D]/95 backdrop-blur-md py-4 shadow-lg shadow-black/50 border-b border-[#1C1C1C]' : 'bg-transparent py-6'}`}>
+        <div className="max-w-[1400px] mx-auto px-6 flex items-center justify-between">
+          <img src="/sponsors/PKS Blanco.png" alt="PKS" className="h-8 md:h-10 object-contain drop-shadow-md" />
+          
+          <div className="hidden lg:flex items-center gap-6 xl:gap-8">
+            {['Inscripción Pilotos', 'Contáctanos', 'Galería', 'Podios'].map(item => (
+              <a key={item} href="#" className="text-[11px] font-medium uppercase tracking-[0.12em] text-[#888888] hover:text-white transition-colors relative group">
+                {item}
+                <span className="absolute -bottom-1 left-0 w-0 h-[2px] bg-[#B4FF00] transition-all duration-300 group-hover:w-full"></span>
+              </a>
+            ))}
+          </div>
+
+          <div className="hidden lg:flex">
+            <button 
+              onClick={() => setShowAuthModal(true)}
+              className="bg-[#FF3B1F] hover:bg-[#FF553D] text-white font-bebas text-xl px-6 py-2 tracking-wide transition-colors"
+            >
+              INSCRÍBETE AHORA
+            </button>
+          </div>
+
+          <button className="lg:hidden text-white" onClick={() => setIsMobileMenuOpen(true)}>
+            <Menu size={28} />
+          </button>
         </div>
       </nav>
 
-      {/* Main Layout Container */}
-      <div className="max-w-[1800px] mx-auto w-full flex-1 flex flex-col relative z-10 px-4 md:px-8 pb-10 lg:pb-12 gap-8 lg:gap-12 mt-4">
+      {/* MOBILE MENU */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-[100] bg-[#080808] flex flex-col justify-center items-center">
+          <div className="absolute top-0 left-0 w-full flex items-center justify-between p-6">
+            <img src="/sponsors/PKS Blanco.png" alt="PKS" className="h-10" />
+            <button onClick={() => setIsMobileMenuOpen(false)} className="text-[#FF3B1F] hover:text-[#FF553D] transition-colors">
+              <X size={36} strokeWidth={1.5} />
+            </button>
+          </div>
+          
+          <div className="flex flex-col items-center gap-8 mt-12 w-full px-6 text-center">
+            {['Inscripción Pilotos', 'Contáctanos', 'Galería', 'Podios'].map(item => (
+              <button key={item} className="font-bebas text-5xl uppercase tracking-tight text-white hover:text-[#B4FF00] transition-colors w-full border-b border-[#1C1C1C] pb-4">
+                {item}
+              </button>
+            ))}
+            <button 
+              onClick={() => { setIsMobileMenuOpen(false); setShowAuthModal(true); }}
+              className="mt-6 bg-[#FF3B1F] text-white font-bebas text-3xl py-4 w-full"
+            >
+              INSCRÍBETE AHORA
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* SEC 1: HERO */}
+      <section className="relative w-full min-h-[95vh] flex flex-col justify-center px-6 overflow-hidden bg-[#080808] pt-24" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 92%, 0 100%)' }}>
+        {/* BACKGROUND SLIDER (RIGHT SIDE ONLY) */}
+        <div 
+          className="absolute right-0 top-0 w-full lg:w-[65%] h-full pointer-events-none z-0 overflow-hidden"
+          style={{
+            WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 30%)',
+            maskImage: 'linear-gradient(to right, transparent 0%, black 30%)'
+          }}
+        >
+          {SPORNS_IMAGES.map((img, idx) => (
+            <div 
+              key={img}
+              className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out ${idx === currentHeroImgIndex ? 'opacity-100' : 'opacity-0'}`}
+              style={{ 
+                backgroundImage: `url('${img}')`, 
+                backgroundSize: 'cover', 
+                backgroundPosition: 'center',
+                transform: 'scaleX(-1)'
+              }}
+            ></div>
+          ))}
+        </div>
         
-        {/* TOP ROW: Hero/Value (Left) & Form (Right) */}
-        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 w-full">
+        {/* Extra text shadow gradient for mobile readability */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#080808] via-[#080808]/80 to-transparent pointer-events-none z-0 lg:hidden"></div>
 
-          {/* LEFT COLUMN: Hero & Value (Approx 60%) */}
-          <div className="w-full lg:w-[60%] flex flex-col relative gap-8">
+        <div className="relative z-10 max-w-[1280px] mx-auto w-full pt-16 pb-32">
+          {/* SLIDER CONTROLS */}
+          <div className="absolute right-0 bottom-32 hidden md:flex gap-4 pr-6 z-20 pointer-events-auto">
+            <button 
+              onClick={() => setCurrentHeroImgIndex(prev => prev === 0 ? SPORNS_IMAGES.length - 1 : prev - 1)}
+              className="w-12 h-12 rounded-full border border-white/30 flex items-center justify-center text-white hover:bg-[#B4FF00] hover:text-black hover:border-[#B4FF00] transition-colors"
+            >
+              <ChevronLeft size={24} />
+            </button>
+            <button 
+              onClick={() => setCurrentHeroImgIndex(prev => (prev + 1) % SPORNS_IMAGES.length)}
+              className="w-12 h-12 rounded-full border border-white/30 flex items-center justify-center text-white hover:bg-[#B4FF00] hover:text-black hover:border-[#B4FF00] transition-colors"
+            >
+              <ChevronRight size={24} />
+            </button>
+          </div>
 
-          {/* HERO CONTENT — Title + Moto image */}
-          <div className="relative z-10 mt-2 lg:mt-6">
-            {/* BACKGROUND EFFECTS & MOTO */}
-            {/* BACKGROUND EFFECTS & MOTO */}
-            <div className="absolute inset-0 pointer-events-none z-0 overflow-visible">
-              {/* Subtle Green Neon Glow acting as a separator/highlight */}
-              <div className="absolute top-[80px] right-[100px] md:right-[250px] w-[150px] md:w-[250px] h-[200px] md:h-[300px] bg-[#39FF14] opacity-[0.12] blur-[80px] rounded-full mix-blend-screen"></div>
+          <span className="text-[#FF3B1F] font-bebas italic text-3xl md:text-5xl uppercase tracking-tight mb-2 block drop-shadow-md">
+            NO MONTAMOS EVENTOS.
+          </span>
+          <h1 className="flex flex-col max-w-5xl mb-6">
+            <span className="font-bebas italic text-6xl md:text-8xl lg:text-[110px] text-white uppercase tracking-tight leading-[0.85] drop-shadow-2xl">
+              CREAMOS <span className="text-[#B4FF00]">MOMENTOS</span>
+            </span>
+            <span className="font-bebas italic text-6xl md:text-8xl lg:text-[110px] text-white uppercase tracking-tight leading-[0.85] drop-shadow-2xl mt-1">
+              QUE LA INDUSTRIA
+            </span>
+            <span className="font-bebas italic text-6xl md:text-8xl lg:text-[110px] text-[#B4FF00] uppercase tracking-tight leading-[0.85] drop-shadow-[0_0_30px_rgba(180,255,0,0.3)] mt-1">
+              NUNCA OLVIDA.
+            </span>
+          </h1>
+          
+          <span className="text-[#888888] font-inter font-medium text-[10px] md:text-xs uppercase tracking-[0.12em] flex items-center gap-3 mb-10">
+            EXPERIENCIAS <span className="text-[#B4FF00]">●</span> PRODUCCIÓN <span className="text-[#B4FF00]">●</span> COMPETENCIA <span className="text-[#B4FF00]">●</span> TECNOLOGÍA
+          </span>
+          
+          <div className="flex flex-col sm:flex-row gap-8 items-center">
+            <button onClick={() => setShowAuthModal(true)} className="bg-[#B4FF00] hover:bg-[#9fe000] text-black font-inter font-bold text-[12px] px-8 py-4 tracking-widest uppercase flex items-center gap-3 transition-transform hover:-translate-y-1">
+              EXPLORA NUESTRO UNIVERSO <ArrowUpRight size={18} strokeWidth={2.5} />
+            </button>
+            <button className="bg-transparent text-white font-inter text-[11px] font-bold tracking-widest flex items-center gap-4 transition-all hover:text-[#B4FF00] uppercase group">
+              <div className="w-12 h-12 rounded-full border border-white/30 group-hover:border-[#B4FF00] flex items-center justify-center transition-colors">
+                <Play fill="currentColor" size={16} className="ml-1" />
+              </div>
+              <div className="flex flex-col text-left">
+                <span>VER SHOWREEL</span>
+                <span className="text-[#888888] font-medium text-[9px] mt-0.5 group-hover:text-white transition-colors">PLAY VIDEO</span>
+              </div>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* SEC 2: VALUE PROP (3 CARDS) */}
+      <section className="py-16 px-6 max-w-[1400px] mx-auto -mt-16 relative z-20">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Card 1: Marcas */}
+          <div className="group relative bg-[#111111] rounded-xl overflow-hidden border border-[#1C1C1C] min-h-[380px] flex flex-col justify-end p-8 transition-all hover:border-[#333] shadow-2xl">
+            <div className="absolute inset-0 z-0 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-t from-[#111] via-[#111]/80 to-transparent z-10 transition-opacity duration-500"></div>
+              <div className="w-full h-full bg-cover bg-center transform group-hover:scale-[1.04] transition-transform duration-700" style={{ backgroundImage: `url('/sponsors/fondo1.jpg')`, opacity: 0.5 }}></div>
+            </div>
+            <div className="relative z-10 flex flex-col gap-3">
+              <div className="flex items-baseline gap-2 mb-2">
+                <span className="font-oswald text-4xl text-[#FF3B1F]">01</span>
+                <h3 className="font-bebas text-4xl text-white tracking-wide leading-none">PARA MARCAS</h3>
+              </div>
+              <p className="text-[#888888] text-[15px] leading-relaxed mb-4">Activaciones, lanzamientos y experiencias BTL que conectan tu marca con las personas correctas.</p>
+              <button className="bg-transparent border border-[#FF3B1F]/30 text-white hover:border-[#FF3B1F] text-[11px] font-bold uppercase tracking-widest px-4 py-2 rounded-sm w-max transition-colors flex items-center gap-2">
+                VER SERVICIOS <ArrowUpRight size={14} className="text-[#FF3B1F]" />
+              </button>
+            </div>
+          </div>
+
+          {/* Card 2: Campeonatos */}
+          <div className="group relative bg-[#111111] rounded-xl overflow-hidden border border-[#1C1C1C] min-h-[380px] flex flex-col justify-end p-8 transition-all hover:border-[#333] shadow-2xl">
+            <div className="absolute inset-0 z-0 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-t from-[#111] via-[#111]/80 to-transparent z-10 transition-opacity duration-500"></div>
+              <div className="w-full h-full bg-cover bg-center transform group-hover:scale-[1.04] transition-transform duration-700" style={{ backgroundImage: `url('/sponsors/stunt2026negro.jpeg')`, opacity: 0.4 }}></div>
+            </div>
+            <div className="relative z-10 flex flex-col gap-3">
+              <div className="flex items-baseline gap-2 mb-2">
+                <span className="font-oswald text-4xl text-[#B4FF00]">02</span>
+                <h3 className="font-bebas text-4xl text-white tracking-wide leading-none">CAMPEONATOS</h3>
+              </div>
+              <p className="text-[#888888] text-[15px] leading-relaxed mb-4">Creamos y producimos los campeonatos de stunt más importantes de Colombia.</p>
+              <div className="flex flex-col gap-2">
+                <a href="#" className="flex items-center gap-2 text-white text-[12px] font-bold uppercase tracking-widest hover:text-[#B4FF00] transition-colors">
+                  <ArrowUpRight size={16} className="text-[#B4FF00]" /> COPA STUNT COLOMBIA
+                </a>
+                <a href="#" className="flex items-center gap-2 text-white text-[12px] font-bold uppercase tracking-widest hover:text-[#B4FF00] transition-colors">
+                  <ArrowUpRight size={16} className="text-[#B4FF00]" /> STUNT DAY
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 3: Tecnología */}
+          <div className="group relative bg-[#111111] rounded-xl overflow-hidden border border-[#1C1C1C] min-h-[380px] flex flex-col justify-end p-8 transition-all hover:border-[#333] shadow-2xl">
+            <div className="absolute inset-0 z-0 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-t from-[#111] via-[#111]/80 to-transparent z-10 transition-opacity duration-500"></div>
+              <div className="w-full h-full bg-cover bg-center transform group-hover:scale-[1.04] transition-transform duration-700" style={{ backgroundImage: `url('/sponsors/fondo1.jpg')`, opacity: 0.3 }}></div>
+            </div>
+            <div className="relative z-10 flex flex-col gap-3">
+              <div className="flex items-baseline gap-2 mb-2">
+                <span className="font-oswald text-4xl text-[#FFD200]">03</span>
+                <h3 className="font-bebas text-4xl text-white tracking-wide leading-none">TECNOLOGÍA</h3>
+              </div>
+              <p className="text-[#888888] text-[15px] leading-relaxed mb-4">PKNX es nuestro ecosistema digital que conecta pilotos, organización, marcas y audiencia en tiempo real.</p>
+              <button className="bg-transparent border border-[#FFD200]/30 text-white hover:border-[#FFD200] text-[11px] font-bold uppercase tracking-widest px-4 py-2 rounded-sm w-max transition-colors flex items-center gap-2">
+                CONOCE PKNX <ArrowUpRight size={14} className="text-[#FFD200]" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SEC 3: STATS BAR (5 COLUMNS) */}
+      <section className="bg-transparent border-y border-[#1C1C1C] py-12 relative z-10">
+        <div className="max-w-[1400px] mx-auto px-6 grid grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-0 divide-x-0 lg:divide-x divide-[#1C1C1C]">
+          {[
+            { icon: Calendar, val: '200+', label: 'EVENTOS REALIZADOS', label2: 'EVENTOS', label3: 'REALIZADOS' },
+            { icon: Users, val: '150K+', label: 'ASISTENTES IMPACTADOS', label2: 'ASISTENTES', label3: 'IMPACTADOS' },
+            { icon: Star, val: '20+', label: 'MARCAS ALIADAS', label2: 'MARCAS', label3: 'ALIADAS' },
+            { icon: MapPin, val: '12', label: 'CIUDADES', label2: 'CIUDADES', label3: '' },
+            { icon: Trophy, val: '8', label: 'AÑOS DE EXPERIENCIA', label2: 'AÑOS DE', label3: 'EXPERIENCIA' },
+          ].map((stat, i) => (
+            <div key={i} className="flex items-center justify-center gap-6 px-4">
+              <stat.icon className="w-10 h-10 text-[#B4FF00] shrink-0" strokeWidth={1.5} />
+              <div className="flex flex-col text-left">
+                <span className="font-inter font-bold text-3xl text-white leading-none mb-1">{stat.val}</span>
+                <span className="font-inter font-medium text-[10px] uppercase tracking-wider text-[#888888] leading-[1.2]">
+                  {stat.label2}<br/>{stat.label3}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* SEC 4: LOGO STRIP */}
+      <section className="py-20 overflow-hidden bg-[#080808]">
+        <div className="max-w-[1400px] mx-auto px-6 mb-12 text-center">
+          <span className="text-[#888888] font-inter font-medium text-[11px] uppercase tracking-[0.15em]">MARCAS QUE CONFÍAN EN NOSOTROS</span>
+        </div>
+        <div className="w-full inline-flex flex-nowrap overflow-hidden [mask-image:_linear-gradient(to_right,transparent_0,_black_128px,_black_calc(100%-128px),transparent_100%)]">
+          <div className="flex items-center justify-center md:justify-start [&_img]:max-w-none animate-marquee gap-16 md:gap-24 px-8">
+            {[...SPONSOR_LOGOS, ...SPONSOR_LOGOS].map((logo, idx) => (
+              <img key={idx} src={logo.src} alt={logo.alt} className="h-8 md:h-12 object-contain grayscale hover:grayscale-0 transition-all duration-300 opacity-60 hover:opacity-100 cursor-pointer" />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* SEC 5: PORTFOLIO (5 CARDS HORIZONTAL) */}
+      <section className="py-10 px-6 max-w-[1400px] mx-auto">
+        <div className="text-center mb-10">
+          <span className="text-[#888888] font-inter font-medium text-[11px] uppercase tracking-[0.15em]">CASOS DE ÉXITO</span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          {[
+            { title: 'COPA STUNT COLOMBIA', img: '/sponsors/fondo1.jpg', s1: '+450 PILOTOS', s2: '+15K ASISTENTES' },
+            { title: 'STUNT DAY MEDELLÍN', img: '/sponsors/stunt2026negro.jpeg', s1: '+120 PILOTOS', s2: '+5K ASISTENTES' },
+            { title: 'AUTECO MOBILITY', img: '/sponsors/fondo1.jpg', s1: 'ACTIVACIÓN', s2: 'BTL' },
+            { title: 'SUZUKI LAUNCH EXPERIENCE', img: '/sponsors/stunt2026negro.jpeg', s1: 'LANZAMIENTO', s2: 'NACIONAL' },
+            { title: 'MRX FOX CAMP', img: '/sponsors/fondo1.jpg', s1: 'EXPERIENCIA', s2: 'OFFROAD' },
+          ].map((item, idx) => (
+            <div key={idx} className="group relative bg-[#111] border border-[#1C1C1C] rounded-lg overflow-hidden h-[300px] lg:h-[400px] flex flex-col justify-between p-6 cursor-pointer hover:border-[#444] transition-colors">
+              <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105 opacity-50" style={{ backgroundImage: `url('${item.img}')` }}></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/20"></div>
               
-              {/* Background Screenshot image — heavily faded on the left to leave the logo area completely clean */}
-              <div className="absolute top-0 md:top-[-40px] right-[-80px] md:right-[-80px] w-[500px] h-[500px] md:w-[900px] md:h-[800px] opacity-70 md:opacity-90"
-                   style={{ 
-                     WebkitMaskImage: 'linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 45%, rgba(0,0,0,1) 85%), linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 15%, rgba(0,0,0,1) 85%, rgba(0,0,0,0) 100%)', 
-                     WebkitMaskComposite: 'destination-in',
-                     maskImage: 'linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 45%, rgba(0,0,0,1) 85%), linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 15%, rgba(0,0,0,1) 85%, rgba(0,0,0,0) 100%)',
-                     maskComposite: 'intersect'
-                   }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/sponsors/Screenshot 2026-04-24 175445.png" alt="Stunt Rider Background" className="w-full h-full object-contain object-right" />
+              <div className="relative z-10">
+                <h3 className="font-bebas text-3xl text-white tracking-wide leading-[1.1] shadow-black drop-shadow-md">
+                  {item.title.split(' ').map((word, i) => <span key={i} className="block">{word}</span>)}
+                </h3>
               </div>
-            </div>
-            {/* Title Logo replacing text title */}
-            <div className="relative z-10 w-[180px] md:w-[240px] lg:w-[280px] mb-4 drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)]">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/sponsors/copa stunt nitrox f2r.png" alt="Copa Stunt Colombia F2R 2026" className="w-full h-auto object-contain" />
-            </div>
-            
-            {/* Subtitle */}
-            <div className="relative z-10 flex flex-col gap-1 mt-2">
-              <h2 className="text-white font-bold text-xl md:text-2xl uppercase tracking-wide">
-                EL CAMPEONATO DE STUNT
-              </h2>
-              <h2 className="text-[#FFB700] font-bold text-xl md:text-2xl uppercase tracking-wide drop-shadow-[0_0_8px_rgba(255,183,0,0.5)]">
-                MÁS IMPORTANTE DEL PAÍS
-              </h2>
-            </div>
-
-            {/* Location and Date */}
-            <div className="relative z-10 flex flex-wrap items-start gap-8 mt-6">
-              <div className="flex items-start gap-3">
-                <MapPin className="w-6 h-6 text-[#39FF14] mt-0.5" strokeWidth={2} />
-                <div className="flex flex-col">
-                  <span className="text-white font-bold tracking-wide text-sm uppercase">MEDELLÍN, COLOMBIA</span>
-                  <span className="text-zinc-400 font-medium text-xs uppercase">PLAZA MAYOR</span>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <Calendar className="w-6 h-6 text-[#39FF14] mt-0.5" strokeWidth={2} />
-                <div className="flex flex-col">
-                  <span className="text-white font-bold tracking-wide text-sm uppercase">21 AL 24</span>
-                  <span className="text-zinc-400 font-medium text-xs uppercase">MAYO 2026</span>
-                </div>
-              </div>
-            </div>
-
-            {/* CTA Buttons */}
-            <div className="relative z-10 mt-6 md:mt-8 mb-6 flex flex-row flex-wrap gap-3 md:gap-4 w-fit">
-              <Button 
-                onClick={() => { setModalView('programacion'); setIsWhatsappModalOpen(true); }}
-                className="bg-gradient-to-r from-[#FFB700] to-[#FFD500] text-black font-black uppercase tracking-widest text-[10px] md:text-xs px-4 md:px-8 h-10 md:h-14 rounded-md hover:scale-105 transition-transform shadow-[0_0_15px_rgba(255,183,0,0.4)] flex items-center justify-center w-fit"
-              >
-                PROGRAMACIÓN
-              </Button>
-              <Button 
-                onClick={() => { setModalView('reglamento'); setIsWhatsappModalOpen(true); }}
-                className="bg-gradient-to-r from-[#FFB700] to-[#FFD500] text-black font-black uppercase tracking-widest text-[10px] md:text-xs px-4 md:px-8 h-10 md:h-14 rounded-md hover:scale-105 transition-transform shadow-[0_0_15px_rgba(255,183,0,0.4)] flex items-center justify-center w-fit"
-              >
-                REGLAMENTO
-              </Button>
-            </div>
-
-            {/* Feature Strip */}
-            <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-6 py-6 border-t border-b border-white/10 mt-4 mb-6">
-              {/* 1. Respaldado por */}
-              <div className="flex items-center gap-4">
-                <Shield className="w-8 h-8 text-[#39FF14] shrink-0" strokeWidth={1.5} />
+              
+              <div className="relative z-10 w-full flex items-end justify-between mt-auto">
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-xs text-white uppercase font-bold tracking-wide leading-snug">RESPALDADO POR</span>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/sponsors/Fedemoto.png" alt="Fedemoto" className="h-12 md:h-16 w-auto object-contain object-left" />
+                  <div className="flex items-center gap-2 text-[#888888] text-[10px] font-bold tracking-wider"><Users size={12} className="text-white" /> {item.s1}</div>
+                  <div className="flex items-center gap-2 text-[#888888] text-[10px] font-bold tracking-wider"><Target size={12} className="text-white" /> {item.s2}</div>
                 </div>
-              </div>
-              
-              {/* 2. Evento Oficial */}
-              <div className="flex items-center gap-4">
-                <ShieldCheck className="w-8 h-8 text-[#39FF14] shrink-0" strokeWidth={1.5} />
-                <p className="text-xs text-white uppercase font-bold tracking-wide leading-snug">
-                  EVENTO OFICIAL <br/>
-                  <span className="text-[#39FF14]">EN EL MARCO DE LA<br/>FERIA 2 RUEDAS</span>
-                </p>
-              </div>
-              
-              {/* 3. Pilotos de todo el país */}
-              <div className="flex items-center gap-4">
-                <Globe className="w-8 h-8 text-[#39FF14] shrink-0" strokeWidth={1.5} />
-                <p className="text-xs text-white uppercase font-bold tracking-wide leading-snug">
-                  PILOTOS DE TODO <br/>
-                  <span className="text-[#39FF14]">EL PAÍS EN UN<br/>ESCENARIO ÚNICO</span>
-                </p>
+                <div className="w-8 h-8 rounded-full border border-white/30 flex items-center justify-center text-white group-hover:bg-white group-hover:text-black transition-all">
+                  <ArrowUpRight size={16} />
+                </div>
               </div>
             </div>
+          ))}
+        </div>
+      </section>
 
-          </div>
-
-          <div className="relative z-10 w-full">
-            {/* VALUE MODULE (Cards Row) - 3 Columns Layout */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              
-              {/* Card 1: Fechas y Costos */}
-              <div className="bg-[#0a0a0a]/90 backdrop-blur-md border border-white/10 rounded-xl p-5 lg:p-6 shadow-[0_10px_30px_rgba(0,0,0,0.5)] relative overflow-hidden flex flex-col group">
-                <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-[#39FF14] to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <div className="flex items-center gap-2 mb-6 text-[#39FF14]">
-                  <Calendar className="w-5 h-5" strokeWidth={2.5} />
-                  <span className="font-black text-sm uppercase tracking-widest">FECHAS Y COSTOS</span>
-                </div>
-                
-                <div className="flex flex-col gap-6 flex-grow">
-                  <div>
-                    <h4 className="text-white font-bold text-xs uppercase mb-2">INSCRIPCIONES EXTEMPORALES</h4>
-                    <div className="flex justify-between items-center bg-white/5 rounded px-3 py-2 border border-white/10">
-                      <span className="text-zinc-300 text-xs font-medium">11 AL 15 MAY</span>
-                      <span className="text-[#39FF14] font-black text-sm">$350.000</span>
-                    </div>
-                  </div>
-                </div>
-
-                <p className="text-zinc-500 text-[10px] italic mt-6">
-                  No se realizarán devoluciones de dinero.
-                </p>
-              </div>
-
-              {/* Card 2: El Costo Incluye */}
-              <div className="bg-[#0a0a0a]/90 backdrop-blur-md border border-white/10 rounded-xl p-5 lg:p-6 shadow-[0_10px_30px_rgba(0,0,0,0.5)] relative overflow-hidden flex flex-col group">
-                <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-[#39FF14] to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <div className="flex items-center gap-2 mb-6 text-[#39FF14]">
-                  <Gift className="w-5 h-5" strokeWidth={2.5} />
-                  <span className="font-black text-sm uppercase tracking-widest">EL COSTO INCLUYE</span>
-                </div>
-                
-                <ul className="space-y-4">
-                  <li className="flex items-start gap-3">
-                    <CheckCircle2 className="w-4 h-4 text-[#39FF14] shrink-0 mt-0.5" strokeWidth={2} />
-                    <span className="text-xs text-zinc-300 font-medium">Ingreso escarapela feria (4 días)</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <CheckCircle2 className="w-4 h-4 text-[#39FF14] shrink-0 mt-0.5" strokeWidth={2} />
-                    <span className="text-xs text-zinc-300 font-medium">Boleta para acompañante</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <CheckCircle2 className="w-4 h-4 text-[#39FF14] shrink-0 mt-0.5" strokeWidth={2} />
-                    <span className="text-xs text-zinc-300 font-medium">Póliza deportiva de competencia</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <CheckCircle2 className="w-4 h-4 text-[#39FF14] shrink-0 mt-0.5" strokeWidth={2} />
-                    <span className="text-xs text-zinc-300 font-medium">VIP BOX con sorpresas increíbles</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <CheckCircle2 className="w-4 h-4 text-[#39FF14] shrink-0 mt-0.5" strokeWidth={2} />
-                    <span className="text-[#39FF14] text-xs font-bold">Participa por una moto MRX 200 0km</span>
-                  </li>
-                </ul>
-              </div>
-
-              {/* Card 3: Cómo Participar */}
-              <div className="bg-[#0a0a0a]/90 backdrop-blur-md border border-white/10 rounded-xl p-5 lg:p-6 shadow-[0_10px_30px_rgba(0,0,0,0.5)] relative overflow-hidden flex flex-col group">
-                <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-[#39FF14] to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <div className="flex items-center gap-2 mb-6 text-[#39FF14]">
-                  <Gift className="w-5 h-5" strokeWidth={2.5} />
-                  <span className="font-black text-sm uppercase tracking-widest">¿CÓMO PARTICIPAR?</span>
-                </div>
-                
-                <div className="space-y-4 mb-6 flex-grow relative before:absolute before:inset-y-0 before:left-3 before:w-px before:bg-white/10 before:z-0">
-                  <div className="flex items-start gap-4 relative z-10">
-                    <div className="w-6 h-6 rounded-full border border-[#39FF14] bg-black flex items-center justify-center text-[#39FF14] text-[10px] font-bold shrink-0">1</div>
-                    <span className="text-xs text-zinc-300 font-medium mt-0.5">Diligencia el formulario con tus datos</span>
-                  </div>
-                  <div className="flex items-start gap-4 relative z-10">
-                    <div className="w-6 h-6 rounded-full border border-[#39FF14] bg-black flex items-center justify-center text-[#39FF14] text-[10px] font-bold shrink-0">2</div>
-                    <span className="text-xs text-zinc-300 font-medium mt-0.5">Realiza el pago de la inscripción</span>
-                  </div>
-                  <div className="flex items-start gap-4 relative z-10">
-                    <div className="w-6 h-6 rounded-full border border-[#39FF14] bg-black flex items-center justify-center text-[#39FF14] text-[10px] font-bold shrink-0">3</div>
-                    <span className="text-xs text-zinc-300 font-medium mt-0.5">Sube el comprobante de Pago</span>
-                  </div>
-                </div>
-
-                <Button 
-                  variant="outline" 
-                  onClick={() => setIsPaymentModalOpen(true)}
-                  className="w-full border-white/20 text-[#39FF14] hover:bg-[#39FF14] hover:text-black uppercase tracking-widest text-[10px] font-bold h-10 mt-auto transition-colors flex items-center justify-between px-4"
-                >
-                  MÉTODOS DE PAGO
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
+      {/* SEC 6: ECOSYSTEM (PKNX) */}
+      <section className="py-24 mt-10 bg-gradient-to-b from-[#080808] to-[#111111] border-y border-[#1C1C1C]">
+        <div className="max-w-[1400px] mx-auto px-6 grid grid-cols-1 xl:grid-cols-2 gap-16 items-center">
+          <div>
+            <div className="flex items-center mb-4 gap-1">
+              <span className="font-inter font-black text-5xl text-white italic tracking-tighter">PKN</span>
+              <span className="font-inter font-black text-5xl text-[#FF3B1F] italic tracking-tighter">X</span>
             </div>
-          </div>
-          </div> {/* END LEFT COLUMN */}
-
-          {/* RIGHT COLUMN: PREMIUM FORM (Approx 40%) */}
-          <div id="auth-form-section" className="w-full lg:w-[40%] flex-shrink-0 relative z-20 h-full flex flex-col justify-center mt-8 lg:mt-0">
-            <AuthForm externalIsLogin={isLoginState} onToggleAuthMode={setIsLoginState} />
-          </div>
-
-        </div> {/* END TOP ROW */}
-
-        {/* BOTTOM FULL-WIDTH SECTION: SPONSORS & FOOTER */}
-        <div className="w-full flex flex-col mt-4 lg:mt-8 pt-8 lg:pt-12 border-t border-white/5 relative z-10">
-
-          {/* SPONSORS STRIP - Infinite Marquee */}
-          <div className="flex flex-col gap-6 md:gap-8 overflow-hidden relative">
-            {/* Fade effect gradients */}
-            <div className="absolute inset-y-0 left-0 w-16 md:w-32 bg-gradient-to-r from-black to-transparent z-10 pointer-events-none"></div>
-            <div className="absolute inset-y-0 right-0 w-16 md:w-32 bg-gradient-to-l from-black to-transparent z-10 pointer-events-none"></div>
-
-            {/* Marquee Container */}
-            <div className="flex w-max animate-marquee [animation-duration:18s] items-center">
-              {[...Array(3)].map((_, arrayIndex) => (
-                <div key={arrayIndex} className="flex items-center justify-center gap-10 md:gap-16 px-5 md:px-8 shrink-0">
-                  {SPONSOR_LOGOS.map((logo, index) => (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img key={`${arrayIndex}-${index}`} src={logo.src} alt={logo.alt} className={logo.className} />
-                  ))}
+            <span className="text-[#B4FF00] font-inter font-bold text-[12px] uppercase tracking-widest block mb-6">NUESTRO ECOSISTEMA DIGITAL</span>
+            <p className="text-[#888888] text-[15px] leading-relaxed mb-12 max-w-lg">El centro de control que hace posible cada experiencia. Conecta pilotos, organización, marcas y audiencia en un solo lugar.</p>
+            
+            <div className="grid grid-cols-2 gap-y-10 gap-x-6">
+              {[
+                { icon: Users, title: 'REGISTRO DE PILOTOS' },
+                { icon: Ticket, title: 'QR Y ACCESOS EN TIEMPO REAL' },
+                { icon: Activity, title: 'COMUNICACIÓN OFICIAL' },
+                { icon: TrendingUp, title: 'DASHBOARDS Y ESTADÍSTICAS' },
+                { icon: ShieldCheck, title: 'PAGOS Y COBROS' },
+                { icon: Check, title: 'VALIDACIÓN AUTOMÁTICA' },
+              ].map((feat, i) => (
+                <div key={i} className="flex items-center gap-4">
+                  <feat.icon className="text-[#B4FF00] w-6 h-6 shrink-0" strokeWidth={2} />
+                  <h4 className="font-inter text-[11px] font-bold text-white tracking-widest leading-[1.4] uppercase">{feat.title}</h4>
                 </div>
               ))}
             </div>
-
-            {/* Redes Sociales A Color */}
-            <div className="flex justify-center items-center gap-6 mt-4 md:mt-6 pb-4">
-              <a href="https://instagram.com/copastuntcolombia" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-10 h-10 md:w-12 md:h-12 drop-shadow-[0_0_10px_rgba(225,48,108,0.4)]">
-                  <defs>
-                    <linearGradient id="ig-grad" x1="0%" y1="100%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#f09433"/>
-                      <stop offset="25%" stopColor="#e6683c"/>
-                      <stop offset="50%" stopColor="#dc2743"/>
-                      <stop offset="75%" stopColor="#cc2366"/>
-                      <stop offset="100%" stopColor="#bc1888"/>
-                    </linearGradient>
-                  </defs>
-                  <path fill="url(#ig-grad)" d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
-                </svg>
-              </a>
-              <a href="https://facebook.com/copastuntcolombia" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-10 h-10 md:w-12 md:h-12 drop-shadow-[0_0_10px_rgba(24,119,242,0.4)]">
-                  <path fill="#1877F2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                  <path fill="#fff" d="M16.671 15.542l.532-3.469h-3.328V9.822c0-.949.465-1.874 1.956-1.874h1.514V5.006s-1.375-.235-2.686-.235c-2.741 0-4.533 1.662-4.533 4.669v2.633H7.078v3.469h3.047v8.385a12.09 12.09 0 003.875 0v-8.385h2.671z"/>
-                </svg>
-              </a>
+            
+            <button className="mt-14 bg-transparent border border-[#B4FF00] text-[#B4FF00] hover:bg-[#B4FF00] hover:text-black font-inter font-bold text-xs px-8 py-3 tracking-widest uppercase transition-colors rounded-sm flex items-center gap-2 w-max">
+              CONOCE PKNX <ArrowUpRight size={16} />
+            </button>
+          </div>
+          
+          <div className="relative mt-12 xl:mt-0 flex justify-center xl:justify-end">
+            <div className="absolute inset-0 bg-[#B4FF00] opacity-[0.03] blur-[150px] rounded-full"></div>
+            {/* Mockup Placeholder that mimics the laptop + phone layout */}
+            <div className="relative z-10 w-full max-w-[700px] aspect-[16/10] bg-[#0A0A0A] border border-[#1C1C1C] rounded-lg shadow-2xl flex items-center justify-center overflow-hidden">
+               <img src="/sponsors/fondo1.jpg" className="w-full h-full object-cover opacity-20 mix-blend-screen" alt="Mockup Laptop" />
+               <div className="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent"></div>
+               <div className="absolute text-center">
+                 <p className="font-bebas text-4xl text-white tracking-wider mb-2">DASHBOARD CENTRAL</p>
+                 <p className="text-[#B4FF00] text-xs font-bold tracking-widest">[ LAPTOP MOCKUP PLACEHOLDER ]</p>
+               </div>
+               {/* Phone overlay */}
+               <div className="absolute -right-4 -bottom-4 w-[200px] h-[400px] bg-[#111] border-4 border-black rounded-3xl shadow-2xl flex items-center justify-center overflow-hidden z-20 transform -rotate-6">
+                 <img src="/sponsors/stunt2026negro.jpeg" className="absolute inset-0 w-full h-full object-cover opacity-30" alt="Mockup Phone" />
+                 <div className="absolute text-center px-4">
+                   <p className="font-bebas text-xl text-white tracking-wider mb-2">RIDER PASS</p>
+                   <p className="text-[#FF3B1F] text-[10px] font-bold tracking-widest">[ PHONE MOCKUP ]</p>
+                 </div>
+               </div>
             </div>
           </div>
-
-          {/* FOOTER */}
-          <footer className="relative z-10 w-full py-4 mt-2 flex justify-center border-t border-zinc-800/30">
-            <p className="text-zinc-500 text-[10px] md:text-xs uppercase tracking-widest font-bold text-center">
-              © 2026 COPA STUNT COLOMBIA. TODOS LOS DERECHOS RESERVADOS.
-            </p>
-          </footer>
-
         </div>
+      </section>
 
-      </div>
+      {/* SEC 7: PORTALS */}
+      <section className="py-24 px-6 max-w-[1400px] mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {[
+            { tag: '¿ERES PILOTO?', role: 'PORTAL DEL PILOTO', color: 'border-[#1C1C1C] hover:border-[#B4FF00]', items: ['Inscríbete a nuestros eventos', 'Gestiona tu información', 'Pagos y documentos', 'Tu QR y accesos'], btnText: 'IR AL PORTAL', btnColor: 'border-[#B4FF00] text-[#B4FF00] hover:bg-[#B4FF00] hover:text-black', onClick: () => setShowAuthModal(true) },
+            { tag: '¿ERES PROVEEDOR O COLABORADOR?', role: 'PORTAL DE PROVEEDORES', color: 'border-[#1C1C1C] hover:border-[#FFD200]', items: ['Sube tu factura', 'Consulta estado de pago', 'Descarga certificados', 'Historial de transacciones'], btnText: 'IR AL PORTAL', btnColor: 'border-[#FFD200] text-[#FFD200] hover:bg-[#FFD200] hover:text-black', onClick: undefined },
+            { tag: 'SISTEMA DE COBROS', role: 'PARA PERSONAS NATURALES', color: 'border-[#1C1C1C] hover:border-[#B4FF00]', items: ['Colaboradores', 'Proveedores', 'Prestadores de servicios', 'Pagos seguros y rápidos'], btnText: 'IR AL SISTEMA', btnColor: 'border-[#B4FF00] text-[#B4FF00] hover:bg-[#B4FF00] hover:text-black', onClick: undefined },
+          ].map((portal, i) => (
+            <div key={i} className={`group bg-[#0A0A0A] border rounded-xl p-8 transition-colors ${portal.color} flex flex-col`}>
+              <span className="text-[#888888] font-inter font-bold text-[10px] uppercase tracking-widest mb-2 block">{portal.tag}</span>
+              <h3 className="font-bebas text-4xl text-white mb-8 tracking-wide">{portal.role}</h3>
+              <ul className="space-y-4 mb-10 flex-1">
+                {portal.items.map((item, j) => (
+                  <li key={j} className="flex items-center gap-3 text-[14px] text-[#A0A0A0] font-medium">
+                    <div className="w-5 h-5 rounded-full bg-[#1A1A1A] flex items-center justify-center shrink-0">
+                      <Check size={12} className="text-[#B4FF00]" />
+                    </div>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <button className={`w-max font-inter font-bold text-[11px] uppercase tracking-widest border py-3 px-6 rounded-sm transition-colors flex items-center gap-2 ${portal.btnColor}`} onClick={portal.onClick}>
+                {portal.btnText} <ArrowUpRight size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+      </section>
 
-      {/* Payment Details Modal */}
-      <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
-        <DialogContent className="sm:max-w-[400px] w-[95vw] bg-[#121212] border-2 border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] text-white p-0 overflow-hidden rounded-2xl">
-          <DialogHeader className="p-4 pb-2 border-b border-[#2A2A2A]/50 bg-black/40">
-            <DialogTitle className="text-lg md:text-xl font-black uppercase text-[#39FF14] tracking-wider flex items-center justify-center gap-2">
-              <span className="text-xl md:text-2xl">💰</span> Detalles de Pago
-            </DialogTitle>
-          </DialogHeader>
-          <div className="p-4 pt-4 max-h-[90vh] overflow-hidden">
-            <div className="bg-[#1A1A1A] p-4 rounded-xl border border-[#2A2A2A] shadow-[0_0_15px_rgba(0,0,0,0.5)]">
-              <div className="flex flex-col gap-2 mb-3">
-                <div className="flex justify-between items-baseline">
-                  <span className="text-[11px] text-[#B0B0B0] font-medium uppercase tracking-wider">Costo (11 May - 15 May)</span>
-                  <span className="text-lg text-[#39FF14] font-black tracking-wider shadow-[#39FF14]/20">$350.000</span>
-                </div>
-              </div>
+      {/* SEC 8: CTA FINAL */}
+      <section className="py-24 border-t border-[#1C1C1C] px-6 relative overflow-hidden bg-[url('/sponsors/fondo1.jpg')] bg-cover bg-center">
+        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/90 to-black/50"></div>
+        <div className="relative z-10 max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
+          <div>
+            <h2 className="font-bebas text-5xl md:text-6xl text-white tracking-wide mb-2">
+              ¿TIENES UN PROYECTO EN MENTE?
+            </h2>
+            <p className="text-[#A0A0A0] text-sm md:text-base font-medium tracking-wide uppercase">
+              HABLEMOS Y CONSTRUYAMOS ALGO EXTRAORDINARIO.
+            </p>
+          </div>
+          <button className="bg-[#FF3B1F] hover:bg-[#FF553D] text-white font-inter font-bold text-[12px] uppercase tracking-widest px-10 py-4 rounded-sm flex items-center gap-2 transition-colors shrink-0">
+            CONTÁCTANOS <ArrowUpRight size={16} />
+          </button>
+        </div>
+      </section>
 
-              <div className="space-y-2.5">
-                <div className="bg-[#121212] p-3 rounded-xl border border-[#2A2A2A] flex flex-row items-center gap-4 text-xs text-[#B0B0B0]">
-                  <div className="shrink-0 bg-white p-1.5 rounded-lg shadow-[0_0_20px_rgba(57,255,20,0.15)]">
-                    <img src="/sponsors/QR BANCOLOMBIA.jpg" alt="QR Bancolombia" className="w-20 h-20 object-contain rounded-md" />
-                  </div>
-                  <div className="flex-1 text-left">
-                    <p className="font-black text-white mb-1.5 text-[10px] md:text-xs uppercase tracking-widest border-b border-[#2A2A2A] pb-1.5">Ahorros Bancolombia</p>
-                    <ul className="space-y-0.5 font-mono text-[#B0B0B0]">
-                      <li className="text-sm md:text-base text-[#39FF14] font-bold tracking-wider">316-376847-80</li>
-                      <li className="text-[8px] md:text-[9px] text-[#424242] uppercase font-sans tracking-wide">Titular: <span className="text-[#B0B0B0]">Daniela Rojas Valencia</span></li>
-                    </ul>
-                  </div>
-                </div>
-                <div className="bg-[#121212] p-2.5 rounded-xl border border-[#2A2A2A] flex items-center justify-between px-4">
-                  <p className="font-bold text-[#424242] uppercase tracking-wide text-[10px]">Pago por LLAVE</p>
-                  <p className="text-sm md:text-base font-mono text-[#B0B0B0] font-bold tracking-wider">1214720768</p>
-                </div>
+      {/* FOOTER */}
+      <footer className="bg-[#080808] border-t border-[#1C1C1C] pt-20 pb-8 px-6">
+        <div className="max-w-[1400px] mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 mb-16">
+            <div className="lg:col-span-2">
+              <img src="/sponsors/PKS Blanco.png" alt="PKS" className="h-10 mb-6 opacity-90" />
+              <p className="text-[#888888] text-[13px] leading-relaxed mb-6 max-w-sm">Empresa BTL y productora de eventos especializada en experiencias para la industria de las motocicletas.</p>
+              <div className="flex gap-4">
+                <a href="#" className="text-[#888888] hover:text-white transition-colors"><Instagram size={20} /></a>
+                <a href="#" className="text-[#888888] hover:text-white transition-colors"><Facebook size={20} /></a>
+                <a href="#" className="text-[#888888] hover:text-white transition-colors"><PlayCircle size={20} /></a>
               </div>
             </div>
-            <div className="mt-4">
-              <Button 
-                onClick={() => setIsPaymentModalOpen(false)} 
-                className="w-full bg-[#39FF14] hover:bg-[#00C853] text-black font-black uppercase tracking-wider h-12 rounded-xl shadow-[0_0_15px_rgba(57,255,20,0.2)]"
-              >
-                Entendido
-              </Button>
+            
+            <div>
+              <h4 className="font-inter text-[11px] font-bold text-[#888888] uppercase tracking-widest mb-6">EMPRESA</h4>
+              <ul className="space-y-4">
+                <li><a href="#" className="text-white hover:text-[#B4FF00] text-[14px] transition-colors">Nosotros</a></li>
+                <li><a href="#" className="text-white hover:text-[#B4FF00] text-[14px] transition-colors">Servicios</a></li>
+                <li><a href="#" className="text-white hover:text-[#B4FF00] text-[14px] transition-colors">Clientes</a></li>
+                <li><a href="#" className="text-white hover:text-[#B4FF00] text-[14px] transition-colors">Trabaja con nosotros</a></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h4 className="font-inter text-[11px] font-bold text-[#888888] uppercase tracking-widest mb-6">PROPIEDADES</h4>
+              <ul className="space-y-4">
+                <li><a href="#" className="text-white hover:text-[#B4FF00] text-[14px] transition-colors">Copa Stunt Colombia</a></li>
+                <li><a href="#" className="text-white hover:text-[#B4FF00] text-[14px] transition-colors">Stunt Day</a></li>
+                <li><a href="#" className="text-white hover:text-[#B4FF00] text-[14px] transition-colors">Reglamentos</a></li>
+                <li><a href="#" className="text-white hover:text-[#B4FF00] text-[14px] transition-colors">Resultados</a></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h4 className="font-inter text-[11px] font-bold text-[#888888] uppercase tracking-widest mb-6">PLATAFORMA</h4>
+              <ul className="space-y-4">
+                <li><a href="#" className="text-white hover:text-[#B4FF00] text-[14px] transition-colors">PKNX</a></li>
+                <li><a href="#" className="text-white hover:text-[#B4FF00] text-[14px] transition-colors">Portal del Piloto</a></li>
+                <li><a href="#" className="text-white hover:text-[#B4FF00] text-[14px] transition-colors">Portal de Proveedores</a></li>
+              </ul>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Entrance Modal */}
-      <Dialog open={isWhatsappModalOpen} onOpenChange={(open) => {
-        setIsWhatsappModalOpen(open);
-        if (!open) setModalView('flyer'); // reset when closed
-      }}>
-        <DialogContent className="w-auto max-w-[95vw] sm:max-w-[450px] bg-black border-2 border-[#39FF14] shadow-[0_0_40px_rgba(57,255,20,0.4)] text-white p-0 overflow-hidden rounded-2xl flex flex-col mx-auto">
-          <DialogTitle className="sr-only">Aviso de Entrada</DialogTitle>
           
-          <div className="relative flex flex-col items-center justify-center bg-black w-full">
-            {/* Modal Image */}
-            {modalView === 'programacion' ? (
-              <div className="flex flex-col items-center justify-center p-8 gap-6 min-h-[40vh] md:min-h-[50vh] w-full">
-                <h3 className="text-[#39FF14] text-xl md:text-2xl font-black uppercase tracking-wider text-center drop-shadow-[0_0_10px_rgba(57,255,20,0.4)]">
-                  Programación Oficial
-                </h3>
-                <p className="text-zinc-300 text-sm md:text-base text-center max-w-sm mb-2">
-                  Selecciona cómo deseas visualizar la programación del evento:
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md px-4">
-                  <a href="/sponsors/AVANCE-PROGRAMACION-2026-DIGITAL-2.pdf" target="_blank" rel="noopener noreferrer" className="w-full">
-                    <Button className="w-full bg-[#39FF14] hover:bg-[#32e210] text-black font-black uppercase tracking-widest h-12 md:h-14 rounded-xl shadow-[0_0_15px_rgba(57,255,20,0.4)] flex items-center justify-center gap-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-                      VER ONLINE
-                    </Button>
-                  </a>
-                  <a href="/sponsors/AVANCE-PROGRAMACION-2026-DIGITAL-2.pdf" download="PROGRAMACION-COPA-STUNT-2026.pdf" className="w-full">
-                    <Button className="w-full bg-black border-2 border-[#39FF14] text-[#39FF14] hover:bg-[#39FF14] hover:text-black font-black uppercase tracking-widest h-12 md:h-14 rounded-xl shadow-[0_0_15px_rgba(57,255,20,0.15)] transition-colors flex items-center justify-center gap-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-                      DESCARGAR
-                    </Button>
-                  </a>
-                </div>
-              </div>
-            ) : (
-              <img 
-                src={modalView === 'flyer' ? "/sponsors/chat.png" : "/sponsors/reglamento.jpg"} 
-                alt={modalView === 'flyer' ? "Información de Entrada" : "Reglamento Oficial"} 
-                className="w-auto h-auto max-h-[70vh] md:max-h-[80vh] max-w-full object-contain mx-auto" 
-              />
-            )}
+          <div className="border-t border-[#1C1C1C] pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
+            <span className="text-[#666666] font-inter text-[11px] uppercase tracking-wider">© 2026 Paskines Stunt S.A.S. Todos los derechos reservados.</span>
+            <div className="flex items-center gap-4">
+              <span className="text-[#666666] font-inter text-[11px] uppercase tracking-wider flex items-center gap-2">DISEÑADO CON PASIÓN POR EL STUNT.</span>
+              <img src="/sponsors/PKS Blanco.png" alt="PKS" className="h-3 opacity-50" />
+            </div>
           </div>
-          
-          <div className="w-full p-3 md:p-4 bg-[#0a0a0f] border-t border-zinc-800 flex flex-row gap-2 md:gap-3 shrink-0">
-            {modalView === 'flyer' ? (
-              <>
-                <Button 
-                  onClick={() => setModalView('programacion')}
-                  className="w-full bg-black border-2 border-[#39FF14] text-[#39FF14] hover:bg-[#39FF14] hover:text-black transition-colors text-[10px] md:text-xs font-black uppercase tracking-widest h-10 md:h-12 rounded-xl shadow-[0_0_15px_rgba(57,255,20,0.15)] ring-2 ring-offset-2 ring-offset-black ring-[#38bdf8] px-1"
-                >
-                  PROGRAMACIÓN
-                </Button>
-                <Button 
-                  onClick={() => setModalView('reglamento')}
-                  className="w-full bg-black border-2 border-[#39FF14] text-[#39FF14] hover:bg-[#39FF14] hover:text-black transition-colors text-[10px] md:text-xs font-black uppercase tracking-widest h-10 md:h-12 rounded-xl shadow-[0_0_15px_rgba(57,255,20,0.15)] ring-2 ring-offset-2 ring-offset-black ring-[#38bdf8] px-1"
-                >
-                  REGLAMENTO
-                </Button>
-              </>
-            ) : (
-              <Button 
-                onClick={() => setModalView('flyer')}
-                className="w-full bg-black border-2 border-[#39FF14] text-[#39FF14] hover:bg-[#39FF14] hover:text-black transition-colors text-[10px] md:text-xs font-black uppercase tracking-widest h-10 md:h-12 rounded-xl shadow-[0_0_15px_rgba(57,255,20,0.15)] ring-2 ring-offset-2 ring-offset-black ring-[#38bdf8] px-1"
-              >
-                VOLVER AL INICIO
-              </Button>
-            )}
+        </div>
+      </footer>
+
+      {/* AUTH DIALOG OVERLAY */}
+      <Dialog open={showAuthModal} onOpenChange={setShowAuthModal}>
+        <DialogContent className="max-w-[480px] p-0 bg-transparent border-none shadow-none [&>button]:hidden">
+          <DialogTitle className="sr-only">Inscripción Oficial</DialogTitle>
+          <div className="relative">
+            <button 
+              onClick={() => setShowAuthModal(false)}
+              className="absolute -top-12 right-0 text-white hover:text-[#FF3B1F] transition-colors z-50 bg-[#111] p-2 rounded-full border border-[#1C1C1C]"
+            >
+              <X size={24} />
+            </button>
+            <AuthForm />
           </div>
         </DialogContent>
       </Dialog>
