@@ -1484,21 +1484,19 @@ export default function PilotDetailPage() {
               </div>
             </div>
             
-            <DialogFooter className="flex gap-2 sm:justify-between">
+            <DialogFooter className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
               {isAdmin ? (
                 <>
-                  <div className="flex gap-2">
-                    {selectedCodigo.estadoAprobacion === 'pendiente' && (
-                      <Button onClick={handleRechazarCodigo} variant="outline" className="border-red-500 text-red-500 hover:bg-red-500/10 hover:text-red-400">Rechazar</Button>
-                    )}
-                    {selectedCodigo.estadoAprobacion === 'pendiente' && (
-                      <Button onClick={handleAprobarCodigo} className="bg-green-600 hover:bg-green-500 text-white">Aprobar</Button>
-                    )}
-                  </div>
-                  <Button onClick={handleUpdateCodigo} variant="secondary" className="bg-zinc-800 hover:bg-zinc-700 text-white">Actualizar Info</Button>
+                  {selectedCodigo.estadoAprobacion === 'pendiente' && (
+                    <Button onClick={handleAprobarCodigo} className="col-span-2 sm:col-span-1 bg-green-600 hover:bg-green-500 text-white w-full">Aprobar</Button>
+                  )}
+                  {selectedCodigo.estadoAprobacion === 'pendiente' && (
+                    <Button onClick={handleRechazarCodigo} variant="outline" className="col-span-1 border-red-500 text-red-500 hover:bg-red-500/10 hover:text-red-400 w-full">Rechazar</Button>
+                  )}
+                  <Button onClick={handleUpdateCodigo} variant="secondary" className="col-span-1 sm:col-span-1 bg-zinc-800 hover:bg-zinc-700 text-white w-full">Actualizar Info</Button>
                 </>
               ) : (
-                <Button onClick={() => setShowCodigoDetallesModal(false)} variant="ghost" className="text-zinc-400">Cerrar</Button>
+                <Button onClick={() => setShowCodigoDetallesModal(false)} variant="ghost" className="col-span-2 text-zinc-400 w-full">Cerrar</Button>
               )}
             </DialogFooter>
           </DialogContent>

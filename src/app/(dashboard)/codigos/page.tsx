@@ -867,18 +867,18 @@ export default function CodigosAdminPage() {
                 
               </div>
               
-              <div className="p-4 border-t border-[#00e5ff]/20 bg-zinc-950 flex flex-wrap gap-3 justify-end">
+              <div className="p-4 border-t border-[#00e5ff]/20 bg-zinc-950 grid grid-cols-2 gap-2 sm:flex sm:justify-end">
                 {selectedCodigo.estado === 'cobrado' && selectedCodigo.estadoAprobacion === 'pendiente' && (
                   <>
                     <button 
                       onClick={() => handleUpdateAndAprobar()}
-                      className="px-4 py-2 bg-emerald-500/10 border border-emerald-500 text-emerald-500 hover:bg-emerald-500 hover:text-white rounded font-orbitron text-[10px] font-bold tracking-widest transition-colors flex items-center gap-2"
+                      className="col-span-2 sm:col-span-1 justify-center px-4 py-2 bg-emerald-500/10 border border-emerald-500 text-emerald-500 hover:bg-emerald-500 hover:text-white rounded font-orbitron text-[10px] font-bold tracking-widest transition-colors flex items-center gap-2"
                     >
                       <CheckCircle className="w-4 h-4" /> GUARDAR Y APROBAR
                     </button>
                     <button 
                       onClick={() => handleRechazar(selectedCodigo.id)}
-                      className="px-4 py-2 bg-rose-500/10 border border-rose-500 text-rose-500 hover:bg-rose-500 hover:text-white rounded font-orbitron text-[10px] font-bold tracking-widest transition-colors flex items-center gap-2"
+                      className="col-span-1 justify-center px-4 py-2 bg-rose-500/10 border border-rose-500 text-rose-500 hover:bg-rose-500 hover:text-white rounded font-orbitron text-[10px] font-bold tracking-widest transition-colors flex items-center gap-2"
                     >
                       <XCircle className="w-4 h-4" /> RECHAZAR
                     </button>
@@ -888,7 +888,7 @@ export default function CodigosAdminPage() {
                 {selectedCodigo.estado === 'disponible' && (
                   <button 
                     onClick={handleUpdate}
-                    className="px-4 py-2 bg-[#00e5ff]/10 border border-[#00e5ff] text-[#00e5ff] hover:bg-[#00e5ff] hover:text-black rounded font-orbitron text-[10px] font-bold tracking-widest transition-colors flex items-center gap-2"
+                    className="col-span-2 sm:col-span-1 justify-center px-4 py-2 bg-[#00e5ff]/10 border border-[#00e5ff] text-[#00e5ff] hover:bg-[#00e5ff] hover:text-black rounded font-orbitron text-[10px] font-bold tracking-widest transition-colors flex items-center gap-2"
                   >
                     GUARDAR CAMBIOS
                   </button>
@@ -897,15 +897,15 @@ export default function CodigosAdminPage() {
                 {selectedCodigo.estado === 'cobrado' && (
                   <button 
                     onClick={() => handleViewInvoice(selectedCodigo)}
-                    className="px-4 py-2 bg-purple-500/10 border border-purple-500 text-purple-500 hover:bg-purple-500 hover:text-white rounded font-orbitron text-[10px] font-bold tracking-widest transition-colors flex items-center gap-2"
+                    className="col-span-1 justify-center px-4 py-2 bg-purple-500/10 border border-purple-500 text-purple-500 hover:bg-purple-500 hover:text-white rounded font-orbitron text-[10px] font-bold tracking-widest transition-colors flex items-center gap-2"
                   >
-                    <Eye className="w-4 h-4" /> VER CUENTA DE COBRO
+                    <Eye className="w-4 h-4" /> VER CUENTA
                   </button>
                 )}
 
                 <button 
                   onClick={() => handleDeleteCodigo(selectedCodigo.id)}
-                  className="px-4 py-2 bg-zinc-800 border border-zinc-700 text-zinc-400 hover:bg-[#ff007f] hover:border-[#ff007f] hover:text-white rounded font-orbitron text-[10px] font-bold tracking-widest transition-colors flex items-center gap-2"
+                  className="col-span-2 sm:col-span-1 justify-center px-4 py-2 bg-zinc-800 border border-zinc-700 text-zinc-400 hover:bg-[#ff007f] hover:border-[#ff007f] hover:text-white rounded font-orbitron text-[10px] font-bold tracking-widest transition-colors flex items-center gap-2"
                 >
                   <Trash2 className="w-4 h-4" /> ELIMINAR
                 </button>
