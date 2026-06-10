@@ -63,6 +63,77 @@ export default function CodigosAdminPage() {
   const [showInvoice, setShowInvoice] = useState(false);
   const [invoiceData, setInvoiceData] = useState<any>(null);
 
+  // Detalles Modal State
+  const [showDetallesModal, setShowDetallesModal] = useState(false);
+  const [selectedCodigo, setSelectedCodigo] = useState<Codigo | null>(null);
+  const [editValor, setEditValor] = useState('');
+  const [editDescripcion, setEditDescripcion] = useState('');
+  const [editRetencionMotivo, setEditRetencionMotivo] = useState('');
+  const [editRetencionPorcentaje, setEditRetencionPorcentaje] = useState('');
+  const [editCentroCosto, setEditCentroCosto] = useState('');
+
+  const openDetalles = (codigo: Codigo) => {
+    setSelectedCodigo(codigo);
+    setEditValor(codigo.valor.toString());
+    setEditDescripcion(codigo.descripcion);
+    setEditRetencionMotivo(codigo.retencionMotivo || '');
+    setEditRetencionPorcentaje(codigo.retencionPorcentaje?.toString() || '');
+    setEditCentroCosto(codigo.centroCosto || '');
+    setShowDetallesModal(true);
+  };
+
+  const handleUpdateAndAprobar = async () => {
+    if (!selectedCodigo) return;
+    try {
+      await updateDoc(doc(db, 'codigos', selectedCodigo.id), {
+        valor: Number(editValor),
+        descripcion: editDescripcion,
+        retencionMotivo: editRetencionMotivo || null,
+        retencionPorcentaje: editRetencionPorcentaje ? Number(editRetencionPorcentaje) : null,
+        centroCosto: editCentroCosto,
+        estadoAprobacion: 'aprobado'
+      });
+      setCodigos(codigos.map(c => c.id === selectedCodigo.id ? { 
+        ...c, 
+        valor: Number(editValor),
+        descripcion: editDescripcion,
+        retencionMotivo: editRetencionMotivo || null,
+        retencionPorcentaje: editRetencionPorcentaje ? Number(editRetencionPorcentaje) : null,
+        centroCosto: editCentroCosto,
+        estadoAprobacion: 'aprobado' 
+      } : c));
+      toast({ title: "Código aprobado" });
+      setShowDetallesModal(false);
+    } catch (e) {
+      toast({ title: "Error al aprobar", variant: "destructive" });
+    }
+  };
+
+  const handleUpdate = async () => {
+    if (!selectedCodigo) return;
+    try {
+      await updateDoc(doc(db, 'codigos', selectedCodigo.id), {
+        valor: Number(editValor),
+        descripcion: editDescripcion,
+        retencionMotivo: editRetencionMotivo || null,
+        retencionPorcentaje: editRetencionPorcentaje ? Number(editRetencionPorcentaje) : null,
+        centroCosto: editCentroCosto
+      });
+      setCodigos(codigos.map(c => c.id === selectedCodigo.id ? { 
+        ...c, 
+        valor: Number(editValor),
+        descripcion: editDescripcion,
+        retencionMotivo: editRetencionMotivo || null,
+        retencionPorcentaje: editRetencionPorcentaje ? Number(editRetencionPorcentaje) : null,
+        centroCosto: editCentroCosto
+      } : c));
+      toast({ title: "Cambios guardados" });
+      setShowDetallesModal(false);
+    } catch (e) {
+      toast({ title: "Error al guardar", variant: "destructive" });
+    }
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
@@ -184,6 +255,7 @@ export default function CodigosAdminPage() {
       await updateDoc(doc(db, 'codigos', id), { estadoAprobacion: 'aprobado' });
       setCodigos(codigos.map(c => c.id === id ? { ...c, estadoAprobacion: 'aprobado' } : c));
       toast({ title: "Código aprobado" });
+      setShowDetallesModal(false);
     } catch (e) {
       toast({ title: "Error al aprobar", variant: "destructive" });
     }
@@ -194,6 +266,7 @@ export default function CodigosAdminPage() {
       await updateDoc(doc(db, 'codigos', id), { estadoAprobacion: 'rechazado', estado: 'disponible', cobradoEl: null, cuentaCobroNum: null, firma: null });
       setCodigos(codigos.map(c => c.id === id ? { ...c, estadoAprobacion: 'rechazado', estado: 'disponible' } : c));
       toast({ title: "Código rechazado", description: "El código ha vuelto a estar disponible." });
+      setShowDetallesModal(false);
     } catch (e) {
       toast({ title: "Error al rechazar", variant: "destructive" });
     }
@@ -231,6 +304,7 @@ export default function CodigosAdminPage() {
       isHistorical: true
     });
     setShowInvoice(true);
+    setShowDetallesModal(false);
   };
 
   if (hasAccess === null) return <div className="min-h-screen bg-[#050816] flex items-center justify-center text-[#00e5ff] font-orbitron text-xl uppercase tracking-widest animate-pulse">VERIFICANDO_ACCESO...</div>;
@@ -321,6 +395,7 @@ export default function CodigosAdminPage() {
     try {
       await deleteDoc(doc(db, 'codigos', id));
       toast({ title: 'Eliminado', description: 'Código purgado del sistema.' });
+      setShowDetallesModal(false);
       fetchData();
     } catch (e) {
       console.error(e);
@@ -337,12 +412,12 @@ export default function CodigosAdminPage() {
   );
 
   return (
-    <div className="min-h-screen p-4 lg:p-10 relative bg-[#0b0b0f] font-exo text-zinc-300 overflow-hidden">
+    <div className="min-h-screen p-4 lg:p-10 relative bg-[#0b0b0f] font-exo text-zinc-300 overflow-hidden print:p-0 print:bg-transparent print:overflow-visible">
       {/* Dynamic Cyberpunk Lighting Effects */}
-      <div className="absolute top-[-10%] right-[-5%] w-[800px] h-[800px] bg-[#ff007f]/5 blur-[200px] mix-blend-screen pointer-events-none rounded-full" />
-      <div className="absolute bottom-[-10%] left-[-5%] w-[600px] h-[600px] bg-[#00e5ff]/5 blur-[150px] mix-blend-screen pointer-events-none rounded-full" />
+      <div className="absolute top-[-10%] right-[-5%] w-[800px] h-[800px] bg-[#ff007f]/5 blur-[200px] mix-blend-screen pointer-events-none rounded-full print:hidden" />
+      <div className="absolute bottom-[-10%] left-[-5%] w-[600px] h-[600px] bg-[#00e5ff]/5 blur-[150px] mix-blend-screen pointer-events-none rounded-full print:hidden" />
       
-      <div className="max-w-7xl mx-auto w-full relative z-10 space-y-8">
+      <div className="max-w-7xl mx-auto w-full relative z-10 space-y-8 print:hidden">
         
         {/* Header */}
         <motion.div 
@@ -663,49 +738,14 @@ export default function CodigosAdminPage() {
                             
                             {/* Actions */}
                             <td className="px-6 py-4 text-right">
-                              <div className="flex items-center justify-end gap-2">
-                                {c.estado === 'cobrado' && c.estadoAprobacion === 'pendiente' && (
-                                  <>
-                                    <motion.button 
-                                      whileHover={{ scale: 1.1 }}
-                                      whileTap={{ scale: 0.9 }}
-                                      onClick={() => handleAprobar(c.id)}
-                                      className="inline-flex items-center justify-center w-8 h-8 rounded bg-zinc-900 border border-zinc-800 text-emerald-500 hover:border-emerald-500/50 hover:bg-emerald-500/10 transition-all"
-                                      title="Aprobar"
-                                    >
-                                      <CheckCircle className="w-4 h-4" />
-                                    </motion.button>
-                                    <motion.button 
-                                      whileHover={{ scale: 1.1 }}
-                                      whileTap={{ scale: 0.9 }}
-                                      onClick={() => handleRechazar(c.id)}
-                                      className="inline-flex items-center justify-center w-8 h-8 rounded bg-zinc-900 border border-zinc-800 text-rose-500 hover:border-rose-500/50 hover:bg-rose-500/10 transition-all"
-                                      title="Rechazar"
-                                    >
-                                      <XCircle className="w-4 h-4" />
-                                    </motion.button>
-                                  </>
-                                )}
-                                {c.estado === 'cobrado' && (
-                                  <motion.button 
-                                    whileHover={{ scale: 1.1 }}
-                                    whileTap={{ scale: 0.9 }}
-                                    onClick={() => handleViewInvoice(c)}
-                                    className="inline-flex items-center justify-center w-8 h-8 rounded bg-zinc-900 border border-zinc-800 text-[#00e5ff] hover:border-[#00e5ff]/50 hover:bg-[#00e5ff]/10 transition-all"
-                                    title="Ver Cuenta de Cobro"
-                                  >
-                                    <Eye className="w-4 h-4" />
-                                  </motion.button>
-                                )}
-                                <motion.button 
-                                  whileHover={{ scale: 1.1, rotate: 5 }}
-                                  whileTap={{ scale: 0.9 }}
-                                  onClick={() => handleDeleteCodigo(c.id)}
-                                  className="inline-flex items-center justify-center w-8 h-8 rounded bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-[#ff007f] hover:border-[#ff007f]/50 hover:bg-[#ff007f]/10 transition-all shadow-[0_0_0_rgba(255,0,127,0)] hover:shadow-[0_0_15px_rgba(255,0,127,0.3)]"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </motion.button>
-                              </div>
+                              <motion.button 
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => openDetalles(c)}
+                                className="inline-flex items-center gap-2 px-3 py-1.5 rounded bg-zinc-900 border border-zinc-800 text-[#00e5ff] hover:border-[#00e5ff]/50 hover:bg-[#00e5ff]/10 transition-all font-mono text-[10px] tracking-widest uppercase"
+                              >
+                                Detalles
+                              </motion.button>
                             </td>
                           </motion.tr>
                         ))}
@@ -731,6 +771,149 @@ export default function CodigosAdminPage() {
           
         </div>
       </div>
+
+      {/* --- DETALLES MODAL --- */}
+      <AnimatePresence>
+        {showDetallesModal && selectedCodigo && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-[#050816]/90 backdrop-blur-md flex items-center justify-center print:hidden p-4"
+          >
+            <div className="bg-[#0b0b0f] border border-[#00e5ff]/30 shadow-2xl w-full max-w-2xl rounded-lg overflow-hidden flex flex-col">
+              <div className="flex justify-between items-center p-4 border-b border-[#00e5ff]/20 bg-[#00e5ff]/5">
+                <h3 className="font-orbitron font-bold text-white tracking-widest">DETALLES DE CÓDIGO</h3>
+                <button onClick={() => setShowDetallesModal(false)} className="text-zinc-500 hover:text-white transition-colors">
+                  <XCircle className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4 overflow-y-auto max-h-[70vh] custom-scrollbar">
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] text-[#00e5ff] tracking-widest block mb-1">CÓDIGO ID</label>
+                    <div className="font-mono text-white text-sm bg-zinc-900 px-3 py-2 border border-zinc-800 rounded">{selectedCodigo.id}</div>
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-[#00e5ff] tracking-widest block mb-1">ASIGNADO A</label>
+                    <div className="font-rajdhani text-white text-sm bg-zinc-900 px-3 py-2 border border-zinc-800 rounded">{selectedCodigo.asignadoANombre}</div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-[#00e5ff] tracking-widest block mb-1">VALOR ($)</label>
+                  <input
+                    type="number"
+                    value={editValor}
+                    onChange={e => setEditValor(e.target.value)}
+                    className="w-full bg-[#050816] border border-[#00e5ff]/30 text-white rounded px-3 py-2 text-sm focus:border-[#00e5ff] outline-none font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-[#00e5ff] tracking-widest block mb-1">DESCRIPCIÓN</label>
+                  <input
+                    type="text"
+                    value={editDescripcion}
+                    onChange={e => setEditDescripcion(e.target.value)}
+                    className="w-full bg-[#050816] border border-[#00e5ff]/30 text-white rounded px-3 py-2 text-sm focus:border-[#00e5ff] outline-none font-rajdhani"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] text-[#00e5ff] tracking-widest block mb-1">CENTRO COSTO</label>
+                    <select
+                      value={editCentroCosto}
+                      onChange={e => setEditCentroCosto(e.target.value)}
+                      className="w-full bg-[#050816] border border-[#00e5ff]/30 text-white rounded px-3 py-2 text-sm focus:border-[#00e5ff] outline-none font-mono"
+                    >
+                      <option value="">[ NINGUNO ]</option>
+                      {centrosCostoList.map(cc => (
+                        <option key={cc} value={cc}>{cc}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-[#00e5ff] tracking-widest block mb-1">ESTADO</label>
+                    <div className="font-orbitron text-white text-[11px] bg-zinc-900 px-3 py-2 border border-zinc-800 rounded flex items-center h-[38px] uppercase">
+                      {selectedCodigo.estado} {selectedCodigo.estadoAprobacion && `/ ${selectedCodigo.estadoAprobacion}`}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] text-[#00e5ff] tracking-widest block mb-1">MOTIVO RETENCIÓN</label>
+                    <input
+                      type="text"
+                      value={editRetencionMotivo}
+                      onChange={e => setEditRetencionMotivo(e.target.value)}
+                      className="w-full bg-[#050816] border border-[#00e5ff]/30 text-white rounded px-3 py-2 text-sm focus:border-[#00e5ff] outline-none font-rajdhani"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-[#00e5ff] tracking-widest block mb-1">% RETENCIÓN</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={editRetencionPorcentaje}
+                      onChange={e => setEditRetencionPorcentaje(e.target.value)}
+                      className="w-full bg-[#050816] border border-[#00e5ff]/30 text-white rounded px-3 py-2 text-sm focus:border-[#00e5ff] outline-none font-mono"
+                    />
+                  </div>
+                </div>
+                
+              </div>
+              
+              <div className="p-4 border-t border-[#00e5ff]/20 bg-zinc-950 flex flex-wrap gap-3 justify-end">
+                {selectedCodigo.estado === 'cobrado' && selectedCodigo.estadoAprobacion === 'pendiente' && (
+                  <>
+                    <button 
+                      onClick={() => handleUpdateAndAprobar()}
+                      className="px-4 py-2 bg-emerald-500/10 border border-emerald-500 text-emerald-500 hover:bg-emerald-500 hover:text-white rounded font-orbitron text-[10px] font-bold tracking-widest transition-colors flex items-center gap-2"
+                    >
+                      <CheckCircle className="w-4 h-4" /> GUARDAR Y APROBAR
+                    </button>
+                    <button 
+                      onClick={() => handleRechazar(selectedCodigo.id)}
+                      className="px-4 py-2 bg-rose-500/10 border border-rose-500 text-rose-500 hover:bg-rose-500 hover:text-white rounded font-orbitron text-[10px] font-bold tracking-widest transition-colors flex items-center gap-2"
+                    >
+                      <XCircle className="w-4 h-4" /> RECHAZAR
+                    </button>
+                  </>
+                )}
+                
+                {selectedCodigo.estado === 'disponible' && (
+                  <button 
+                    onClick={handleUpdate}
+                    className="px-4 py-2 bg-[#00e5ff]/10 border border-[#00e5ff] text-[#00e5ff] hover:bg-[#00e5ff] hover:text-black rounded font-orbitron text-[10px] font-bold tracking-widest transition-colors flex items-center gap-2"
+                  >
+                    GUARDAR CAMBIOS
+                  </button>
+                )}
+
+                {selectedCodigo.estado === 'cobrado' && (
+                  <button 
+                    onClick={() => handleViewInvoice(selectedCodigo)}
+                    className="px-4 py-2 bg-purple-500/10 border border-purple-500 text-purple-500 hover:bg-purple-500 hover:text-white rounded font-orbitron text-[10px] font-bold tracking-widest transition-colors flex items-center gap-2"
+                  >
+                    <Eye className="w-4 h-4" /> VER CUENTA DE COBRO
+                  </button>
+                )}
+
+                <button 
+                  onClick={() => handleDeleteCodigo(selectedCodigo.id)}
+                  className="px-4 py-2 bg-zinc-800 border border-zinc-700 text-zinc-400 hover:bg-[#ff007f] hover:border-[#ff007f] hover:text-white rounded font-orbitron text-[10px] font-bold tracking-widest transition-colors flex items-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" /> ELIMINAR
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* --- INVOICE VIEW MODAL --- */}
       <AnimatePresence>

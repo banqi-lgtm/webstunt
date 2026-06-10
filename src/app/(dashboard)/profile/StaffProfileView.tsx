@@ -64,8 +64,9 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
   const [manualValor, setManualValor] = useState('');
   const [manualDescripcion, setManualDescripcion] = useState('');
   const [manualCentroCosto, setManualCentroCosto] = useState('');
-  const [manualRetencionMotivo, setManualRetencionMotivo] = useState('');
-  const [manualRetencionPorcentaje, setManualRetencionPorcentaje] = useState('');
+  
+  const [centrosCosto, setCentrosCosto] = useState<string[]>([]);
+  const [isCalculatingRetencion, setIsCalculatingRetencion] = useState(false);
 
   const fetchUserData = async () => {
     try {
@@ -141,10 +142,22 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
     }
   };
 
+  const fetchCentrosCosto = async () => {
+    try {
+      const snap = await getDocs(collection(db, 'centrosCosto'));
+      const list: string[] = [];
+      snap.forEach(d => list.push(d.data().nombre || d.id));
+      setCentrosCosto(list);
+    } catch (e) {
+      console.error("Error fetching centros costo", e);
+    }
+  };
+
   useEffect(() => {
     if (userUid) {
       fetchUserData();
       fetchCodigos();
+      fetchCentrosCosto();
     }
   }, [userUid]);
 
@@ -364,12 +377,33 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
     generateAndShowInvoice();
   };
 
-  const generateManualInvoice = () => {
+  const generateManualInvoice = async () => {
     if (!manualValor || !manualDescripcion) return;
     if (!hasBankDocs) {
       setShowManualInvoiceModal(false);
       setShowUploadModal(true);
       return;
+    }
+
+    setIsCalculatingRetencion(true);
+    let autoRetencionMotivo = null;
+    let autoRetencionPorcentaje = null;
+    
+    try {
+      const res = await fetch('/api/retencion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ descripcion: manualDescripcion, valor: Number(manualValor) })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        autoRetencionMotivo = data.motivo;
+        autoRetencionPorcentaje = data.porcentaje;
+      }
+    } catch (err) {
+      console.error("Error al calcular retención automática", err);
+    } finally {
+      setIsCalculatingRetencion(false);
     }
 
     const numCuenta = `CC-${(historial.length + 1).toString().padStart(3, '0')}`;
@@ -385,8 +419,8 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
         item: 1,
         descripcion: `COBRO MANUAL - ${manualDescripcion}`,
         valor: Number(manualValor),
-        retencionMotivo: manualRetencionMotivo || null,
-        retencionPorcentaje: manualRetencionPorcentaje ? Number(manualRetencionPorcentaje) : null
+        retencionMotivo: autoRetencionMotivo || null,
+        retencionPorcentaje: autoRetencionPorcentaje ? Number(autoRetencionPorcentaje) : null
       }],
       banco: claimBanco,
       tipoCuenta: claimTipoCuenta,
@@ -397,8 +431,8 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
         valor: Number(manualValor),
         descripcion: manualDescripcion,
         centroCosto: manualCentroCosto,
-        retencionMotivo: manualRetencionMotivo,
-        retencionPorcentaje: manualRetencionPorcentaje ? Number(manualRetencionPorcentaje) : null
+        retencionMotivo: autoRetencionMotivo || null,
+        retencionPorcentaje: autoRetencionPorcentaje ? Number(autoRetencionPorcentaje) : null
       }
     });
     
@@ -977,36 +1011,16 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
                 </div>
                 <div>
                   <label className="text-[10px] text-[#ff007f] tracking-widest block mb-1">CENTRO DE COSTO (OPCIONAL)</label>
-                  <Input 
-                    type="text" 
+                  <select 
                     value={manualCentroCosto} 
                     onChange={e => setManualCentroCosto(e.target.value)} 
-                    placeholder="Ej: PROYECTO-X"
-                    className="bg-[#050816]/50 border-[#ff007f]/30 text-white focus-visible:ring-[#ff007f]" 
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[10px] text-[#ff007f] tracking-widest block mb-1">MOTIVO DE RETENCIÓN (OPCIONAL)</label>
-                    <Input 
-                      type="text" 
-                      value={manualRetencionMotivo} 
-                      onChange={e => setManualRetencionMotivo(e.target.value)} 
-                      placeholder="Ej: Honorarios"
-                      className="bg-[#050816]/50 border-[#ff007f]/30 text-white focus-visible:ring-[#ff007f]" 
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] text-[#ff007f] tracking-widest block mb-1">% RETENCIÓN (OPCIONAL)</label>
-                    <Input 
-                      type="number" 
-                      step="0.1"
-                      value={manualRetencionPorcentaje} 
-                      onChange={e => setManualRetencionPorcentaje(e.target.value)} 
-                      placeholder="Ej: 11"
-                      className="bg-[#050816]/50 border-[#ff007f]/30 text-white focus-visible:ring-[#ff007f]" 
-                    />
-                  </div>
+                    className="w-full bg-[#050816]/50 border border-[#ff007f]/30 text-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#ff007f]"
+                  >
+                    <option value="">[ NINGUNO ]</option>
+                    {centrosCosto.map(cc => (
+                      <option key={cc} value={cc}>{cc}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
               
@@ -1020,11 +1034,11 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
                 </button>
                 <button 
                   onClick={generateManualInvoice}
-                  disabled={!manualValor || !manualDescripcion}
-                  className={`w-2/3 h-12 flex items-center justify-center font-orbitron font-bold text-[11px] uppercase tracking-[0.2em] transition-all border ${(!manualValor || !manualDescripcion) ? 'bg-[#050816] border-[#ff007f]/20 text-[#ff007f]/30 cursor-not-allowed' : 'bg-[#ff007f]/20 border-[#ff007f] text-[#ff007f] hover:bg-[#ff007f]/40 hover:text-white hover:shadow-[0_0_20px_rgba(255,0,127,0.5)]'}`}
+                  disabled={!manualValor || !manualDescripcion || isCalculatingRetencion}
+                  className={`w-2/3 h-12 flex items-center justify-center font-orbitron font-bold text-[11px] uppercase tracking-[0.2em] transition-all border ${(!manualValor || !manualDescripcion || isCalculatingRetencion) ? 'bg-[#050816] border-[#ff007f]/20 text-[#ff007f]/30 cursor-not-allowed' : 'bg-[#ff007f]/20 border-[#ff007f] text-[#ff007f] hover:bg-[#ff007f]/40 hover:text-white hover:shadow-[0_0_20px_rgba(255,0,127,0.5)]'}`}
                   style={{ clipPath: 'polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)' }}
                 >
-                  EMITIR CUENTA
+                  {isCalculatingRetencion ? 'CALCULANDO_IA...' : 'EMITIR_CUENTA'}
                 </button>
               </div>
             </motion.div>

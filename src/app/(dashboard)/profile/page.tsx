@@ -169,6 +169,7 @@ export default function PskPitxDashboard() {
 
   const [isObservacionesOpen, setIsObservacionesOpen] = useState(false);
   const [showWelcomeScore, setShowWelcomeScore] = useState(false);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
@@ -333,6 +334,8 @@ export default function PskPitxDashboard() {
           
         } catch (e) {
           console.error("Error al cargar datos del usuario", e);
+        } finally {
+          setIsLoadingProfile(false);
         }
       } else {
         router.push('/');
@@ -584,7 +587,11 @@ export default function PskPitxDashboard() {
     return <span>PREPARATIVOS EN CURSO</span>;
   };
 
-  if (currentUser.rol === 'staff') {
+  if (isLoadingProfile) {
+    return <div className="min-h-screen bg-[#050816] flex items-center justify-center text-[#39FF14] font-orbitron text-xl uppercase tracking-widest animate-pulse">CARGANDO_PERFIL...</div>;
+  }
+
+  if (currentUser.rol === 'staff' || currentUser.rol === 'admin') {
     return <StaffProfileView userUid={currentUser.uid} userName={currentUser.name} userDocument={currentUser.number} />;
   }
 

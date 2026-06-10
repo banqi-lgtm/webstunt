@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { collection, doc, getDoc, updateDoc, deleteDoc, arrayUnion, arrayRemove, query, orderBy, limit, getDocs, setDoc } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
+import { collection, doc, getDoc, updateDoc, deleteDoc, arrayUnion, arrayRemove, query, orderBy, limit, getDocs, setDoc, where } from 'firebase/firestore';
+import { ref, listAll, getDownloadURL } from 'firebase/storage';
+import { auth, db, storage } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { ArrowLeft, ExternalLink, User, Bike, FileText, CheckCircle2, XCircle, CreditCard, Clock, AlertCircle, FileCheck2, Star, ShieldAlert, Eye, AlertTriangle, Download } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, FileText, User, Camera, ShieldAlert, Settings, MapPin, XCircle, ChevronRight, AlertCircle, Phone, Download, Map, LayoutList, Fingerprint, Info, HeartPulse, Stethoscope, AlertTriangle, Syringe, Clock, Link as LinkIcon, Instagram, Star, Plus, ScanLine, Edit2, RefreshCw, Eye, FileCheck2, Bike, CreditCard } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -60,7 +61,13 @@ interface PilotDetail {
   documentosRechazados?: string[];
   motivoSaldoFaltante?: string;
   historialSaldos?: string[];
+  tipoSangre: string;
+  eps: string;
+  alergias: string;
   templateConfig?: any;
+  codigosGenerados?: any[];
+  rutUrl?: string;
+  certUrl?: string;
 }
 
 export default function PilotDetailPage() {
@@ -71,6 +78,17 @@ export default function PilotDetailPage() {
   const [pilot, setPilot] = useState<PilotDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+
+  // States para el modal de códigos
+  const [showCodigoDetallesModal, setShowCodigoDetallesModal] = useState(false);
+  const [selectedCodigo, setSelectedCodigo] = useState<any>(null);
+  const [editValor, setEditValor] = useState('');
+  const [editDescripcion, setEditDescripcion] = useState('');
+  const [editCentroCosto, setEditCentroCosto] = useState('');
+  const [editRetencionMotivo, setEditRetencionMotivo] = useState('');
+  const [editRetencionPorcentaje, setEditRetencionPorcentaje] = useState('');
+  const [centrosCostoList, setCentrosCostoList] = useState<string[]>([]);
+  const [isCalculatingRetencion, setIsCalculatingRetencion] = useState(false);
   const [isSaldoDialogOpen, setIsSaldoDialogOpen] = useState(false);
   const [saldoAmount, setSaldoAmount] = useState('');
   const [motivoSaldo, setMotivoSaldo] = useState<string>('Fecha de pago después del 11 de mayo $350.000');
@@ -133,6 +151,42 @@ export default function PilotDetailPage() {
 
       const userData = userDoc.exists() ? userDoc.data() : {};
 
+      // Load centros de costo para el modal
+      try {
+        const snapCC = await getDocs(collection(db, 'centrosCosto'));
+        const fetchedCC: string[] = [];
+        snapCC.forEach(docSnap => {
+          fetchedCC.push(docSnap.data().nombre || docSnap.id);
+        });
+        setCentrosCostoList(fetchedCC);
+      } catch (e) {
+        console.error("Error fetching centrosCosto", e);
+      }
+
+      let rutUrl = '';
+      let certUrl = '';
+      if (userData.rol === 'staff') {
+        try {
+          const docsRef = ref(storage, `documents/${extractedUid}`);
+          const res = await listAll(docsRef);
+          let latestRut = null;
+          let latestCert = null;
+          const items = res.items.sort((a, b) => b.name.localeCompare(a.name));
+          for (const item of items) {
+            if (!latestRut && item.name.includes('rut_')) latestRut = item;
+            if (!latestCert && item.name.includes('certificacion_')) latestCert = item;
+          }
+          if (latestRut) rutUrl = await getDownloadURL(latestRut);
+          if (latestCert) certUrl = await getDownloadURL(latestCert);
+        } catch(e) {
+          console.error("Error fetching documents from storage", e);
+        }
+      }
+
+      const qCodigos = query(collection(db, 'codigos'), where('asignadoAUid', '==', extractedUid));
+      const snapCodigos = await getDocs(qCodigos);
+      const fetchedCodigos = snapCodigos.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
       setPilot({
         id: regDoc.id,
         uid: extractedUid,
@@ -168,7 +222,13 @@ export default function PilotDetailPage() {
         parentescoTutor: userData.parentescoTutor || '',
         rol: userData.rol || 'piloto',
         documentosRechazados: data.documentosRechazados || [],
-        templateConfig: data.templateConfig || null
+        templateConfig: data.templateConfig || null,
+        tipoSangre: userData.tipoSangre || 'N/A',
+        eps: userData.eps || 'N/A',
+        alergias: userData.alergias || 'N/A',
+        codigosGenerados: fetchedCodigos,
+        rutUrl,
+        certUrl
       });
       
     } catch (e) {
@@ -254,6 +314,85 @@ export default function PilotDetailPage() {
       toast({ title: 'Error', description: 'No se pudo actualizar el estado de pago.', variant: 'destructive' });
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const openCodigoDetalles = (codigo: any) => {
+    setSelectedCodigo(codigo);
+    setEditValor(codigo.valor ? codigo.valor.toString() : '');
+    setEditDescripcion(codigo.descripcion || '');
+    setEditCentroCosto(codigo.centroCosto || '');
+    setEditRetencionMotivo(codigo.retencionMotivo || '');
+    setEditRetencionPorcentaje(codigo.retencionPorcentaje ? codigo.retencionPorcentaje.toString() : '');
+    setShowCodigoDetallesModal(true);
+  };
+
+  const handleAprobarCodigo = async () => {
+    if (!selectedCodigo) return;
+    try {
+      await updateDoc(doc(db, 'codigos', selectedCodigo.id), {
+        valor: Number(editValor),
+        descripcion: editDescripcion,
+        centroCosto: editCentroCosto,
+        retencionMotivo: editRetencionMotivo || null,
+        retencionPorcentaje: editRetencionPorcentaje ? Number(editRetencionPorcentaje) : null,
+        estadoAprobacion: 'aprobado'
+      });
+      const updated = pilot?.codigosGenerados?.map((c: any) => c.id === selectedCodigo.id ? { 
+        ...c, 
+        valor: Number(editValor),
+        descripcion: editDescripcion,
+        centroCosto: editCentroCosto,
+        retencionMotivo: editRetencionMotivo || null,
+        retencionPorcentaje: editRetencionPorcentaje ? Number(editRetencionPorcentaje) : null,
+        estadoAprobacion: 'aprobado' 
+      } : c);
+      setPilot(pilot ? { ...pilot, codigosGenerados: updated } : null);
+      toast({ title: "Código aprobado" });
+      setShowCodigoDetallesModal(false);
+    } catch (e) {
+      toast({ title: "Error al aprobar", variant: "destructive" });
+    }
+  };
+
+  const handleRechazarCodigo = async () => {
+    if (!selectedCodigo) return;
+    try {
+      await updateDoc(doc(db, 'codigos', selectedCodigo.id), {
+        estadoAprobacion: 'rechazado'
+      });
+      const updated = pilot?.codigosGenerados?.map((c: any) => c.id === selectedCodigo.id ? { ...c, estadoAprobacion: 'rechazado' } : c);
+      setPilot(pilot ? { ...pilot, codigosGenerados: updated } : null);
+      toast({ title: "Código rechazado" });
+      setShowCodigoDetallesModal(false);
+    } catch (e) {
+      toast({ title: "Error al rechazar", variant: "destructive" });
+    }
+  };
+
+  const handleUpdateCodigo = async () => {
+    if (!selectedCodigo) return;
+    try {
+      await updateDoc(doc(db, 'codigos', selectedCodigo.id), {
+        valor: Number(editValor),
+        descripcion: editDescripcion,
+        centroCosto: editCentroCosto,
+        retencionMotivo: editRetencionMotivo || null,
+        retencionPorcentaje: editRetencionPorcentaje ? Number(editRetencionPorcentaje) : null
+      });
+      const updated = pilot?.codigosGenerados?.map((c: any) => c.id === selectedCodigo.id ? { 
+        ...c, 
+        valor: Number(editValor),
+        descripcion: editDescripcion,
+        centroCosto: editCentroCosto,
+        retencionMotivo: editRetencionMotivo || null,
+        retencionPorcentaje: editRetencionPorcentaje ? Number(editRetencionPorcentaje) : null
+      } : c);
+      setPilot(pilot ? { ...pilot, codigosGenerados: updated } : null);
+      toast({ title: "Cambios guardados" });
+      setShowCodigoDetallesModal(false);
+    } catch (e) {
+      toast({ title: "Error al guardar", variant: "destructive" });
     }
   };
 
@@ -394,7 +533,7 @@ export default function PilotDetailPage() {
   const isPaymentApproved = pilot.estadoPago === 'aprobado' || pilot.estadoPago === 'pago_dia_evento';
   const isAllGreen = isDocsComplete && isPaymentApproved;
 
-  const DocumentPreview = ({ title, url, docKey }: { title: string, url?: string, docKey?: string }) => {
+  const DocumentPreview = ({ title, url, docKey, hideTitle }: { title: string, url?: string, docKey?: string, hideTitle?: boolean }) => {
     if (!url) return (
       <div className="p-3 bg-zinc-900/50 border border-zinc-800 rounded-lg flex flex-col items-center justify-center text-zinc-500 text-xs h-32 gap-2 text-center">
         <AlertCircle className="w-5 h-5 text-zinc-600" />
@@ -428,10 +567,12 @@ export default function PilotDetailPage() {
 
     return (
       <div className="flex flex-col gap-1.5 h-full">
-        <div className="flex justify-between items-center">
-          <span className="text-[11px] uppercase tracking-wider font-semibold text-zinc-400 truncate">{title}</span>
-          {isRejected && <span className="text-[9px] uppercase font-bold text-red-500 bg-red-500/10 px-1.5 py-0.5 rounded">Rechazado</span>}
-        </div>
+        {!hideTitle && (
+          <div className="flex justify-between items-center">
+            <span className="text-[11px] uppercase tracking-wider font-semibold text-zinc-400 truncate">{title}</span>
+            {isRejected && <span className="text-[9px] uppercase font-bold text-red-500 bg-red-500/10 px-1.5 py-0.5 rounded">Rechazado</span>}
+          </div>
+        )}
         <div className={`relative h-32 flex-grow bg-zinc-900 border rounded-lg overflow-hidden flex items-center justify-center transition-colors group ${isRejected ? 'border-red-500' : 'border-zinc-700 hover:border-green-500'}`}>
           <img src={url} alt={title} className="object-cover w-full h-full" onError={(e) => {
             (e.target as HTMLImageElement).style.display = 'none';
@@ -462,6 +603,273 @@ export default function PilotDetailPage() {
       </div>
     );
   };
+
+  if (pilot.rol === 'staff') {
+    return (
+      <div className="min-h-screen bg-[#050816] font-sans pb-12">
+        {/* Navigation & Utilities */}
+        <div className="sticky top-0 z-50 bg-[#050816]/90 backdrop-blur-md border-b border-[#1F1F1F]">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <Link href="/pilotos">
+              <Button variant="ghost" className="text-[#64748B] hover:text-white hover:bg-[#151515] text-sm gap-2">
+                <ArrowLeft className="w-4 h-4" />
+                Volver al Directorio
+              </Button>
+            </Link>
+          </div>
+        </div>
+
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+          {/* Header */}
+          <div className="flex items-center gap-4 mb-8">
+            <div className="w-16 h-16 rounded-xl bg-[#0D0D0D] border border-[#22C55E]/50 flex items-center justify-center shrink-0">
+              <User className="w-8 h-8 text-[#22C55E]" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl font-bold tracking-tight text-white">{pilot.nombres} {pilot.apellidos}</h1>
+                <span className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#6B21A8]/20 text-[10px] font-bold text-[#D8B4FE] uppercase border border-[#6B21A8]/30">
+                  <Star className="w-3 h-3" /> STAFF
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-xs">
+                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#22C55E]/10 font-bold text-[#22C55E] uppercase border border-[#22C55E]/20">
+                  N/A
+                </span>
+                <span className="text-[#64748B]">•</span>
+                <p className="text-[#64748B]">{pilot.email}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Left Column (8 cols) */}
+            <div className="lg:col-span-8 flex flex-col gap-6">
+              
+              {/* Documentos */}
+              <div className="bg-[#0D0D0D] rounded-xl border border-[#1F1F1F] overflow-hidden">
+                <div className="px-6 py-4 border-b border-[#1F1F1F] flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-[#A855F7]" />
+                  <h2 className="font-semibold text-base text-white">Documentos de Staff (RUT, CERT BANCARIA, DATOS)</h2>
+                </div>
+                <div className="p-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    {/* RUT */}
+                    <div className="flex flex-col gap-2">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-[#64748B] font-medium tracking-wide">RUT - {pilot.rutUrl ? <span className="text-[#22C55E]">Validated</span> : <span className="text-[#EF4444]">Faltante</span>}</span>
+                      </div>
+                      <div className="h-32 w-full bg-white rounded-md overflow-hidden relative border border-[#1F1F1F]">
+                        {pilot.rutUrl ? (
+                          <DocumentPreview title="RUT" url={pilot.rutUrl} hideTitle />
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center bg-[#151515]">
+                            <AlertCircle className="w-6 h-6 text-[#64748B] mb-2" />
+                            <span className="text-xs text-[#64748B]">Sin subir</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Cert. Bancaria */}
+                    <div className="flex flex-col gap-2">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-[#64748B] font-medium tracking-wide">CERTIFICACIÓN BANCARIA - {pilot.certUrl ? <span className="text-[#22C55E]">Validated</span> : <span className="text-[#EF4444]">Faltante</span>}</span>
+                      </div>
+                      <div className="h-32 w-full bg-white rounded-md overflow-hidden relative border border-[#1F1F1F]">
+                        {pilot.certUrl ? (
+                          <DocumentPreview title="Cert. Bancaria" url={pilot.certUrl} hideTitle />
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center bg-[#151515]">
+                            <AlertCircle className="w-6 h-6 text-[#64748B] mb-2" />
+                            <span className="text-xs text-[#64748B]">Sin subir</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Datos Personales */}
+              <div className="bg-[#0D0D0D] rounded-xl border border-[#1F1F1F] overflow-hidden">
+                <div className="px-6 py-4 border-b border-[#1F1F1F] flex items-center gap-2">
+                  <User className="w-5 h-5 text-[#64748B]" />
+                  <h2 className="font-semibold text-base text-white">Datos Personales del Staff</h2>
+                </div>
+                <div className="p-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
+                    <div>
+                      <label className="text-xs uppercase tracking-widest text-[#64748B] block mb-1">TIPO DOC.</label>
+                      <div className="text-[15px] text-white">{pilot.tipoDocumento || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <label className="text-xs uppercase tracking-widest text-[#64748B] block mb-1">IDENTIFICACIÓN</label>
+                      <div className="text-[15px] text-white">{pilot.numeroIdentificacion || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <label className="text-xs uppercase tracking-widest text-[#64748B] block mb-1">SEUDÓNIMO</label>
+                      <div className="text-[15px] text-white">{pilot.seudonimo || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <label className="text-xs uppercase tracking-widest text-[#64748B] block mb-1">TELÉFONO</label>
+                      <div className="text-[15px] text-white">{pilot.telefono || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <label className="text-xs uppercase tracking-widest text-[#64748B] block mb-1">FECHA NAC.</label>
+                      <div className="text-[15px] text-white">{pilot.fechaNacimiento || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <label className="text-xs uppercase tracking-widest text-[#64748B] block mb-1">UBICACIÓN</label>
+                      <div className="text-[15px] text-white">{pilot.ciudad || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <label className="text-xs uppercase tracking-widest text-[#64748B] block mb-1">INSTAGRAM</label>
+                      <div className="text-[15px] text-white">{pilot.instagram || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <label className="text-xs uppercase tracking-widest text-[#64748B] block mb-1">INSCRIPCIÓN</label>
+                      <div className="text-[15px] text-white">{pilot.registradoEl ? new Date(pilot.registradoEl).toLocaleDateString() : 'N/A'}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Sidebar Column (4 cols) */}
+            <div className="lg:col-span-4">
+              <div className="bg-[#0D0D0D] rounded-xl border border-[#1F1F1F] overflow-hidden sticky top-24">
+                <div className="px-6 py-4 border-b border-[#1F1F1F] flex items-center gap-2">
+                  <User className="w-5 h-5 text-[#64748B]" />
+                  <h2 className="font-semibold text-base text-white">Acciones de Perfil</h2>
+                </div>
+                <div className="p-6 flex flex-col gap-3">
+                  <Button variant="outline" className="w-full bg-[#151515] border-[#1F1F1F] text-zinc-300 hover:bg-[#1A1A1A] hover:text-white h-11 transition-all justify-start">
+                    <FileText className="w-4 h-4 mr-3 text-[#64748B]" /> Cargar Documentos
+                  </Button>
+                  <Button variant="outline" className="w-full bg-[#151515] border-[#1F1F1F] text-zinc-300 hover:bg-[#1A1A1A] hover:text-white h-11 transition-all justify-start">
+                    <Edit2 className="w-4 h-4 mr-3 text-[#64748B]" /> Editar Perfil
+                  </Button>
+                  
+                  <Link href="/codigos" className="w-full">
+                    <Button variant="outline" className="w-full bg-[#151515] border-[#1F1F1F] text-zinc-300 hover:bg-[#1A1A1A] hover:text-white h-11 transition-all justify-start">
+                      <Clock className="w-4 h-4 mr-3 text-[#64748B]" /> Ver Historial Completo
+                    </Button>
+                  </Link>
+                  
+                  {isAdmin && (
+                    <Dialog open={isRoleDialogOpen} onOpenChange={setIsRoleDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" className="w-full bg-[#151515] border-[#1F1F1F] text-zinc-300 hover:bg-[#1A1A1A] hover:text-white h-11 transition-all justify-start" onClick={() => setNewRole((pilot.rol || 'piloto') as 'piloto' | 'staff' | 'juez')}>
+                          <RefreshCw className="w-4 h-4 mr-3 text-[#64748B]" /> Cambiar Rol
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="bg-[#0D0D0D] border-[#1F1F1F] text-[#F1F5F9]">
+                        <DialogHeader>
+                          <DialogTitle className="text-white flex items-center gap-2">
+                            <ShieldAlert className="w-5 h-5 text-[#F59E0B]" />
+                            Modificar Rol de Usuario
+                          </DialogTitle>
+                        </DialogHeader>
+                        <div className="py-4">
+                          <p className="text-sm text-[#64748B] mb-4">
+                            Selecciona el nuevo rol para <strong>{pilot.nombres} {pilot.apellidos}</strong>.
+                          </p>
+                          <select 
+                            value={newRole}
+                            onChange={(e) => setNewRole(e.target.value as 'piloto' | 'staff' | 'juez')}
+                            className="w-full bg-[#151515] border border-[#1F1F1F] text-white rounded-md h-10 px-3 outline-none focus:border-[#22C55E] transition-colors"
+                          >
+                            <option value="piloto">Piloto</option>
+                            <option value="staff">Staff</option>
+                            <option value="juez">Juez</option>
+                          </select>
+                        </div>
+                        <DialogFooter>
+                          <Button onClick={() => setIsRoleDialogOpen(false)} variant="ghost" className="text-[#64748B] hover:text-white hover:bg-[#1F1F1F]">Cancelar</Button>
+                          <Button onClick={handleChangeRole} disabled={updating || newRole === pilot.rol} className="bg-[#22C55E] hover:bg-[#22C55E]/90 text-black font-semibold">Guardar Cambios</Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  )}
+                  
+                  {isAdmin && (
+                    <Button variant="outline" onClick={handleDeletePilot} disabled={updating} className="w-full bg-[#151515] border-[#EF4444]/30 text-[#EF4444] hover:bg-[#EF4444]/10 hover:text-[#EF4444] h-11 mt-2 transition-all justify-start">
+                      <XCircle className="w-4 h-4 mr-3" /> Eliminar del Sistema
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Historial Códigos Full Width */}
+            <div className="lg:col-span-12">
+              <div className="bg-[#0D0D0D] rounded-xl border border-[#1F1F1F] overflow-hidden">
+                <div className="px-6 py-4 border-b border-[#1F1F1F] flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-[#22C55E]" />
+                  <h2 className="font-semibold text-base text-white">Historial de Códigos Generados</h2>
+                </div>
+                <div className="p-0 overflow-x-auto">
+                  {pilot.codigosGenerados && pilot.codigosGenerados.length > 0 ? (
+                    <table className="w-full text-sm text-left whitespace-nowrap">
+                      <thead className="text-[11px] text-[#64748B] uppercase tracking-widest bg-[#151515] border-b border-[#1F1F1F]">
+                        <tr>
+                          <th className="px-6 py-4 font-semibold">CÓDIGO</th>
+                          <th className="px-6 py-4 font-semibold">VALOR</th>
+                          <th className="px-6 py-4 font-semibold">DESCRIPCIÓN</th>
+                          <th className="px-6 py-4 font-semibold">ESTADO</th>
+                          <th className="px-6 py-4 font-semibold">FECHA</th>
+                          <th className="px-6 py-4 font-semibold text-right">ACCIONES</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#1F1F1F]">
+                        {pilot.codigosGenerados.map((codigo) => (
+                          <tr key={codigo.id} className="hover:bg-[#151515] transition-colors group">
+                            <td className="px-6 py-4 font-mono text-[#22C55E] text-[13px]">{codigo.id}</td>
+                            <td className="px-6 py-4 text-white text-[13px]">${Number(codigo.valor).toLocaleString()}</td>
+                            <td className="px-6 py-4 text-white text-[13px] max-w-[200px] truncate" title={codigo.descripcion}>{codigo.descripcion}</td>
+                            <td className="px-6 py-4">
+                              <span className={`px-2 py-1 rounded text-[11px] font-bold uppercase tracking-wider inline-flex items-center border ${
+                                codigo.estadoAprobacion === 'pendiente' ? 'bg-transparent text-[#F97316] border-[#F97316] shadow-[0_0_8px_rgba(249,115,22,0.3)]' :
+                                codigo.estadoAprobacion === 'rechazado' ? 'bg-transparent text-[#EF4444] border-[#EF4444]' :
+                                codigo.estado === 'aprobado' ? 'bg-transparent text-[#22C55E] border-[#22C55E]' :
+                                codigo.estado === 'rechazado' ? 'bg-transparent text-[#EF4444] border-[#EF4444]' :
+                                codigo.estado === 'pagado' ? 'bg-transparent text-[#3B82F6] border-[#3B82F6]' :
+                                'bg-transparent text-[#F97316] border-[#F97316]'
+                              }`}>
+                                {(codigo.estadoAprobacion === 'pendiente' || codigo.estadoAprobacion === 'rechazado') ? codigo.estadoAprobacion : codigo.estado}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-white text-[13px]">{new Date(codigo.creadoEl || codigo.createdAt || Date.now()).toLocaleDateString('es-ES')}</td>
+                            <td className="px-6 py-4 text-right">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-7 px-3 text-[11px] uppercase tracking-widest border-[#1F1F1F] bg-[#151515] text-[#F1F5F9] hover:bg-[#1F1F1F] hover:text-white rounded-full transition-all"
+                                onClick={() => openCodigoDetalles(codigo)}
+                              >
+                                Detalles
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <div className="py-16 flex flex-col items-center justify-center text-[#64748B]">
+                      <FileText className="w-8 h-8 mb-4 opacity-30" />
+                      <p className="text-sm font-medium">Aún no hay historial de códigos</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-4 lg:p-10 relative">
@@ -998,6 +1406,105 @@ export default function PilotDetailPage() {
 
         </div>
       </div>
+      {/* Modal Detalles Código */}
+      {showCodigoDetallesModal && selectedCodigo && (
+        <Dialog open={showCodigoDetallesModal} onOpenChange={setShowCodigoDetallesModal}>
+          <DialogContent className="bg-[#0b0d14] border-zinc-800 text-white sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-green-500" />
+                Detalles del Código
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-4 flex flex-col gap-4">
+              <div>
+                <label className="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold block mb-1">Código</label>
+                <div className="text-xl font-mono text-green-500 font-bold">{selectedCodigo.id}</div>
+              </div>
+
+              <div>
+                <label className="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold block mb-1">Valor</label>
+                <input 
+                  type="number" 
+                  value={editValor} 
+                  onChange={(e) => setEditValor(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-md px-3 py-2 outline-none focus:border-green-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold block mb-1">Descripción</label>
+                <input 
+                  type="text" 
+                  value={editDescripcion} 
+                  onChange={(e) => setEditDescripcion(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-md px-3 py-2 outline-none focus:border-green-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold block mb-1">Centro de Costo</label>
+                <select 
+                  value={editCentroCosto} 
+                  onChange={(e) => setEditCentroCosto(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-md px-3 py-2 outline-none focus:border-green-500"
+                >
+                  <option value="">[ NINGUNO ]</option>
+                  {centrosCostoList.map((cc) => (
+                    <option key={cc} value={cc}>{cc}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold block mb-1">Retención (Motivo)</label>
+                  <select 
+                    value={editRetencionMotivo} 
+                    onChange={(e) => setEditRetencionMotivo(e.target.value)}
+                    className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-md px-2 py-2 outline-none focus:border-green-500 text-xs"
+                  >
+                    <option value="">[ NINGUNA ]</option>
+                    <option value="Servicios Generales">Servicios Generales</option>
+                    <option value="Honorarios y Comisiones">Honorarios y Comisiones</option>
+                    <option value="Compras">Compras</option>
+                    <option value="Arrendamientos">Arrendamientos</option>
+                    <option value="Transporte">Transporte</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold block mb-1">Retención (%)</label>
+                  <input 
+                    type="number" 
+                    value={editRetencionPorcentaje} 
+                    onChange={(e) => setEditRetencionPorcentaje(e.target.value)}
+                    className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-md px-3 py-2 outline-none focus:border-green-500"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <DialogFooter className="flex gap-2 sm:justify-between">
+              {isAdmin ? (
+                <>
+                  <div className="flex gap-2">
+                    {selectedCodigo.estadoAprobacion === 'pendiente' && (
+                      <Button onClick={handleRechazarCodigo} variant="outline" className="border-red-500 text-red-500 hover:bg-red-500/10 hover:text-red-400">Rechazar</Button>
+                    )}
+                    {selectedCodigo.estadoAprobacion === 'pendiente' && (
+                      <Button onClick={handleAprobarCodigo} className="bg-green-600 hover:bg-green-500 text-white">Aprobar</Button>
+                    )}
+                  </div>
+                  <Button onClick={handleUpdateCodigo} variant="secondary" className="bg-zinc-800 hover:bg-zinc-700 text-white">Actualizar Info</Button>
+                </>
+              ) : (
+                <Button onClick={() => setShowCodigoDetallesModal(false)} variant="ghost" className="text-zinc-400">Cerrar</Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
     </div>
   );
 }
