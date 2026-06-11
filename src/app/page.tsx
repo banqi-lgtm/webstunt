@@ -57,7 +57,7 @@ export default function Home() {
           <div className="flex items-center gap-6">
             <button 
               onClick={() => { setAuthIsLogin(true); setShowAuthModal(true); }}
-              className="text-white hover:text-[#E60000] font-bebas text-xl tracking-widest uppercase transition-colors hidden sm:block"
+              className="text-white hover:text-[#E60000] font-bebas text-xl tracking-widest uppercase transition-colors"
             >
               INICIAR SESIÓN
             </button>
