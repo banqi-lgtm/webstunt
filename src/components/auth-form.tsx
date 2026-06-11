@@ -279,7 +279,16 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogi
               <h2 className="text-xl md:text-2xl font-headline font-black text-white uppercase tracking-wider drop-shadow-lg">
                 {isLogin ? 'INICIAR SESIÓN' : 'INSCRIPCIÓN OFICIAL'}
               </h2>
-              <p className="text-zinc-400 text-[10px] md:text-xs mt-0.5">Completa tus datos para asegurar tu cupo</p>
+              <p className="text-zinc-400 text-[10px] md:text-xs mt-0.5 mb-3">
+                {isLogin ? 'Ingresa para gestionar tu registro' : 'Completa tus datos para asegurar tu cupo'}
+              </p>
+              <button 
+                type="button" 
+                onClick={() => setIsLogin(!isLogin)}
+                className="text-[10px] uppercase tracking-widest font-bold text-[#39FF14] hover:text-black bg-transparent hover:bg-[#39FF14] border border-[#39FF14] px-4 py-1.5 rounded-full transition-all"
+              >
+                {isLogin ? '← VOLVER A INSCRIPCIÓN' : 'INICIAR SESIÓN'}
+              </button>
             </div>
           </div>
         </div>

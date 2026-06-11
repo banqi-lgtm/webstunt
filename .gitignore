@@ -45,4 +45,5 @@ next-env.d.ts
 # firebase
 firebase-debug.log
 firestore-debug.log
-.firebase/
+.firebase/public/sponsors/FOTO_D.zip
+public/sponsors/SPORNS/DSC*.JPG
