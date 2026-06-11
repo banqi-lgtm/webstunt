@@ -16,10 +16,10 @@ const FloatingInput = ({ id, label, type = "text", value, onChange, icon: Icon, 
   return (
     <div className="relative w-full mb-2">
       <label htmlFor={id} className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 pl-1">
-        {label} {required && <span className="text-[#39FF14]">*</span>}
+        {label} {required && <span className="text-[#E60000]">*</span>}
       </label>
       <div className="relative">
-        {Icon && <Icon className="absolute left-3 top-3.5 h-4 w-4 text-[#39FF14]" strokeWidth={1.5} />}
+        {Icon && <Icon className="absolute left-3 top-3.5 h-4 w-4 text-[#E60000]" strokeWidth={1.5} />}
         
         {isSelect ? (
           <select
@@ -27,7 +27,7 @@ const FloatingInput = ({ id, label, type = "text", value, onChange, icon: Icon, 
             value={value}
             onChange={onChange}
             required={required}
-            className={`block w-full h-10 text-xs text-zinc-200 bg-[#111] border border-zinc-800 rounded-xl appearance-none focus:outline-none focus:ring-1 focus:ring-[#39FF14] focus:border-[#39FF14] transition-all ${Icon ? 'pl-9' : 'pl-3'}`}
+            className={`block w-full h-10 text-xs text-zinc-200 bg-[#111] border border-zinc-800 rounded-xl appearance-none focus:outline-none focus:ring-1 focus:ring-[#E60000] focus:border-[#E60000] transition-all ${Icon ? 'pl-9' : 'pl-3'}`}
           >
           <option value="" disabled hidden></option>
           {options.map((opt: any) => <option key={opt.value} value={opt.value} className="bg-[#111]">{opt.label}</option>)}
@@ -40,7 +40,7 @@ const FloatingInput = ({ id, label, type = "text", value, onChange, icon: Icon, 
             onChange={onChange}
             required={required}
             placeholder={`Ej. ${label.split(' ')[0]}`}
-            className={`block w-full h-10 text-xs text-zinc-200 bg-[#111] border border-zinc-800 rounded-xl appearance-none focus:outline-none focus:ring-1 focus:ring-[#39FF14] focus:border-[#39FF14] transition-all placeholder:text-zinc-600 ${Icon ? 'pl-9' : 'pl-3'} ${type === 'date' ? '[color-scheme:dark]' : ''}`}
+            className={`block w-full h-10 text-xs text-zinc-200 bg-[#111] border border-zinc-800 rounded-xl appearance-none focus:outline-none focus:ring-1 focus:ring-[#E60000] focus:border-[#E60000] transition-all placeholder:text-zinc-600 ${Icon ? 'pl-9' : 'pl-3'} ${type === 'date' ? '[color-scheme:dark]' : ''}`}
           />
         )}
       </div>
@@ -48,7 +48,7 @@ const FloatingInput = ({ id, label, type = "text", value, onChange, icon: Icon, 
   );
 };
 
-export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogin?: boolean; onToggleAuthMode?: (mode: boolean) => void } = {}) {
+export function AuthForm({ externalIsLogin, onToggleAuthMode, onBackToMenu, mode = 'default' }: { externalIsLogin?: boolean; onToggleAuthMode?: (mode: boolean) => void; onBackToMenu?: () => void; mode?: 'default' | 'staff' } = {}) {
   const [internalIsLogin, setInternalIsLogin] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showHabeasData, setShowHabeasData] = useState(false);
@@ -85,6 +85,7 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogi
   const [seudonimo, setSeudonimo] = useState('');
   const [tipoDocumento, setTipoDocumento] = useState('');
   const [numeroIdentificacion, setNumeroIdentificacion] = useState('');
+  const [dv, setDv] = useState('');
   const [instagram, setInstagram] = useState('');
   const [telefono, setTelefono] = useState('');
   const [ciudad, setCiudad] = useState('');
@@ -117,7 +118,18 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogi
   const { toast } = useToast();
 
   const handleRegister = async () => {
-    if (!nombres || !apellidos || !seudonimo || !fechaNacimiento || !tipoDocumento || !numeroIdentificacion || !telefono || !ciudad || !direccion || !email || !password || !tallaCamisa) {
+    let incomplete = false;
+    if (!nombres || !apellidos || !tipoDocumento || !numeroIdentificacion || !telefono || !ciudad || !direccion || !email || !password) {
+      incomplete = true;
+    }
+    if (mode === 'default' && (!seudonimo || !fechaNacimiento || !tallaCamisa)) {
+      incomplete = true;
+    }
+    if (tipoDocumento === 'NIT' && !dv) {
+      incomplete = true;
+    }
+
+    if (incomplete) {
       toast({ title: "Campos incompletos", description: "Por favor completa todos los campos obligatorios (*).", variant: "destructive" });
       setIsLoading(false);
       return;
@@ -158,8 +170,12 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogi
       
       // 3. Crear el documento del usuario en la base de datos
       await setDoc(doc(db, 'users', user.uid), {
-        email, nombres, apellidos, seudonimo, tipoDocumento, numeroIdentificacion,
-        instagram, telefono, ciudad, direccion, fechaNacimiento, tallaCamisa,
+        email, nombres, apellidos, seudonimo: mode === 'default' ? seudonimo : null, 
+        tipoDocumento, numeroIdentificacion, dv: tipoDocumento === 'NIT' ? dv : null,
+        instagram: mode === 'default' ? instagram : null, telefono, ciudad, direccion, 
+        fechaNacimiento: mode === 'default' ? fechaNacimiento : null, 
+        tallaCamisa: mode === 'default' ? tallaCamisa : null,
+        role: mode,
         nombreTutor: requireTutor ? nombreTutor : null,
         cedulaTutor: requireTutor ? cedulaTutor : null,
         telefonoTutor: requireTutor ? telefonoTutor : null,
@@ -262,30 +278,33 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogi
 
   return (
     <>
-      <div className="w-full bg-[#0A0A0A]/95 backdrop-blur-xl border border-zinc-800/80 rounded-3xl shadow-[0_30px_60px_rgba(0,0,0,0.9)] relative drop-shadow-[0_0_15px_rgba(0,0,0,1)] flex flex-col pb-8">
+      <div className="w-full max-h-[85vh] overflow-y-auto bg-[#0A0A0A]/95 backdrop-blur-xl border border-zinc-800/80 rounded-3xl shadow-[0_30px_60px_rgba(0,0,0,0.9)] relative drop-shadow-[0_0_15px_rgba(0,0,0,1)] flex flex-col pb-8">
         
         {/* Subtle Neon Glow behind form */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#39FF14]/[0.03] to-transparent pointer-events-none rounded-3xl"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-[#E60000]/[0.03] to-transparent pointer-events-none rounded-3xl"></div>
 
         {/* Header Block */}
         <div className="flex flex-col items-center justify-center pt-6 pb-4 px-6 relative z-10">
           <div className="flex flex-col items-center gap-2.5">
-            <div className="w-10 h-10 rounded-full overflow-hidden border border-[#333] bg-[#0A0A0A] shadow-[0_0_20px_rgba(0,0,0,0.5)]">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/sponsors/stunt2026negro.jpeg" alt="Logo Oficial" className="w-full h-full object-cover" />
-            </div>
+
             <div className="text-center flex flex-col items-center">
-              <ClipboardList className="w-4 h-4 text-[#39FF14] mb-1.5 drop-shadow-[0_0_8px_rgba(57,255,20,0.8)]" strokeWidth={1.5} />
+              <ClipboardList className="w-4 h-4 text-[#E60000] mb-1.5 drop-shadow-[0_0_8px_rgba(230,0,0,0.8)]" strokeWidth={1.5} />
               <h2 className="text-xl md:text-2xl font-headline font-black text-white uppercase tracking-wider drop-shadow-lg">
-                {isLogin ? 'INICIAR SESIÓN' : 'INSCRIPCIÓN OFICIAL'}
+                {isLogin ? 'INICIAR SESIÓN' : (mode === 'staff' ? 'REGISTRO OFICIAL' : 'INSCRIPCIÓN OFICIAL')}
               </h2>
               <p className="text-zinc-400 text-[10px] md:text-xs mt-0.5 mb-3">
-                {isLogin ? 'Ingresa para gestionar tu registro' : 'Completa tus datos para asegurar tu cupo'}
+                {isLogin ? 'Ingresa para gestionar tu registro' : (mode === 'staff' ? 'Completa tus datos para trabajar de la mejor manera' : 'Completa tus datos para asegurar tu cupo')}
               </p>
               <button 
                 type="button" 
-                onClick={() => setIsLogin(!isLogin)}
-                className="text-[10px] uppercase tracking-widest font-bold text-[#39FF14] hover:text-black bg-transparent hover:bg-[#39FF14] border border-[#39FF14] px-4 py-1.5 rounded-full transition-all"
+                onClick={() => {
+                  if (isLogin && onBackToMenu) {
+                    onBackToMenu();
+                  } else {
+                    setIsLogin(!isLogin);
+                  }
+                }}
+                className="text-[10px] uppercase tracking-widest font-bold text-[#E60000] hover:text-white bg-transparent hover:bg-[#E60000] border border-[#E60000] px-4 py-1.5 rounded-full transition-all"
               >
                 {isLogin ? '← VOLVER A INSCRIPCIÓN' : 'INICIAR SESIÓN'}
               </button>
@@ -303,8 +322,12 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogi
                   <FloatingInput id="nombres" label="Nombres" icon={User} value={nombres} onChange={(e: any) => setNombres(e.target.value)} required />
                   <FloatingInput id="apellidos" label="Apellidos" icon={User} value={apellidos} onChange={(e: any) => setApellidos(e.target.value)} required />
                   
-                  <FloatingInput id="seudonimo" label="Seudónimo (@Apodo)" icon={AtSign} value={seudonimo} onChange={(e: any) => setSeudonimo(e.target.value)} required />
-                  <FloatingInput id="fechaNacimiento" label="Fecha de Nacimiento" type="date" icon={Calendar} value={fechaNacimiento} onChange={(e: any) => setFechaNacimiento(e.target.value)} required />
+                  {mode === 'default' && (
+                    <>
+                      <FloatingInput id="seudonimo" label="Seudónimo (@Apodo)" icon={AtSign} value={seudonimo} onChange={(e: any) => setSeudonimo(e.target.value)} required />
+                      <FloatingInput id="fechaNacimiento" label="Fecha de Nacimiento" type="date" icon={Calendar} value={fechaNacimiento} onChange={(e: any) => setFechaNacimiento(e.target.value)} required />
+                    </>
+                  )}
                   
                   <FloatingInput 
                     id="tipoDocumento" 
@@ -317,10 +340,22 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogi
                       { value: "CC", label: "Cédula de Ciudadanía" },
                       { value: "TI", label: "Tarjeta de Identidad" },
                       { value: "CE", label: "Cédula de Extranjería" },
-                      { value: "Pasaporte", label: "Pasaporte" }
+                      { value: "Pasaporte", label: "Pasaporte" },
+                      { value: "NIT", label: "NIT" }
                     ]}
                   />
-                  <FloatingInput id="numeroIdentificacion" label="Número de Identificación" value={numeroIdentificacion} onChange={(e: any) => setNumeroIdentificacion(e.target.value)} required />
+                  {tipoDocumento === 'NIT' ? (
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <FloatingInput id="numeroIdentificacion" label="Número de NIT" value={numeroIdentificacion} onChange={(e: any) => setNumeroIdentificacion(e.target.value)} required />
+                      </div>
+                      <div className="w-16">
+                        <FloatingInput id="dv" label="DV" value={dv} onChange={(e: any) => setDv(e.target.value)} required />
+                      </div>
+                    </div>
+                  ) : (
+                    <FloatingInput id="numeroIdentificacion" label="Número de Identificación" value={numeroIdentificacion} onChange={(e: any) => setNumeroIdentificacion(e.target.value)} required />
+                  )}
 
                   {/* TI / Minor (Tutor) Fields */}
                   {requireTutor && (
@@ -343,26 +378,30 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogi
 
                   <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                     <FloatingInput id="direccion" label="Dirección" icon={MapPin} value={direccion} onChange={(e: any) => setDireccion(e.target.value)} required />
-                    <FloatingInput 
-                      id="tallaCamisa" 
-                      label="Talla de Camisa" 
-                      isSelect 
-                      value={tallaCamisa} 
-                      onChange={(e: any) => setTallaCamisa(e.target.value)} 
-                      required 
-                      options={[
-                        { value: "S", label: "S" },
-                        { value: "M", label: "M" },
-                        { value: "L", label: "L" },
-                        { value: "XL", label: "XL" },
-                        { value: "XXL", label: "XXL" }
-                      ]}
-                    />
+                    {mode === 'default' && (
+                      <FloatingInput 
+                        id="tallaCamisa" 
+                        label="Talla de Camisa" 
+                        isSelect 
+                        value={tallaCamisa} 
+                        onChange={(e: any) => setTallaCamisa(e.target.value)} 
+                        required 
+                        options={[
+                          { value: "S", label: "S" },
+                          { value: "M", label: "M" },
+                          { value: "L", label: "L" },
+                          { value: "XL", label: "XL" },
+                          { value: "XXL", label: "XXL" }
+                        ]}
+                      />
+                    )}
                   </div>
 
-                  <div className="md:col-span-2">
-                    <FloatingInput id="instagram" label="Instagram (@usuario)" icon={AtSign} value={instagram} onChange={(e: any) => setInstagram(e.target.value)} />
-                  </div>
+                  {mode === 'default' && (
+                    <div className="md:col-span-2">
+                      <FloatingInput id="instagram" label="Instagram (@usuario)" icon={AtSign} value={instagram} onChange={(e: any) => setInstagram(e.target.value)} />
+                    </div>
+                  )}
                 </div>
               </>
             )}
@@ -378,7 +417,7 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogi
                     <button 
                       type="button" 
                       onClick={() => setResetPasswordDialogOpen(true)}
-                      className="text-[10px] text-zinc-500 hover:text-[#39FF14] mt-1.5 block w-full text-right transition-colors font-semibold"
+                      className="text-[10px] text-zinc-500 hover:text-[#E60000] mt-1.5 block w-full text-right transition-colors font-semibold"
                     >
                       ¿Olvidaste tu contraseña?
                     </button>
@@ -391,15 +430,15 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogi
             <div className="pt-4">
               <Button 
                 type="submit" 
-                className="w-full h-12 bg-[#39FF14] hover:bg-[#2CE50F] text-black text-sm md:text-base font-black tracking-wider uppercase transition-all duration-300 shadow-[0_0_20px_rgba(57,255,20,0.3)] hover:shadow-[0_0_30px_rgba(57,255,20,0.6)] rounded-lg border-none flex items-center justify-center gap-2 group" 
+                className="w-full h-12 bg-[#E60000] hover:bg-[#CC0000] text-white text-sm md:text-base font-black tracking-wider uppercase transition-all duration-300 shadow-[0_0_20px_rgba(230,0,0,0.3)] hover:shadow-[0_0_30px_rgba(230,0,0,0.6)] rounded-lg border-none flex items-center justify-center gap-2 group" 
                 disabled={isLoading}
               >
                 {isLoading ? (
                   <span className="h-5 w-5 animate-spin rounded-full border-b-2 border-black inline-block"></span>
                 ) : (
                   <>
-                    <span>{isLogin ? "INGRESAR" : "ASEGURAR MI CUPO"}</span>
-                    <Flame className="w-5 h-5 group-hover:scale-110 transition-transform text-black" strokeWidth={2.5} />
+                    <span>{isLogin ? "INGRESAR" : (mode === 'staff' ? "REGISTRO COMPLETO" : "ASEGURAR MI CUPO")}</span>
+                    <Flame className="w-5 h-5 group-hover:scale-110 transition-transform text-white" strokeWidth={2.5} />
                   </>
                 )}
               </Button>
@@ -455,7 +494,7 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogi
           </ScrollArea>
           <DialogFooter className="mt-4 gap-3 sm:gap-0">
             <Button variant="outline" className="border-[#222] text-zinc-300 hover:bg-[#111] hover:text-white rounded-xl" onClick={() => setShowHabeasData(false)}>Cancelar</Button>
-            <Button className="bg-[#FFB700] text-black hover:bg-[#E5A400] font-bold rounded-xl" onClick={handleAcceptHabeasData} disabled={isLoading}>
+            <Button className="bg-[#FFB700] text-white hover:bg-[#E5A400] font-bold rounded-xl" onClick={handleAcceptHabeasData} disabled={isLoading}>
               {isLoading ? <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-black mr-2"></div> : null}
               Aceptar y Continuar
             </Button>
@@ -488,7 +527,7 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogi
               Cerrar
             </Button>
             <Button 
-              className="bg-[#39FF14] text-black hover:bg-[#2CE50F] w-full sm:w-auto font-bold rounded-xl"
+              className="bg-[#E60000] text-white hover:bg-[#CC0000] w-full sm:w-auto font-bold rounded-xl"
               onClick={() => {
                 setDuplicateIdDialogOpen(false);
                 setIsLogin(true);
@@ -504,7 +543,7 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogi
       <Dialog open={resetPasswordDialogOpen} onOpenChange={setResetPasswordDialogOpen}>
         <DialogContent className="sm:max-w-md bg-zinc-950 border-zinc-800 text-white rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-center text-[#39FF14] flex flex-col items-center gap-2">
+            <DialogTitle className="text-xl font-bold text-center text-[#E60000] flex flex-col items-center gap-2">
               <KeyRound className="w-10 h-10" />
               Recuperar Contraseña
             </DialogTitle>
@@ -532,7 +571,7 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogi
               Cancelar
             </Button>
             <Button 
-              className="bg-[#39FF14] text-black hover:bg-[#2CE50F] w-full sm:w-auto font-bold rounded-xl"
+              className="bg-[#E60000] text-white hover:bg-[#CC0000] w-full sm:w-auto font-bold rounded-xl"
               onClick={handleResetPassword}
               disabled={isResetting || !resetPasswordEmail}
             >
@@ -545,3 +584,4 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode }: { externalIsLogi
     </>
   );
 }
+

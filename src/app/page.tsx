@@ -27,7 +27,10 @@ const SPORNS_IMAGES = [
 export default function Home() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isInscripcionesOpen, setIsInscripcionesOpen] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState<'default' | 'staff'>('default');
+  const [authIsLogin, setAuthIsLogin] = useState(false);
   const [currentHeroImgIndex, setCurrentHeroImgIndex] = useState(0);
 
   useEffect(() => {
@@ -51,49 +54,93 @@ export default function Home() {
         <div className="max-w-[1400px] mx-auto px-6 flex items-center justify-between">
           <img src="/sponsors/PKS Blanco.png" alt="PKS" className="h-8 md:h-10 object-contain drop-shadow-md" />
           
-          <button className="text-[#E60000] hover:text-[#CC0000] transition-colors" onClick={() => setIsMobileMenuOpen(true)}>
-            <Menu size={32} />
-          </button>
+          <div className="flex items-center gap-6">
+            <button 
+              onClick={() => { setAuthIsLogin(true); setShowAuthModal(true); }}
+              className="text-white hover:text-[#E60000] font-bebas text-xl tracking-widest uppercase transition-colors hidden sm:block"
+            >
+              INICIAR SESIÓN
+            </button>
+            <button className="text-[#E60000] hover:text-[#CC0000] transition-colors" onClick={() => setIsMobileMenuOpen(true)}>
+              <Menu size={32} />
+            </button>
+          </div>
         </div>
       </nav>
 
       {/* MOBILE MENU */}
-      {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-[100] bg-[#080808]/80 backdrop-blur-md flex flex-col pt-24 px-8 pb-8 overflow-y-auto">
-          {/* Header */}
-          <div className="absolute top-0 left-0 w-full flex items-center justify-between p-6">
-            <img src="/sponsors/PKS Blanco.png" alt="PKS" className="h-8 md:h-10 object-contain" />
-            <button onClick={() => setIsMobileMenuOpen(false)} className="text-white hover:text-[#E60000] transition-colors">
-              <X size={36} strokeWidth={1.5} />
-            </button>
-          </div>
-          
+      <div 
+        className={`fixed inset-0 z-[100] bg-[#080808]/70 backdrop-blur-md flex flex-col items-center justify-center px-8 transition-all duration-300 ease-in-out ${isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+      >
+        {/* Header */}
+        <div className="absolute top-0 left-0 w-full flex items-center justify-between p-6">
+          <img src="/sponsors/PKS Blanco.png" alt="PKS" className="h-8 md:h-10 object-contain" />
+          <button onClick={() => { setIsMobileMenuOpen(false); setIsInscripcionesOpen(false); }} className="text-white hover:text-[#E60000] transition-colors">
+            <X size={36} strokeWidth={1.5} />
+          </button>
+        </div>
+        
+        <div 
+          className="flex flex-col items-center justify-center w-full max-w-md mx-auto -mt-16 transition-all duration-500 ease-out" 
+          style={{ 
+            transform: isMobileMenuOpen ? 'translateY(0)' : 'translateY(-40px)',
+            opacity: isMobileMenuOpen ? 1 : 0
+          }}
+        >
           {/* Social Icons */}
-          <div className="flex items-center justify-center gap-6 mb-12 mt-4 text-white">
-            <a href="#" className="hover:text-[#E60000] transition-colors"><Facebook size={24} /></a>
-            <a href="#" className="hover:text-[#E60000] transition-colors"><Instagram size={24} /></a>
-            <a href="#" className="hover:text-[#E60000] transition-colors"><Youtube size={24} /></a>
-            <a href="#" className="hover:text-[#E60000] transition-colors"><Twitter size={24} /></a>
+          <div className="flex items-center justify-center gap-8 mb-10 text-white">
+            <a href="#" className="hover:text-[#E60000] transition-colors"><Facebook size={26} /></a>
+            <a href="#" className="hover:text-[#E60000] transition-colors"><Instagram size={26} /></a>
+            <a href="#" className="hover:text-[#E60000] transition-colors"><Youtube size={26} /></a>
+            <a href="#" className="hover:text-[#E60000] transition-colors"><Twitter size={26} /></a>
           </div>
 
           {/* Menu Items */}
           <div className="flex flex-col items-center gap-6 w-full">
-            {['Inscripción Pilotos', 'Contáctanos', 'Galería', 'Podios'].map(item => (
-              <button key={item} className="font-bebas italic uppercase tracking-wide text-4xl md:text-5xl text-white hover:text-[#E60000] transition-colors flex items-center gap-3 text-center justify-center">
-                {item}
-                <ArrowDown size={24} className="opacity-70 mt-1" strokeWidth={2} />
+            <div className="flex flex-col items-center w-full">
+              <button 
+                onClick={() => setIsInscripcionesOpen(!isInscripcionesOpen)}
+                className={`font-bebas italic uppercase tracking-wide text-4xl md:text-5xl hover:text-[#E60000] outline-none focus:outline-none transition-colors flex items-center gap-3 text-center justify-center ${isInscripcionesOpen ? 'text-[#E60000]' : 'text-white'}`}
+              >
+                INSCRIPCIONES
+                <ArrowDown size={24} className={`opacity-70 mt-1 transition-transform duration-300 ${isInscripcionesOpen ? 'rotate-180' : ''}`} strokeWidth={2} />
               </button>
-            ))}
-            
-            <button 
-              onClick={() => { setIsMobileMenuOpen(false); setShowAuthModal(true); }}
-              className="mt-4 bg-[#E60000] text-white font-inter font-bold text-sm tracking-widest uppercase py-4 px-8 rounded-sm w-max hover:bg-[#CC0000] transition-colors flex items-center gap-2"
-            >
-              INSCRÍBETE AHORA <ArrowUpRight size={16} />
-            </button>
+              
+              <div 
+                className={`flex flex-col items-center overflow-hidden transition-all duration-300 ease-in-out ${isInscripcionesOpen ? 'max-h-40 opacity-100 mt-6 gap-4' : 'max-h-0 opacity-0 mt-0 gap-0'}`}
+              >
+                <button 
+                  onClick={() => { setAuthIsLogin(false); setAuthMode('staff'); setIsMobileMenuOpen(false); setIsInscripcionesOpen(false); setShowAuthModal(true); }}
+                  className="font-bebas text-3xl md:text-4xl text-white hover:text-[#E60000] transition-colors py-2 tracking-widest uppercase outline-none focus:outline-none"
+                >
+                  STAFF - PROVEEDORES
+                </button>
+                <button 
+                  onClick={() => { setAuthIsLogin(false); setAuthMode('default'); setIsMobileMenuOpen(false); setIsInscripcionesOpen(false); setShowAuthModal(true); }}
+                  className="font-bebas text-3xl md:text-4xl text-white hover:text-[#E60000] transition-colors py-2 tracking-widest uppercase outline-none focus:outline-none"
+                >
+                  PILOTOS
+                </button>
+              </div>
+            </div>
+
+            <div className={`flex flex-col items-center gap-6 overflow-hidden transition-all duration-300 ease-in-out ${isInscripcionesOpen ? 'max-h-0 opacity-0 scale-95 pointer-events-none' : 'max-h-[500px] opacity-100 scale-100'}`}>
+              {['Contáctanos', 'Galería', 'Podios'].map(item => (
+                <button key={item} className="font-bebas italic uppercase tracking-wide text-4xl md:text-5xl text-white hover:text-[#E60000] transition-colors flex items-center gap-3 text-center justify-center">
+                  {item}
+                </button>
+              ))}
+              
+              <button 
+                onClick={() => { setAuthIsLogin(false); setAuthMode('default'); setIsMobileMenuOpen(false); setIsInscripcionesOpen(false); setShowAuthModal(true); }}
+                className="mt-6 bg-[#E60000] text-white font-inter font-bold text-sm tracking-widest uppercase py-4 px-8 rounded-sm w-max hover:bg-[#CC0000] transition-colors flex items-center gap-2"
+              >
+                INSCRÍBETE AHORA <ArrowUpRight size={16} />
+              </button>
+            </div>
           </div>
         </div>
-      )}
+      </div>
 
       {/* SEC 1: HERO */}
       <section className="relative w-full min-h-[95vh] flex flex-col justify-center px-6 overflow-hidden bg-[#080808] pt-24" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 92%, 0 100%)' }}>
@@ -158,8 +205,8 @@ export default function Home() {
             EXPERIENCIAS <span className="text-[#E60000]">●</span> PRODUCCIÓN <span className="text-[#E60000]">●</span> COMPETENCIA <span className="text-[#E60000]">●</span> TECNOLOGÍA
           </span>
           
-          <div className="flex flex-col sm:flex-row gap-8 items-center">
-            <button onClick={() => setShowAuthModal(true)} className="bg-[#E60000] hover:bg-[#CC0000] text-white font-inter font-bold text-[12px] px-8 py-4 tracking-widest uppercase flex items-center gap-3 transition-transform hover:-translate-y-1 rounded-sm">
+          <div className="flex flex-col sm:flex-row items-center gap-6 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+            <button onClick={() => { setAuthIsLogin(false); setAuthMode('default'); setShowAuthModal(true); }} className="bg-[#E60000] hover:bg-[#CC0000] text-white font-inter font-bold text-[12px] px-8 py-4 tracking-widest uppercase flex items-center gap-3 transition-transform hover:-translate-y-1 rounded-sm">
               EXPLORA NUESTRO UNIVERSO <ArrowUpRight size={18} strokeWidth={2.5} />
             </button>
             <button className="bg-transparent text-white font-inter text-[11px] font-bold tracking-widest flex items-center gap-4 transition-all hover:text-[#E60000] uppercase group">
@@ -371,7 +418,7 @@ export default function Home() {
       <section className="py-24 px-6 max-w-[1400px] mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {[
-            { tag: '¿ERES PILOTO?', role: 'PORTAL DEL PILOTO', color: 'border-[#1C1C1C] hover:border-[#E60000]', items: ['Inscríbete a nuestros eventos', 'Gestiona tu información', 'Pagos y documentos', 'Tu QR y accesos'], btnText: 'IR AL PORTAL', btnColor: 'bg-transparent border border-[#E60000] text-white hover:bg-[#E60000] hover:text-white', onClick: () => setShowAuthModal(true) },
+            { tag: '¿ERES PILOTO?', role: 'PORTAL DEL PILOTO', color: 'border-[#1C1C1C] hover:border-[#E60000]', items: ['Inscríbete a nuestros eventos', 'Gestiona tu información', 'Pagos y documentos', 'Tu QR y accesos'], btnText: 'IR AL PORTAL', btnColor: 'bg-transparent border border-[#E60000] text-white hover:bg-[#E60000] hover:text-white', onClick: () => { setAuthIsLogin(false); setAuthMode('default'); setShowAuthModal(true); } },
             { tag: '¿ERES PROVEEDOR O COLABORADOR?', role: 'PORTAL DE PROVEEDORES', color: 'border-[#1C1C1C] hover:border-[#E60000]', items: ['Sube tu factura', 'Consulta estado de pago', 'Descarga certificados', 'Historial de transacciones'], btnText: 'IR AL PORTAL', btnColor: 'border border-[#E60000] text-[#E60000] hover:bg-[#E60000] hover:text-black', onClick: undefined },
             { tag: 'SISTEMA DE COBROS', role: 'PARA PERSONAS NATURALES', color: 'border-[#1C1C1C] hover:border-[#E60000]', items: ['Colaboradores', 'Proveedores', 'Prestadores de servicios', 'Pagos seguros y rápidos'], btnText: 'IR AL SISTEMA', btnColor: 'bg-transparent border border-[#E60000] text-white hover:bg-[#E60000] hover:text-white', onClick: undefined },
           ].map((portal, i) => (
@@ -479,7 +526,16 @@ export default function Home() {
             >
               <X size={24} />
             </button>
-            <AuthForm />
+            <AuthForm 
+              mode={authMode} 
+              externalIsLogin={authIsLogin} 
+              onToggleAuthMode={setAuthIsLogin} 
+              onBackToMenu={() => {
+                setShowAuthModal(false);
+                setIsMobileMenuOpen(true);
+                setIsInscripcionesOpen(true);
+              }}
+            />
           </div>
         </DialogContent>
       </Dialog>
