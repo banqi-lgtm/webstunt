@@ -38,26 +38,16 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
 
   const fetchUserData = async () => {
     try {
-      const docsRef = ref(storage, `documents/${userUid}`);
-      const res = await listAll(docsRef);
-      let latestRut = null;
-      let latestCert = null;
-      const items = res.items.sort((a, b) => b.name.localeCompare(a.name));
-      for (const item of items) {
-        if (!latestRut && item.name.includes('rut_')) latestRut = item;
-        if (!latestCert && item.name.includes('certificacion_')) latestCert = item;
+      const userDocRef = doc(db, 'users', userUid);
+      const userDoc = await getDoc(userDocRef);
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        if (data.rutUrl) setRutUrl(data.rutUrl);
+        if (data.certUrl) setCertUrl(data.certUrl);
+        if (data.numeroIdentificacion) setExtractedDocNum(data.numeroIdentificacion);
       }
-      if (latestRut) {
-        setRutUrl(await getDownloadURL(latestRut));
-        // Intenta extraer el número del RUT (ej. rut_123456.pdf -> 123456)
-        const match = latestRut.name.match(/rut_(\d+)/i);
-        if (match && match[1]) {
-          setExtractedDocNum(match[1]);
-        }
-      }
-      if (latestCert) setCertUrl(await getDownloadURL(latestCert));
     } catch(e) {
-      console.error("Error fetching documents from storage", e);
+      console.error("Error fetching user data", e);
     }
   };
 
