@@ -161,6 +161,9 @@ export function CuentaDeCobro({
     <>
       <style dangerouslySetInnerHTML={{__html: `
         @media print {
+          body * {
+            visibility: hidden;
+          }
           html, body {
             background: white !important;
             height: auto !important;
@@ -169,13 +172,20 @@ export function CuentaDeCobro({
             padding: 0;
           }
           #print-wrapper {
-            position: static !important; 
+            visibility: visible;
+            position: absolute !important; 
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
             height: auto !important;
             background: white !important;
             padding: 0 !important;
             margin: 0 !important;
             display: block !important;
             overflow: visible !important;
+          }
+          #print-wrapper * {
+            visibility: visible;
           }
           #printable-invoice {
             box-shadow: none !important;
@@ -184,7 +194,10 @@ export function CuentaDeCobro({
             margin: 0 !important;
             border: none !important;
           }
-          .no-print { display: none !important; }
+          .no-print, .no-print * { 
+            visibility: hidden !important;
+            display: none !important; 
+          }
         }
       `}} />
 

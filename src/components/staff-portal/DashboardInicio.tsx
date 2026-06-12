@@ -94,6 +94,10 @@ export function DashboardInicio({ activeTab, setActiveTab, rutUrl, certUrl, tota
       if (data.banco) updateData.banco = data.banco;
       if (data.tipoCuenta) updateData.tipoCuenta = data.tipoCuenta;
       if (data.numeroCuenta) updateData.numeroCuenta = data.numeroCuenta;
+      if (data.ciudad) {
+        updateData.ciudad = data.ciudad;
+        setLocalUserCity(data.ciudad.replace(/[.,\s]+$/, '').trim());
+      }
 
       await updateDoc(userRef, updateData);
       
@@ -116,6 +120,19 @@ const [concepto, setConcepto] = useState('');
   
 const [localUserDocument, setLocalUserDocument] = useState(userDocument);
   useEffect(() => setLocalUserDocument(userDocument), [userDocument]);
+  
+  const [localUserCity, setLocalUserCity] = useState('');
+  useEffect(() => {
+    const fetchCity = async () => {
+      try {
+        const snap = await getDoc(doc(db, 'users', userUid));
+        if (snap.exists() && snap.data().ciudad) {
+          setLocalUserCity((snap.data().ciudad || '').replace(/[.,\s]+$/, '').trim());
+        }
+      } catch(e) {}
+    };
+    fetchCity();
+  }, [userUid]);
   
   const [localRutUrl, setLocalRutUrl] = useState(rutUrl);
   useEffect(() => setLocalRutUrl(rutUrl), [rutUrl]);
@@ -172,7 +189,7 @@ const handleCobrar = async (item: any) => {
         banco: userData.banco || 'No registrado',
         tipoCuenta: userData.tipoCuenta || 'No registrado',
         numeroCuenta: userData.numeroCuenta || 'No registrado',
-        ciudad: userData.ciudad || 'BELLO, ANTIOQUIA',
+        ciudad: (userData.ciudad || '').replace(/[.,\s]+$/, '').trim() || 'BELLO, ANTIOQUIA',
         isHistorical: false,
         itemId: item.id
       });
@@ -229,7 +246,7 @@ const handleCobrar = async (item: any) => {
         banco: userData.banco || 'No registrado',
         tipoCuenta: userData.tipoCuenta || 'No registrado',
         numeroCuenta: userData.numeroCuenta || 'No registrado',
-        ciudad: userData.ciudad || 'BELLO, ANTIOQUIA',
+        ciudad: (userData.ciudad || '').replace(/[.,\s]+$/, '').trim() || 'BELLO, ANTIOQUIA',
         isHistorical: false,
         isNew: true
       });
@@ -295,7 +312,7 @@ const handleCobrar = async (item: any) => {
         banco: userData.banco || 'No registrado',
         tipoCuenta: userData.tipoCuenta || 'No registrado',
         numeroCuenta: userData.numeroCuenta || 'No registrado',
-        ciudad: userData.ciudad || 'BELLO, ANTIOQUIA',
+        ciudad: (userData.ciudad || '').replace(/[.,\s]+$/, '').trim() || 'BELLO, ANTIOQUIA',
         isHistorical: true
       });
       setShowInvoiceModal(true);
@@ -382,9 +399,13 @@ const handleCobrar = async (item: any) => {
               <label className="text-[11px] font-medium text-zinc-400">Correo electrónico</label>
               <input type="email" defaultValue={userEmail || ''} disabled className="w-full bg-[#0A0A0A] border border-[#222222] rounded-md px-4 py-3 text-white text-sm focus:border-[#E60000] outline-none transition-all opacity-80 cursor-not-allowed" />
             </div>
-<div className="space-y-2">
+            <div className="space-y-2">
               <label className="text-[11px] font-medium text-zinc-400">Teléfono de contacto</label>
               <input type="text" value={telefonoContacto} onChange={(e) => setTelefonoContacto(e.target.value)} placeholder="Ej: 300 123 4567" className="w-full bg-[#0A0A0A] border border-[#333333] rounded-md px-4 py-3 text-white text-sm hover:border-zinc-500 focus:border-[#E60000] focus:ring-1 focus:ring-[#E60000] outline-none transition-all" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[11px] font-medium text-zinc-400">Ciudad (Extraída del RUT)</label>
+              <input type="text" value={localUserCity} disabled placeholder="Se extraerá de tu RUT" className="w-full bg-[#0A0A0A] border border-[#222222] rounded-md px-4 py-3 text-white text-sm focus:border-[#E60000] outline-none transition-all opacity-80 cursor-not-allowed" />
             </div>
             <div className="space-y-2">
               <label className="text-[11px] font-medium text-zinc-400">Concepto de la cuenta de cobro</label>
@@ -411,7 +432,7 @@ const handleCobrar = async (item: any) => {
             <div className="space-y-2">
               <label className="text-[11px] font-medium text-zinc-400">Fecha de emisión</label>
               <div className="relative">
-                <input type="date" value={fechaEmision} onChange={(e) => setFechaEmision(e.target.value)} className="w-full bg-[#0A0A0A] border border-[#333333] rounded-md px-4 py-3 text-white text-sm hover:border-zinc-500 focus:border-[#E60000] focus:ring-1 focus:ring-[#E60000] outline-none transition-all appearance-none" />
+                <input type="date" value={fechaEmision} disabled className="w-full bg-[#0A0A0A] border border-[#222222] rounded-md px-4 py-3 text-white text-sm outline-none transition-all appearance-none opacity-80 cursor-not-allowed" />
                 <Calendar className="w-4 h-4 text-zinc-500 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             </div>
