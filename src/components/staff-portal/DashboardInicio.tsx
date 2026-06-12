@@ -254,9 +254,10 @@ const handleCobrar = async (item: any) => {
         valor: numericValue,
         retencionMotivo: retencionMotivo || null,
         retencionPorcentaje: retencionPorcentaje || null,
-        estado: 'disponible', // Pendiente de pago
+        estado: 'cobrado', // Ya fue firmada por el usuario
         firmaGenerada: firma,
         creadoEl: new Date().toISOString(),
+        cobradoEl: new Date().toISOString(),
         fechaEmision: fechaEmision,
         cuentaCobroNum: cuentaCobroNum
       });
@@ -310,6 +311,18 @@ const handleCobrar = async (item: any) => {
 
   const showFormAndDocs = activeTab === 'inicio';
   const showCuentasAndPagos = ['cuentas', 'pagos', 'historial'].includes(activeTab);
+
+  const getStatusInfo = (item: any) => {
+    const isPending = item.estado === 'disponible' || item.estado === 'PENDIENTE DE PAGO';
+    const isApproved = item.estado === 'pagado' || item.estado === 'PAGADO' || item.estadoAprobacion === 'aprobado';
+    const isPendingApproval = item.estado === 'cobrado' && !isApproved;
+
+    if (isPending) return { label: 'PENDIENTE DE PAGO', colors: 'border-zinc-700 bg-[#1A1A1A] text-zinc-400', dot: 'bg-zinc-500', isPending, isApproved, isPendingApproval };
+    if (isPendingApproval) return { label: 'PENDIENTE POR APROBACIÓN', colors: 'border-amber-500/30 bg-amber-500/10 text-amber-500', dot: 'bg-amber-500', isPending, isApproved, isPendingApproval };
+    if (isApproved) return { label: 'PAGADO', colors: 'border-[#00ff00]/30 bg-[#00ff00]/10 text-[#00ff00]', dot: 'bg-[#00ff00]', isPending, isApproved, isPendingApproval };
+    
+    return { label: item.estado, colors: 'border-zinc-700 bg-[#1A1A1A] text-zinc-400', dot: 'bg-zinc-500', isPending: false, isApproved: false, isPendingApproval: false };
+  };
 
   return (
     <div className="space-y-6">
@@ -548,40 +561,35 @@ const handleCobrar = async (item: any) => {
                     <td colSpan={6} className="py-8 text-center text-zinc-500 text-sm">No tienes cuentas de cobro registradas.</td>
                   </tr>
                 )}
-                {historial.map((item: any, i) => (
+                {historial.map((item: any, i) => {
+                  const status = getStatusInfo(item);
+                  return (
                   <tr key={item.id} className="text-zinc-300 hover:bg-[#1A1A1A]/30 transition-colors group">
                     <td className="py-5 px-2 text-zinc-500 text-xs font-mono">{i + 1}</td>
                     <td className="py-5 text-xs font-medium text-zinc-400">{item.fecha || (item.cobradoEl ? new Date(item.cobradoEl).toLocaleDateString() : 'N/A')}</td>
                     <td className="py-5 truncate max-w-[200px] text-xs font-medium text-zinc-300" title={item.descripcion || item.concepto}>{item.descripcion || item.concepto}</td>
                     <td className="py-5 font-black text-white tracking-wider">${Number(item.valor).toLocaleString('es-CO')}</td>
                     <td className="py-5">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 border rounded-md text-[10px] font-bold tracking-wide uppercase whitespace-nowrap ${
-                        item.estado === 'disponible' || item.estado === 'PENDIENTE DE PAGO' ? 'border-zinc-700 bg-[#1A1A1A] text-zinc-400' : 
-                        item.estado === 'cobrado' || item.estado === 'PAGADO' ? 'border-[#00ff00]/30 bg-[#00ff00]/10 text-[#00ff00]' : 
-                        'border-zinc-700 bg-[#1A1A1A] text-zinc-400'
-                      }`}>
-                        <div className={`w-1.5 h-1.5 rounded-full ${
-                          item.estado === 'disponible' || item.estado === 'PENDIENTE DE PAGO' ? 'bg-zinc-500' : 
-                          item.estado === 'cobrado' || item.estado === 'PAGADO' ? 'bg-[#00ff00]' : 'bg-zinc-500'
-                        }`} />
-                        {item.estado === 'disponible' || item.estado === 'PENDIENTE DE PAGO' ? 'PENDIENTE DE PAGO' : item.estado === 'cobrado' || item.estado === 'PAGADO' ? 'PAGADO' : item.estado}
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 border rounded-md text-[10px] font-bold tracking-wide uppercase whitespace-nowrap ${status.colors}`}>
+                        <div className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
+                        {status.label}
                       </span>
                     </td>
                     <td className="py-5 text-xs">
-                      {item.estado === 'cobrado' || item.estado === 'PAGADO' ? (
+                      {status.isApproved || status.isPendingApproval ? (
                         <button onClick={() => handleViewCuenta(item)} disabled={loadingInvoiceId === item.id} className="flex items-center gap-1.5 text-[#E60000] hover:text-red-400 hover:underline disabled:opacity-50">
                           {loadingInvoiceId === item.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileText className="w-3 h-3" />}
                           Cuenta_00{i+1}.pdf 
                           <Download className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity"/>
                         </button>
-                      ) : (item.estado === 'disponible' || item.estado === 'PENDIENTE DE PAGO') ? (
+                      ) : status.isPending ? (
                         <button onClick={() => handleCobrar(item)} className="px-3 py-1.5 bg-[#E60000]/10 text-[#E60000] border border-[#E60000]/20 hover:bg-[#E60000] hover:text-white rounded-md text-[10px] font-bold uppercase tracking-wider transition-colors disabled:opacity-50" disabled={loadingInvoiceId === item.id}>
                           {loadingInvoiceId === item.id ? <Loader2 className="w-3 h-3 animate-spin mx-auto" /> : 'Cobrar y Firmar'}
                         </button>
                       ) : <span className="text-zinc-600">-</span>}
                     </td>
                   </tr>
-                ))}
+                )})}
               </tbody>
             </table>
           </div>
@@ -591,19 +599,14 @@ const handleCobrar = async (item: any) => {
             {historial.length === 0 && (
               <div className="text-center text-zinc-500 py-6 text-sm">No tienes cuentas de cobro registradas.</div>
             )}
-            {historial.map((item: any, i) => (
+            {historial.map((item: any, i) => {
+              const status = getStatusInfo(item);
+              return (
               <div key={item.id} className="bg-[#0A0A0A] border border-[#222] rounded-xl p-4 flex flex-col gap-3">
                 <div className="flex justify-between items-start">
-                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 border rounded-md text-[10px] font-bold tracking-wide uppercase whitespace-nowrap ${
-                    item.estado === 'disponible' || item.estado === 'PENDIENTE DE PAGO' ? 'border-zinc-700 bg-[#1A1A1A] text-zinc-400' : 
-                    item.estado === 'cobrado' || item.estado === 'PAGADO' ? 'border-[#00ff00]/30 bg-[#00ff00]/10 text-[#00ff00]' : 
-                    'border-zinc-700 bg-[#1A1A1A] text-zinc-400'
-                  }`}>
-                    <div className={`w-1.5 h-1.5 rounded-full ${
-                      item.estado === 'disponible' || item.estado === 'PENDIENTE DE PAGO' ? 'bg-zinc-500' : 
-                      item.estado === 'cobrado' || item.estado === 'PAGADO' ? 'bg-[#00ff00]' : 'bg-zinc-500'
-                    }`} />
-                    {item.estado === 'disponible' || item.estado === 'PENDIENTE DE PAGO' ? 'PENDIENTE DE PAGO' : item.estado === 'cobrado' || item.estado === 'PAGADO' ? 'PAGADO' : item.estado}
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 border rounded-md text-[10px] font-bold tracking-wide uppercase whitespace-nowrap ${status.colors}`}>
+                    <div className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
+                    {status.label}
                   </span>
                   <span className="text-xs text-zinc-500">{item.fecha || (item.cobradoEl ? new Date(item.cobradoEl).toLocaleDateString() : 'N/A')}</span>
                 </div>
@@ -614,12 +617,12 @@ const handleCobrar = async (item: any) => {
                 </div>
 
                 <div className="flex items-center justify-between pt-3 border-t border-[#1A1A1A]">
-                   {item.estado === 'cobrado' || item.estado === 'PAGADO' ? (
+                   {status.isApproved || status.isPendingApproval ? (
                       <button onClick={() => handleViewCuenta(item)} disabled={loadingInvoiceId === item.id} className="flex items-center gap-1.5 text-zinc-400 text-xs hover:text-white disabled:opacity-50">
                         {loadingInvoiceId === item.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />} 
                         Descargar cuenta de cobro
                       </button>
-                    ) : (item.estado === 'disponible' || item.estado === 'PENDIENTE DE PAGO') ? (
+                    ) : status.isPending ? (
                       <button onClick={() => handleCobrar(item)} className="flex items-center gap-1.5 text-[#E60000] text-xs font-bold uppercase hover:text-red-400 disabled:opacity-50" disabled={loadingInvoiceId === item.id}>
                         {loadingInvoiceId === item.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />} 
                         Cobrar y Firmar
@@ -627,7 +630,7 @@ const handleCobrar = async (item: any) => {
                     ) : <span className="text-zinc-600 text-xs">Sin cuenta de cobro</span>}
                 </div>
               </div>
-            ))}
+            )})}
           </div>
           
         </div>
