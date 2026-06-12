@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { PlusCircle, FileUp, Search, MessageCircle, ChevronRight, FileText, CheckCircle2, AlertCircle, Building2, Download, Eye, Calendar, Loader2, Sparkles } from 'lucide-react';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, addDoc, collection } from 'firebase/firestore';
 import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { useToast } from '@/hooks/use-toast';
 import { db, storage } from '@/lib/firebase';
@@ -200,6 +200,78 @@ const handleCobrar = async (item: any) => {
     }
   };
 
+  const handleContinuarCreacion = async () => {
+    if (!concepto || !valorTotal) {
+      toast({ title: "Atención", description: "Por favor ingresa un concepto y un valor total.", variant: "destructive" });
+      return;
+    }
+
+    try {
+      setLoadingInvoiceId('new');
+      const userDoc = await getDoc(doc(db, 'users', userUid));
+      const userData = userDoc.data() || {};
+      
+      const numericValue = Number(valorTotal.replace(/\D/g, ''));
+
+      setInvoiceData({
+        numero: 'Por generar',
+        fecha: fechaEmision,
+        cobradorNombre: userData.nombreCompleto || userData.nombres || userName,
+        cobradorDocumento: localUserDocument || 'No registrado',
+        valorTotal: numericValue,
+        conceptos: [{
+          item: 1,
+          descripcion: concepto,
+          valor: numericValue,
+          retencionMotivo: retencionMotivo || null,
+          retencionPorcentaje: retencionPorcentaje || null
+        }],
+        banco: userData.banco || 'No registrado',
+        tipoCuenta: userData.tipoCuenta || 'No registrado',
+        numeroCuenta: userData.numeroCuenta || 'No registrado',
+        ciudad: userData.ciudad || 'BELLO, ANTIOQUIA',
+        isHistorical: false,
+        isNew: true
+      });
+      setShowInvoiceModal(true);
+    } catch (e) {
+      toast({ title: 'Error', description: 'Error al preparar la cuenta', variant: 'destructive' });
+    } finally {
+      setLoadingInvoiceId(null);
+    }
+  };
+
+  const guardarNuevaCuenta = async (firma: string) => {
+    try {
+      const numericValue = Number(valorTotal.replace(/\D/g, ''));
+      const cuentaCobroNum = `CC-${Math.random().toString(36).substring(2,8).toUpperCase()}`;
+
+      await addDoc(collection(db, 'codigos'), {
+        asignadoAUid: userUid,
+        asignadoANombre: userName,
+        concepto: concepto,
+        descripcion: concepto,
+        valor: numericValue,
+        retencionMotivo: retencionMotivo || null,
+        retencionPorcentaje: retencionPorcentaje || null,
+        estado: 'disponible', // Pendiente de pago
+        firmaGenerada: firma,
+        creadoEl: new Date().toISOString(),
+        fechaEmision: fechaEmision,
+        cuentaCobroNum: cuentaCobroNum
+      });
+      
+      toast({ title: 'Éxito', description: 'Cuenta de cobro creada y firmada correctamente.' });
+      setShowInvoiceModal(false);
+      setConcepto('');
+      setValorTotal('');
+      setTimeout(() => window.location.reload(), 1500);
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'Error', description: 'Error al guardar la nueva cuenta de cobro', variant: 'destructive' });
+    }
+  };
+
   const handleViewCuenta = async (item: any) => {
     try {
       setLoadingInvoiceId(item.id);
@@ -330,8 +402,8 @@ const handleCobrar = async (item: any) => {
           </div>
 
           <div className="flex justify-end pt-4 border-t border-[#1A1A1A]">
-            <button className="w-full sm:w-auto bg-[#E60000] hover:bg-red-700 text-white font-bold text-sm px-8 py-3.5 rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-red-900/20 active:scale-95">
-              Continuar <ChevronRight className="w-4 h-4" />
+            <button onClick={handleContinuarCreacion} disabled={loadingInvoiceId === 'new'} className="w-full sm:w-auto bg-[#E60000] hover:bg-red-700 text-white font-bold text-sm px-8 py-3.5 rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-red-900/20 active:scale-95 disabled:opacity-50">
+              {loadingInvoiceId === 'new' ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Continuar'} <ChevronRight className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -625,7 +697,11 @@ const handleCobrar = async (item: any) => {
                   onClose={() => setShowInvoiceModal(false)} 
                   onConfirm={(firma) => {
                     if (invoiceData && !invoiceData.isHistorical) {
-                      confirmarCobro(invoiceData.itemId, firma);
+                      if (invoiceData.isNew) {
+                        guardarNuevaCuenta(firma);
+                      } else {
+                        confirmarCobro(invoiceData.itemId, firma);
+                      }
                     }
                   }}
                 />
