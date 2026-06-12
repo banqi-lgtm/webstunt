@@ -85,9 +85,9 @@ export function StaffPortalLayout({
                   <Icon className={`w-5 h-5 ${isActive ? 'text-[#E60000]' : 'text-zinc-500'}`} />
                   {item.label}
                 </div>
-                {item.badge && (
+                {(item as any).badge && (
                   <span className="bg-[#E60000] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                    {item.badge}
+                    {(item as any).badge}
                   </span>
                 )}
               </button>
