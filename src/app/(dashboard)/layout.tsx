@@ -1,4 +1,7 @@
 import { MainNav } from '@/components/main-nav';
+import { Suspense } from 'react';
+
+export const dynamic = 'force-dynamic';
 
 export default function DashboardLayout({
   children,
@@ -15,7 +18,9 @@ export default function DashboardLayout({
       <div className="fixed inset-0 bg-zinc-950/70 pointer-events-none z-0" />
 
       <div className="relative z-10 flex flex-col min-h-screen">
-        <MainNav />
+        <Suspense fallback={<div className="h-16 border-b border-zinc-800 bg-black/80" />}>
+          <MainNav />
+        </Suspense>
         <main className="flex-1 w-full relative">
           {children}
         </main>
