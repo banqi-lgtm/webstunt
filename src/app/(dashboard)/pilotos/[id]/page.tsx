@@ -573,7 +573,7 @@ export default function PilotDetailPage() {
             {isRejected && <span className="text-[9px] uppercase font-bold text-red-500 bg-red-500/10 px-1.5 py-0.5 rounded">Rechazado</span>}
           </div>
         )}
-        <div className={`relative h-32 flex-grow bg-zinc-900 border rounded-lg overflow-hidden flex items-center justify-center transition-colors group ${isRejected ? 'border-red-500' : 'border-zinc-700 hover:border-green-500'}`}>
+        <div className={`relative h-32 flex-grow bg-zinc-900 border rounded-lg overflow-hidden flex items-center justify-center transition-colors group ${isRejected ? 'border-red-500' : 'border-zinc-700 hover:border-red-600'}`}>
           <img src={url} alt={title} className="object-cover w-full h-full" onError={(e) => {
             (e.target as HTMLImageElement).style.display = 'none';
             (e.target as HTMLImageElement).parentElement?.classList.add('bg-zinc-800');
@@ -592,7 +592,7 @@ export default function PilotDetailPage() {
               <button 
                 onClick={() => toggleDocumentStatus(docKey, !!isRejected)} 
                 disabled={updating}
-                className={`${isRejected ? 'bg-green-600 hover:bg-green-500' : 'bg-red-600 hover:bg-red-500'} p-2.5 rounded-full transition-transform hover:scale-110 shadow-lg text-white disabled:opacity-50`}
+                className={`${isRejected ? 'bg-red-600 hover:bg-red-600' : 'bg-red-600 hover:bg-red-500'} p-2.5 rounded-full transition-transform hover:scale-110 shadow-lg text-white disabled:opacity-50`}
                 title={isRejected ? "Deshacer rechazo" : "Rechazar documento (Pedir corregir)"}
               >
                 {isRejected ? <CheckCircle2 className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
@@ -873,7 +873,7 @@ export default function PilotDetailPage() {
 
   return (
     <div className="min-h-screen p-4 lg:p-10 relative">
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-green-600/10 blur-[150px] mix-blend-screen pointer-events-none rounded-full"></div>
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-red-600/10 blur-[150px] mix-blend-screen pointer-events-none rounded-full"></div>
       
       <div className="max-w-6xl mx-auto w-full relative z-10">
         
@@ -902,8 +902,8 @@ export default function PilotDetailPage() {
             
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between w-full gap-6">
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full lg:w-auto">
-                <div className="p-3 bg-green-500/20 rounded-xl border border-green-500/50 shrink-0">
-                  <User className="w-8 h-8 text-green-500" />
+                <div className="p-3 bg-red-600/20 rounded-xl border border-red-600/50 shrink-0">
+                  <User className="w-8 h-8 text-red-600" />
                 </div>
                 <div className="min-w-0 w-full">
                   <div className="flex flex-wrap items-center gap-2 sm:gap-3">
@@ -943,7 +943,7 @@ export default function PilotDetailPage() {
                               <select 
                                 value={newRole}
                                 onChange={(e) => setNewRole(e.target.value as 'piloto' | 'staff' | 'juez')}
-                                className="w-full bg-zinc-900 border border-zinc-700 text-white rounded-md h-10 px-3 outline-none focus:border-green-500 transition-colors"
+                                className="w-full bg-zinc-900 border border-zinc-700 text-white rounded-md h-10 px-3 outline-none focus:border-red-600 transition-colors"
                               >
                                 <option value="piloto">Piloto</option>
                                 <option value="staff">Staff</option>
@@ -952,7 +952,7 @@ export default function PilotDetailPage() {
                             </div>
                             <DialogFooter>
                               <Button onClick={() => setIsRoleDialogOpen(false)} variant="ghost" className="text-zinc-400">Cancelar</Button>
-                              <Button onClick={handleChangeRole} disabled={updating || newRole === pilot.rol} className="bg-green-600 hover:bg-green-500 text-white">Guardar Cambios</Button>
+                              <Button onClick={handleChangeRole} disabled={updating || newRole === pilot.rol} className="bg-red-600 hover:bg-red-600 text-white">Guardar Cambios</Button>
                             </DialogFooter>
                           </DialogContent>
                         </Dialog>
@@ -963,7 +963,7 @@ export default function PilotDetailPage() {
                     {isAdmin ? (
                       <DropdownMenu>
                         <DropdownMenuTrigger className="focus:outline-none">
-                          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold bg-green-500/10 text-green-400 border border-green-500/20 uppercase tracking-wider cursor-pointer hover:bg-green-500/20 transition-colors">
+                          <span className="inline-block px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold bg-red-600/10 text-red-500 border border-red-600/20 uppercase tracking-wider cursor-pointer hover:bg-red-600/20 transition-colors">
                             {Array.isArray(pilot.categoria) && pilot.categoria.length > 0 ? pilot.categoria.join(' / ') : (!pilot.categoria || pilot.categoria === 'N/A' || pilot.categoria.length === 0 ? 'N/A' : pilot.categoria)}
                           </span>
                         </DropdownMenuTrigger>
@@ -976,7 +976,7 @@ export default function PilotDetailPage() {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     ) : (
-                      <span className="inline-block px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold bg-green-500/10 text-green-400 border border-green-500/20 uppercase tracking-wider">
+                      <span className="inline-block px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold bg-red-600/10 text-red-500 border border-red-600/20 uppercase tracking-wider">
                         {Array.isArray(pilot.categoria) && pilot.categoria.length > 0 ? pilot.categoria.join(' / ') : (!pilot.categoria || pilot.categoria === 'N/A' || pilot.categoria.length === 0 ? 'N/A' : pilot.categoria)}
                       </span>
                     )}
@@ -986,16 +986,16 @@ export default function PilotDetailPage() {
               </div>
 
               {/* Checklist Visual */}
-              <div className={`flex flex-col items-start lg:items-end w-full lg:w-auto p-4 rounded-xl border ${isAllGreen ? 'bg-green-500/10 border-green-500/30' : 'bg-zinc-900 border-zinc-800'}`}>
+              <div className={`flex flex-col items-start lg:items-end w-full lg:w-auto p-4 rounded-xl border ${isAllGreen ? 'bg-red-600/10 border-red-600/30' : 'bg-zinc-900 border-zinc-800'}`}>
                 <div className="flex items-center gap-2 mb-3">
-                  <FileCheck2 className={`w-5 h-5 ${isAllGreen ? 'text-green-400' : 'text-zinc-400'} shrink-0`} />
+                  <FileCheck2 className={`w-5 h-5 ${isAllGreen ? 'text-red-500' : 'text-zinc-400'} shrink-0`} />
                   <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-white">Checklist de Ingreso</span>
                 </div>
                 <div className="flex flex-row flex-wrap items-center justify-between lg:justify-end gap-4 sm:gap-6 w-full lg:w-auto">
                   <div className="flex flex-col items-start lg:items-end">
                     <span className="text-[10px] sm:text-xs text-zinc-500 uppercase">Documentos (5/5)</span>
                     {isDocsComplete ? (
-                      <span className="text-green-400 font-bold text-xs sm:text-sm flex items-center gap-1"><CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4"/> COMPLETOS</span>
+                      <span className="text-red-500 font-bold text-xs sm:text-sm flex items-center gap-1"><CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4"/> COMPLETOS</span>
                     ) : (
                       <span className="text-red-400 font-bold text-xs sm:text-sm flex items-center gap-1"><XCircle className="w-3 h-3 sm:w-4 sm:h-4"/> INCOMPLETOS</span>
                     )}
@@ -1003,7 +1003,7 @@ export default function PilotDetailPage() {
                   <div className="flex flex-col items-start lg:items-end">
                     <span className="text-[10px] sm:text-xs text-zinc-500 uppercase">Estado Financiero</span>
                     {isPaymentApproved ? (
-                      <span className="text-green-400 font-bold text-xs sm:text-sm flex items-center gap-1"><CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4"/> APROBADO</span>
+                      <span className="text-red-500 font-bold text-xs sm:text-sm flex items-center gap-1"><CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4"/> APROBADO</span>
                     ) : (
                       <span className="text-yellow-500 font-bold text-xs sm:text-sm flex items-center gap-1"><AlertCircle className="w-3 h-3 sm:w-4 sm:h-4"/> PENDIENTE</span>
                     )}
@@ -1019,7 +1019,7 @@ export default function PilotDetailPage() {
         <Card className="bg-zinc-950/80 backdrop-blur-xl border-zinc-800/50 mb-6">
           <CardHeader className="border-b border-zinc-800/50 pb-3 py-4">
             <CardTitle className="text-white text-lg flex items-center gap-2">
-              <FileText className="w-5 h-5 text-green-500" /> Documentos Legales (Vista Rápida)
+              <FileText className="w-5 h-5 text-red-600" /> Documentos Legales (Vista Rápida)
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
@@ -1122,7 +1122,7 @@ export default function PilotDetailPage() {
               <CardContent className="pt-4 space-y-3">
                 <div>
                   <span className="text-xs text-zinc-500 uppercase font-semibold">Placa</span>
-                  <p className="text-green-400 font-mono font-bold text-lg uppercase tracking-wider">{pilot.motocicleta.placa}</p>
+                  <p className="text-red-500 font-mono font-bold text-lg uppercase tracking-wider">{pilot.motocicleta.placa}</p>
                 </div>
                 <div>
                   <span className="text-xs text-zinc-500 uppercase font-semibold">Marca</span>
@@ -1158,7 +1158,7 @@ export default function PilotDetailPage() {
                 <div className="flex flex-col">
                   <span className="text-xs text-zinc-500 uppercase font-bold mb-1">Estado de la Verificación Financiera</span>
                   {pilot.estadoPago === 'aprobado' && (
-                    <span className="flex items-center gap-1.5 text-green-400 font-bold text-lg"><CheckCircle2 className="w-5 h-5"/> APROBADO 100%</span>
+                    <span className="flex items-center gap-1.5 text-red-500 font-bold text-lg"><CheckCircle2 className="w-5 h-5"/> APROBADO 100%</span>
                   )}
                   {pilot.estadoPago === 'pago_dia_evento' && (
                     <span className="flex items-center gap-1.5 text-blue-400 font-bold text-lg"><CheckCircle2 className="w-5 h-5"/> APROBADO - PAGO DÍA DEL EVENTO</span>
@@ -1236,7 +1236,7 @@ export default function PilotDetailPage() {
                             <select 
                               value={motivoSaldo}
                               onChange={(e) => setMotivoSaldo(e.target.value)}
-                              className="w-full bg-zinc-900 border border-zinc-700 text-white rounded-md p-2 mb-2 text-sm focus:outline-none focus:border-[#39FF14]"
+                              className="w-full bg-zinc-900 border border-zinc-700 text-white rounded-md p-2 mb-2 text-sm focus:outline-none focus:border-[#E60000]"
                             >
                               <option value="Fecha de pago después del 11 de mayo $350.000">Fecha de pago después del 11 de mayo $350.000</option>
                               <option value="Pago incompleto por error de transferencia">Pago incompleto por error de transferencia</option>
@@ -1272,7 +1272,7 @@ export default function PilotDetailPage() {
                         <Button 
                           onClick={() => updatePaymentStatus('aprobado')} 
                           disabled={updating}
-                          className="bg-green-600 hover:bg-green-500 text-white w-full sm:w-auto"
+                          className="bg-red-600 hover:bg-red-600 text-white w-full sm:w-auto"
                         >
                           <CheckCircle2 className="w-4 h-4 mr-1" /> Aprobar 100%
                         </Button>
@@ -1283,7 +1283,7 @@ export default function PilotDetailPage() {
                       <Button 
                         onClick={() => updatePaymentStatus('aprobado')} 
                         disabled={updating}
-                        className="bg-green-600 hover:bg-green-500 text-white w-full sm:w-auto"
+                        className="bg-red-600 hover:bg-red-600 text-white w-full sm:w-auto"
                       >
                         <CheckCircle2 className="w-4 h-4 mr-1" /> Aprobar Faltante (Liberar QR)
                       </Button>
@@ -1412,14 +1412,14 @@ export default function PilotDetailPage() {
           <DialogContent className="bg-[#0b0d14] border-zinc-800 text-white sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-green-500" />
+                <FileText className="w-5 h-5 text-red-600" />
                 Detalles del Código
               </DialogTitle>
             </DialogHeader>
             <div className="py-4 flex flex-col gap-4">
               <div>
                 <label className="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold block mb-1">Código</label>
-                <div className="text-xl font-mono text-green-500 font-bold">{selectedCodigo.id}</div>
+                <div className="text-xl font-mono text-red-600 font-bold">{selectedCodigo.id}</div>
               </div>
 
               <div>
@@ -1428,7 +1428,7 @@ export default function PilotDetailPage() {
                   type="number" 
                   value={editValor} 
                   onChange={(e) => setEditValor(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-md px-3 py-2 outline-none focus:border-green-500"
+                  className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-md px-3 py-2 outline-none focus:border-red-600"
                 />
               </div>
 
@@ -1438,7 +1438,7 @@ export default function PilotDetailPage() {
                   type="text" 
                   value={editDescripcion} 
                   onChange={(e) => setEditDescripcion(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-md px-3 py-2 outline-none focus:border-green-500"
+                  className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-md px-3 py-2 outline-none focus:border-red-600"
                 />
               </div>
 
@@ -1447,7 +1447,7 @@ export default function PilotDetailPage() {
                 <select 
                   value={editCentroCosto} 
                   onChange={(e) => setEditCentroCosto(e.target.value)}
-                  className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-md px-3 py-2 outline-none focus:border-green-500"
+                  className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-md px-3 py-2 outline-none focus:border-red-600"
                 >
                   <option value="">[ NINGUNO ]</option>
                   {centrosCostoList.map((cc) => (
@@ -1462,7 +1462,7 @@ export default function PilotDetailPage() {
                   <select 
                     value={editRetencionMotivo} 
                     onChange={(e) => setEditRetencionMotivo(e.target.value)}
-                    className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-md px-2 py-2 outline-none focus:border-green-500 text-xs"
+                    className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-md px-2 py-2 outline-none focus:border-red-600 text-xs"
                   >
                     <option value="">[ NINGUNA ]</option>
                     <option value="Servicios Generales">Servicios Generales</option>
@@ -1478,7 +1478,7 @@ export default function PilotDetailPage() {
                     type="number" 
                     value={editRetencionPorcentaje} 
                     onChange={(e) => setEditRetencionPorcentaje(e.target.value)}
-                    className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-md px-3 py-2 outline-none focus:border-green-500"
+                    className="w-full bg-zinc-900 border border-zinc-800 text-white rounded-md px-3 py-2 outline-none focus:border-red-600"
                   />
                 </div>
               </div>
@@ -1488,7 +1488,7 @@ export default function PilotDetailPage() {
               {isAdmin ? (
                 <>
                   {selectedCodigo.estadoAprobacion === 'pendiente' && (
-                    <Button onClick={handleAprobarCodigo} className="col-span-2 sm:col-span-1 bg-green-600 hover:bg-green-500 text-white w-full">Aprobar</Button>
+                    <Button onClick={handleAprobarCodigo} className="col-span-2 sm:col-span-1 bg-red-600 hover:bg-red-600 text-white w-full">Aprobar</Button>
                   )}
                   {selectedCodigo.estadoAprobacion === 'pendiente' && (
                     <Button onClick={handleRechazarCodigo} variant="outline" className="col-span-1 border-red-500 text-red-500 hover:bg-red-500/10 hover:text-red-400 w-full">Rechazar</Button>

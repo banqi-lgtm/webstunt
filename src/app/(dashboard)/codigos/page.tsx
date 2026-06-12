@@ -509,10 +509,10 @@ export default function CodigosAdminPage() {
                           exit={{ opacity: 0, height: 0, marginTop: 0 }}
                           className="overflow-hidden"
                         >
-                          <div className="flex flex-col gap-2 p-3 rounded-md bg-[#00ff88]/5 border border-[#00ff88]/20">
+                          <div className="flex flex-col gap-2 p-3 rounded-md bg-[#E60000]/5 border border-[#E60000]/20">
                             <div className="flex items-center gap-2 mb-1">
-                              <Sparkles className={`w-4 h-4 text-[#00ff88] ${isCalculatingRetencion ? 'animate-pulse' : ''}`} />
-                              <span className="text-[10px] font-bold text-[#00ff88] uppercase tracking-wider">
+                              <Sparkles className={`w-4 h-4 text-[#E60000] ${isCalculatingRetencion ? 'animate-pulse' : ''}`} />
+                              <span className="text-[10px] font-bold text-[#E60000] uppercase tracking-wider">
                                 {isCalculatingRetencion ? 'Calculando con IA...' : 'Retención Sugerida (Editable)'}
                               </span>
                             </div>
@@ -522,7 +522,7 @@ export default function CodigosAdminPage() {
                                 <select
                                   value={retencionMotivo}
                                   onChange={(e) => setRetencionMotivo(e.target.value)}
-                                  className="w-full bg-[#0b0b0f] border border-[#00ff88]/30 text-zinc-300 rounded-md h-9 px-3 text-xs focus:outline-none focus:border-[#00ff88] appearance-none"
+                                  className="w-full bg-[#0b0b0f] border border-[#E60000]/30 text-zinc-300 rounded-md h-9 px-3 text-xs focus:outline-none focus:border-[#E60000] appearance-none"
                                 >
                                   <option value="">[ SELECCIONAR MOTIVO ]</option>
                                   <option value="Servicios Generales">Servicios Generales</option>
@@ -532,17 +532,17 @@ export default function CodigosAdminPage() {
                                   <option value="Transporte">Transporte</option>
                                   <option value="Ninguna">Ninguna</option>
                                 </select>
-                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#00ff88]/50 text-[10px]">▼</div>
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#E60000]/50 text-[10px]">▼</div>
                               </div>
                               <div className="col-span-1 relative">
                                 <input
                                   type="number"
                                   value={retencionPorcentaje}
                                   onChange={(e) => setRetencionPorcentaje(e.target.value)}
-                                  className="w-full bg-[#0b0b0f] border border-[#00ff88]/30 text-zinc-300 rounded-md h-9 pl-3 pr-6 text-xs focus:outline-none focus:border-[#00ff88]"
+                                  className="w-full bg-[#0b0b0f] border border-[#E60000]/30 text-zinc-300 rounded-md h-9 pl-3 pr-6 text-xs focus:outline-none focus:border-[#E60000]"
                                   placeholder="%"
                                 />
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#00ff88]/50 text-xs font-mono">%</span>
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#E60000]/50 text-xs font-mono">%</span>
                               </div>
                             </div>
                           </div>
@@ -872,7 +872,7 @@ export default function CodigosAdminPage() {
                   <>
                     <button 
                       onClick={() => handleUpdateAndAprobar()}
-                      className="col-span-2 sm:col-span-1 justify-center px-4 py-2 bg-emerald-500/10 border border-emerald-500 text-emerald-500 hover:bg-emerald-500 hover:text-white rounded font-orbitron text-[10px] font-bold tracking-widest transition-colors flex items-center gap-2"
+                      className="col-span-2 sm:col-span-1 justify-center px-4 py-2 bg-red-500/10 border border-red-500 text-red-500 hover:bg-red-500 hover:text-white rounded font-orbitron text-[10px] font-bold tracking-widest transition-colors flex items-center gap-2"
                     >
                       <CheckCircle className="w-4 h-4" /> GUARDAR Y APROBAR
                     </button>
@@ -924,7 +924,7 @@ export default function CodigosAdminPage() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[60] bg-[#050816]/90 backdrop-blur-xl flex items-center justify-center print:static print:bg-transparent print:h-auto print:overflow-visible print:block"
           >
-            <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#00ff8815_1px,transparent_1px),linear-gradient(to_bottom,#00ff8815_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-20 pointer-events-none print:hidden"></div>
+            <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#E6000015_1px,transparent_1px),linear-gradient(to_bottom,#E6000015_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-20 pointer-events-none print:hidden"></div>
             <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.5)_50%)] bg-[length:100%_4px] opacity-30 mix-blend-overlay z-0 print:hidden"></div>
 
             <div className="relative z-10 w-full max-w-4xl max-h-screen overflow-y-auto custom-scrollbar p-4 print:p-0 print:overflow-visible print:h-auto print:max-h-none">

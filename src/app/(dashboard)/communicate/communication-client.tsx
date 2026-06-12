@@ -54,7 +54,7 @@ function CopyButton({ textToCopy }: { textToCopy: string }) {
 
   return (
     <Button variant="ghost" size="icon" onClick={handleCopy} className="h-7 w-7">
-      {copied ? <Check className="h-4 w-4 text-green-500" /> : <Clipboard className="h-4 w-4" />}
+      {copied ? <Check className="h-4 w-4 text-red-600" /> : <Clipboard className="h-4 w-4" />}
     </Button>
   );
 }

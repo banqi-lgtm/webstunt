@@ -88,11 +88,11 @@ const SPONSORS = [
     links: { ig: 'https://instagram.com/nitrox_colombia', web: 'https://nitrox.com.co' }
   },
   {
-    name: 'PASKINES STUNT', emoji: '🏍️', badge: 'ORGANIZADOR', badgeColor: '#39FF14',
+    name: 'PASKINES STUNT', emoji: '🏍️', badge: 'ORGANIZADOR', badgeColor: '#E60000',
     links: { ig: 'https://instagram.com/paskines_stunt', yt: 'https://youtube.com/@PaskinesStunt', tk: 'https://tiktok.com/@paskinesstunt', fb: 'https://facebook.com/paskinesstunt' }
   },
   {
-    name: 'F2R RACING', emoji: '🏁', badge: 'CO-ORGANIZADOR', badgeColor: '#39FF14',
+    name: 'F2R RACING', emoji: '🏁', badge: 'CO-ORGANIZADOR', badgeColor: '#E60000',
     links: { ig: 'https://instagram.com/f2r_racing_col', fb: 'https://facebook.com/f2rracing' }
   },
   {
@@ -157,6 +157,7 @@ export default function PskPitxDashboard() {
     uid: '',
     name: 'Cargando...',
     number: '--',
+    numeroIdentificacion: '',
     avatar: '🇨🇴',
     photoUrl: '',
     categoria: 'N/A',
@@ -288,10 +289,12 @@ export default function PskPitxDashboard() {
           
           let name = user.email?.split('@')[0] || 'Piloto';
           let rol = '';
+          let numeroIdentificacion = '';
           if (userDoc.exists()) {
             const d = userDoc.data();
             name = `${d.nombres || ''} ${d.apellidos || ''}`.trim();
             rol = d.rol || '';
+            numeroIdentificacion = d.numeroIdentificacion || '';
           }
           
           let number = '00';
@@ -322,6 +325,7 @@ export default function PskPitxDashboard() {
             uid: user.uid,
             name,
             number,
+            numeroIdentificacion,
             avatar: '🇨🇴',
             photoUrl,
             categoria,
@@ -588,11 +592,11 @@ export default function PskPitxDashboard() {
   };
 
   if (isLoadingProfile) {
-    return <div className="min-h-screen bg-[#050816] flex items-center justify-center text-[#39FF14] font-orbitron text-xl uppercase tracking-widest animate-pulse">CARGANDO_PERFIL...</div>;
+    return <div className="min-h-screen bg-[#050816] flex items-center justify-center text-[#E60000] font-orbitron text-xl uppercase tracking-widest animate-pulse">CARGANDO_PERFIL...</div>;
   }
 
   if (currentUser.rol === 'staff' || currentUser.rol === 'admin') {
-    return <StaffProfileView userUid={currentUser.uid} userName={currentUser.name} userDocument={currentUser.number} />;
+    return <StaffProfileView userUid={currentUser.uid} userName={currentUser.name} userDocument={currentUser.numeroIdentificacion || currentUser.number} />;
   }
 
   return (
@@ -604,8 +608,8 @@ export default function PskPitxDashboard() {
           --bg-dark: #050505;
           --bg-panel: #111111;
           --bg-panel-light: #1A1A1A;
-          --accent-green: #39FF14;
-          --accent-green-glow: rgba(57, 255, 20, 0.3);
+          --accent-green: #E60000;
+          --accent-green-glow: rgba(230, 0, 0, 0.3);
           --accent-yellow: #FFD700;
           --text-main: #FFFFFF;
           --text-muted: #888888;
@@ -621,8 +625,8 @@ export default function PskPitxDashboard() {
           flex-direction: column;
           overflow: hidden;
           background-image: 
-            linear-gradient(rgba(57, 255, 20, 0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(57, 255, 20, 0.03) 1px, transparent 1px);
+            linear-gradient(rgba(230, 0, 0, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(230, 0, 0, 0.03) 1px, transparent 1px);
           background-size: 50px 50px;
           background-position: center center;
         }
@@ -652,7 +656,7 @@ export default function PskPitxDashboard() {
           font-weight: 900;
           letter-spacing: 2px;
           color: var(--text-main);
-          text-shadow: 0 0 10px rgba(57,255,20,0.4);
+          text-shadow: 0 0 10px rgba(230, 0, 0,0.4);
         }
 
         .live-indicator {
@@ -675,8 +679,8 @@ export default function PskPitxDashboard() {
 
         @keyframes pulse-green {
           0% { box-shadow: 0 0 0 0 var(--accent-green-glow); }
-          70% { box-shadow: 0 0 0 10px rgba(57, 255, 20, 0); }
-          100% { box-shadow: 0 0 0 0 rgba(57, 255, 20, 0); }
+          70% { box-shadow: 0 0 0 10px rgba(230, 0, 0, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(230, 0, 0, 0); }
         }
 
         .header-user {
@@ -737,7 +741,7 @@ export default function PskPitxDashboard() {
           font-size: 1.2rem;
           letter-spacing: 1px;
           text-transform: uppercase;
-          background: linear-gradient(180deg, rgba(57,255,20,0.05) 0%, transparent 100%);
+          background: linear-gradient(180deg, rgba(230, 0, 0,0.05) 0%, transparent 100%);
           flex-shrink: 0;
         }
 
@@ -987,7 +991,7 @@ export default function PskPitxDashboard() {
         }
         .post:hover {
           border-color: var(--accent-green);
-          box-shadow: 0 5px 20px rgba(57,255,20,0.1);
+          box-shadow: 0 5px 20px rgba(230, 0, 0,0.1);
         }
         @keyframes slideUp {
           from { opacity: 0; transform: translateY(20px); }
@@ -1018,8 +1022,8 @@ export default function PskPitxDashboard() {
           font-size: 0.7rem; padding: 2px 6px; border-radius: 4px;
           font-family: 'Orbitron', sans-serif; letter-spacing: 1px;
         }
-        .badge-official { background: rgba(57, 255, 20, 0.1); color: var(--accent-green); border: 1px solid var(--accent-green); }
-        .badge-alert { background: rgba(57, 255, 20, 0.1); color: var(--accent-green); border: 1px solid var(--accent-green); }
+        .badge-official { background: rgba(230, 0, 0, 0.1); color: var(--accent-green); border: 1px solid var(--accent-green); }
+        .badge-alert { background: rgba(230, 0, 0, 0.1); color: var(--accent-green); border: 1px solid var(--accent-green); }
         .post-time { font-size: 0.9rem; color: var(--text-muted); margin-top: 2px; }
         
         .post-body {
@@ -1042,7 +1046,7 @@ export default function PskPitxDashboard() {
         }
         .reaction-btn:hover { background: #333; transform: scale(1.05); }
         .reaction-btn.active {
-          background: rgba(57, 255, 20, 0.15); border-color: var(--accent-green); color: var(--accent-green);
+          background: rgba(230, 0, 0, 0.15); border-color: var(--accent-green); color: var(--accent-green);
         }
         
         .comments-section { padding: 0 1.5rem 1.5rem 1.5rem; }
@@ -1091,9 +1095,9 @@ export default function PskPitxDashboard() {
           transform: scale(1.1);
         }
         @keyframes pulse-glow {
-          0% { box-shadow: 0 0 0 0 rgba(57, 255, 20, 0.7); }
-          70% { box-shadow: 0 0 0 15px rgba(57, 255, 20, 0); }
-          100% { box-shadow: 0 0 0 0 rgba(57, 255, 20, 0); }
+          0% { box-shadow: 0 0 0 0 rgba(230, 0, 0, 0.7); }
+          70% { box-shadow: 0 0 0 15px rgba(230, 0, 0, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(230, 0, 0, 0); }
         }
         .chat-badge {
           position: absolute;
@@ -1160,7 +1164,7 @@ export default function PskPitxDashboard() {
           border: 1px solid var(--border-color); position: relative;
         }
         .mine .chat-bubble {
-          background: rgba(57, 255, 20, 0.1); border-color: rgba(57, 255, 20, 0.3); border-radius: 12px 12px 2px 12px;
+          background: rgba(230, 0, 0, 0.1); border-color: rgba(230, 0, 0, 0.3); border-radius: 12px 12px 2px 12px;
         }
         .chat-meta { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px; display: flex; gap: 8px; }
         .mine .chat-meta { justify-content: flex-end; }
@@ -1180,7 +1184,7 @@ export default function PskPitxDashboard() {
           flex: 1; background: var(--bg-dark); border: 1px solid var(--border-color);
           color: white; padding: 0 15px; border-radius: 20px; font-family: inherit; font-size: 1.1rem; outline: none;
         }
-        .chat-form input:focus { border-color: var(--accent-green); box-shadow: 0 0 10px rgba(57,255,20,0.1); }
+        .chat-form input:focus { border-color: var(--accent-green); box-shadow: 0 0 10px rgba(230, 0, 0,0.1); }
         .chat-submit {
           background: var(--accent-green); color: var(--bg-dark); border: none; width: 40px; height: 40px;
           border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s;
@@ -1235,7 +1239,7 @@ export default function PskPitxDashboard() {
                 </div>
               </div>
             </div>
-            <div className="font-display" style={{textAlign: 'center', fontSize: '1.2rem', fontWeight: 900, letterSpacing: '2px', color: 'var(--text-main)', textShadow: '0 0 10px rgba(57,255,20,0.4)'}}>
+            <div className="font-display" style={{textAlign: 'center', fontSize: '1.2rem', fontWeight: 900, letterSpacing: '2px', color: 'var(--text-main)', textShadow: '0 0 10px rgba(230, 0, 0,0.4)'}}>
               🏁 PSKPITX
             </div>
             <div className="font-display" style={{textAlign: 'center', fontSize: '11px', color: 'var(--accent-green)', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '5px', marginTop: '5px', marginBottom: '8px'}}>
@@ -1305,7 +1309,7 @@ export default function PskPitxDashboard() {
                           width: '100%', 
                           borderRadius: '8px',
                           border: '2px solid var(--accent-green)',
-                          boxShadow: '0 0 15px rgba(57,255,20,0.3)',
+                          boxShadow: '0 0 15px rgba(230, 0, 0,0.3)',
                           objectFit: 'cover',
                           aspectRatio: '1/1',
                           opacity: isUploadingPhoto ? 0.5 : 1
@@ -1342,7 +1346,7 @@ export default function PskPitxDashboard() {
                   </div>
                 ) : (
                   <div style={{ display: 'flex', justifyContent: 'center' }}>
-                    <div style={{ position: 'relative', width: '100%', maxWidth: '200px', aspectRatio: '1/1', borderRadius: '8px', border: '2px dashed var(--accent-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(57,255,20,0.05)' }}>
+                    <div style={{ position: 'relative', width: '100%', maxWidth: '200px', aspectRatio: '1/1', borderRadius: '8px', border: '2px dashed var(--accent-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(230, 0, 0,0.05)' }}>
                       <span style={{ color: 'var(--text-muted)' }}>{isUploadingPhoto ? 'Subiendo...' : 'Sin Foto'}</span>
                       <label 
                         style={{ 
@@ -1444,7 +1448,7 @@ export default function PskPitxDashboard() {
                         <button
                           key={cat}
                           onClick={() => setActiveCategoryIndex(idx)}
-                          className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${activeCategoryIndex === idx ? 'bg-[#00ff88]/10 text-[#00ff88] border border-[#00ff88] shadow-[0_0_10px_rgba(0,255,136,0.2)]' : 'bg-[#1a1a1a] text-[#888888] border border-[#2a2a2a] hover:text-white hover:border-[#444]'}`}
+                          className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${activeCategoryIndex === idx ? 'bg-[#E60000]/10 text-[#E60000] border border-[#E60000] shadow-[0_0_10px_rgba(230, 0, 0,0.2)]' : 'bg-[#1a1a1a] text-[#888888] border border-[#2a2a2a] hover:text-white hover:border-[#444]'}`}
                         >
                           {getMappedCategory(cat)}
                         </button>
@@ -1500,7 +1504,7 @@ export default function PskPitxDashboard() {
                     onClick={() => setIsObservacionesOpen(true)}
                     style={{
                       padding: '8px 16px',
-                      background: 'rgba(57, 255, 20, 0.1)',
+                      background: 'rgba(230, 0, 0, 0.1)',
                       border: '1px solid var(--accent-green)',
                       color: 'var(--accent-green)',
                       borderRadius: '20px',
@@ -1509,8 +1513,8 @@ export default function PskPitxDashboard() {
                       fontSize: '0.9rem',
                       transition: 'all 0.2s'
                     }}
-                    onMouseOver={(e) => e.currentTarget.style.background = 'rgba(57, 255, 20, 0.2)'}
-                    onMouseOut={(e) => e.currentTarget.style.background = 'rgba(57, 255, 20, 0.1)'}
+                    onMouseOver={(e) => e.currentTarget.style.background = 'rgba(230, 0, 0, 0.2)'}
+                    onMouseOut={(e) => e.currentTarget.style.background = 'rgba(230, 0, 0, 0.1)'}
                   >
                     👁️ OBSERVACIONES
                   </button>
@@ -1699,7 +1703,7 @@ export default function PskPitxDashboard() {
         <>
           <div className="chat-modal-overlay" onClick={() => setShowQR(false)}></div>
           <div className="chat-modal" style={{ padding: '30px 20px', maxWidth: '400px', width: '90%', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', bottom: 'auto', borderRadius: '12px', zIndex: 1001, height: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-            <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(57, 255, 20, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '15px', border: '1px solid rgba(57, 255, 20, 0.3)', boxShadow: '0 0 30px rgba(57, 255, 20, 0.3)' }}>
+            <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(230, 0, 0, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '15px', border: '1px solid rgba(230, 0, 0, 0.3)', boxShadow: '0 0 30px rgba(230, 0, 0, 0.3)' }}>
               <span style={{ fontSize: '30px' }}>✅</span>
             </div>
             
@@ -1714,7 +1718,7 @@ export default function PskPitxDashboard() {
               Presenta este código QR en el ingreso de Plaza Mayor Medellín para validar tu identidad.
             </p>
             
-            <div style={{ background: '#ffffff', padding: '20px', borderRadius: '16px', boxShadow: '0 0 40px rgba(57, 255, 20, 0.3)', marginBottom: '20px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <div style={{ background: '#ffffff', padding: '20px', borderRadius: '16px', boxShadow: '0 0 40px rgba(230, 0, 0, 0.3)', marginBottom: '20px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
               <QRCode 
                 value={`f2r_${currentUser.uid}`} 
                 size={200}
@@ -1768,7 +1772,7 @@ export default function PskPitxDashboard() {
                     display: 'flex', 
                     alignItems: 'center', 
                     padding: '10px', 
-                    background: isMe ? 'rgba(57, 255, 20, 0.1)' : 'var(--bg-panel-light)', 
+                    background: isMe ? 'rgba(230, 0, 0, 0.1)' : 'var(--bg-panel-light)', 
                     border: `1px solid ${isMe ? 'var(--accent-green)' : 'var(--border-color)'}`,
                     borderRadius: '8px',
                     gap: '15px'
@@ -1888,10 +1892,10 @@ export default function PskPitxDashboard() {
                   <button 
                     onClick={() => { setShowWelcomeScore(false); setIsObservacionesOpen(true); }}
                     style={{
-                      padding: '8px 16px', background: 'rgba(57, 255, 20, 0.1)', border: '1px solid var(--accent-green)', color: 'var(--accent-green)', borderRadius: '20px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.9rem', transition: 'all 0.2s'
+                      padding: '8px 16px', background: 'rgba(230, 0, 0, 0.1)', border: '1px solid var(--accent-green)', color: 'var(--accent-green)', borderRadius: '20px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.9rem', transition: 'all 0.2s'
                     }}
-                    onMouseOver={(e) => e.currentTarget.style.background = 'rgba(57, 255, 20, 0.2)'}
-                    onMouseOut={(e) => e.currentTarget.style.background = 'rgba(57, 255, 20, 0.1)'}
+                    onMouseOver={(e) => e.currentTarget.style.background = 'rgba(230, 0, 0, 0.2)'}
+                    onMouseOut={(e) => e.currentTarget.style.background = 'rgba(230, 0, 0, 0.1)'}
                   >
                     👁️ OBSERVACIONES
                   </button>

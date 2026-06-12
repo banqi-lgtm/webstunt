@@ -176,7 +176,7 @@ export default function SocialMediaCard({
     ctx.moveTo(0, 0);
     ctx.lineTo(cw * 0.5, 0);
     ctx.lineTo(0, ch * 0.5);
-    ctx.fillStyle = 'rgba(57, 255, 20, 0.03)';
+    ctx.fillStyle = 'rgba(230, 0, 0, 0.03)';
     ctx.fill();
 
     // Bottom-right triangle
@@ -184,11 +184,11 @@ export default function SocialMediaCard({
     ctx.moveTo(cw, ch);
     ctx.lineTo(cw * 0.5, ch);
     ctx.lineTo(cw, ch * 0.5);
-    ctx.fillStyle = 'rgba(57, 255, 20, 0.03)';
+    ctx.fillStyle = 'rgba(230, 0, 0, 0.03)';
     ctx.fill();
 
     // Angled lines
-    ctx.strokeStyle = '#39FF14';
+    ctx.strokeStyle = '#E60000';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(cw * 0.8, 0);
@@ -271,8 +271,8 @@ export default function SocialMediaCard({
     ctx.closePath();
     
     ctx.lineWidth = 6;
-    ctx.strokeStyle = '#39FF14';
-    ctx.shadowColor = '#39FF14';
+    ctx.strokeStyle = '#E60000';
+    ctx.shadowColor = '#E60000';
     ctx.shadowBlur = 20;
     ctx.stroke();
     
@@ -332,7 +332,7 @@ export default function SocialMediaCard({
     ctx.font = 'bold 24px "Orbitron", sans-serif';
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
-    ctx.shadowColor = '#39FF14'; // Green glow
+    ctx.shadowColor = '#E60000'; // Green glow
     ctx.shadowBlur = 15;
     ctx.fillStyle = '#FFFFFF';
     ctx.fillText('PILOTO CONFIRMADO', cw - 40, 54); // Y matches IG handle baseline
@@ -392,7 +392,7 @@ export default function SocialMediaCard({
       ctx.fillText(`"${pilotPseudonym.toUpperCase()}"`, cw / 2, fy + fh + 65);
       ctx.fillText(`"${pilotPseudonym.toUpperCase()}"`, cw / 2, fy + fh + 65);
       
-      ctx.fillStyle = '#39FF14';
+      ctx.fillStyle = '#E60000';
       ctx.shadowBlur = 0;
       ctx.fillText(`"${pilotPseudonym.toUpperCase()}"`, cw / 2, fy + fh + 65);
     }
@@ -435,7 +435,7 @@ export default function SocialMediaCard({
         rowSponsors.forEach((img, index) => {
           const dims = dimensions[index];
           
-          ctx.shadowColor = '#39FF14';
+          ctx.shadowColor = '#E60000';
           ctx.shadowBlur = 15;
           ctx.globalAlpha = 0.05;
           ctx.fillRect(currentX, yOffset + (sHeight - dims.drawH) / 2, dims.drawW, dims.drawH);
@@ -504,10 +504,10 @@ export default function SocialMediaCard({
     const pillY = nextY;
 
     // Outer glow for pill
-    ctx.shadowColor = '#39FF14';
+    ctx.shadowColor = '#E60000';
     ctx.shadowBlur = 15;
     ctx.fillStyle = '#051005';
-    ctx.strokeStyle = '#39FF14';
+    ctx.strokeStyle = '#E60000';
     ctx.lineWidth = 3;
     
     ctx.beginPath();
@@ -563,12 +563,12 @@ export default function SocialMediaCard({
   };
 
   return (
-    <Card className="bg-zinc-950 border-zinc-800 overflow-hidden w-full max-w-3xl mx-auto border-t-2 border-t-[#39FF14]">
+    <Card className="bg-zinc-950 border-zinc-800 overflow-hidden w-full max-w-3xl mx-auto border-t-2 border-t-[#E60000]">
       <CardHeader className="border-b border-zinc-900 pb-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <CardTitle className="text-2xl font-black text-white uppercase tracking-tight flex items-center gap-2">
-              <Sparkles className="w-6 h-6 text-[#39FF14] animate-pulse" />
+              <Sparkles className="w-6 h-6 text-[#E60000] animate-pulse" />
               Póster Oficial F2R
             </CardTitle>
             <CardDescription className="text-zinc-400">
@@ -578,7 +578,7 @@ export default function SocialMediaCard({
           <Button
             onClick={handleDownload}
             size="sm"
-            className="bg-[#39FF14] hover:bg-[#32E210] text-black font-black uppercase tracking-wider gap-1.5"
+            className="bg-[#E60000] hover:bg-[#32E210] text-black font-black uppercase tracking-wider gap-1.5"
           >
             <Download className="w-4 h-4" /> Descargar PNG
           </Button>

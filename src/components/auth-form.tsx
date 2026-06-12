@@ -9,7 +9,9 @@ import { Lock, Mail, User, Phone, MapPin, Calendar, AtSign, Flame, ClipboardList
 import { useToast } from '@/hooks/use-toast';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { collection, query, where, getDocs, setDoc, doc } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
+import { ref, uploadString, getDownloadURL } from 'firebase/storage';
+import { auth, db, storage } from '@/lib/firebase';
+import { Loader2, Upload } from 'lucide-react';
 
 // Helper component for Standard Input with Icon
 const FloatingInput = ({ id, label, type = "text", value, onChange, icon: Icon, required = false, isSelect = false, options = [] }: any) => {
@@ -92,6 +94,71 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode, onBackToMenu, mode
   const [direccion, setDireccion] = useState('');
   const [fechaNacimiento, setFechaNacimiento] = useState('');
   const [tallaCamisa, setTallaCamisa] = useState('');
+
+  // Staff / Bank fields
+  const [banco, setBanco] = useState('');
+  const [tipoCuenta, setTipoCuenta] = useState('');
+  const [numeroCuenta, setNumeroCuenta] = useState('');
+  const [rutBase64, setRutBase64] = useState('');
+  const [certBase64, setCertBase64] = useState('');
+  const [rutFileName, setRutFileName] = useState('');
+  const [certFileName, setCertFileName] = useState('');
+  const [isExtractingDoc, setIsExtractingDoc] = useState(false);
+
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
+  };
+
+  const handleDocumentUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'rut' | 'cert') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsExtractingDoc(true);
+      const dataUrl = await fileToBase64(file);
+      
+      if (type === 'rut') {
+        setRutFileName(file.name);
+        setRutBase64(dataUrl);
+      } else {
+        setCertFileName(file.name);
+        setCertBase64(dataUrl);
+      }
+
+      const body: any = {};
+      if (type === 'rut') body.rutFile = { dataUrl, fileType: file.type };
+      if (type === 'cert') body.certFile = { dataUrl, fileType: file.type };
+
+      const response = await fetch('/api/extract-document', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      const data = await response.json();
+      if (data.documentoIdentidad) {
+        setNumeroIdentificacion(data.documentoIdentidad);
+        setTipoDocumento('NIT');
+        toast({ title: "Datos extraídos", description: "Número de documento completado por IA." });
+      }
+      if (data.banco) setBanco(data.banco);
+      if (data.tipoCuenta) setTipoCuenta(data.tipoCuenta);
+      if (data.numeroCuenta) setNumeroCuenta(data.numeroCuenta);
+      if (data.ciudad) setCiudad(data.ciudad);
+      
+    } catch (error) {
+      console.error("Error extraindo documento", error);
+      toast({ title: "Error", description: "No se pudieron extraer los datos automáticamente.", variant: "destructive" });
+    } finally {
+      setIsExtractingDoc(false);
+    }
+  };
+
   
   // Tutor fields for Minors (TI)
   const [nombreTutor, setNombreTutor] = useState('');
@@ -169,6 +236,23 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode, onBackToMenu, mode
       }
       
       // 3. Crear el documento del usuario en la base de datos
+      let rutUrl = null;
+      let certUrl = null;
+
+      // Upload files if they exist
+      if (mode === 'staff') {
+        if (rutBase64) {
+          const rutRef = ref(storage, `users/${user.uid}/rut_${Date.now()}`);
+          await uploadString(rutRef, rutBase64, 'data_url');
+          rutUrl = await getDownloadURL(rutRef);
+        }
+        if (certBase64) {
+          const certRef = ref(storage, `users/${user.uid}/cert_${Date.now()}`);
+          await uploadString(certRef, certBase64, 'data_url');
+          certUrl = await getDownloadURL(certRef);
+        }
+      }
+
       await setDoc(doc(db, 'users', user.uid), {
         email, nombres, apellidos, seudonimo: mode === 'default' ? seudonimo : null, 
         tipoDocumento, numeroIdentificacion, dv: tipoDocumento === 'NIT' ? dv : null,
@@ -181,6 +265,11 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode, onBackToMenu, mode
         telefonoTutor: requireTutor ? telefonoTutor : null,
         correoTutor: requireTutor ? correoTutor : null,
         parentescoTutor: requireTutor ? parentescoTutor : null,
+        banco: mode === 'staff' ? banco : null,
+        tipoCuenta: mode === 'staff' ? tipoCuenta : null,
+        numeroCuenta: mode === 'staff' ? numeroCuenta : null,
+        rutUrl: mode === 'staff' ? rutUrl : null,
+        certUrl: mode === 'staff' ? certUrl : null,
         habeasDataAccepted: false,
         createdAt: new Date().toISOString()
       });

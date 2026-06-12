@@ -116,7 +116,7 @@ export function CuentaDeCobro({
           </CardHeader>
           
           <CardContent className="p-6 space-y-6">
-            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex justify-between items-center">
+            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex justify-between items-center">
               <div>
                 <p className="text-sm text-emerald-400/80 font-medium mb-1">Total a cobrar</p>
                 <p className="text-2xl font-bold text-emerald-400">${valorTotal.toLocaleString('es-CO')}</p>
@@ -188,15 +188,15 @@ export function CuentaDeCobro({
         }
       `}} />
 
-      <div id="print-wrapper" className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm overflow-y-auto p-4 md:p-8 flex items-start justify-center">
+      <div id="print-wrapper" className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm overflow-y-auto p-4 pt-16 md:pt-8 md:p-8 flex items-start justify-center">
         
         {/* Controls (Hidden in print) */}
-        <div className="absolute top-4 right-4 flex gap-2 z-10 no-print">
-          <Button onClick={handlePrintOnly} className="bg-[#0D1B3E] text-white hover:bg-[#0A0A0A] font-bold uppercase tracking-widest text-xs h-9">
-            <Printer className="w-4 h-4 mr-2" />
-            Imprimir / PDF
+        <div className="fixed top-4 right-4 flex gap-2 z-10 no-print">
+          <Button onClick={handlePrintOnly} className="bg-[#0D1B3E] text-white hover:bg-[#0A0A0A] font-bold uppercase tracking-widest text-xs h-9 shadow-lg">
+            <Printer className="w-4 h-4 md:mr-2" />
+            <span className="hidden md:inline">Imprimir / PDF</span>
           </Button>
-          <Button variant="outline" size="icon" onClick={onClose} className="h-9 w-9 bg-white text-black border-zinc-300 hover:bg-zinc-100">
+          <Button variant="outline" size="icon" onClick={onClose} className="h-9 w-9 bg-white text-black border-zinc-300 hover:bg-zinc-100 shadow-lg">
             <X className="w-4 h-4" />
           </Button>
         </div>
@@ -214,36 +214,36 @@ export function CuentaDeCobro({
           <div className="flex flex-col font-inter justify-between" style={{ minHeight: '800px' }}>
             
             {/* FULL WIDTH HEADER */}
-            <div className="bg-[#0D1B3E] text-white print:text-black p-8 print:p-6 flex justify-between items-center">
+            <div className="bg-[#0D1B3E] text-white print:text-black p-6 md:p-8 print:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <h1 className="font-barlow text-4xl print:text-3xl uppercase tracking-wide font-bold">PASKINES STUNT S.A.S.</h1>
-                <p className="text-sm print:text-xs font-light opacity-80 mt-1 tracking-wider">NIT: 902.028.450-5</p>
+                <h1 className="font-barlow text-3xl md:text-4xl print:text-3xl uppercase tracking-wide font-bold">PASKINES STUNT S.A.S.</h1>
+                <p className="text-xs md:text-sm print:text-xs font-light opacity-80 mt-1 tracking-wider">NIT: 902.028.450-5</p>
               </div>
-              <div className="text-right">
-                <h2 className="font-barlow text-2xl print:text-xl uppercase tracking-wider font-medium text-white/90 print:text-black">Cuenta de Cobro</h2>
-                <p className="font-barlow text-3xl print:text-2xl font-bold mt-1 text-white print:text-black">N° {numero}</p>
+              <div className="text-left sm:text-right border-t border-white/20 sm:border-t-0 pt-4 sm:pt-0 w-full sm:w-auto">
+                <h2 className="font-barlow text-xl md:text-2xl print:text-xl uppercase tracking-wider font-medium text-white/90 print:text-black">Cuenta de Cobro</h2>
+                <p className="font-barlow text-2xl md:text-3xl print:text-2xl font-bold mt-1 text-white print:text-black">N° {numero}</p>
               </div>
             </div>
 
             {/* BODY CONTAINER */}
-            <div className="p-8 print:p-6 flex-1 flex flex-col justify-between space-y-6 print:space-y-4">
+            <div className="p-4 md:p-8 print:p-6 flex-1 flex flex-col justify-between space-y-6 print:space-y-4">
               
               <div className="space-y-6 print:space-y-4">
                 {/* FECHA */}
                 <div className="border-b border-[#0A0A0A]/20 pb-4 print:pb-2">
-                  <p className="text-sm print:text-xs font-medium text-[#0A0A0A]">Ciudad y Fecha: {(ciudad || 'BELLO, ANTIOQUIA').toUpperCase()}. <span className="font-light">{formattedDate}</span></p>
+                  <p className="text-xs md:text-sm print:text-xs font-medium text-[#0A0A0A]">Ciudad y Fecha: {(ciudad || 'BELLO, ANTIOQUIA').toUpperCase()}. <span className="font-light">{formattedDate}</span></p>
                 </div>
 
                 {/* DATA GRID */}
-                <div className="grid grid-cols-2 gap-0 border border-[#0A0A0A] bg-white">
-                  <div className="p-4 print:p-3 border-r border-[#0A0A0A]">
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-[#0D1B3E] mb-1">Debe A:</p>
-                    <p className="font-barlow text-xl uppercase font-bold text-[#0A0A0A]">{cobradorNombre}</p>
-                    <p className="text-sm print:text-xs text-[#0A0A0A] font-light mt-1">C.C. {cobradorDocumento}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-0 border border-[#0A0A0A] bg-white print:grid-cols-2">
+                  <div className="p-3 md:p-4 print:p-3 border-b sm:border-b-0 sm:border-r border-[#0A0A0A] print:border-b-0 print:border-r">
+                    <p className="text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-[#0D1B3E] mb-1">Debe A:</p>
+                    <p className="font-barlow text-lg md:text-xl uppercase font-bold text-[#0A0A0A]">{cobradorNombre}</p>
+                    <p className="text-xs md:text-sm print:text-xs text-[#0A0A0A] font-light mt-1">C.C. {cobradorDocumento}</p>
                   </div>
-                  <div className="p-4 print:p-3 flex flex-col justify-center bg-[#0D1B3E] text-white print:text-black">
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-white/70 print:text-black mb-1">La Suma De:</p>
-                    <p className="font-barlow text-4xl print:text-3xl font-bold tracking-wide">${valorTotal.toLocaleString('es-CO')}</p>
+                  <div className="p-3 md:p-4 print:p-3 flex flex-col justify-center bg-[#0D1B3E] text-white print:text-black">
+                    <p className="text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-white/70 print:text-black mb-1">La Suma De:</p>
+                    <p className="font-barlow text-3xl md:text-4xl print:text-3xl font-bold tracking-wide">${valorTotal.toLocaleString('es-CO')}</p>
                   </div>
                 </div>
 

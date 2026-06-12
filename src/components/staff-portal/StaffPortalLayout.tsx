@@ -27,15 +27,8 @@ export function StaffPortalLayout({
     { id: 'inicio', label: 'Inicio', icon: Home },
     { type: 'header', label: 'GESTIÓN' },
     { id: 'cuentas', label: 'Mis cuentas de cobro', icon: FileText },
-    { id: 'pagos', label: 'Pagos y comprobantes', icon: CheckCircle },
-    { id: 'certificaciones', label: 'Certificaciones', icon: FileText },
-    { id: 'historial', label: 'Historial', icon: Clock },
     { type: 'header', label: 'DOCUMENTOS' },
     { id: 'info', label: 'Mi información', icon: UserCircle },
-    { id: 'rut', label: 'RUT', icon: FileText },
-    { id: 'banco', label: 'Certificación bancaria', icon: FileText },
-    { type: 'header', label: 'COMUNICACIÓN' },
-    { id: 'avisos', label: 'Avisos y notificaciones', icon: Bell, badge: 3 },
   ];
 
   const handleTabClick = (id: string) => {
@@ -44,7 +37,7 @@ export function StaffPortalLayout({
   };
 
   return (
-    <div className="flex h-screen bg-[#0D0D0D] text-zinc-300 font-sans overflow-hidden">
+    <div className="flex h-[calc(100vh-64px)] bg-[#0D0D0D] text-zinc-300 font-sans overflow-hidden">
       
       {/* MOBILE OVERLAY */}
       {isMobileMenuOpen && (
@@ -55,26 +48,21 @@ export function StaffPortalLayout({
       )}
 
       {/* SIDEBAR */}
-      <aside className={`fixed lg:relative inset-y-0 left-0 w-[280px] bg-[#0A0A0A] border-r border-[#1A1A1A] flex flex-col z-50 transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+      <aside className={`fixed lg:relative top-[64px] lg:top-0 bottom-0 left-0 w-[280px] bg-[#0A0A0A] border-r border-[#1A1A1A] flex flex-col z-40 transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         
         {/* MOBILE HEADER INSIDE SIDEBAR */}
         <div className="flex items-center justify-between p-6 lg:hidden">
-          <Image src="/sponsors/pks.png" alt="PKS Logo" width={100} height={30} />
+          <span className="text-white font-bold text-sm tracking-widest">MENÚ</span>
           <button onClick={() => setIsMobileMenuOpen(false)} className="text-zinc-400 hover:text-white">
             <X className="w-6 h-6" />
           </button>
         </div>
-
-        {/* LOGO DESKTOP */}
-        <div className="hidden lg:block p-6 border-b border-[#1A1A1A]/50">
-          <Image src="/sponsors/pks.png" alt="PKS Logo" width={120} height={40} />
-        </div>
         
-        <nav className="flex-1 overflow-y-auto custom-scrollbar px-3 py-4 space-y-1">
+        <nav className="flex-1 overflow-y-auto custom-scrollbar py-4 space-y-1">
           {navItems.map((item, idx) => {
             if (item.type === 'header') {
               return (
-                <div key={idx} className="px-4 pt-6 pb-2 text-[10px] font-bold text-zinc-600 uppercase tracking-widest">
+                <div key={idx} className="px-6 pt-6 pb-2 text-[10px] font-bold text-zinc-600 uppercase tracking-widest">
                   {item.label}
                 </div>
               );
@@ -87,10 +75,10 @@ export function StaffPortalLayout({
               <button
                 key={item.id}
                 onClick={() => handleTabClick(item.id!)}
-                className={`w-full flex items-center justify-between px-4 py-3 text-sm font-medium transition-all rounded-md ${
+                className={`w-full flex items-center justify-between px-6 py-3.5 text-sm font-medium transition-all ${
                   isActive 
-                    ? 'bg-gradient-to-r from-[#E60000]/10 to-transparent text-[#E60000] border-l-[3px] border-[#E60000]' 
-                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900 border-l-[3px] border-transparent'
+                    ? 'bg-gradient-to-r from-[#E60000]/10 to-transparent text-[#E60000] border-l-[4px] border-[#E60000]' 
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900 border-l-[4px] border-transparent'
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -106,26 +94,8 @@ export function StaffPortalLayout({
             );
           })}
 
-          <div className="px-2 pt-6">
-            <button className="w-full bg-[#E60000] hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-lg flex items-center justify-between transition-colors shadow-lg shadow-red-900/20">
-              <span className="text-sm text-left leading-tight">Realiza tu cuenta<br/>de cobro</span>
-              <Plus className="w-5 h-5 opacity-70" />
-            </button>
-          </div>
         </nav>
 
-        <div className="p-4 m-4 bg-[#111111] border border-[#222222] rounded-xl relative overflow-hidden flex items-start gap-3">
-          <HelpCircle className="w-6 h-6 text-[#E60000] flex-shrink-0 mt-0.5" />
-          <div className="relative z-10">
-            <h4 className="text-white font-bold text-sm mb-1">¿Necesitas ayuda?</h4>
-            <p className="text-[11px] text-zinc-500 mb-2 leading-tight">
-              Nuestro equipo está para apoyarte.
-            </p>
-            <a href="https://wa.me/message" target="_blank" rel="noreferrer" className="text-[#E60000] hover:text-red-400 text-xs font-semibold hover:underline">
-              Escríbenos por WhatsApp
-            </a>
-          </div>
-        </div>
       </aside>
 
       {/* MAIN CONTENT AREA */}
@@ -156,16 +126,16 @@ export function StaffPortalLayout({
           </div>
 
           {/* TOP HEADER */}
-          <header className="flex flex-col lg:flex-row items-start lg:items-end justify-between px-6 lg:px-10 pt-8 lg:pt-12 pb-6 lg:pb-10 gap-6">
+          <header className="flex flex-col lg:flex-row items-start lg:items-end justify-between px-6 lg:px-10 pt-4 lg:pt-6 pb-6 lg:pb-10 gap-6">
             <div>
-              <h1 className="text-3xl lg:text-[40px] font-black text-white uppercase tracking-wider leading-none mb-4">
+              <h1 className="text-2xl lg:text-3xl font-black text-white uppercase tracking-wider leading-none mb-4">
                 PORTAL DE <br />
                 <span className="text-[#E60000]">PROVEEDORES</span>
               </h1>
-              <p className="text-zinc-400 text-sm">
-                <span className="text-white font-medium">Bienvenido, {userName}</span><br className="hidden lg:block"/>
+              <div className="text-zinc-400 text-sm">
+                <span className="text-white font-bold text-2xl lg:text-3xl block mb-2">Bienvenido, {userName}</span>
                 <span className="lg:inline hidden">Administra tus documentos, cuentas de cobro y consulta el estado de tus pagos.</span>
-              </p>
+              </div>
             </div>
             
             <div className="flex flex-col items-end gap-6 w-full lg:w-auto">

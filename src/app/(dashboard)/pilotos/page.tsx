@@ -241,7 +241,7 @@ export default function PilotosPage() {
             
             <Dialog open={scannerOpen} onOpenChange={setScannerOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-green-600 hover:bg-green-500 text-white gap-2 h-12 px-6 w-full sm:w-auto font-bold shadow-[0_0_20px_rgba(34,197,94,0.3)]">
+                <Button className="bg-red-600 hover:bg-red-600 text-white gap-2 h-12 px-6 w-full sm:w-auto font-bold shadow-[0_0_20px_rgba(34,197,94,0.3)]">
                   <ScanLine className="w-5 h-5" /> ESCANEAR QR
                 </Button>
               </DialogTrigger>
@@ -305,7 +305,7 @@ export default function PilotosPage() {
                     }}
                   />
                 )}
-                <div className="absolute inset-0 border-4 border-green-500/30 m-8 rounded-2xl pointer-events-none"></div>
+                <div className="absolute inset-0 border-4 border-red-600/30 m-8 rounded-2xl pointer-events-none"></div>
               </div>
               <p className="text-zinc-500 text-center text-sm mt-4">
                 Apunta la cámara al código QR en el celular del piloto.
@@ -328,7 +328,7 @@ export default function PilotosPage() {
                    <h3 className="text-lg font-bold text-white mb-4">Escanea el KIT {scanningKitFor.kitNumber}</h3>
                    
                    {!kitScanVerified ? (
-                     <div className="w-full aspect-square max-w-[300px] rounded-xl overflow-hidden bg-black flex items-center justify-center relative border-2 border-[#39FF14]">
+                     <div className="w-full aspect-square max-w-[300px] rounded-xl overflow-hidden bg-black flex items-center justify-center relative border-2 border-[#E60000]">
                        <Scanner
                           onScan={async (detectedCodes) => {
                             if (detectedCodes && detectedCodes.length > 0) {
@@ -346,7 +346,7 @@ export default function PilotosPage() {
                      </div>
                    ) : (
                      <div className="flex flex-col items-center gap-4 py-8 w-full">
-                        <CheckCircle2 className="w-20 h-20 text-[#39FF14] animate-pulse" />
+                        <CheckCircle2 className="w-20 h-20 text-[#E60000] animate-pulse" />
                         <h4 className="text-xl font-bold text-white uppercase tracking-widest text-center">Kit {scanningKitFor.kitNumber} Verificado</h4>
                         <p className="text-zinc-400 text-center mb-6">El código QR coincide con el piloto {scanningKitFor.nombres}.</p>
                         
@@ -365,7 +365,7 @@ export default function PilotosPage() {
                                toast({ title: 'Error', description: 'No se pudo guardar la entrega', variant: 'destructive' });
                              }
                           }}
-                          className="w-full bg-[#39FF14] hover:bg-[#32E011] text-black font-bold h-12 shadow-[0_0_15px_rgba(57,255,20,0.3)]"
+                          className="w-full bg-[#E60000] hover:bg-[#CC0000] text-black font-bold h-12 shadow-[0_0_15px_rgba(230, 0, 0,0.3)]"
                         >
                           CONFIRMAR ENTREGA
                         </Button>
@@ -378,7 +378,7 @@ export default function PilotosPage() {
                  </div>
                ) : fetchingScan ? (
                  <div className="flex flex-col items-center justify-center py-10">
-                   <div className="w-10 h-10 border-4 border-green-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                   <div className="w-10 h-10 border-4 border-red-600 border-t-transparent rounded-full animate-spin mb-4"></div>
                    <p className="text-zinc-400">Verificando pase de ingreso...</p>
                  </div>
                ) : scannedPilot ? (
@@ -396,7 +396,7 @@ export default function PilotosPage() {
                      <li className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-lg border border-zinc-800 bg-zinc-900/50 gap-2">
                         <span className="text-zinc-300 font-semibold text-base sm:text-lg">1. Pago de Inscripción</span>
                         {scannedPilot.estadoPago === 'aprobado' || scannedPilot.estadoPago === 'pago_dia_evento' ? (
-                          <span className={`flex items-center font-bold text-base sm:text-lg ${scannedPilot.estadoPago === 'pago_dia_evento' ? 'text-blue-400' : 'text-green-400'}`}><CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 mr-1" /> {scannedPilot.estadoPago === 'pago_dia_evento' ? 'Pago Día Evento' : 'Aprobado'}</span>
+                          <span className={`flex items-center font-bold text-base sm:text-lg ${scannedPilot.estadoPago === 'pago_dia_evento' ? 'text-blue-400' : 'text-red-500'}`}><CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 mr-1" /> {scannedPilot.estadoPago === 'pago_dia_evento' ? 'Pago Día Evento' : 'Aprobado'}</span>
                         ) : (
                           <span className="flex items-center text-red-400 font-bold text-base sm:text-lg"><XCircle className="w-5 h-5 sm:w-6 sm:h-6 mr-1" /> Pendiente</span>
                         )}
@@ -420,7 +420,7 @@ export default function PilotosPage() {
                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                                <span className="text-zinc-300 font-semibold text-base sm:text-lg">2. Documentos Legales</span>
                                {docsComplete ? (
-                                 <span className="flex items-center text-green-400 font-bold text-base sm:text-lg"><CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 mr-1" /> Completos</span>
+                                 <span className="flex items-center text-red-500 font-bold text-base sm:text-lg"><CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 mr-1" /> Completos</span>
                                ) : (
                                  <span className="flex items-center text-orange-400 font-bold text-base sm:text-lg"><AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 mr-1" /> Incompletos</span>
                                )}
@@ -442,22 +442,22 @@ export default function PilotosPage() {
                         const docsComplete = docs.idUrl && docs.placaUrl && docs.propiedadUrl && docs.soatUrl && docs.deportistaUrl && rechazos.length === 0;
                         if (docsComplete) return (
                           <div className="flex flex-col gap-4 mt-2">
-                            <div className="w-full bg-green-600 text-white font-black text-center py-4 rounded-lg text-lg sm:text-xl uppercase tracking-widest shadow-[0_0_20px_rgba(34,197,94,0.4)] animate-pulse">
+                            <div className="w-full bg-red-600 text-white font-black text-center py-4 rounded-lg text-lg sm:text-xl uppercase tracking-widest shadow-[0_0_20px_rgba(34,197,94,0.4)] animate-pulse">
                               ¡ACCESO PERMITIDO!
                             </div>
                             
                             {scannedPilot.kitNumber && (
-                              <div className="w-full bg-zinc-900 border border-green-500/30 p-4 rounded-lg flex flex-col items-center text-center">
+                              <div className="w-full bg-zinc-900 border border-red-600/30 p-4 rounded-lg flex flex-col items-center text-center">
                                 <span className="text-zinc-400 text-sm uppercase tracking-wider mb-1">Kit Asignado</span>
-                                <span className="text-4xl font-black text-[#39FF14] mb-3 drop-shadow-[0_0_10px_rgba(57,255,20,0.3)]">KIT {scannedPilot.kitNumber}</span>
+                                <span className="text-4xl font-black text-[#E60000] mb-3 drop-shadow-[0_0_10px_rgba(230, 0, 0,0.3)]">KIT {scannedPilot.kitNumber}</span>
                                 {scannedPilot.kitEntregado ? (
-                                  <span className="bg-green-500/20 text-green-400 border border-green-500/30 px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2">
+                                  <span className="bg-red-600/20 text-red-500 border border-red-600/30 px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2">
                                     <CheckCircle2 className="w-5 h-5"/> ENTREGADO
                                   </span>
                                 ) : (
                                   <Button 
                                     onClick={() => setScanningKitFor(scannedPilot)}
-                                    className="w-full bg-[#39FF14] hover:bg-[#32E011] text-black font-bold h-12 shadow-[0_0_15px_rgba(57,255,20,0.3)]"
+                                    className="w-full bg-[#E60000] hover:bg-[#CC0000] text-black font-bold h-12 shadow-[0_0_15px_rgba(230, 0, 0,0.3)]"
                                   >
                                     <ScanLine className="w-5 h-5 mr-2" /> ESCANEAR QR KIT
                                   </Button>
@@ -516,10 +516,10 @@ export default function PilotosPage() {
                   </button>
                   <button 
                     onClick={() => setFilterStatus('aprobado')}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${filterStatus === 'aprobado' ? 'bg-[#39FF14]/10 text-[#39FF14] border border-[#39FF14]/30 shadow-[0_0_10px_rgba(57,255,20,0.2)]' : 'text-zinc-400 hover:text-white'}`}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${filterStatus === 'aprobado' ? 'bg-[#E60000]/10 text-[#E60000] border border-[#E60000]/30 shadow-[0_0_10px_rgba(230, 0, 0,0.2)]' : 'text-zinc-400 hover:text-white'}`}
                   >
                     Aprobados
-                    <span className={`${filterStatus === 'aprobado' ? 'bg-[#39FF14] text-black' : 'bg-zinc-800 text-zinc-500'} text-xs font-bold px-1.5 py-0.5 rounded-full transition-colors`}>{countAprobados}</span>
+                    <span className={`${filterStatus === 'aprobado' ? 'bg-[#E60000] text-black' : 'bg-zinc-800 text-zinc-500'} text-xs font-bold px-1.5 py-0.5 rounded-full transition-colors`}>{countAprobados}</span>
                   </button>
                   <button 
                     onClick={() => setFilterStatus('pendiente')}
@@ -570,7 +570,7 @@ export default function PilotosPage() {
                     <tr key={reg.id} className="hover:bg-zinc-900/30 transition-colors">
                       <td className="px-6 py-4">
                         {(reg.estadoPago === 'aprobado' || reg.estadoPago === 'pago_dia_evento') && (
-                          <div style={{ color: reg.estadoPago === 'aprobado' ? '#39FF14' : '#60A5FA', backgroundColor: reg.estadoPago === 'aprobado' ? 'rgba(57, 255, 20, 0.1)' : 'rgba(96, 165, 250, 0.1)', borderColor: reg.estadoPago === 'aprobado' ? 'rgba(57, 255, 20, 0.2)' : 'rgba(96, 165, 250, 0.2)', textShadow: reg.estadoPago === 'aprobado' ? '0 0 10px rgba(57, 255, 20, 0.4)' : '0 0 10px rgba(96, 165, 250, 0.4)' }} className="flex items-center gap-2 px-3 py-1 rounded-full border w-fit">
+                          <div style={{ color: reg.estadoPago === 'aprobado' ? '#E60000' : '#60A5FA', backgroundColor: reg.estadoPago === 'aprobado' ? 'rgba(230, 0, 0, 0.1)' : 'rgba(96, 165, 250, 0.1)', borderColor: reg.estadoPago === 'aprobado' ? 'rgba(230, 0, 0, 0.2)' : 'rgba(96, 165, 250, 0.2)', textShadow: reg.estadoPago === 'aprobado' ? '0 0 10px rgba(230, 0, 0, 0.4)' : '0 0 10px rgba(96, 165, 250, 0.4)' }} className="flex items-center gap-2 px-3 py-1 rounded-full border w-fit">
                             <CheckCircle2 className="w-4 h-4" /> <span className="font-bold text-xs">{reg.estadoPago === 'aprobado' ? 'APROBADO' : 'DÍA EVENTO'}</span>
                           </div>
                         )}

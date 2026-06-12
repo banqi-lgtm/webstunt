@@ -91,7 +91,7 @@ export default function BulkSocialMediaExport({ pilots }: BulkExportProps) {
       <Button
         onClick={startExport}
         disabled={isExporting || pilots.length === 0}
-        className="bg-[#39FF14] hover:bg-[#32E210] text-black gap-2 h-12 px-6 w-full sm:w-auto font-bold shadow-[0_0_20px_rgba(57,255,20,0.3)] border border-[#39FF14]/50"
+        className="bg-[#E60000] hover:bg-[#32E210] text-black gap-2 h-12 px-6 w-full sm:w-auto font-bold shadow-[0_0_20px_rgba(230, 0, 0,0.3)] border border-[#E60000]/50"
       >
         {isExporting ? (
           <>

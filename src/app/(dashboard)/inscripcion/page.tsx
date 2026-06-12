@@ -740,7 +740,7 @@ export default function InscripcionPage() {
   if (isCheckingStatus || !mounted) {
     return (
       <div className="min-h-screen bg-[#121212] flex flex-col items-center justify-center text-white gap-4">
-        <div className="w-12 h-12 border-4 border-[#39FF14] border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-12 h-12 border-4 border-[#E60000] border-t-transparent rounded-full animate-spin"></div>
         <p className="text-zinc-400 font-bold tracking-widest uppercase text-sm">Verificando estado...</p>
       </div>
     );
@@ -749,16 +749,16 @@ export default function InscripcionPage() {
   if (staffRegistered) {
     return (
       <div className="min-h-screen relative overflow-hidden bg-[#121212] flex items-center justify-center p-4">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#39FF14]/10 blur-[150px] mix-blend-screen pointer-events-none rounded-full"></div>
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#E60000]/10 blur-[150px] mix-blend-screen pointer-events-none rounded-full"></div>
         <Card className="max-w-md w-full bg-zinc-950/80 backdrop-blur-xl border-zinc-800/50 shadow-2xl relative z-10 text-center p-8">
-          <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-6" />
+          <CheckCircle2 className="w-16 h-16 text-red-600 mx-auto mb-6" />
           <h2 className="text-2xl font-black text-white uppercase tracking-widest mb-4">Registro Exitoso</h2>
           <p className="text-zinc-400 mb-8">
             Tu rol ha sido actualizado en el sistema correctamente.
           </p>
           <Button 
             onClick={() => router.push('/profile')}
-            className="w-full bg-[#39FF14] hover:bg-[#32E011] text-black font-bold"
+            className="w-full bg-[#E60000] hover:bg-[#CC0000] text-black font-bold"
           >
             VER MI PERFIL
           </Button>
@@ -770,7 +770,7 @@ export default function InscripcionPage() {
   if (!isAdminBypass && !isPilotBypass && step !== 3) {
     return (
       <div className="min-h-screen relative overflow-hidden bg-[#121212] flex items-center justify-center p-4">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#39FF14]/10 blur-[150px] mix-blend-screen pointer-events-none rounded-full"></div>
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#E60000]/10 blur-[150px] mix-blend-screen pointer-events-none rounded-full"></div>
         <Card className="max-w-md w-full bg-zinc-950/80 backdrop-blur-xl border-zinc-800/50 shadow-2xl relative z-10 text-center p-8">
           <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-6" />
           <h2 className="text-2xl font-black text-white uppercase tracking-widest mb-4">Inscripciones Cerradas</h2>
@@ -813,14 +813,14 @@ export default function InscripcionPage() {
         />
       )}
       {/* Background glow */}
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#39FF14]/10 blur-[150px] mix-blend-screen pointer-events-none rounded-full"></div>
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#E60000]/10 blur-[150px] mix-blend-screen pointer-events-none rounded-full"></div>
 
       <div className="flex flex-col p-4 lg:p-8 text-zinc-100 max-w-5xl mx-auto w-full relative z-10">
         
         {isCheckingStatus ? (
           <div className="flex flex-col items-center justify-center min-h-[60vh]">
-            <div className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
-            <p className="mt-6 text-green-500 font-bold uppercase tracking-widest text-sm animate-pulse">Sincronizando perfil...</p>
+            <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+            <p className="mt-6 text-red-600 font-bold uppercase tracking-widest text-sm animate-pulse">Sincronizando perfil...</p>
           </div>
         ) : (
           <>
@@ -839,11 +839,11 @@ export default function InscripcionPage() {
                 </h1>
               </div>
               <div className="flex items-center justify-between text-xs font-bold tracking-widest text-[#B0B0B0] mb-2">
-                <span className="text-[#39FF14]">Paso 2 de 3</span>
+                <span className="text-[#E60000]">Paso 2 de 3</span>
                 <span className="text-white">66%</span>
               </div>
               <div className="h-1.5 w-full bg-[#1A1A1A] rounded-full overflow-hidden border border-[#2A2A2A]">
-                <div className="h-full bg-[#39FF14] w-[66%] rounded-full shadow-[0_0_15px_rgba(57,255,20,0.5)]"></div>
+                <div className="h-full bg-[#E60000] w-[66%] rounded-full shadow-[0_0_15px_rgba(230, 0, 0,0.5)]"></div>
               </div>
             </div>
 
@@ -857,7 +857,7 @@ export default function InscripcionPage() {
                   1. Categoría <span className="text-[#FF9800] text-[10px] bg-[#FF9800]/10 px-2 py-0.5 rounded border border-[#FF9800]/20 flex items-center gap-1"><AlertTriangle className="w-3 h-3"/> Cupos limitados</span>
                 </Label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('open') ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_15px_rgba(57,255,20,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['open'] || 0) >= 30 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { 
+                  <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('open') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['open'] || 0) >= 30 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { 
                     if ((categoryCounts['open'] || 0) >= 30) return;
                     if (categorias.includes('open')) {
                       setCategorias([]);
@@ -874,10 +874,10 @@ export default function InscripcionPage() {
                       <Label className="font-bold text-white text-sm cursor-pointer notranslate" translate="no">OPEN</Label>
                       <p className="text-[10px] text-[#B0B0B0] mt-0.5 font-medium">{Math.max(0, 30 - (categoryCounts['open'] || 0))} CUPOS RESTANTES</p>
                     </div>
-                    {categorias.includes('open') && <CheckCircle2 className="w-5 h-5 text-[#39FF14] absolute top-2 right-2" />}
+                    {categorias.includes('open') && <CheckCircle2 className="w-5 h-5 text-[#E60000] absolute top-2 right-2" />}
                   </div>
                   
-                  <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('2t') ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_15px_rgba(57,255,20,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['2t'] || 0) >= 15 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { 
+                  <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('2t') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['2t'] || 0) >= 15 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { 
                     if ((categoryCounts['2t'] || 0) >= 15) return;
                     if (categorias.includes('open')) {
                       toast({ title: "Categoría exclusiva", description: "La categoría OPEN no se puede combinar con otras.", variant: "default" });
@@ -900,10 +900,10 @@ export default function InscripcionPage() {
                       <Label className="font-bold text-white text-sm cursor-pointer">2 TIEMPOS</Label>
                       <p className="text-[10px] text-[#B0B0B0] mt-0.5 font-medium">{Math.max(0, 15 - (categoryCounts['2t'] || 0))} CUPOS RESTANTES</p>
                     </div>
-                    {categorias.includes('2t') && <CheckCircle2 className="w-5 h-5 text-[#39FF14] absolute top-2 right-2" />}
+                    {categorias.includes('2t') && <CheckCircle2 className="w-5 h-5 text-[#E60000] absolute top-2 right-2" />}
                   </div>
 
-                  <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('4t') ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_15px_rgba(57,255,20,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['4t'] || 0) >= 15 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { 
+                  <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('4t') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['4t'] || 0) >= 15 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { 
                     if ((categoryCounts['4t'] || 0) >= 15) return;
                     if (categorias.includes('open')) {
                       toast({ title: "Categoría exclusiva", description: "La categoría OPEN no se puede combinar con otras.", variant: "default" });
@@ -926,10 +926,10 @@ export default function InscripcionPage() {
                       <Label className="font-bold text-white text-sm cursor-pointer">4 TIEMPOS</Label>
                       <p className="text-[10px] text-[#B0B0B0] mt-0.5 font-medium">{Math.max(0, 15 - (categoryCounts['4t'] || 0))} CUPOS RESTANTES</p>
                     </div>
-                    {categorias.includes('4t') && <CheckCircle2 className="w-5 h-5 text-[#39FF14] absolute top-2 right-2" />}
+                    {categorias.includes('4t') && <CheckCircle2 className="w-5 h-5 text-[#E60000] absolute top-2 right-2" />}
                   </div>
 
-                  <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('alto') ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_15px_rgba(57,255,20,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['alto'] || 0) >= 15 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { 
+                  <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('alto') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['alto'] || 0) >= 15 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { 
                     if ((categoryCounts['alto'] || 0) >= 15) return;
                     if (categorias.includes('open')) {
                       toast({ title: "Categoría exclusiva", description: "La categoría OPEN no se puede combinar con otras.", variant: "default" });
@@ -952,7 +952,7 @@ export default function InscripcionPage() {
                       <Label className="font-bold text-white text-sm cursor-pointer">ALTO CILINDRAJE</Label>
                       <p className="text-[10px] text-[#B0B0B0] mt-0.5 font-medium">{Math.max(0, 15 - (categoryCounts['alto'] || 0))} CUPOS RESTANTES</p>
                     </div>
-                    {categorias.includes('alto') && <CheckCircle2 className="w-5 h-5 text-[#39FF14] absolute top-2 right-2" />}
+                    {categorias.includes('alto') && <CheckCircle2 className="w-5 h-5 text-[#E60000] absolute top-2 right-2" />}
                   </div>
                 </div>
               </div>
@@ -962,12 +962,12 @@ export default function InscripcionPage() {
                 <Label className="text-white text-sm font-bold uppercase tracking-wider block">2. Experiencia y Compromiso</Label>
                 <p className="text-xs text-zinc-400 mb-2">¿Has participado en la Copa Stunt F2R en versiones anteriores?</p>
                 <RadioGroup value={participacionPrevia} onValueChange={(val) => { setParticipacionPrevia(val); saveParticipacionToDB(val); }} className="grid grid-cols-2 gap-3">
-                  <div className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all cursor-pointer ${participacionPrevia === 'si' ? 'border-green-500 bg-green-500/5' : 'border-zinc-800 bg-zinc-900/50'}`} onClick={() => setParticipacionPrevia('si')}>
+                  <div className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all cursor-pointer ${participacionPrevia === 'si' ? 'border-red-600 bg-red-600/5' : 'border-zinc-800 bg-zinc-900/50'}`} onClick={() => setParticipacionPrevia('si')}>
                     <RadioGroupItem value="si" id="part-si" className="sr-only" />
-                    <CheckCircle2 className={`w-6 h-6 mb-2 ${participacionPrevia === 'si' ? 'text-green-500' : 'text-zinc-600'}`} />
+                    <CheckCircle2 className={`w-6 h-6 mb-2 ${participacionPrevia === 'si' ? 'text-red-600' : 'text-zinc-600'}`} />
                     <Label className="text-center font-bold text-white text-xs cursor-pointer">Sí, ya he participado</Label>
                   </div>
-                  <div className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all cursor-pointer ${participacionPrevia === 'no' ? 'border-green-500 bg-green-500/5' : 'border-zinc-800 bg-zinc-900/50'}`} onClick={() => setParticipacionPrevia('no')}>
+                  <div className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all cursor-pointer ${participacionPrevia === 'no' ? 'border-red-600 bg-red-600/5' : 'border-zinc-800 bg-zinc-900/50'}`} onClick={() => setParticipacionPrevia('no')}>
                     <RadioGroupItem value="no" id="part-no" className="sr-only" />
                     <div className="w-6 h-6 flex items-center justify-center mb-2">
                        <span className={`text-xl ${participacionPrevia === 'no' ? 'text-yellow-500' : 'text-zinc-600 grayscale'}`}>⭐</span>
@@ -979,7 +979,7 @@ export default function InscripcionPage() {
                 <div className="mt-3 bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden transition-all">
                   <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-zinc-800/50 transition-colors" onClick={() => { if (!patrocinadores) setSponsorsModalOpen(true); else setPatrocinadores(false); }}>
                     <div className="flex items-center gap-3">
-                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${patrocinadores ? 'border-[#39FF14] bg-[#39FF14]' : 'border-zinc-600'}`}>
+                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${patrocinadores ? 'border-[#E60000] bg-[#E60000]' : 'border-zinc-600'}`}>
                         {patrocinadores && <CheckCircle className="w-4 h-4 text-black" />}
                       </div>
                       <Label className="text-xs text-zinc-300 font-medium cursor-pointer leading-tight">
@@ -994,18 +994,18 @@ export default function InscripcionPage() {
               {/* Datos Motocicleta */}
               <div className="space-y-4 pt-6 border-t border-[#2A2A2A]">
                 <Label className="text-white text-sm font-bold uppercase tracking-wider block flex items-center gap-2 mb-2">
-                  <span className="text-[#39FF14]">🏍️</span> 3. Datos de la Motocicleta
+                  <span className="text-[#E60000]">🏍️</span> 3. Datos de la Motocicleta
                 </Label>
                 
                 <div className="space-y-1">
                   <Label className="text-[10px] text-[#B0B0B0] uppercase tracking-wider ml-1">Placa Motocicleta</Label>
-                  <Input value={placa} onChange={e => { setPlaca(e.target.value.toUpperCase()); }} onBlur={() => saveMotocicletaToDB('placa', placa)} placeholder="ABC123" className="bg-[#1A1A1A] border-[#2A2A2A] text-white h-12 uppercase rounded-xl px-4 focus:border-[#39FF14] focus:ring-[#39FF14]" maxLength={6} />
+                  <Input value={placa} onChange={e => { setPlaca(e.target.value.toUpperCase()); }} onBlur={() => saveMotocicletaToDB('placa', placa)} placeholder="ABC123" className="bg-[#1A1A1A] border-[#2A2A2A] text-white h-12 uppercase rounded-xl px-4 focus:border-[#E60000] focus:ring-[#E60000]" maxLength={6} />
                 </div>
                 
                 <div className="space-y-1">
                   <Label className="text-[10px] text-[#B0B0B0] uppercase tracking-wider ml-1">Marca de tu motocicleta</Label>
                   <Select value={marca} onValueChange={(val) => { setMarca(val); saveMotocicletaToDB('marca', val); }}>
-                    <SelectTrigger className="bg-[#1A1A1A] border-[#2A2A2A] text-white h-12 rounded-xl px-4 focus:ring-[#39FF14]">
+                    <SelectTrigger className="bg-[#1A1A1A] border-[#2A2A2A] text-white h-12 rounded-xl px-4 focus:ring-[#E60000]">
                       <SelectValue placeholder="Seleccione..." />
                     </SelectTrigger>
                     <SelectContent className="bg-[#121212] border-[#2A2A2A] text-white">
@@ -1018,7 +1018,7 @@ export default function InscripcionPage() {
 
                 <div className="space-y-1">
                   <Label className="text-[10px] text-[#B0B0B0] uppercase tracking-wider ml-1">Referencia motocicleta</Label>
-                  <Input value={referencia} onChange={e => setReferencia(e.target.value)} onBlur={() => saveMotocicletaToDB('referencia', referencia)} placeholder="Ej. MT-09" className="bg-[#1A1A1A] border-[#2A2A2A] text-white h-12 rounded-xl px-4 focus:border-[#39FF14] focus:ring-[#39FF14]" />
+                  <Input value={referencia} onChange={e => setReferencia(e.target.value)} onBlur={() => saveMotocicletaToDB('referencia', referencia)} placeholder="Ej. MT-09" className="bg-[#1A1A1A] border-[#2A2A2A] text-white h-12 rounded-xl px-4 focus:border-[#E60000] focus:ring-[#E60000]" />
                 </div>
               </div>
 
@@ -1026,7 +1026,7 @@ export default function InscripcionPage() {
               <div className="space-y-3 pt-6 border-t border-[#2A2A2A] pb-6">
                 <div className="flex justify-between items-center mb-2">
                   <Label className="text-white text-sm font-bold uppercase tracking-wider block flex items-center gap-2">
-                    <span className="text-[#39FF14]">📄</span> 4. Archivos y Documentación Legal
+                    <span className="text-[#E60000]">📄</span> 4. Archivos y Documentación Legal
                   </Label>
                 </div>
                 <p className="text-[10px] text-[#B0B0B0] mb-4 leading-relaxed">
@@ -1040,9 +1040,9 @@ export default function InscripcionPage() {
                   { key: 'soat', state: fotoSoat, title: "Fotografía del SOAT vigente", desc: "Vigente para la fecha" },
                   { key: 'deportista', state: fotoDeportista, title: "Foto tuya (Tipo Cédula o Carnet)", desc: "Fondo blanco o azul", isDeportista: true }
                 ].map((item: any) => (
-                  <div key={item.key} onClick={() => { if (!(item.isDeportista && isDetectingFace)) openOptions(item.key); }} className={`relative bg-[#1A1A1A] border ${item.state ? 'border-[#39FF14] shadow-[0_0_15px_rgba(57,255,20,0.1)]' : 'border-[#2A2A2A]'} rounded-xl p-3 flex items-center gap-3 hover:border-[#424242] transition-all overflow-hidden ${item.isDeportista && isDetectingFace ? 'cursor-wait opacity-50' : 'cursor-pointer hover:bg-[#121212]'}`}>
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 border ${item.state ? 'bg-[#39FF14]/10 border-[#39FF14]/30' : 'bg-[#121212] border-[#2A2A2A]'}`}>
-                      <ImageIcon className={`w-5 h-5 ${item.state ? 'text-[#39FF14]' : 'text-[#39FF14]/50'}`} />
+                  <div key={item.key} onClick={() => { if (!(item.isDeportista && isDetectingFace)) openOptions(item.key); }} className={`relative bg-[#1A1A1A] border ${item.state ? 'border-[#E60000] shadow-[0_0_15px_rgba(230, 0, 0,0.1)]' : 'border-[#2A2A2A]'} rounded-xl p-3 flex items-center gap-3 hover:border-[#424242] transition-all overflow-hidden ${item.isDeportista && isDetectingFace ? 'cursor-wait opacity-50' : 'cursor-pointer hover:bg-[#121212]'}`}>
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 border ${item.state ? 'bg-[#E60000]/10 border-[#E60000]/30' : 'bg-[#121212] border-[#2A2A2A]'}`}>
+                      <ImageIcon className={`w-5 h-5 ${item.state ? 'text-[#E60000]' : 'text-[#E60000]/50'}`} />
                     </div>
                     
                     <div className="flex-1 min-w-0 pointer-events-none">
@@ -1052,9 +1052,9 @@ export default function InscripcionPage() {
 
                     <div className="shrink-0 z-20 pointer-events-none">
                       {item.state ? (
-                        <div className="flex items-center gap-1.5 bg-green-500/10 border border-green-500/30 px-2.5 py-1 rounded-md">
-                          <span className="text-green-500 text-[10px] font-bold uppercase">Subido</span>
-                          <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                        <div className="flex items-center gap-1.5 bg-red-600/10 border border-red-600/30 px-2.5 py-1 rounded-md">
+                          <span className="text-red-600 text-[10px] font-bold uppercase">Subido</span>
+                          <CheckCircle2 className="w-3.5 h-3.5 text-red-600" />
                         </div>
                       ) : (
                         <div className="flex items-center gap-1.5 bg-zinc-800/50 border border-zinc-700 px-2.5 py-1 rounded-md opacity-50">
@@ -1086,7 +1086,7 @@ export default function InscripcionPage() {
                 <div className="space-y-4 pt-4 lg:pt-0 pb-6">
                 <div className="flex justify-between items-center mb-2">
                   <Label className="text-white text-sm font-bold uppercase tracking-wider block flex items-center gap-2">
-                    <span className="text-[#39FF14]">💰</span> 5. Comprobante de Pago
+                    <span className="text-[#E60000]">💰</span> 5. Comprobante de Pago
                   </Label>
                 </div>
                 
@@ -1094,19 +1094,19 @@ export default function InscripcionPage() {
                   <div className="flex flex-col gap-3 mb-5">
                     <div className="flex justify-between items-baseline">
                       <span className="text-xs text-[#B0B0B0] font-medium uppercase tracking-wider">Costo (11 May - 15 May)</span>
-                      <span className="text-xl text-[#39FF14] font-black tracking-wider shadow-[#39FF14]/20">$350.000</span>
+                      <span className="text-xl text-[#E60000] font-black tracking-wider shadow-[#E60000]/20">$350.000</span>
                     </div>
                   </div>
 
                   <div className="space-y-3 mb-4">
                     <div className="bg-[#121212] p-4 rounded-xl border border-[#2A2A2A] flex flex-col items-center gap-4 text-xs text-[#B0B0B0]">
-                      <div className="shrink-0 bg-white p-2.5 rounded-2xl shadow-[0_0_20px_rgba(57,255,20,0.15)]">
+                      <div className="shrink-0 bg-white p-2.5 rounded-2xl shadow-[0_0_20px_rgba(230, 0, 0,0.15)]">
                         <img src="/sponsors/QR BANCOLOMBIA.jpg" alt="QR Bancolombia" className="w-36 h-36 md:w-40 md:h-40 object-contain rounded-xl" />
                       </div>
                       <div className="flex-1 text-center w-full">
                         <p className="font-black text-white mb-3 text-sm uppercase tracking-widest border-b border-[#2A2A2A] pb-3">Ahorros Bancolombia</p>
                         <ul className="space-y-1.5 font-mono text-[#B0B0B0] pt-1">
-                          <li className="text-xl text-[#39FF14] font-bold tracking-wider">316-376847-80</li>
+                          <li className="text-xl text-[#E60000] font-bold tracking-wider">316-376847-80</li>
                           <li className="text-[10px] text-[#424242] uppercase font-sans tracking-wide mt-2">Titular: <span className="text-[#B0B0B0]">Daniela Rojas Valencia</span></li>
                         </ul>
                       </div>
@@ -1118,15 +1118,15 @@ export default function InscripcionPage() {
                   </div>
 
                   <Label className="text-white text-xs font-bold flex items-center gap-2 mb-3">
-                    <UploadCloud className="text-[#39FF14] w-4 h-4" /> Sube tu Comprobante <span className="text-[#39FF14]">*</span>
+                    <UploadCloud className="text-[#E60000] w-4 h-4" /> Sube tu Comprobante <span className="text-[#E60000]">*</span>
                   </Label>
                   
-                  <div onClick={() => openOptions('comprobante')} className={`border-2 border-dashed border-[#2A2A2A] bg-[#121212] py-6 rounded-xl text-center hover:border-[#39FF14]/50 transition-all cursor-pointer hover:bg-[#1A1A1A] ${comprobantePago ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_15px_rgba(57,255,20,0.1)]' : ''}`}>
+                  <div onClick={() => openOptions('comprobante')} className={`border-2 border-dashed border-[#2A2A2A] bg-[#121212] py-6 rounded-xl text-center hover:border-[#E60000]/50 transition-all cursor-pointer hover:bg-[#1A1A1A] ${comprobantePago ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.1)]' : ''}`}>
                     <div className="flex flex-col items-center px-4 pointer-events-none">
                       {comprobantePago ? (
                         <>
-                          <CheckCircle2 className="w-8 h-8 mb-2 text-[#39FF14]" />
-                          <span className="text-sm font-bold text-[#39FF14] truncate w-full px-2">{comprobantePago.name}</span>
+                          <CheckCircle2 className="w-8 h-8 mb-2 text-[#E60000]" />
+                          <span className="text-sm font-bold text-[#E60000] truncate w-full px-2">{comprobantePago.name}</span>
                           <span className="text-[10px] text-[#B0B0B0] mt-1 uppercase font-bold tracking-widest">Subido Exitosamente</span>
                         </>
                       ) : (
@@ -1144,12 +1144,12 @@ export default function InscripcionPage() {
                 <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl p-5 shadow-[0_0_15px_rgba(0,0,0,0.5)]">
                   <p className="text-white font-bold mb-1 text-sm">¿Problemas con el pago?</p>
                   <p className="text-[#B0B0B0] text-[10px] mb-4">Comunícate a nuestro canal oficial de WhatsApp</p>
-                  <a href="https://wa.me/573044347740" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between bg-[#121212] border border-[#39FF14]/30 hover:bg-[#39FF14]/10 transition-colors p-4 rounded-xl group cursor-pointer shadow-[0_0_10px_rgba(57,255,20,0.05)]">
+                  <a href="https://wa.me/573044347740" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between bg-[#121212] border border-[#E60000]/30 hover:bg-[#E60000]/10 transition-colors p-4 rounded-xl group cursor-pointer shadow-[0_0_10px_rgba(230, 0, 0,0.05)]">
                     <div className="flex items-center gap-3">
-                      <Smartphone className="w-6 h-6 text-[#39FF14] group-hover:scale-110 transition-transform" />
-                      <span className="text-[#39FF14] font-bold text-lg tracking-wider">304 434 7740</span>
+                      <Smartphone className="w-6 h-6 text-[#E60000] group-hover:scale-110 transition-transform" />
+                      <span className="text-[#E60000] font-bold text-lg tracking-wider">304 434 7740</span>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-[#39FF14]/50 group-hover:text-[#39FF14] transition-colors" />
+                    <ChevronRight className="w-5 h-5 text-[#E60000]/50 group-hover:text-[#E60000] transition-colors" />
                   </a>
                 </div>
 
@@ -1183,7 +1183,7 @@ export default function InscripcionPage() {
             </div>
 
             <div className="mt-12 mb-16 max-w-2xl mx-auto">
-              <Button type="submit" disabled={isLoading} className="bg-[#39FF14] text-black hover:bg-[#39FF14]/90 font-black h-16 w-full text-sm md:text-base shadow-[0_0_20px_rgba(57,255,20,0.4)] transition-all uppercase tracking-wider rounded-2xl">
+              <Button type="submit" disabled={isLoading} className="bg-[#E60000] text-black hover:bg-[#E60000]/90 font-black h-16 w-full text-sm md:text-base shadow-[0_0_20px_rgba(230, 0, 0,0.4)] transition-all uppercase tracking-wider rounded-2xl">
                 {isLoading ? "GUARDANDO..." : "CONFIRMACIÓN"}
                 {!isLoading && <ChevronRight className="w-6 h-6 ml-2" />}
               </Button>
@@ -1234,7 +1234,7 @@ export default function InscripcionPage() {
                 <Button 
                   variant="outline" 
                   onClick={() => setIsPaymentModalOpen(true)}
-                  className="w-full border-[#39FF14]/50 text-[#39FF14] hover:bg-[#39FF14] hover:text-black uppercase tracking-widest text-xs font-bold h-12 transition-colors flex items-center justify-between px-4 mb-4"
+                  className="w-full border-[#E60000]/50 text-[#E60000] hover:bg-[#E60000] hover:text-black uppercase tracking-widest text-xs font-bold h-12 transition-colors flex items-center justify-between px-4 mb-4"
                 >
                   MÉTODOS DE PAGO
                   <ChevronRight className="w-5 h-5" />
@@ -1242,14 +1242,14 @@ export default function InscripcionPage() {
 
                 <div className="w-full bg-[#1A1A1A] p-5 rounded-2xl border border-red-500/30 shadow-[0_0_15px_rgba(0,0,0,0.5)] mb-6">
                   <Label className="text-white text-xs font-bold flex items-center gap-2 mb-3">
-                    <UploadCloud className="text-[#39FF14] w-4 h-4" /> Nuevo Comprobante <span className="text-[#39FF14]">*</span>
+                    <UploadCloud className="text-[#E60000] w-4 h-4" /> Nuevo Comprobante <span className="text-[#E60000]">*</span>
                   </Label>
-                  <div onClick={() => { setComprobantePago(null); openOptions('comprobante'); }} className={`border-2 border-dashed border-[#2A2A2A] bg-[#121212] py-6 rounded-xl text-center hover:border-[#39FF14]/50 transition-all cursor-pointer hover:bg-[#1A1A1A] ${comprobantePago ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_15px_rgba(57,255,20,0.1)]' : ''}`}>
+                  <div onClick={() => { setComprobantePago(null); openOptions('comprobante'); }} className={`border-2 border-dashed border-[#2A2A2A] bg-[#121212] py-6 rounded-xl text-center hover:border-[#E60000]/50 transition-all cursor-pointer hover:bg-[#1A1A1A] ${comprobantePago ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.1)]' : ''}`}>
                     <div className="flex flex-col items-center px-4 pointer-events-none">
                       {comprobantePago ? (
                         <>
-                          <CheckCircle2 className="w-8 h-8 mb-2 text-[#39FF14]" />
-                          <span className="text-sm font-bold text-[#39FF14] truncate w-full px-2">{comprobantePago.name}</span>
+                          <CheckCircle2 className="w-8 h-8 mb-2 text-[#E60000]" />
+                          <span className="text-sm font-bold text-[#E60000] truncate w-full px-2">{comprobantePago.name}</span>
                           <span className="text-[10px] text-[#B0B0B0] mt-1 uppercase font-bold tracking-widest">Listo para enviar</span>
                         </>
                       ) : (
@@ -1264,7 +1264,7 @@ export default function InscripcionPage() {
                     <Button 
                       onClick={handlePaymentSubmit} 
                       disabled={isLoading}
-                      className="w-full bg-[#39FF14] text-black hover:bg-[#39FF14]/90 h-12 font-bold mt-4 uppercase tracking-wider rounded-xl"
+                      className="w-full bg-[#E60000] text-black hover:bg-[#E60000]/90 h-12 font-bold mt-4 uppercase tracking-wider rounded-xl"
                     >
                       {isLoading ? "Enviando..." : "Enviar Comprobante"}
                     </Button>
@@ -1311,7 +1311,7 @@ export default function InscripcionPage() {
                 <Button 
                   variant="outline" 
                   onClick={() => setIsPaymentModalOpen(true)}
-                  className="w-full border-[#39FF14]/50 text-[#39FF14] hover:bg-[#39FF14] hover:text-black uppercase tracking-widest text-xs font-bold h-12 transition-colors flex items-center justify-between px-4 mb-4"
+                  className="w-full border-[#E60000]/50 text-[#E60000] hover:bg-[#E60000] hover:text-black uppercase tracking-widest text-xs font-bold h-12 transition-colors flex items-center justify-between px-4 mb-4"
                 >
                   MÉTODOS DE PAGO
                   <ChevronRight className="w-5 h-5" />
@@ -1319,14 +1319,14 @@ export default function InscripcionPage() {
 
                 <div className="w-full bg-[#1A1A1A] p-5 rounded-2xl border border-orange-500/30 shadow-[0_0_15px_rgba(0,0,0,0.5)] mb-6">
                   <Label className="text-white text-xs font-bold flex items-center gap-2 mb-3">
-                    <UploadCloud className="text-[#39FF14] w-4 h-4" /> Comprobante de Saldo <span className="text-[#39FF14]">*</span>
+                    <UploadCloud className="text-[#E60000] w-4 h-4" /> Comprobante de Saldo <span className="text-[#E60000]">*</span>
                   </Label>
-                  <div onClick={() => { setComprobantePago(null); openOptions('comprobante'); }} className={`border-2 border-dashed border-[#2A2A2A] bg-[#121212] py-6 rounded-xl text-center hover:border-[#39FF14]/50 transition-all cursor-pointer hover:bg-[#1A1A1A] ${comprobantePago ? 'border-[#39FF14] bg-[#39FF14]/5 shadow-[0_0_15px_rgba(57,255,20,0.1)]' : ''}`}>
+                  <div onClick={() => { setComprobantePago(null); openOptions('comprobante'); }} className={`border-2 border-dashed border-[#2A2A2A] bg-[#121212] py-6 rounded-xl text-center hover:border-[#E60000]/50 transition-all cursor-pointer hover:bg-[#1A1A1A] ${comprobantePago ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.1)]' : ''}`}>
                     <div className="flex flex-col items-center px-4 pointer-events-none">
                       {comprobantePago ? (
                         <>
-                          <CheckCircle2 className="w-8 h-8 mb-2 text-[#39FF14]" />
-                          <span className="text-sm font-bold text-[#39FF14] truncate w-full px-2">{comprobantePago.name}</span>
+                          <CheckCircle2 className="w-8 h-8 mb-2 text-[#E60000]" />
+                          <span className="text-sm font-bold text-[#E60000] truncate w-full px-2">{comprobantePago.name}</span>
                           <span className="text-[10px] text-[#B0B0B0] mt-1 uppercase font-bold tracking-widest">Listo para enviar</span>
                         </>
                       ) : (
@@ -1341,7 +1341,7 @@ export default function InscripcionPage() {
                     <Button 
                       onClick={handlePaymentSubmit} 
                       disabled={isLoading}
-                      className="w-full bg-[#39FF14] text-black hover:bg-[#39FF14]/90 h-12 font-bold mt-4 uppercase tracking-wider rounded-xl"
+                      className="w-full bg-[#E60000] text-black hover:bg-[#E60000]/90 h-12 font-bold mt-4 uppercase tracking-wider rounded-xl"
                     >
                       {isLoading ? "Enviando..." : "Enviar Comprobante"}
                     </Button>
@@ -1388,7 +1388,7 @@ export default function InscripcionPage() {
                 <Button 
                   variant="outline" 
                   onClick={() => setIsPaymentModalOpen(true)}
-                  className="w-full border-[#39FF14]/50 text-[#39FF14] hover:bg-[#39FF14] hover:text-black uppercase tracking-widest text-xs font-bold h-12 transition-colors flex items-center justify-between px-4 mb-4"
+                  className="w-full border-[#E60000]/50 text-[#E60000] hover:bg-[#E60000] hover:text-black uppercase tracking-widest text-xs font-bold h-12 transition-colors flex items-center justify-between px-4 mb-4"
                 >
                   MÉTODOS DE PAGO
                   <ChevronRight className="w-5 h-5" />
@@ -1402,8 +1402,8 @@ export default function InscripcionPage() {
                     <div className="flex flex-col items-center px-4 pointer-events-none">
                       {comprobantePago ? (
                         <>
-                          <CheckCircle2 className="w-8 h-8 mb-2 text-[#39FF14]" />
-                          <span className="text-sm font-bold text-[#39FF14] truncate w-full px-2">{comprobantePago.name}</span>
+                          <CheckCircle2 className="w-8 h-8 mb-2 text-[#E60000]" />
+                          <span className="text-sm font-bold text-[#E60000] truncate w-full px-2">{comprobantePago.name}</span>
                           <span className="text-[10px] text-[#B0B0B0] mt-1 uppercase font-bold tracking-widest">Listo para enviar</span>
                         </>
                       ) : (
@@ -1497,7 +1497,7 @@ export default function InscripcionPage() {
                               <button
                                 key={cat}
                                 onClick={() => setActiveCategoryIndex(idx)}
-                                className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${activeCategoryIndex === idx ? 'bg-[#00ff88]/10 text-[#00ff88] border border-[#00ff88] shadow-[0_0_10px_rgba(0,255,136,0.2)]' : 'bg-[#1a1a1a] text-[#888888] border border-[#2a2a2a] hover:text-white hover:border-[#444]'}`}
+                                className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${activeCategoryIndex === idx ? 'bg-[#E60000]/10 text-[#E60000] border border-[#E60000] shadow-[0_0_10px_rgba(230, 0, 0,0.2)]' : 'bg-[#1a1a1a] text-[#888888] border border-[#2a2a2a] hover:text-white hover:border-[#444]'}`}
                               >
                                 {getMappedCategory(cat)}
                               </button>
@@ -1543,7 +1543,7 @@ export default function InscripcionPage() {
                           onClick={() => setIsObservacionesOpen(true)}
                           style={{
                             padding: '8px 16px',
-                            background: 'rgba(57, 255, 20, 0.1)',
+                            background: 'rgba(230, 0, 0, 0.1)',
                             border: '1px solid var(--accent-green)',
                             color: 'var(--accent-green)',
                             borderRadius: '20px',
@@ -1552,8 +1552,8 @@ export default function InscripcionPage() {
                             fontSize: '0.9rem',
                             transition: 'all 0.2s'
                           }}
-                          onMouseOver={(e) => e.currentTarget.style.background = 'rgba(57, 255, 20, 0.2)'}
-                          onMouseOut={(e) => e.currentTarget.style.background = 'rgba(57, 255, 20, 0.1)'}
+                          onMouseOver={(e) => e.currentTarget.style.background = 'rgba(230, 0, 0, 0.2)'}
+                          onMouseOut={(e) => e.currentTarget.style.background = 'rgba(230, 0, 0, 0.1)'}
                         >
                           👁️ OBSERVACIONES
                         </button>
@@ -1575,7 +1575,7 @@ export default function InscripcionPage() {
                         <div 
                           key={pilot.uid}
                           id={`pilot-${pilot.uid}`}
-                          className={`flex items-center gap-3 p-3 rounded-xl border ${pilot.uid === uid ? 'border-[#39FF14] bg-[#39FF14]/10' : 'border-[#2A2A2A] bg-[#1A1A1A]'} relative`}
+                          className={`flex items-center gap-3 p-3 rounded-xl border ${pilot.uid === uid ? 'border-[#E60000] bg-[#E60000]/10' : 'border-[#2A2A2A] bg-[#1A1A1A]'} relative`}
                         >
                           <div className="font-black text-xl text-white w-8 text-center shrink-0">{idx + 1}</div>
                           <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-zinc-700 shrink-0">
@@ -1589,7 +1589,7 @@ export default function InscripcionPage() {
                             <div className="font-bold text-white truncate text-sm">{pilot.name}</div>
                             <div className="text-xs text-zinc-400">#{pilot.number}</div>
                           </div>
-                          <div className="font-black text-lg text-[#39FF14] shrink-0">{pilot.totalScore}</div>
+                          <div className="font-black text-lg text-[#E60000] shrink-0">{pilot.totalScore}</div>
                         </div>
                       ))}
                       {leaderboard.length === 0 && (
@@ -1679,7 +1679,7 @@ export default function InscripcionPage() {
               setOptionsModalOpen(false); 
               setTimeout(() => setCameraOpen(true), 100); 
             }} className="w-full h-14 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-white flex items-center justify-start gap-3 rounded-xl">
-              <Camera className="w-5 h-5 text-green-500" />
+              <Camera className="w-5 h-5 text-red-600" />
               <span className="font-bold">Tomar Foto</span>
             </Button>
             <div className="relative">
@@ -1688,7 +1688,7 @@ export default function InscripcionPage() {
                 if (file) handleFileFromDialog(file);
               }} className="hidden" accept=".pdf,image/*" />
               <Label htmlFor="dialog-file" className="w-full h-14 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-white flex items-center justify-start gap-3 rounded-xl cursor-pointer px-4">
-                <UploadCloud className="w-5 h-5 text-green-500" />
+                <UploadCloud className="w-5 h-5 text-red-600" />
                 <span className="font-bold">Subir Archivo / PDF</span>
               </Label>
             </div>
@@ -1752,7 +1752,7 @@ export default function InscripcionPage() {
           </div>
 
           <Button 
-            className="w-full bg-[#39FF14] text-black hover:bg-[#2CE50F] hover:scale-[1.02] transition-all font-black uppercase tracking-wider h-12 mt-1 rounded-xl text-xs shadow-[0_0_15px_rgba(57,255,20,0.3)]"
+            className="w-full bg-[#E60000] text-black hover:bg-[#2CE50F] hover:scale-[1.02] transition-all font-black uppercase tracking-wider h-12 mt-1 rounded-xl text-xs shadow-[0_0_15px_rgba(230, 0, 0,0.3)]"
             onClick={() => {
               setPatrocinadores(true);
               setSponsorsModalOpen(false);
@@ -1802,9 +1802,9 @@ export default function InscripcionPage() {
 
       {/* Payment Details Modal */}
       <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
-        <DialogContent className="sm:max-w-[400px] w-[95vw] bg-[#121212] border-2 border-[#39FF14] shadow-[0_0_30px_rgba(57,255,20,0.3)] text-white p-0 overflow-hidden rounded-2xl z-[100]">
+        <DialogContent className="sm:max-w-[400px] w-[95vw] bg-[#121212] border-2 border-[#E60000] shadow-[0_0_30px_rgba(230, 0, 0,0.3)] text-white p-0 overflow-hidden rounded-2xl z-[100]">
           <DialogHeader className="p-4 pb-2 border-b border-[#2A2A2A]/50 bg-black/40">
-            <DialogTitle className="text-lg md:text-xl font-black uppercase text-[#39FF14] tracking-wider flex items-center justify-center gap-2">
+            <DialogTitle className="text-lg md:text-xl font-black uppercase text-[#E60000] tracking-wider flex items-center justify-center gap-2">
               <span className="text-xl md:text-2xl">💰</span> Detalles de Pago
             </DialogTitle>
           </DialogHeader>
@@ -1813,19 +1813,19 @@ export default function InscripcionPage() {
               <div className="flex flex-col gap-2 mb-3">
                 <div className="flex justify-between items-baseline">
                   <span className="text-[11px] text-[#B0B0B0] font-medium uppercase tracking-wider">Costo (11 May - 15 May)</span>
-                  <span className="text-lg text-[#39FF14] font-black tracking-wider shadow-[#39FF14]/20">$350.000</span>
+                  <span className="text-lg text-[#E60000] font-black tracking-wider shadow-[#E60000]/20">$350.000</span>
                 </div>
               </div>
 
               <div className="space-y-2.5">
                 <div className="bg-[#121212] p-3 rounded-xl border border-[#2A2A2A] flex flex-row items-center gap-4 text-xs text-[#B0B0B0]">
-                  <div className="shrink-0 bg-white p-1.5 rounded-lg shadow-[0_0_20px_rgba(57,255,20,0.15)]">
+                  <div className="shrink-0 bg-white p-1.5 rounded-lg shadow-[0_0_20px_rgba(230, 0, 0,0.15)]">
                     <img src="/sponsors/QR BANCOLOMBIA.jpg" alt="QR Bancolombia" className="w-20 h-20 object-contain rounded-md" />
                   </div>
                   <div className="flex-1 text-left">
                     <p className="font-black text-white mb-1.5 text-[10px] md:text-xs uppercase tracking-widest border-b border-[#2A2A2A] pb-1.5">Ahorros Bancolombia</p>
                     <ul className="space-y-0.5 font-mono text-[#B0B0B0]">
-                      <li className="text-sm md:text-base text-[#39FF14] font-bold tracking-wider">316-376847-80</li>
+                      <li className="text-sm md:text-base text-[#E60000] font-bold tracking-wider">316-376847-80</li>
                       <li className="text-[8px] md:text-[9px] text-[#424242] uppercase font-sans tracking-wide">Titular: <span className="text-[#B0B0B0]">Daniela Rojas Valencia</span></li>
                     </ul>
                   </div>
@@ -1839,7 +1839,7 @@ export default function InscripcionPage() {
             <div className="mt-4">
               <Button 
                 onClick={() => setIsPaymentModalOpen(false)} 
-                className="w-full bg-[#39FF14] hover:bg-[#00C853] text-black font-black uppercase tracking-wider h-12 rounded-xl shadow-[0_0_15px_rgba(57,255,20,0.2)]"
+                className="w-full bg-[#E60000] hover:bg-[#00C853] text-black font-black uppercase tracking-wider h-12 rounded-xl shadow-[0_0_15px_rgba(230, 0, 0,0.2)]"
               >
                 Entendido
               </Button>

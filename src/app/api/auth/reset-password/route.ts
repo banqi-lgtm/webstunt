@@ -49,13 +49,13 @@ export async function POST(request: Request) {
             border: 1px solid #1A2540;
             border-radius: 16px;
             overflow: hidden;
-            box-shadow: 0 0 30px rgba(57, 255, 20, 0.1);
+            box-shadow: 0 0 30px rgba(230, 0, 0, 0.1);
           }
           .header {
             background-color: #000000;
             padding: 30px 20px;
             text-align: center;
-            border-bottom: 2px solid #39FF14;
+            border-bottom: 2px solid #E60000;
           }
           .logo-text {
             color: #ffffff;
@@ -66,14 +66,14 @@ export async function POST(request: Request) {
             text-transform: uppercase;
           }
           .logo-text span {
-            color: #39FF14;
+            color: #E60000;
           }
           .content {
             padding: 40px 30px;
             text-align: center;
           }
           .title {
-            color: #39FF14;
+            color: #E60000;
             font-size: 22px;
             font-weight: 800;
             margin-bottom: 20px;
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
             margin: 30px 0;
           }
           .btn {
-            background-color: #39FF14;
+            background-color: #E60000;
             color: #000000;
             text-decoration: none;
             padding: 16px 32px;
@@ -100,7 +100,7 @@ export async function POST(request: Request) {
             text-transform: uppercase;
             letter-spacing: 2px;
             display: inline-block;
-            box-shadow: 0 0 20px rgba(57, 255, 20, 0.4);
+            box-shadow: 0 0 20px rgba(230, 0, 0, 0.4);
           }
           .footer {
             background-color: #000000;

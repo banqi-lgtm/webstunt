@@ -898,28 +898,28 @@ export default function JuecesPage() {
   };
 
   const getCatColor = (cat: string) => {
-    if (cat.includes('OPEN')) return 'border-[#00ff88] text-[#00ff88] shadow-[0_0_15px_rgba(0,255,136,0.2)]';
+    if (cat.includes('OPEN')) return 'border-[#E60000] text-[#E60000] shadow-[0_0_15px_rgba(230, 0, 0,0.2)]';
     if (cat.includes('TIEMPOS')) return 'border-[#ff6b00] text-[#ff6b00] shadow-[0_0_15px_rgba(255,107,0,0.2)]';
     if (cat.includes('NITROX')) return 'border-[#ffd700] text-[#ffd700] shadow-[0_0_15px_rgba(255,215,0,0.2)]';
     return 'border-[#00cfff] text-[#00cfff]';
   };
 
   const getCatGlow = (cat: string) => {
-    if (cat.includes('OPEN')) return 'shadow-[0_0_15px_rgba(0,255,136,0.2)] shadow-[inset_0_0_15px_rgba(0,255,136,0.05)] border-[#00ff88]';
+    if (cat.includes('OPEN')) return 'shadow-[0_0_15px_rgba(230, 0, 0,0.2)] shadow-[inset_0_0_15px_rgba(230, 0, 0,0.05)] border-[#E60000]';
     if (cat.includes('TIEMPOS')) return 'shadow-[0_0_15px_rgba(255,107,0,0.2)] shadow-[inset_0_0_15px_rgba(255,107,0,0.05)] border-[#ff6b00]';
     if (cat.includes('NITROX')) return 'shadow-[0_0_15px_rgba(255,215,0,0.2)] shadow-[inset_0_0_15px_rgba(255,215,0,0.05)] border-[#ffd700]';
     return 'border-[#00cfff]';
   };
 
   const getCatTextGlow = (cat: string) => {
-    if (cat.includes('OPEN')) return 'text-[#00ff88] drop-shadow-[0_0_8px_rgba(0,255,136,0.8)]';
+    if (cat.includes('OPEN')) return 'text-[#E60000] drop-shadow-[0_0_8px_rgba(230, 0, 0,0.8)]';
     if (cat.includes('TIEMPOS')) return 'text-[#ff6b00] drop-shadow-[0_0_8px_rgba(255,107,0,0.8)]';
     if (cat.includes('NITROX')) return 'text-[#ffd700] drop-shadow-[0_0_8px_rgba(255,215,0,0.8)]';
     return 'text-[#00cfff]';
   };
 
   const getCatTextColor = (cat: string) => {
-    if (cat.includes('OPEN')) return 'text-[#00ff88]';
+    if (cat.includes('OPEN')) return 'text-[#E60000]';
     if (cat.includes('TIEMPOS')) return 'text-[#ff6b00]';
     if (cat.includes('NITROX')) return 'text-[#ffd700]';
     return 'text-[#00cfff]';
@@ -961,7 +961,7 @@ export default function JuecesPage() {
                     <li><strong className="text-[#ff00cc]">DRIFT:</strong> 0 a 10 puntos</li>
                     <li><strong className="text-[#b026ff]">ACRO:</strong> 0 a 10 puntos</li>
                     <li><strong className="text-[#00cfff]">ENDOS:</strong> 0 a 10 puntos</li>
-                    <li><strong className="text-[#00ff88]">FLOW:</strong> 0 a 10 puntos</li>
+                    <li><strong className="text-[#E60000]">FLOW:</strong> 0 a 10 puntos</li>
                     <li><strong className="text-[#ffd700]">AGRES:</strong> 0 a 10 puntos</li>
                     <li><strong className="text-[#ff3333]">ERROR:</strong> 0 a infinito (Se resta del total)</li>
                   </ul>
@@ -974,14 +974,14 @@ export default function JuecesPage() {
 
             <Dialog open={isDirectoryOpen} onOpenChange={setIsDirectoryOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" className="border-[#00ff88]/50 text-[#00ff88] bg-[#00ff88]/5 hover:bg-[#00ff88]/20 hover:text-[#00ff88] font-bold uppercase tracking-widest h-9 px-4 text-xs shadow-[0_0_10px_rgba(0,255,136,0.2)]">
+                <Button variant="outline" className="border-[#E60000]/50 text-[#E60000] bg-[#E60000]/5 hover:bg-[#E60000]/20 hover:text-[#E60000] font-bold uppercase tracking-widest h-9 px-4 text-xs shadow-[0_0_10px_rgba(230, 0, 0,0.2)]">
                   <ShieldAlert className="w-4 h-4 mr-2" /> Directorio
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-3xl bg-[#0a1628] border-[#00ff88] max-h-[85vh] overflow-y-auto custom-scrollbar shadow-[0_0_30px_rgba(0,255,136,0.2)]">
+              <DialogContent className="max-w-3xl bg-[#0a1628] border-[#E60000] max-h-[85vh] overflow-y-auto custom-scrollbar shadow-[0_0_30px_rgba(230, 0, 0,0.2)]">
                 <DialogHeader>
                   <DialogTitle className="text-xl font-bold text-white uppercase tracking-widest flex items-center gap-2 border-b border-[#1A2540] pb-4">
-                    <ShieldAlert className="w-5 h-5 text-[#00ff88]"/> Hoja de Vida de Jueces
+                    <ShieldAlert className="w-5 h-5 text-[#E60000]"/> Hoja de Vida de Jueces
                   </DialogTitle>
                 </DialogHeader>
                 <div className="flex flex-col gap-4 mt-2">
@@ -989,9 +989,9 @@ export default function JuecesPage() {
                      <p className="text-[#888888] text-center py-10 font-mono">No hay jueces registrados en el sistema.</p>
                   ) : (
                      judgeProfiles.map(juez => (
-                        <div key={juez.id} className="p-4 rounded-lg bg-[#0d1b2e] border border-[#1A2540] flex flex-col gap-4 transition-colors hover:border-[#00FF88]/50">
+                        <div key={juez.id} className="p-4 rounded-lg bg-[#0d1b2e] border border-[#1A2540] flex flex-col gap-4 transition-colors hover:border-[#E60000]/50">
                            <div className="flex items-center gap-4">
-                             <div className="w-12 h-12 rounded-full bg-[#050B14] border-2 border-[#00FF88] flex items-center justify-center font-bold text-[#00FF88] text-xl shadow-[0_0_10px_rgba(0,255,136,0.2)]">
+                             <div className="w-12 h-12 rounded-full bg-[#050B14] border-2 border-[#E60000] flex items-center justify-center font-bold text-[#E60000] text-xl shadow-[0_0_10px_rgba(230, 0, 0,0.2)]">
                                {juez.nombres?.charAt(0)}
                              </div>
                              <div>
@@ -1003,7 +1003,7 @@ export default function JuecesPage() {
                                    <select 
                                      value={juez.rol || 'juez'}
                                      onChange={(e) => handleRoleChange(juez.id, e.target.value)}
-                                     className="bg-[#050B14] border border-[#00FF88]/30 text-[#00FF88] text-[10px] rounded px-2 py-0.5 outline-none font-bold uppercase cursor-pointer"
+                                     className="bg-[#050B14] border border-[#E60000]/30 text-[#E60000] text-[10px] rounded px-2 py-0.5 outline-none font-bold uppercase cursor-pointer"
                                    >
                                      <option value="piloto">Piloto</option>
                                      <option value="staff">Staff</option>
@@ -1201,7 +1201,7 @@ export default function JuecesPage() {
                                         pilots.map((pilot, index) => {
                                           const isGraded = !!(currentUid && getScoreForCategory(pilot, currentUid, cat));
                                           const score = isGraded ? getScoreForCategory(pilot, currentUid, cat)!.total : null;
-                                          const statusBg = isGraded ? 'bg-[#003320] text-[#00ff88] border-[#00ff88]/30' : 'bg-[#331800] text-[#ff6b00] border-[#ff6b00]/30';
+                                          const statusBg = isGraded ? 'bg-[#003320] text-[#E60000] border-[#E60000]/30' : 'bg-[#331800] text-[#ff6b00] border-[#ff6b00]/30';
                                           const statusLabel = isGraded ? 'CALIFICADO' : 'PENDIENTE';
 
                                           return (
@@ -1244,7 +1244,7 @@ export default function JuecesPage() {
                                  <button 
                                    onClick={() => handleStartSequential(cat)}
                                    disabled={pilots.length === 0 || !isOfficialJudge}
-                                   className="w-full bg-[#00ff88] hover:bg-[#00e67a] disabled:bg-[#1A2540] disabled:text-[#555] disabled:shadow-none text-[#050B14] font-black text-sm h-12 rounded-lg flex items-center justify-center uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(0,255,136,0.4)]"
+                                   className="w-full bg-[#E60000] hover:bg-[#CC0000] disabled:bg-[#1A2540] disabled:text-[#555] disabled:shadow-none text-[#050B14] font-black text-sm h-12 rounded-lg flex items-center justify-center uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(230, 0, 0,0.4)]"
                                  >
                                    <Play className="w-4 h-4 mr-2 fill-current" />
                                    {isOfficialJudge ? 'INICIAR CALIFICACIÓN' : 'SOLO LECTURA'}
@@ -1312,7 +1312,7 @@ export default function JuecesPage() {
                           pilots.map((pilot, index) => {
                             const isGraded = !!(currentUid && getScoreForCategory(pilot, currentUid, cat));
                             const score = isGraded ? getScoreForCategory(pilot, currentUid, cat)!.total : null;
-                            const statusBg = isGraded ? 'bg-[#003320] text-[#00ff88] border-[#00ff88]/30' : 'bg-[#331800] text-[#ff6b00] border-[#ff6b00]/30';
+                            const statusBg = isGraded ? 'bg-[#003320] text-[#E60000] border-[#E60000]/30' : 'bg-[#331800] text-[#ff6b00] border-[#ff6b00]/30';
                             const statusLabel = isGraded ? 'CAL.' : 'PEND.';
 
                             return (
@@ -1356,7 +1356,7 @@ export default function JuecesPage() {
                     <button 
                       onClick={() => handleStartSequential(cat)}
                       disabled={pilots.length === 0 || !isOfficialJudge}
-                      className="w-full bg-[#00ff88] hover:bg-[#00e67a] disabled:bg-[#1A2540] disabled:text-[#555] disabled:shadow-none text-[#050B14] font-black text-xs h-9 rounded-lg flex items-center justify-center uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(0,255,136,0.4)]"
+                      className="w-full bg-[#E60000] hover:bg-[#CC0000] disabled:bg-[#1A2540] disabled:text-[#555] disabled:shadow-none text-[#050B14] font-black text-xs h-9 rounded-lg flex items-center justify-center uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(230, 0, 0,0.4)]"
                     >
                       <Play className="w-3 h-3 mr-2 fill-current" />
                       {isOfficialJudge ? 'INICIAR' : 'SOLO LECTURA'}
@@ -1387,7 +1387,7 @@ export default function JuecesPage() {
                 <button 
                   key={cat}
                   onClick={() => setMasterCategory(cat)}
-                  className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${masterCategory === cat ? 'bg-[#00ff88]/10 text-[#00ff88] border border-[#00ff88] shadow-[0_0_10px_rgba(0,255,136,0.2)]' : 'bg-transparent text-[#888888] border border-transparent hover:text-white'}`}
+                  className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${masterCategory === cat ? 'bg-[#E60000]/10 text-[#E60000] border border-[#E60000] shadow-[0_0_10px_rgba(230, 0, 0,0.2)]' : 'bg-transparent text-[#888888] border border-transparent hover:text-white'}`}
                 >
                   {cat}
                 </button>
@@ -1406,15 +1406,15 @@ export default function JuecesPage() {
               </button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all bg-[#00ff88]/10 text-[#00ff88] border border-[#00ff88] hover:bg-[#00ff88]/20 hover:scale-105 shadow-[0_0_15px_rgba(0,255,136,0.3)] flex items-center gap-1.5 ml-2 shrink-0">
+                  <button className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all bg-[#E60000]/10 text-[#E60000] border border-[#E60000] hover:bg-[#E60000]/20 hover:scale-105 shadow-[0_0_15px_rgba(230, 0, 0,0.3)] flex items-center gap-1.5 ml-2 shrink-0">
                     <Download className="w-3 h-3" /> EXPORTAR
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="bg-[#0a1628] border-[#00ff88]/30 text-white min-w-[150px]">
-                  <DropdownMenuItem onClick={handleDownloadPDF} className="hover:bg-[#00ff88]/20 hover:text-[#00ff88] cursor-pointer font-bold font-mono text-xs focus:bg-[#00ff88]/20 focus:text-[#00ff88]">
+                <DropdownMenuContent className="bg-[#0a1628] border-[#E60000]/30 text-white min-w-[150px]">
+                  <DropdownMenuItem onClick={handleDownloadPDF} className="hover:bg-[#E60000]/20 hover:text-[#E60000] cursor-pointer font-bold font-mono text-xs focus:bg-[#E60000]/20 focus:text-[#E60000]">
                     <FileText className="w-4 h-4 mr-2" /> PDF
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleDownloadExcel} className="hover:bg-[#00ff88]/20 hover:text-[#00ff88] cursor-pointer font-bold font-mono text-xs focus:bg-[#00ff88]/20 focus:text-[#00ff88]">
+                  <DropdownMenuItem onClick={handleDownloadExcel} className="hover:bg-[#E60000]/20 hover:text-[#E60000] cursor-pointer font-bold font-mono text-xs focus:bg-[#E60000]/20 focus:text-[#E60000]">
                     <Download className="w-4 h-4 mr-2" /> EXCEL
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -1463,7 +1463,7 @@ export default function JuecesPage() {
                 { id: 'drif', label: 'DRIFT', color: 'text-[#ff00cc]', border: 'border-[#ff00cc]' },
                 { id: 'acro', label: 'ACRO', color: 'text-[#b026ff]', border: 'border-[#b026ff]' },
                 { id: 'endos', label: 'ENDOS', color: 'text-[#00cfff]', border: 'border-[#00cfff]' },
-                { id: 'flow', label: 'FLOW', color: 'text-[#00ff88]', border: 'border-[#00ff88]' },
+                { id: 'flow', label: 'FLOW', color: 'text-[#E60000]', border: 'border-[#E60000]' },
                 { id: 'agres', label: 'AGRESSIVITY', color: 'text-[#ffd700]', border: 'border-[#ffd700]' },
                 { id: 'error', label: 'ERROR', color: 'text-[#ff3333]', border: 'border-[#ff3333]' }
               ];

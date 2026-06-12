@@ -210,7 +210,7 @@ export default function QrPage() {
             .print-container { padding: 0 !important; background-color: #ffffff !important; }
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             .qr-card { break-inside: avoid; page-break-inside: avoid; border: 2px dashed #999; padding: 2px; background-color: #ffffff !important; }
-            .qr-card-inner { background-color: #0A0A0A !important; border: 2px solid #39FF14 !important; border-radius: 12px; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem; }
+            .qr-card-inner { background-color: #0A0A0A !important; border: 2px solid #E60000 !important; border-radius: 12px; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem; }
           }
         `}} />
         
@@ -230,7 +230,7 @@ export default function QrPage() {
                     <h3 className="font-bold text-xl text-white uppercase truncate" style={{ textShadow: '0 0 5px rgba(255,255,255,0.5)' }}>{pilot.nombres}</h3>
                     <p className="text-zinc-400 text-sm truncate">{pilot.apellidos}</p>
                     <div className="flex justify-between items-center mt-4 w-full border-t border-zinc-800 pt-3">
-                      <span className="text-[#39FF14] font-bold text-sm uppercase tracking-widest">{pilot.motocicleta.placa}</span>
+                      <span className="text-[#E60000] font-bold text-sm uppercase tracking-widest">{pilot.motocicleta.placa}</span>
                       <span className="text-zinc-500 text-[11px] uppercase truncate max-w-[50%]">{pilot.categoria}</span>
                     </div>
                   </div>
@@ -253,11 +253,11 @@ export default function QrPage() {
                     <div className="bg-white p-3 rounded-lg relative">
                       <QRCode value={cajaId} size={150} fgColor="#000000" bgColor="#FFFFFF" level="H" />
                       {/* Small neon accent inside white area */}
-                      <div className="absolute inset-0 border-2 border-[#39FF14] pointer-events-none rounded-lg opacity-30"></div>
+                      <div className="absolute inset-0 border-2 border-[#E60000] pointer-events-none rounded-lg opacity-30"></div>
                     </div>
                     
                     <div className="mt-4 w-full text-center">
-                      <h3 className="font-black text-2xl text-[#39FF14] uppercase tracking-widest truncate" style={{ textShadow: '0 0 10px rgba(57,255,20,0.5)' }}>
+                      <h3 className="font-black text-2xl text-[#E60000] uppercase tracking-widest truncate" style={{ textShadow: '0 0 10px rgba(230, 0, 0,0.5)' }}>
                         {pilot.nombres} {pilot.apellidos}
                       </h3>
                       <div className="flex flex-col justify-center items-center mt-3 w-full border-t border-zinc-800 pt-3">
@@ -278,14 +278,14 @@ export default function QrPage() {
   // Render normal de UI (pantalla)
   return (
     <div className="min-h-screen p-4 lg:p-10 relative">
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#39FF14]/5 blur-[150px] mix-blend-screen pointer-events-none rounded-full"></div>
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#E60000]/5 blur-[150px] mix-blend-screen pointer-events-none rounded-full"></div>
       
       <div className="max-w-7xl mx-auto w-full relative z-10">
         
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-zinc-900 rounded-xl border border-[#39FF14]/30 shadow-[0_0_15px_rgba(57,255,20,0.15)]">
-              <QrCode className="w-8 h-8 text-[#39FF14]" />
+            <div className="p-3 bg-zinc-900 rounded-xl border border-[#E60000]/30 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]">
+              <QrCode className="w-8 h-8 text-[#E60000]" />
             </div>
             <div>
               <h1 className="text-3xl font-bold text-white uppercase tracking-wider">Generador QR</h1>
@@ -296,7 +296,7 @@ export default function QrPage() {
 
         {loading ? (
           <div className="p-20 text-center text-zinc-500 flex flex-col items-center">
-             <div className="w-10 h-10 border-4 border-[#39FF14] border-t-transparent rounded-full animate-spin mb-4 shadow-[0_0_15px_rgba(57,255,20,0.5)]"></div>
+             <div className="w-10 h-10 border-4 border-[#E60000] border-t-transparent rounded-full animate-spin mb-4 shadow-[0_0_15px_rgba(230, 0, 0,0.5)]"></div>
              Cargando pilotos aprobados...
           </div>
         ) : (
@@ -305,7 +305,7 @@ export default function QrPage() {
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                   <CardTitle className="text-white text-xl">Gestión de Impresión</CardTitle>
-                  <CardDescription className="text-zinc-400">Pilotos Filtrados: <span className="text-[#39FF14] font-bold">{filteredRegistrations.length}</span> / {registrations.length}</CardDescription>
+                  <CardDescription className="text-zinc-400">Pilotos Filtrados: <span className="text-[#E60000] font-bold">{filteredRegistrations.length}</span> / {registrations.length}</CardDescription>
                 </div>
                 <div className="relative w-full md:w-80">
                   <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
@@ -322,13 +322,13 @@ export default function QrPage() {
               
               <Tabs defaultValue="pilotos" className="w-full">
                 <TabsList className="w-full sm:w-auto grid grid-cols-3 bg-zinc-900 border border-zinc-800 mb-8 p-1 h-12">
-                  <TabsTrigger value="pilotos" className="data-[state=active]:bg-zinc-800 data-[state=active]:text-[#39FF14] text-zinc-400 font-bold uppercase tracking-wider h-full">
+                  <TabsTrigger value="pilotos" className="data-[state=active]:bg-zinc-800 data-[state=active]:text-[#E60000] text-zinc-400 font-bold uppercase tracking-wider h-full">
                     <Users className="w-4 h-4 mr-2 hidden sm:block" /> Pilotos
                   </TabsTrigger>
-                  <TabsTrigger value="cajas" className="data-[state=active]:bg-zinc-800 data-[state=active]:text-[#39FF14] text-zinc-400 font-bold uppercase tracking-wider h-full">
+                  <TabsTrigger value="cajas" className="data-[state=active]:bg-zinc-800 data-[state=active]:text-[#E60000] text-zinc-400 font-bold uppercase tracking-wider h-full">
                     <Box className="w-4 h-4 mr-2 hidden sm:block" /> Cajas
                   </TabsTrigger>
-                  <TabsTrigger value="entregas" className="data-[state=active]:bg-zinc-800 data-[state=active]:text-[#39FF14] text-zinc-400 font-bold uppercase tracking-wider h-full">
+                  <TabsTrigger value="entregas" className="data-[state=active]:bg-zinc-800 data-[state=active]:text-[#E60000] text-zinc-400 font-bold uppercase tracking-wider h-full">
                     <Package className="w-4 h-4 mr-2 hidden sm:block" /> Entregas
                   </TabsTrigger>
                 </TabsList>
@@ -336,11 +336,11 @@ export default function QrPage() {
                 <TabsContent value="pilotos" className="space-y-6">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-zinc-900/50 p-4 rounded-lg border border-zinc-800">
                     <p className="text-zinc-400 text-sm max-w-xl">
-                      Genera un código QR único para cada piloto en estado <span className="text-green-400 font-bold">Aprobado</span> o <span className="text-blue-400 font-bold">Pago Día Evento</span>.
+                      Genera un código QR único para cada piloto en estado <span className="text-red-500 font-bold">Aprobado</span> o <span className="text-blue-400 font-bold">Pago Día Evento</span>.
                     </p>
                     <Button 
                       onClick={() => setPrintMode('pilotos')}
-                      className="w-full sm:w-auto bg-[#39FF14] hover:bg-[#32E011] text-black font-bold h-12 px-8 shadow-[0_0_20px_rgba(57,255,20,0.3)] shrink-0"
+                      className="w-full sm:w-auto bg-[#E60000] hover:bg-[#CC0000] text-black font-bold h-12 px-8 shadow-[0_0_20px_rgba(230, 0, 0,0.3)] shrink-0"
                     >
                       <Printer className="w-5 h-5 mr-2" />
                       IMPRIMIR PILOTOS
@@ -388,9 +388,9 @@ export default function QrPage() {
                   <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 opacity-70">
                     {[...filteredRegistrations].sort((a,b)=>(a.kitNumber || 999)-(b.kitNumber || 999)).map((pilot) => (
                        <div key={`preview_kit_${pilot.id}`} className="border border-zinc-800 bg-zinc-900/50 rounded-lg p-3 flex flex-col items-center text-center relative overflow-hidden">
-                          {pilot.kitEntregado && <div className="absolute top-0 right-0 bg-green-500 text-black text-[8px] font-bold px-2 py-0.5 rounded-bl-lg z-10">ENTREGADO</div>}
-                          <QRCode value={`kit_${pilot.id}`} size={80} fgColor="#39FF14" bgColor="transparent" />
-                          <h4 className="text-[#39FF14] text-xs font-black mt-3 uppercase truncate w-full">{pilot.nombres}</h4>
+                          {pilot.kitEntregado && <div className="absolute top-0 right-0 bg-red-600 text-black text-[8px] font-bold px-2 py-0.5 rounded-bl-lg z-10">ENTREGADO</div>}
+                          <QRCode value={`kit_${pilot.id}`} size={80} fgColor="#E60000" bgColor="transparent" />
+                          <h4 className="text-[#E60000] text-xs font-black mt-3 uppercase truncate w-full">{pilot.nombres}</h4>
                           <span className="text-zinc-500 text-[10px] font-bold">KIT {pilot.kitNumber || '?'}</span>
                        </div>
                     ))}
@@ -403,7 +403,7 @@ export default function QrPage() {
                       Listado de kits asignados y su estado de entrega en tiempo real. 
                     </p>
                     <div className="flex items-center gap-4 text-sm font-bold w-full sm:w-auto justify-between sm:justify-end">
-                       <span className="text-green-400"><CheckCircle2 className="inline w-4 h-4 mr-1"/> {registrations.filter(r => r.kitEntregado).length} Entregados</span>
+                       <span className="text-red-500"><CheckCircle2 className="inline w-4 h-4 mr-1"/> {registrations.filter(r => r.kitEntregado).length} Entregados</span>
                        <span className="text-red-400"><XCircle className="inline w-4 h-4 mr-1"/> {registrations.filter(r => r.kitNumber && !r.kitEntregado).length} Pendientes</span>
                     </div>
                   </div>
@@ -423,7 +423,7 @@ export default function QrPage() {
                           {[...filteredRegistrations].sort((a,b)=>(a.kitNumber || 999)-(b.kitNumber || 999)).map((pilot) => (
                             <tr key={pilot.id} className="border-b border-zinc-800 hover:bg-zinc-800/30 transition-colors">
                               <td className="px-6 py-4 whitespace-nowrap">
-                                <span className="text-[#39FF14] font-black text-lg bg-[#39FF14]/10 px-3 py-1 rounded-md border border-[#39FF14]/20">
+                                <span className="text-[#E60000] font-black text-lg bg-[#E60000]/10 px-3 py-1 rounded-md border border-[#E60000]/20">
                                   KIT {pilot.kitNumber || '?'}
                                 </span>
                               </td>
@@ -436,7 +436,7 @@ export default function QrPage() {
                               </td>
                               <td className="px-6 py-4 text-right">
                                 {pilot.kitEntregado ? (
-                                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-green-500/10 text-green-400 border border-green-500/20">
+                                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-red-600/10 text-red-500 border border-red-600/20">
                                     <CheckCircle2 className="w-4 h-4" /> ENTREGADO
                                   </span>
                                 ) : (

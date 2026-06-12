@@ -103,8 +103,8 @@ export function ScanClient() {
               </CardHeader>
             </Card>
           ) : (
-            <Card className="border-green-500 animate-in fade-in zoom-in-95">
-              <CardHeader className="flex flex-col sm:flex-row items-start gap-4 text-green-500">
+            <Card className="border-red-600 animate-in fade-in zoom-in-95">
+              <CardHeader className="flex flex-col sm:flex-row items-start gap-4 text-red-600">
                 <CheckCircle className="h-10 w-10 flex-shrink-0" />
                 <div className="flex-grow">
                   <CardTitle>Entry Validated</CardTitle>

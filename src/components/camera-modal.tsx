@@ -194,7 +194,7 @@ export function CameraModal({
         <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-zinc-800 bg-zinc-900/50">
           <div className="flex flex-col">
             <h3 className="text-white font-bold text-sm tracking-wider uppercase flex items-center gap-2">
-              <Camera className="w-4 h-4 text-green-500" />
+              <Camera className="w-4 h-4 text-red-600" />
               {title}
             </h3>
             {mode === 'double' && doubleStep !== 'preview' && (
@@ -203,7 +203,7 @@ export function CameraModal({
               </span>
             )}
             {mode === 'double' && doubleStep === 'preview' && (
-              <span className="text-xs text-green-400 font-bold mt-1">
+              <span className="text-xs text-red-500 font-bold mt-1">
                 Frente y reverso combinados exitosamente
               </span>
             )}
@@ -342,7 +342,7 @@ export function CameraModal({
             >
               <div className="w-12 h-12 rounded-full border-2 border-zinc-900 bg-white flex items-center justify-center">
                  {mode === 'double' && doubleStep === 'front' && <ArrowDown className="w-5 h-5 text-zinc-400" />}
-                 {mode === 'double' && doubleStep === 'back' && <Check className="w-5 h-5 text-green-500" />}
+                 {mode === 'double' && doubleStep === 'back' && <Check className="w-5 h-5 text-red-600" />}
               </div>
             </button>
           )}
@@ -353,7 +353,7 @@ export function CameraModal({
                 <RefreshCw className="w-4 h-4 mr-2" />
                 {mode === 'double' ? 'Repetir Ambas' : 'Repetir'}
               </Button>
-              <Button onClick={confirmPhoto} className="flex-1 bg-green-500 text-black hover:bg-green-400 h-12 font-bold rounded-xl shadow-[0_0_15px_rgba(34,197,94,0.3)]">
+              <Button onClick={confirmPhoto} className="flex-1 bg-red-600 text-black hover:bg-red-500 h-12 font-bold rounded-xl shadow-[0_0_15px_rgba(34,197,94,0.3)]">
                 <Check className="w-4 h-4 mr-2" />
                 Usar {mode === 'double' ? 'Documento' : 'Foto'}
               </Button>

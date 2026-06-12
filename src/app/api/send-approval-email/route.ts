@@ -45,8 +45,8 @@ export async function POST(req: Request) {
               
               <!-- Header -->
               <tr>
-                <td align="center" style="background-color: #000000; padding: 30px; border-bottom: 2px solid #39FF14;">
-                  <h1 style="color: #39FF14; margin: 0; font-size: 28px; text-transform: uppercase; letter-spacing: 2px;">Copa Stunt F2R</h1>
+                <td align="center" style="background-color: #000000; padding: 30px; border-bottom: 2px solid #E60000;">
+                  <h1 style="color: #E60000; margin: 0; font-size: 28px; text-transform: uppercase; letter-spacing: 2px;">Copa Stunt F2R</h1>
                   <p style="color: #888; margin: 5px 0 0 0; font-size: 14px; letter-spacing: 1px;">REPUESTOS NITROX</p>
                 </td>
               </tr>
@@ -62,17 +62,17 @@ export async function POST(req: Request) {
                   ${paymentReminder}
 
                   <div style="background-color: #262626; border-radius: 8px; padding: 20px; margin: 30px 0;">
-                    <h3 style="color: #39FF14; margin-top: 0; font-size: 18px; text-transform: uppercase;">Pasos Finales:</h3>
+                    <h3 style="color: #E60000; margin-top: 0; font-size: 18px; text-transform: uppercase;">Pasos Finales:</h3>
                     <ul style="color: #cccccc; font-size: 15px; line-height: 1.6; padding-left: 20px;">
                       <li style="margin-bottom: 10px;">Lleva tu motocicleta lista y preparada.</li>
                       <li style="margin-bottom: 10px;">Asegúrate de llevar tu <strong>Documento de Identidad Original</strong> y todos los documentos de la moto (<strong>SOAT, TARJETA DE PROPIEDAD, PLACA</strong>).</li>
                       <li style="margin-bottom: 10px;">Si te falta cargar alguno de estos documentos, súbelo cuanto antes en la plataforma.</li>
-                      <li style="margin-bottom: 10px;">Ingresa a <a href="https://paskinesstunt.com" target="_blank" style="color: #39FF14; text-decoration: none; font-weight: bold;">paskinesstunt.com</a>, verifica que todos tus documentos estén aprobados y <strong>asegúrate de tener tu Código QR de ingreso activo</strong>.</li>
+                      <li style="margin-bottom: 10px;">Ingresa a <a href="https://paskinesstunt.com" target="_blank" style="color: #E60000; text-decoration: none; font-weight: bold;">paskinesstunt.com</a>, verifica que todos tus documentos estén aprobados y <strong>asegúrate de tener tu Código QR de ingreso activo</strong>.</li>
                     </ul>
                   </div>
 
                   <p style="color: #cccccc; font-size: 16px; line-height: 1.6;">
-                    ¡Prepárate para dar el mejor show en <span style="color: #39FF14; font-weight: bold; font-size: 18px; text-transform: uppercase; letter-spacing: 1px;">Plaza Mayor Medellín</span>! Nos vemos en la pista.
+                    ¡Prepárate para dar el mejor show en <span style="color: #E60000; font-weight: bold; font-size: 18px; text-transform: uppercase; letter-spacing: 1px;">Plaza Mayor Medellín</span>! Nos vemos en la pista.
                   </p>
                 </td>
               </tr>
