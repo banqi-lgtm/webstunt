@@ -313,15 +313,18 @@ const handleCobrar = async (item: any) => {
   const showCuentasAndPagos = ['cuentas', 'pagos', 'historial'].includes(activeTab);
 
   const getStatusInfo = (item: any) => {
-    const isPending = item.estado === 'disponible' || item.estado === 'PENDIENTE DE PAGO';
-    const isApproved = item.estado === 'pagado' || item.estado === 'PAGADO' || item.estadoAprobacion === 'aprobado';
-    const isPendingApproval = item.estado === 'cobrado' && !isApproved;
+    // Si la cuenta está 'disponible' pero ya tiene firma, significa que fue radicada por el usuario
+    const effectiveState = (item.estado === 'disponible' && item.firmaGenerada) ? 'cobrado' : item.estado;
+
+    const isPending = effectiveState === 'disponible' || effectiveState === 'PENDIENTE DE PAGO';
+    const isApproved = effectiveState === 'pagado' || effectiveState === 'PAGADO' || item.estadoAprobacion === 'aprobado';
+    const isPendingApproval = effectiveState === 'cobrado' && !isApproved;
 
     if (isPending) return { label: 'PENDIENTE DE PAGO', colors: 'border-zinc-700 bg-[#1A1A1A] text-zinc-400', dot: 'bg-zinc-500', isPending, isApproved, isPendingApproval };
     if (isPendingApproval) return { label: 'PENDIENTE POR APROBACIÓN', colors: 'border-amber-500/30 bg-amber-500/10 text-amber-500', dot: 'bg-amber-500', isPending, isApproved, isPendingApproval };
     if (isApproved) return { label: 'PAGADO', colors: 'border-[#00ff00]/30 bg-[#00ff00]/10 text-[#00ff00]', dot: 'bg-[#00ff00]', isPending, isApproved, isPendingApproval };
     
-    return { label: item.estado, colors: 'border-zinc-700 bg-[#1A1A1A] text-zinc-400', dot: 'bg-zinc-500', isPending: false, isApproved: false, isPendingApproval: false };
+    return { label: effectiveState, colors: 'border-zinc-700 bg-[#1A1A1A] text-zinc-400', dot: 'bg-zinc-500', isPending: false, isApproved: false, isPendingApproval: false };
   };
 
   return (
