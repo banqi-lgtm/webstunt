@@ -29,6 +29,7 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
   
   const [rutUrl, setRutUrl] = useState<string | null>(null);
   const [certUrl, setCertUrl] = useState<string | null>(null);
+  const [documentosRechazados, setDocumentosRechazados] = useState<string[]>([]);
   
   const [codigosDisponibles, setCodigosDisponibles] = useState<Codigo[]>([]);
   const [historial, setHistorial] = useState<Codigo[]>([]);
@@ -45,6 +46,7 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
         if (data.rutUrl) setRutUrl(data.rutUrl);
         if (data.certUrl) setCertUrl(data.certUrl);
         if (data.numeroIdentificacion) setExtractedDocNum(data.numeroIdentificacion);
+        if (data.documentosRechazados) setDocumentosRechazados(data.documentosRechazados);
       }
     } catch(e) {
       console.error("Error fetching user data", e);
@@ -119,6 +121,8 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
             userDocument={finalDocNum}
             userEmail={userEmail}
             userUid={userUid}
+            documentosRechazados={documentosRechazados}
+            setDocumentosRechazados={setDocumentosRechazados}
           />
         );
       default:

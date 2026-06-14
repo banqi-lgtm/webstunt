@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, getDocs, doc, getDoc, setDoc, deleteDoc, query, where, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, setDoc, deleteDoc, query, where, updateDoc, orderBy } from 'firebase/firestore';
 import { FileText, Plus, Trash2, CheckCircle, XCircle, Search, Sparkles, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -195,11 +195,20 @@ export default function CodigosAdminPage() {
 
     return () => clearTimeout(timer);
   }, [newDescripcion, newValor]);
-
   const fetchData = async () => {
     try {
-      const [snapCodigos, snapUsuarios, snapCC] = await Promise.all([
-        getDocs(collection(db, 'codigos')),
+      const snapshot = await getDocs(collection(db, 'codigos'));
+      let data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Codigo[];
+      
+      // Sort in JS to ensure documents without creadoEl aren't omitted by Firestore query
+      data.sort((a, b) => {
+        const timeA = a.creadoEl ? new Date(a.creadoEl).getTime() : 0;
+        const timeB = b.creadoEl ? new Date(b.creadoEl).getTime() : 0;
+        return timeB - timeA;
+      });
+      setCodigos(data);
+
+      const [snapUsuarios, snapCC] = await Promise.all([
         getDocs(collection(db, 'users')),
         getDocs(collection(db, 'centrosCosto'))
       ]);
@@ -209,13 +218,6 @@ export default function CodigosAdminPage() {
         fetchedCC.push(docSnap.data().nombre || docSnap.id);
       });
       setCentrosCostoList(fetchedCC);
-
-      const fetchedCodigos: Codigo[] = [];
-      snapCodigos.forEach(docSnap => {
-        fetchedCodigos.push({ id: docSnap.id, ...docSnap.data() } as Codigo);
-      });
-      fetchedCodigos.sort((a, b) => new Date(b.creadoEl).getTime() - new Date(a.creadoEl).getTime());
-      setCodigos(fetchedCodigos);
 
       const fetchedUsuarios: Usuario[] = [];
       snapUsuarios.forEach(docSnap => {
@@ -284,10 +286,10 @@ export default function CodigosAdminPage() {
     }
 
     setInvoiceData({
-      numero: codigo.cuentaCobroNum || 'N/A',
+      numero: codigo.id,
       fecha: codigo.cobradoEl || codigo.creadoEl,
       cobradorNombre: userData.nombreCompleto || userData.nombre || codigo.cobradoPor || codigo.asignadoANombre,
-      cobradorDocumento: userData.documentoIdentidad || 'No registrado',
+      cobradorDocumento: userData.numeroIdentificacion || userData.documentoIdentidad || 'No registrado',
       valorTotal: codigo.valor,
       conceptos: [{
         item: 1,
@@ -300,7 +302,7 @@ export default function CodigosAdminPage() {
       tipoCuenta: userData.tipoCuenta || 'No registrado',
       numeroCuenta: userData.numeroCuenta || 'No registrado',
       ciudad: userData.ciudad || 'BELLO, ANTIOQUIA',
-      firmaPrevia: codigo.firma,
+      firmaPrevia: codigo.firmaGenerada || codigo.firma,
       isHistorical: true
     });
     setShowInvoice(true);
@@ -403,6 +405,75 @@ export default function CodigosAdminPage() {
     }
   };
 
+
+  const handleForceMigrate = async () => {
+    try {
+      toast({ title: 'Iniciando migración', description: 'Por favor espera...' });
+      const getInitials = (name: string) => {
+        const parts = name.trim().split(' ').filter(Boolean);
+        if (parts.length === 0) return 'XX';
+        if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      };
+
+      const q = query(collection(db, 'codigos'));
+      const snapshot = await getDocs(q);
+      const wrongCodigos: Codigo[] = [];
+      const userMaxNum: Record<string, number> = {};
+      
+      snapshot.forEach(docSnap => {
+        const id = docSnap.id;
+        const data = docSnap.data() as Codigo;
+        if (!id.startsWith('PKS-')) {
+          wrongCodigos.push({ id, ...data });
+        } else {
+          const uid = data.asignadoAUid;
+          if (uid) {
+            const name = data.asignadoANombre || 'XX';
+            const prefix = `PKS-${getInitials(name)}`;
+            if (id.startsWith(prefix)) {
+              const numStr = id.replace(prefix, '');
+              const num = parseInt(numStr, 10);
+              if (!isNaN(num)) {
+                if (!userMaxNum[uid] || num > userMaxNum[uid]) {
+                  userMaxNum[uid] = num;
+                }
+              }
+            }
+          }
+        }
+      });
+
+      if (wrongCodigos.length > 0) {
+        wrongCodigos.sort((a, b) => new Date(a.creadoEl).getTime() - new Date(b.creadoEl).getTime());
+        for (const item of wrongCodigos) {
+          const uid = item.asignadoAUid;
+          if (!uid) continue;
+          const name = item.asignadoANombre || 'XX';
+          const prefix = `PKS-${getInitials(name)}`;
+          
+          if (!userMaxNum[uid]) userMaxNum[uid] = 0;
+          userMaxNum[uid]++;
+          
+          const nextNumStr = userMaxNum[uid].toString().padStart(3, '0');
+          const newId = `${prefix}${nextNumStr}`;
+          
+          const { id, ...dataToSave } = item;
+          
+          await setDoc(doc(db, 'codigos', newId), dataToSave);
+          await deleteDoc(doc(db, 'codigos', id));
+        }
+        await fetchData();
+        toast({ title: 'Éxito', description: `Se migraron ${wrongCodigos.length} códigos al formato PKS-Iniciales-Consecutivo.` });
+      } else {
+        toast({ title: 'Listo', description: 'Todos los códigos ya tienen el formato correcto.' });
+      }
+    } catch (e) {
+      console.error("Auto-migrate error:", e);
+      toast({ title: 'Error', description: 'No se pudo migrar', variant: 'destructive' });
+    }
+  };
+
   if (hasAccess === null) return null;
 
   const filteredCodigos = codigos.filter(c => 
@@ -433,8 +504,28 @@ export default function CodigosAdminPage() {
             </div>
           </div>
           <div>
-            <h1 className="text-2xl md:text-4xl font-black text-white font-orbitron tracking-[0.1em] md:tracking-[0.2em] drop-shadow-[0_0_10px_rgba(0,229,255,0.3)]">SISTEMA PKS COBRO</h1>
-            <p className="text-[#00e5ff] font-mono text-xs md:text-sm tracking-[0.3em] uppercase opacity-80 mt-1">INTERFAZ DE GENERACIÓN Y GESTIÓN DE CÓDIGOS</p>
+            <h1 className="text-3xl lg:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-zinc-500 tracking-tight">
+              CÓDIGOS
+            </h1>
+            <p className="text-[#00e5ff] font-orbitron tracking-widest text-sm mt-2 opacity-80 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#00e5ff] animate-pulse"></span>
+              SISTEMA DE ASIGNACIÓN Y COBRO
+            </p>
+          </div>
+          <div className="ml-auto flex gap-4">
+            <button 
+              onClick={handleForceMigrate}
+              className="bg-purple-600/20 text-purple-400 hover:bg-purple-600/40 border border-purple-500/30 px-4 py-2 rounded-lg font-bold font-rajdhani flex items-center gap-2 transition-all"
+            >
+              FORZAR REPARACIÓN DE CONSECUTIVOS
+            </button>
+            <button 
+              onClick={() => setIsCreating(true)}
+              className="bg-[#00e5ff]/10 text-[#00e5ff] hover:bg-[#00e5ff]/20 border border-[#00e5ff]/30 px-6 py-3 rounded-xl font-bold font-rajdhani flex items-center gap-2 transition-all hover:scale-105 active:scale-95"
+            >
+              <Plus className="w-5 h-5" />
+              NUEVO CÓDIGO
+            </button>
           </div>
         </motion.div>
 
@@ -708,28 +799,33 @@ export default function CodigosAdminPage() {
                                 </div>
                               ) : (
                                 <div className="flex flex-col gap-1">
-                                  <div className="flex items-center gap-2">
-                                    <div className="relative flex h-2.5 w-2.5">
-                                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#00e5ff] shadow-[0_0_8px_rgba(0,229,255,0.8)]"></span>
+                                  {c.estadoAprobacion === 'aprobado' ? (
+                                    <div className="flex items-center gap-2">
+                                      <div className="relative flex h-2.5 w-2.5">
+                                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]"></span>
+                                      </div>
+                                      <span className="text-emerald-400 font-orbitron text-[10px] font-bold uppercase tracking-widest drop-shadow-[0_0_5px_rgba(52,211,153,0.5)]">
+                                        APROBADO
+                                      </span>
                                     </div>
-                                    <span className="text-[#00e5ff] font-orbitron text-[10px] font-bold uppercase tracking-widest drop-shadow-[0_0_5px_rgba(0,229,255,0.5)]">
-                                      COBRADO
-                                    </span>
-                                  </div>
-                                  {c.estadoAprobacion === 'pendiente' && (
-                                    <span className="text-yellow-400 font-orbitron text-[9px] font-bold uppercase tracking-widest ml-4">
-                                      POR APROBAR
-                                    </span>
-                                  )}
-                                  {c.estadoAprobacion === 'aprobado' && (
-                                    <span className="text-emerald-400 font-orbitron text-[9px] font-bold uppercase tracking-widest ml-4">
-                                      APROBADO
-                                    </span>
-                                  )}
-                                  {c.estadoAprobacion === 'rechazado' && (
-                                    <span className="text-rose-400 font-orbitron text-[9px] font-bold uppercase tracking-widest ml-4">
-                                      RECHAZADO
-                                    </span>
+                                  ) : c.estadoAprobacion === 'rechazado' ? (
+                                    <div className="flex items-center gap-2">
+                                      <div className="relative flex h-2.5 w-2.5">
+                                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.8)]"></span>
+                                      </div>
+                                      <span className="text-rose-400 font-orbitron text-[10px] font-bold uppercase tracking-widest drop-shadow-[0_0_5px_rgba(251,113,133,0.5)]">
+                                        RECHAZADO
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-2">
+                                      <div className="relative flex h-2.5 w-2.5">
+                                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.8)]"></span>
+                                      </div>
+                                      <span className="text-yellow-400 font-orbitron text-[10px] font-bold uppercase tracking-widest drop-shadow-[0_0_5px_rgba(250,204,21,0.5)]">
+                                        PENDIENTE APROBACIÓN
+                                      </span>
+                                    </div>
                                   )}
                                   {c.cobradoEl && <span className="text-[9px] font-mono text-zinc-600 uppercase ml-4">Por: {c.cobradoPor}</span>}
                                 </div>
@@ -838,7 +934,10 @@ export default function CodigosAdminPage() {
                   <div>
                     <label className="text-[10px] text-[#00e5ff] tracking-widest block mb-1">ESTADO</label>
                     <div className="font-orbitron text-white text-[11px] bg-zinc-900 px-3 py-2 border border-zinc-800 rounded flex items-center h-[38px] uppercase">
-                      {selectedCodigo.estado} {selectedCodigo.estadoAprobacion && `/ ${selectedCodigo.estadoAprobacion}`}
+                      {selectedCodigo.estado === 'disponible' ? 'DISPONIBLE' : (
+                        selectedCodigo.estadoAprobacion === 'aprobado' ? 'APROBADO' :
+                        selectedCodigo.estadoAprobacion === 'rechazado' ? 'RECHAZADO' : 'PENDIENTE APROBACIÓN'
+                      )}
                     </div>
                   </div>
                 </div>
@@ -868,7 +967,7 @@ export default function CodigosAdminPage() {
               </div>
               
               <div className="p-4 border-t border-[#00e5ff]/20 bg-zinc-950 grid grid-cols-2 gap-2 sm:flex sm:justify-end">
-                {selectedCodigo.estado === 'cobrado' && selectedCodigo.estadoAprobacion === 'pendiente' && (
+                {selectedCodigo.estado === 'cobrado' && selectedCodigo.estadoAprobacion !== 'aprobado' && selectedCodigo.estadoAprobacion !== 'rechazado' && (
                   <>
                     <button 
                       onClick={() => handleUpdateAndAprobar()}

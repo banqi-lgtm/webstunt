@@ -58,6 +58,16 @@ export function CuentaDeCobro({
   const dateObj = new Date(fecha);
   const formattedDate = dateObj.toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
 
+  // Format ID for PDF: Extract consecutive from PKS-[Initials][Num] and prepend CC-
+  const displayNumero = React.useMemo(() => {
+    if (!numero) return '';
+    const match = numero.match(/PKS-[A-Z]+(\d+)$/i);
+    if (match) {
+      return `CC-${match[1]}`;
+    }
+    return numero;
+  }, [numero]);
+
   // Calculate retenciones
   const retencionesMap: Record<string, { porcentaje: number, totalBase: number, valorRetenido: number }> = {};
   conceptos.forEach(c => {
@@ -234,7 +244,7 @@ export function CuentaDeCobro({
               </div>
               <div className="text-left sm:text-right border-t border-white/20 sm:border-t-0 pt-4 sm:pt-0 w-full sm:w-auto">
                 <h2 className="font-barlow text-xl md:text-2xl print:text-xl uppercase tracking-wider font-medium text-white/90 print:text-black">Cuenta de Cobro</h2>
-                <p className="font-barlow text-2xl md:text-3xl print:text-2xl font-bold mt-1 text-white print:text-black">N° {numero}</p>
+                <p className="font-barlow text-2xl md:text-3xl print:text-2xl font-bold mt-1 text-white print:text-black">N° {displayNumero}</p>
               </div>
             </div>
 

@@ -163,25 +163,8 @@ export default function PilotDetailPage() {
         console.error("Error fetching centrosCosto", e);
       }
 
-      let rutUrl = '';
-      let certUrl = '';
-      if (userData.rol === 'staff') {
-        try {
-          const docsRef = ref(storage, `documents/${extractedUid}`);
-          const res = await listAll(docsRef);
-          let latestRut = null;
-          let latestCert = null;
-          const items = res.items.sort((a, b) => b.name.localeCompare(a.name));
-          for (const item of items) {
-            if (!latestRut && item.name.includes('rut_')) latestRut = item;
-            if (!latestCert && item.name.includes('certificacion_')) latestCert = item;
-          }
-          if (latestRut) rutUrl = await getDownloadURL(latestRut);
-          if (latestCert) certUrl = await getDownloadURL(latestCert);
-        } catch(e) {
-          console.error("Error fetching documents from storage", e);
-        }
-      }
+      let rutUrl = userData.rutUrl || '';
+      let certUrl = userData.certUrl || '';
 
       const qCodigos = query(collection(db, 'codigos'), where('asignadoAUid', '==', extractedUid));
       const snapCodigos = await getDocs(qCodigos);
@@ -221,7 +204,7 @@ export default function PilotDetailPage() {
         correoTutor: userData.correoTutor || '',
         parentescoTutor: userData.parentescoTutor || '',
         rol: userData.rol || 'piloto',
-        documentosRechazados: data.documentosRechazados || [],
+        documentosRechazados: Array.from(new Set([...(data.documentosRechazados || []), ...(userData.documentosRechazados || [])])),
         templateConfig: data.templateConfig || null,
         tipoSangre: userData.tipoSangre || 'N/A',
         eps: userData.eps || 'N/A',
@@ -481,7 +464,11 @@ export default function PilotDetailPage() {
     if (!pilot || !isAdmin) return;
     setUpdating(true);
     try {
-      const docRef = doc(db, 'event_registrations', pilot.id);
+      const isStaffDoc = docKey === 'rut' || docKey === 'certBancaria';
+      const collectionName = isStaffDoc ? 'users' : 'event_registrations';
+      const docId = isStaffDoc ? pilot.uid : pilot.id;
+      const docRef = doc(db, collectionName, docId);
+
       if (isRejected) {
         // Deshacer rechazo
         await updateDoc(docRef, { documentosRechazados: arrayRemove(docKey) });
@@ -491,7 +478,7 @@ export default function PilotDetailPage() {
         // Rechazar
         await updateDoc(docRef, { documentosRechazados: arrayUnion(docKey) });
         setPilot({ ...pilot, documentosRechazados: [...(pilot.documentosRechazados || []), docKey] });
-        toast({ title: 'Documento Rechazado', description: 'El piloto ha sido notificado para corregir este documento.', variant: 'destructive' });
+        toast({ title: 'Documento Rechazado', description: 'El usuario ha sido notificado para corregir este documento.', variant: 'destructive' });
       }
     } catch (e) {
       console.error(e);
@@ -610,10 +597,10 @@ export default function PilotDetailPage() {
         {/* Navigation & Utilities */}
         <div className="sticky top-0 z-50 bg-[#050816]/90 backdrop-blur-md border-b border-[#1F1F1F]">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <Link href="/pilotos">
+            <Link href="/staff">
               <Button variant="ghost" className="text-[#64748B] hover:text-white hover:bg-[#151515] text-sm gap-2">
                 <ArrowLeft className="w-4 h-4" />
-                Volver al Directorio
+                Volver al Directorio de Staff
               </Button>
             </Link>
           </div>
@@ -661,7 +648,7 @@ export default function PilotDetailPage() {
                       </div>
                       <div className="h-32 w-full bg-white rounded-md overflow-hidden relative border border-[#1F1F1F]">
                         {pilot.rutUrl ? (
-                          <DocumentPreview title="RUT" url={pilot.rutUrl} hideTitle />
+                          <DocumentPreview title="RUT" url={pilot.rutUrl} docKey="rut" hideTitle />
                         ) : (
                           <div className="w-full h-full flex flex-col items-center justify-center bg-[#151515]">
                             <AlertCircle className="w-6 h-6 text-[#64748B] mb-2" />
@@ -678,7 +665,7 @@ export default function PilotDetailPage() {
                       </div>
                       <div className="h-32 w-full bg-white rounded-md overflow-hidden relative border border-[#1F1F1F]">
                         {pilot.certUrl ? (
-                          <DocumentPreview title="Cert. Bancaria" url={pilot.certUrl} hideTitle />
+                          <DocumentPreview title="Cert. Bancaria" url={pilot.certUrl} docKey="certBancaria" hideTitle />
                         ) : (
                           <div className="w-full h-full flex flex-col items-center justify-center bg-[#151515]">
                             <AlertCircle className="w-6 h-6 text-[#64748B] mb-2" />

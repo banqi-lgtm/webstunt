@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { PlusCircle, FileUp, Search, MessageCircle, ChevronRight, FileText, CheckCircle2, AlertCircle, Building2, Download, Eye, Calendar, Loader2, Sparkles } from 'lucide-react';
-import { doc, getDoc, updateDoc, addDoc, collection } from 'firebase/firestore';
+import { PlusCircle, FileUp, Search, MessageCircle, ChevronRight, FileText, CheckCircle2, AlertCircle, AlertTriangle, Building2, Download, Eye, Calendar, Loader2, Sparkles } from 'lucide-react';
+import { doc, getDoc, updateDoc, addDoc, collection, query, where, getDocs, setDoc, arrayRemove } from 'firebase/firestore';
 import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { useToast } from '@/hooks/use-toast';
 import { db, storage } from '@/lib/firebase';
@@ -20,14 +20,17 @@ interface DashboardInicioProps {
   userDocument: string;
   userEmail: string;
   userUid: string;
+  documentosRechazados?: string[];
+  setDocumentosRechazados?: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
-export function DashboardInicio({ activeTab, setActiveTab, rutUrl, certUrl, totalAcumulado, saldoPorCobrar, historial, userName, userDocument, userEmail, userUid }: DashboardInicioProps) {
+export function DashboardInicio({ activeTab, setActiveTab, rutUrl, certUrl, totalAcumulado, saldoPorCobrar, historial, userName, userDocument, userEmail, userUid, documentosRechazados = [], setDocumentosRechazados }: DashboardInicioProps) {
   
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
 
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [showMissingDocsModal, setShowMissingDocsModal] = useState(false);
   const [invoiceData, setInvoiceData] = useState<any>(null);
   const [loadingInvoiceId, setLoadingInvoiceId] = useState<string | null>(null);
 
@@ -99,8 +102,18 @@ export function DashboardInicio({ activeTab, setActiveTab, rutUrl, certUrl, tota
         setLocalUserCity(data.ciudad.replace(/[.,\s]+$/, '').trim());
       }
 
+      const docKey = type === 'rut' ? 'rut' : 'certBancaria';
+      if (documentosRechazados.includes(docKey)) {
+        updateData.documentosRechazados = arrayRemove(docKey);
+      }
+
       await updateDoc(userRef, updateData);
       
+      // Optimizacion: actualizar estado local
+      if (setDocumentosRechazados && documentosRechazados.includes(docKey)) {
+        setDocumentosRechazados(prev => prev.filter(k => k !== docKey));
+      }
+
       toast({ title: "Documento actualizado", description: "Tus datos se han guardado y actualizado en pantalla correctamente." });
       
     } catch (error) {
@@ -174,10 +187,10 @@ const handleCobrar = async (item: any) => {
       const userData = userDoc.data() || {};
 
       setInvoiceData({
-        numero: item.cuentaCobroNum || `CC-${item.id.substring(0,6).toUpperCase()}`,
+        numero: item.id,
         fecha: item.creadoEl || new Date().toISOString(),
         cobradorNombre: userData.nombreCompleto || userData.nombres || userName || item.asignadoANombre,
-        cobradorDocumento: userData.documentoIdentidad || userDocument || 'No registrado',
+        cobradorDocumento: userData.numeroIdentificacion || userData.documentoIdentidad || userDocument || 'No registrado',
         valorTotal: item.valor,
         conceptos: [{
           item: 1,
@@ -206,6 +219,7 @@ const handleCobrar = async (item: any) => {
       const itemRef = doc(db, 'codigos', itemId);
       await updateDoc(itemRef, {
         estado: 'cobrado',
+        estadoAprobacion: 'pendiente',
         firmaGenerada: firma,
         cobradoEl: new Date().toISOString()
       });
@@ -217,9 +231,27 @@ const handleCobrar = async (item: any) => {
     }
   };
 
+  const checkDocsBeforeTyping = (e: React.FocusEvent<HTMLInputElement>) => {
+    const missingRut = !localRutUrl || documentosRechazados.includes('rut');
+    const missingCert = !localCertUrl || documentosRechazados.includes('certBancaria');
+
+    if (missingRut || missingCert) {
+      e.target.blur();
+      setShowMissingDocsModal(true);
+    }
+  };
+
   const handleContinuarCreacion = async () => {
     if (!concepto || !valorTotal) {
       toast({ title: "Atención", description: "Por favor ingresa un concepto y un valor total.", variant: "destructive" });
+      return;
+    }
+
+    const missingRut = !localRutUrl || documentosRechazados.includes('rut');
+    const missingCert = !localCertUrl || documentosRechazados.includes('certBancaria');
+
+    if (missingRut || missingCert) {
+      setShowMissingDocsModal(true);
       return;
     }
 
@@ -230,10 +262,39 @@ const handleCobrar = async (item: any) => {
       
       const numericValue = Number(valorTotal.replace(/\D/g, ''));
 
+      const getInitials = (name: string) => {
+        const parts = name.trim().split(' ').filter(Boolean);
+        if (parts.length === 0) return 'XX';
+        if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      };
+      
+      const cobradorNombre = userData.nombreCompleto || userData.nombres || userName;
+      const initials = getInitials(cobradorNombre);
+      const prefix = `PKS-${initials}`;
+      
+      const q = query(collection(db, 'codigos'), where('asignadoAUid', '==', userUid));
+      const userCodigosSnap = await getDocs(q);
+      
+      let maxNum = 0;
+      userCodigosSnap.forEach(docSnap => {
+        const id = docSnap.id;
+        if (id.startsWith(prefix)) {
+          const numStr = id.replace(prefix, '');
+          const num = parseInt(numStr, 10);
+          if (!isNaN(num) && num > maxNum) {
+            maxNum = num;
+          }
+        }
+      });
+      
+      const nextNumStr = (maxNum + 1).toString().padStart(3, '0');
+      const generatedCodigoId = `${prefix}${nextNumStr}`;
+
       setInvoiceData({
-        numero: 'Por generar',
+        numero: generatedCodigoId,
         fecha: fechaEmision,
-        cobradorNombre: userData.nombreCompleto || userData.nombres || userName,
+        cobradorNombre: cobradorNombre,
         cobradorDocumento: localUserDocument || 'No registrado',
         valorTotal: numericValue,
         conceptos: [{
@@ -260,10 +321,11 @@ const handleCobrar = async (item: any) => {
 
   const guardarNuevaCuenta = async (firma: string) => {
     try {
+      // El ID ya fue generado y guardado en invoiceData.numero
+      const generatedCodigoId = invoiceData?.numero || `PKS-XX000`;
       const numericValue = Number(valorTotal.replace(/\D/g, ''));
-      const cuentaCobroNum = `CC-${Math.random().toString(36).substring(2,8).toUpperCase()}`;
 
-      await addDoc(collection(db, 'codigos'), {
+      await setDoc(doc(db, 'codigos', generatedCodigoId), {
         asignadoAUid: userUid,
         asignadoANombre: userName,
         concepto: concepto,
@@ -272,11 +334,11 @@ const handleCobrar = async (item: any) => {
         retencionMotivo: retencionMotivo || null,
         retencionPorcentaje: retencionPorcentaje || null,
         estado: 'cobrado', // Ya fue firmada por el usuario
+        estadoAprobacion: 'pendiente',
         firmaGenerada: firma,
         creadoEl: new Date().toISOString(),
         cobradoEl: new Date().toISOString(),
-        fechaEmision: fechaEmision,
-        cuentaCobroNum: cuentaCobroNum
+        fechaEmision: fechaEmision
       });
       
       toast({ title: 'Éxito', description: 'Cuenta de cobro creada y firmada correctamente.' });
@@ -297,10 +359,10 @@ const handleCobrar = async (item: any) => {
       const userData = userDoc.data() || {};
 
       setInvoiceData({
-        numero: item.cuentaCobroNum || 'N/A',
+        numero: item.id,
         fecha: item.cobradoEl || item.creadoEl,
         cobradorNombre: userData.nombreCompleto || userData.nombres || userName || item.asignadoANombre,
-        cobradorDocumento: userData.documentoIdentidad || userDocument || 'No registrado',
+        cobradorDocumento: userData.numeroIdentificacion || userData.documentoIdentidad || userDocument || 'No registrado',
         valorTotal: item.valor,
         conceptos: [{
           item: 1,
@@ -409,7 +471,7 @@ const handleCobrar = async (item: any) => {
             </div>
             <div className="space-y-2">
               <label className="text-[11px] font-medium text-zinc-400">Concepto de la cuenta de cobro</label>
-              <input type="text" value={concepto} onChange={(e) => setConcepto(e.target.value)} onBlur={calcularRetencion} placeholder="Ej. Servicios de producción evento Copa Stunt" className="w-full bg-[#0A0A0A] border border-[#333333] rounded-md px-4 py-3 text-white text-sm hover:border-zinc-500 focus:border-[#E60000] focus:ring-1 focus:ring-[#E60000] outline-none transition-all placeholder:text-zinc-600" />
+              <input type="text" onFocus={checkDocsBeforeTyping} value={concepto} onChange={(e) => setConcepto(e.target.value)} onBlur={calcularRetencion} placeholder="Ej. Servicios de producción evento Copa Stunt" className="w-full bg-[#0A0A0A] border border-[#333333] rounded-md px-4 py-3 text-white text-sm hover:border-zinc-500 focus:border-[#E60000] focus:ring-1 focus:ring-[#E60000] outline-none transition-all placeholder:text-zinc-600" />
             </div>
             <div className="space-y-2 relative">
               <div className="flex justify-between items-center">
@@ -427,7 +489,7 @@ const handleCobrar = async (item: any) => {
                   </div>
                 )}
               </div>
-              <input type="text" value={valorTotal} onChange={(e) => setValorTotal(e.target.value)} onBlur={calcularRetencion} placeholder="$ 2.500.000" className="w-full bg-[#0A0A0A] border border-[#333333] rounded-md px-4 py-3 text-white text-sm hover:border-zinc-500 focus:border-[#E60000] focus:ring-1 focus:ring-[#E60000] outline-none transition-all placeholder:text-zinc-600 font-mono" />
+              <input type="text" onFocus={checkDocsBeforeTyping} value={valorTotal} onChange={(e) => setValorTotal(e.target.value)} onBlur={calcularRetencion} placeholder="$ 2.500.000" className="w-full bg-[#0A0A0A] border border-[#333333] rounded-md px-4 py-3 text-white text-sm hover:border-zinc-500 focus:border-[#E60000] focus:ring-1 focus:ring-[#E60000] outline-none transition-all placeholder:text-zinc-600 font-mono" />
             </div>
             <div className="space-y-2">
               <label className="text-[11px] font-medium text-zinc-400">Fecha de emisión</label>
@@ -470,15 +532,24 @@ const handleCobrar = async (item: any) => {
                 <div className="bg-[#111] border border-[#222] rounded p-2.5 flex items-center justify-between mt-2">
                   <div className="flex items-center gap-2">
                     {localRutUrl ? (
-                      <>
-                        <CheckCircle2 className="w-4 h-4 text-[#00ff00]" />
-                        <div>
-                          <a href={localRutUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-xs text-zinc-300 hover:text-white transition-colors">
-                            <Eye className="w-4 h-4 text-[#E60000]" />
-                            <span>Ver Documento</span>
-                          </a>
-                        </div>
-                      </>
+                      documentosRechazados.includes('rut') ? (
+                        <>
+                          <AlertTriangle className="w-4 h-4 text-red-500" />
+                          <div>
+                            <span className="text-xs text-red-500 font-bold">Rechazado, volver a subir</span>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="w-4 h-4 text-[#00ff00]" />
+                          <div>
+                            <a href={localRutUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-xs text-zinc-300 hover:text-white transition-colors">
+                              <Eye className="w-4 h-4 text-[#E60000]" />
+                              <span>Ver Documento</span>
+                            </a>
+                          </div>
+                        </>
+                      )
                     ) : (
                       <>
                         <AlertCircle className="w-4 h-4 text-amber-500" />
@@ -513,15 +584,24 @@ const handleCobrar = async (item: any) => {
                 <div className="bg-[#111] border border-[#222] rounded p-2.5 flex items-center justify-between mt-2">
                   <div className="flex items-center gap-2">
                     {localCertUrl ? (
-                      <>
-                        <CheckCircle2 className="w-4 h-4 text-[#00ff00]" />
-                        <div>
-                          <a href={localCertUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-xs text-zinc-300 hover:text-white transition-colors">
-                            <Eye className="w-4 h-4 text-[#E60000]" />
-                            <span>Ver Documento</span>
-                          </a>
-                        </div>
-                      </>
+                      documentosRechazados.includes('certBancaria') ? (
+                        <>
+                          <AlertTriangle className="w-4 h-4 text-red-500" />
+                          <div>
+                            <span className="text-xs text-red-500 font-bold">Rechazado, volver a subir</span>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="w-4 h-4 text-[#00ff00]" />
+                          <div>
+                            <a href={localCertUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-xs text-zinc-300 hover:text-white transition-colors">
+                              <Eye className="w-4 h-4 text-[#E60000]" />
+                              <span>Ver Documento</span>
+                            </a>
+                          </div>
+                        </>
+                      )
                     ) : (
                       <>
                         <AlertCircle className="w-4 h-4 text-amber-500" />
@@ -739,6 +819,52 @@ const handleCobrar = async (item: any) => {
         document.body
       )}
 
+      {/* MODAL DOCUMENTOS FALTANTES */}
+      {mounted && typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {showMissingDocsModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[9999] bg-[#050816]/90 backdrop-blur-xl flex items-center justify-center p-4"
+            >
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="bg-[#111] border border-[#222] rounded-xl p-8 max-w-md w-full text-center relative shadow-2xl shadow-red-900/20"
+              >
+                <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <AlertTriangle className="w-8 h-8 text-red-500" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">Documentos Pendientes</h3>
+                <p className="text-zinc-400 text-sm mb-8 leading-relaxed">
+                  Para poder radicar tu cuenta de cobro, es obligatorio que subas tu <strong className="text-white">RUT</strong> y <strong className="text-white">Certificación Bancaria</strong> actualizados.
+                </p>
+                <div className="flex flex-col gap-3">
+                  <button 
+                    onClick={() => {
+                      setShowMissingDocsModal(false);
+                      document.getElementById('seccion-documentos')?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="w-full bg-[#E60000] hover:bg-red-700 text-white font-bold py-3 rounded-lg transition-colors shadow-lg"
+                  >
+                    Subir Documentos Ahora
+                  </button>
+                  <button 
+                    onClick={() => setShowMissingDocsModal(false)}
+                    className="w-full bg-transparent hover:bg-white/5 text-zinc-400 font-medium py-3 rounded-lg transition-colors border border-transparent hover:border-[#333]"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 }
