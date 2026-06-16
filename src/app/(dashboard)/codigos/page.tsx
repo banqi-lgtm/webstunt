@@ -426,7 +426,7 @@ export default function CodigosAdminPage() {
         const id = docSnap.id;
         const data = docSnap.data() as Codigo;
         if (!id.startsWith('PKS-')) {
-          wrongCodigos.push({ id, ...data });
+          wrongCodigos.push({ ...data, id });
         } else {
           const uid = data.asignadoAUid;
           if (uid) {
