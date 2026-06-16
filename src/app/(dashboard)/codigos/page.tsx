@@ -310,7 +310,7 @@ export default function CodigosAdminPage() {
     setShowDetallesModal(false);
   };
 
-  if (hasAccess === null) return <div className="min-h-screen bg-[#050816] flex items-center justify-center text-[#00e5ff] font-orbitron text-xl uppercase tracking-widest animate-pulse">VERIFICANDO_ACCESO...</div>;
+  if (hasAccess === null) return <div className="min-h-screen bg-[#050816] flex items-center justify-center text-white font-inter text-xl uppercase tracking-widest animate-pulse">VERIFICANDO_ACCESO...</div>;
 
   const handleCreateCodigo = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -484,10 +484,10 @@ export default function CodigosAdminPage() {
   );
 
   return (
-    <div className="min-h-screen p-4 lg:p-10 relative bg-[#0b0b0f] font-exo text-zinc-300 overflow-hidden print:p-0 print:bg-transparent print:overflow-visible">
+    <div className="min-h-screen p-4 lg:p-10 relative bg-[#0A0A0F] font-inter text-[#F5F5F7] overflow-hidden print:p-0 print:bg-transparent print:overflow-visible">
       {/* Dynamic Cyberpunk Lighting Effects */}
-      <div className="absolute top-[-10%] right-[-5%] w-[800px] h-[800px] bg-[#ff007f]/5 blur-[200px] mix-blend-screen pointer-events-none rounded-full print:hidden" />
-      <div className="absolute bottom-[-10%] left-[-5%] w-[600px] h-[600px] bg-[#00e5ff]/5 blur-[150px] mix-blend-screen pointer-events-none rounded-full print:hidden" />
+      <div className="absolute top-[-10%] right-[-5%] w-[800px] h-[800px] bg-[#C8102E]/5 blur-[200px] mix-blend-screen pointer-events-none rounded-full print:hidden" />
+      <div className="absolute bottom-[-10%] left-[-5%] w-[600px] h-[600px] bg-[#1C1C28]/5 blur-[150px] mix-blend-screen pointer-events-none rounded-full print:hidden" />
       
       <div className="max-w-7xl mx-auto w-full relative z-10 space-y-8 print:hidden">
         
@@ -500,29 +500,29 @@ export default function CodigosAdminPage() {
         >
           <div className="relative group">
             <div className="absolute -inset-1 bg-gradient-to-r from-[#ff007f] to-[#00e5ff] rounded-lg blur opacity-40 group-hover:opacity-75 transition duration-500"></div>
-            <div className="relative p-4 bg-[#16161d] rounded-lg border border-zinc-800">
-              <Sparkles className="w-8 h-8 text-[#00e5ff]" />
+            <div className="relative p-4 bg-[#12121A] rounded-lg border border-[#1C1C28]">
+              <Sparkles className="w-8 h-8 text-white" />
             </div>
           </div>
           <div>
             <h1 className="text-3xl lg:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-zinc-500 tracking-tight">
               CÓDIGOS
             </h1>
-            <p className="text-[#00e5ff] font-orbitron tracking-widest text-sm mt-2 opacity-80 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#00e5ff] animate-pulse"></span>
+            <p className="text-white font-inter tracking-widest text-sm mt-2 opacity-80 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#1C1C28] animate-pulse"></span>
               SISTEMA DE ASIGNACIÓN Y COBRO
             </p>
           </div>
           <div className="ml-auto flex gap-4">
             <button 
               onClick={handleForceMigrate}
-              className="bg-purple-600/20 text-purple-400 hover:bg-purple-600/40 border border-purple-500/30 px-4 py-2 rounded-lg font-bold font-rajdhani flex items-center gap-2 transition-all"
+              className="bg-purple-600/20 text-purple-400 hover:bg-purple-600/40 border border-purple-500/30 px-4 py-2 rounded-lg font-bold font-inter flex items-center gap-2 transition-all"
             >
               FORZAR REPARACIÓN DE CONSECUTIVOS
             </button>
             <button 
               onClick={() => setIsCreating(true)}
-              className="bg-[#00e5ff]/10 text-[#00e5ff] hover:bg-[#00e5ff]/20 border border-[#00e5ff]/30 px-6 py-3 rounded-xl font-bold font-rajdhani flex items-center gap-2 transition-all hover:scale-105 active:scale-95"
+              className="bg-[#12121A] text-white hover:bg-[#1C1C28]/20 border border-[#1C1C28]/30 px-6 py-3 rounded-xl font-bold font-inter flex items-center gap-2 transition-all hover:scale-105 active:scale-95"
             >
               <Plus className="w-5 h-5" />
               NUEVO CÓDIGO
@@ -539,22 +539,22 @@ export default function CodigosAdminPage() {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="xl:col-span-4"
           >
-            <div className="relative bg-[#16161d]/80 backdrop-blur-2xl border border-zinc-800/80 rounded-xl overflow-hidden shadow-[0_10px_40px_-10px_rgba(0,0,0,0.8)] before:absolute before:inset-0 before:bg-gradient-to-br before:from-[#ff007f]/5 before:to-transparent before:pointer-events-none">
+            <div className="relative bg-[#12121A] backdrop-blur-2xl border border-[#1C1C28] rounded-xl overflow-hidden shadow-none before:absolute before:inset-0 before:bg-gradient-to-br before:from-[#ff007f]/5 before:to-transparent before:pointer-events-none">
               {/* Top Accent Line */}
               <div className="h-1 w-full bg-gradient-to-r from-[#ff007f] to-[#00e5ff]"></div>
               
               <div className="p-6">
-                <h2 className="text-2xl font-orbitron font-bold text-white mb-6 uppercase tracking-widest drop-shadow-[0_0_5px_rgba(255,0,127,0.4)]">Inicializar Código</h2>
+                <h2 className="text-2xl font-inter font-bold text-white mb-6 uppercase tracking-widest drop-shadow-none">Inicializar Código</h2>
                 
                 <form onSubmit={handleCreateCodigo} className="space-y-6">
                   {/* Select User */}
                   <div className="space-y-2 group">
-                    <label className="text-xs font-bold text-[#ff007f] font-orbitron uppercase tracking-wider">Entidad Objetivo</label>
+                    <label className="text-xs font-bold text-[#C8102E] font-inter uppercase tracking-wider">Entidad Objetivo</label>
                     <div className="relative">
                       <select
                         value={newAsignadoAUid}
                         onChange={(e) => setNewAsignadoAUid(e.target.value)}
-                        className="w-full bg-[#0b0b0f] border border-zinc-800 text-zinc-300 rounded-md h-12 px-4 text-sm focus:outline-none focus:border-[#ff007f] focus:ring-1 focus:ring-[#ff007f] transition-all appearance-none cursor-pointer group-hover:border-zinc-600"
+                        className="w-full bg-[#0A0A0F] border border-[#1C1C28] text-[#F5F5F7] rounded-md h-12 px-4 text-sm focus:outline-none focus:border-[#C8102E] focus:ring-1 focus:ring-[#ff007f] transition-all appearance-none cursor-pointer group-hover:border-zinc-600"
                       >
                         <option value="">[ SELECCIONAR OBJETIVO ]</option>
                         {usuarios.map(u => (
@@ -564,7 +564,7 @@ export default function CodigosAdminPage() {
                         ))}
                       </select>
                       {/* Custom dropdown arrow */}
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500 group-hover:text-[#ff007f] transition-colors">
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#8A8A9A] group-hover:text-[#C8102E] transition-colors">
                         ▼
                       </div>
                     </div>
@@ -572,24 +572,24 @@ export default function CodigosAdminPage() {
 
                   {/* Value */}
                   <div className="space-y-2 group">
-                    <label className="text-xs font-bold text-[#00e5ff] font-orbitron uppercase tracking-wider">Valor del Crédito</label>
+                    <label className="text-xs font-bold text-white font-inter uppercase tracking-wider">Valor del Crédito</label>
                     <input 
                       type="number"
                       placeholder="0.00" 
                       value={newValor}
                       onChange={(e) => setNewValor(e.target.value)}
-                      className="w-full bg-[#0b0b0f] border border-zinc-800 text-white font-mono text-lg rounded-md h-12 px-4 focus:outline-none focus:border-[#00e5ff] focus:ring-1 focus:ring-[#00e5ff] transition-all group-hover:border-zinc-600"
+                      className="w-full bg-[#0A0A0F] border border-[#1C1C28] text-white font-mono text-lg rounded-md h-12 px-4 focus:outline-none focus:border-[#1C1C28] focus:ring-1 focus:ring-[#00e5ff] transition-all group-hover:border-zinc-600"
                     />
                   </div>
 
                   {/* Description */}
                   <div className="space-y-2 group">
-                    <label className="text-xs font-bold text-zinc-400 font-orbitron uppercase tracking-wider">Parámetro / Concepto</label>
+                    <label className="text-xs font-bold text-[#8A8A9A] font-inter uppercase tracking-wider">Parámetro / Concepto</label>
                     <input 
                       placeholder="Ingrese protocolo de descripción..." 
                       value={newDescripcion}
                       onChange={(e) => setNewDescripcion(e.target.value)}
-                      className="w-full bg-[#0b0b0f] border border-zinc-800 text-zinc-300 rounded-md h-12 px-4 focus:outline-none focus:border-zinc-500 transition-all group-hover:border-zinc-600"
+                      className="w-full bg-[#0A0A0F] border border-[#1C1C28] text-[#F5F5F7] rounded-md h-12 px-4 focus:outline-none focus:border-zinc-500 transition-all group-hover:border-zinc-600"
                     />
 
                     {/* AI Retention Output */}
@@ -614,7 +614,7 @@ export default function CodigosAdminPage() {
                                 <select
                                   value={retencionMotivo}
                                   onChange={(e) => setRetencionMotivo(e.target.value)}
-                                  className="w-full bg-[#0b0b0f] border border-[#E60000]/30 text-zinc-300 rounded-md h-9 px-3 text-xs focus:outline-none focus:border-[#E60000] appearance-none"
+                                  className="w-full bg-[#0A0A0F] border border-[#E60000]/30 text-[#F5F5F7] rounded-md h-9 px-3 text-xs focus:outline-none focus:border-[#E60000] appearance-none"
                                 >
                                   <option value="">[ SELECCIONAR MOTIVO ]</option>
                                   <option value="Servicios Generales">Servicios Generales</option>
@@ -631,7 +631,7 @@ export default function CodigosAdminPage() {
                                   type="number"
                                   value={retencionPorcentaje}
                                   onChange={(e) => setRetencionPorcentaje(e.target.value)}
-                                  className="w-full bg-[#0b0b0f] border border-[#E60000]/30 text-zinc-300 rounded-md h-9 pl-3 pr-6 text-xs focus:outline-none focus:border-[#E60000]"
+                                  className="w-full bg-[#0A0A0F] border border-[#E60000]/30 text-[#F5F5F7] rounded-md h-9 pl-3 pr-6 text-xs focus:outline-none focus:border-[#E60000]"
                                   placeholder="%"
                                 />
                                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#E60000]/50 text-xs font-mono">%</span>
@@ -645,20 +645,20 @@ export default function CodigosAdminPage() {
 
                   {/* Centro de Costo */}
                   <div className="space-y-2 group">
-                    <label className="text-xs font-bold text-zinc-400 font-orbitron uppercase tracking-wider">Centro de Costo (Opcional)</label>
+                    <label className="text-xs font-bold text-[#8A8A9A] font-inter uppercase tracking-wider">Centro de Costo (Opcional)</label>
                     {isAddingCC ? (
                       <div className="flex gap-2">
                         <input 
                           placeholder="Nuevo Centro..." 
                           value={newCCText}
                           onChange={(e) => setNewCCText(e.target.value)}
-                          className="w-full bg-[#0b0b0f] border border-zinc-800 text-zinc-300 rounded-md h-12 px-4 focus:outline-none focus:border-[#ff007f] focus:ring-1 focus:ring-[#ff007f] transition-all"
+                          className="w-full bg-[#0A0A0F] border border-[#1C1C28] text-[#F5F5F7] rounded-md h-12 px-4 focus:outline-none focus:border-[#C8102E] focus:ring-1 focus:ring-[#ff007f] transition-all"
                           autoFocus
                         />
-                        <button type="button" onClick={handleAddCentroCosto} className="bg-[#ff007f]/20 text-[#ff007f] border border-[#ff007f]/50 px-4 rounded-md font-orbitron font-bold text-xs hover:bg-[#ff007f]/40 transition-all">
+                        <button type="button" onClick={handleAddCentroCosto} className="bg-[#C8102E]/20 text-[#C8102E] border border-[#C8102E]/50 px-4 rounded-md font-inter font-bold text-xs hover:bg-[#C8102E]/40 transition-all">
                           GUARDAR
                         </button>
-                        <button type="button" onClick={() => {setIsAddingCC(false); setNewCCText('');}} className="bg-zinc-800 text-zinc-400 px-4 rounded-md font-orbitron font-bold text-xs hover:bg-zinc-700 hover:text-white transition-all">
+                        <button type="button" onClick={() => {setIsAddingCC(false); setNewCCText('');}} className="bg-zinc-800 text-[#8A8A9A] px-4 rounded-md font-inter font-bold text-xs hover:bg-zinc-700 hover:text-white transition-all">
                           X
                         </button>
                       </div>
@@ -668,19 +668,19 @@ export default function CodigosAdminPage() {
                           <select
                             value={newCentroCosto}
                             onChange={(e) => setNewCentroCosto(e.target.value)}
-                            className="w-full bg-[#0b0b0f] border border-zinc-800 text-zinc-300 rounded-md h-12 px-4 text-sm focus:outline-none focus:border-zinc-500 transition-all appearance-none cursor-pointer group-hover:border-zinc-600"
+                            className="w-full bg-[#0A0A0F] border border-[#1C1C28] text-[#F5F5F7] rounded-md h-12 px-4 text-sm focus:outline-none focus:border-zinc-500 transition-all appearance-none cursor-pointer group-hover:border-zinc-600"
                           >
                             <option value="">[ NINGUNO ]</option>
                             {centrosCostoList.map(cc => (
                               <option key={cc} value={cc}>{cc}</option>
                             ))}
                           </select>
-                          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">▼</div>
+                          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#8A8A9A]">▼</div>
                         </div>
                         <button 
                           type="button" 
                           onClick={() => setIsAddingCC(true)}
-                          className="bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-[#ff007f] hover:border-[#ff007f]/50 w-12 rounded-md flex items-center justify-center transition-all"
+                          className="bg-zinc-900 border border-[#1C1C28] text-[#8A8A9A] hover:text-[#C8102E] hover:border-[#C8102E]/50 w-12 rounded-md flex items-center justify-center transition-all"
                           title="Añadir nuevo Centro de Costo"
                         >
                           <Plus className="w-5 h-5" />
@@ -695,10 +695,10 @@ export default function CodigosAdminPage() {
                     whileTap={{ scale: 0.98 }}
                     type="submit" 
                     disabled={isCreating} 
-                    className="w-full relative group mt-4 h-14 overflow-hidden rounded-md bg-zinc-900 border border-[#ff007f]/30"
+                    className="w-full relative group mt-4 h-14 overflow-hidden rounded-md bg-zinc-900 border border-[#C8102E]/30"
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-[#ff007f]/20 to-[#ff007f]/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                    <div className="relative flex items-center justify-center gap-3 w-full h-full text-[#ff007f] group-hover:text-white transition-colors duration-300 font-orbitron font-bold tracking-widest uppercase">
+                    <div className="relative flex items-center justify-center gap-3 w-full h-full text-[#C8102E] group-hover:text-white transition-colors duration-300 font-inter font-bold tracking-widest uppercase">
                       <Plus className="w-5 h-5" />
                       {isCreating ? 'EJECUTANDO...' : 'GENERAR CÓDIGO'}
                     </div>
@@ -715,24 +715,24 @@ export default function CodigosAdminPage() {
             transition={{ duration: 0.5, delay: 0.3 }}
             className="xl:col-span-8 flex flex-col h-full"
           >
-            <div className="bg-[#16161d]/80 backdrop-blur-2xl border border-zinc-800/80 rounded-xl overflow-hidden shadow-[0_10px_40px_-10px_rgba(0,0,0,0.8)] flex-1 flex flex-col">
+            <div className="bg-[#12121A] backdrop-blur-2xl border border-[#1C1C28] rounded-xl overflow-hidden shadow-none flex-1 flex flex-col">
               
               {/* Toolbar */}
-              <div className="p-5 border-b border-zinc-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-[#0b0b0f]/50">
+              <div className="p-5 border-b border-[#1C1C28] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-[#0A0A0F]/50">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-xl font-orbitron font-bold text-white uppercase tracking-widest drop-shadow-[0_0_5px_rgba(0,229,255,0.4)]">Códigos Activos</h2>
-                  <span className="bg-[#00e5ff]/10 text-[#00e5ff] text-xs font-mono px-2 py-0.5 rounded border border-[#00e5ff]/30">{codigos.length}</span>
+                  <h2 className="text-xl font-inter font-bold text-white uppercase tracking-widest drop-shadow-none">Códigos Activos</h2>
+                  <span className="bg-[#12121A] text-white text-xs font-mono px-2 py-0.5 rounded border border-[#1C1C28]/30">{codigos.length}</span>
                 </div>
                 
                 {/* Search */}
                 <div className="relative w-full sm:w-72">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#00e5ff]/60" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/60" />
                   <input 
                     type="text" 
                     placeholder="Buscar consulta..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-[#0b0b0f] border border-[#00e5ff]/30 text-white rounded-full h-10 pl-10 pr-4 text-sm focus:outline-none focus:border-[#00e5ff] focus:ring-1 focus:ring-[#00e5ff] transition-all font-mono"
+                    className="w-full bg-[#0A0A0F] border border-[#1C1C28]/30 text-white rounded-full h-10 pl-10 pr-4 text-sm focus:outline-none focus:border-[#1C1C28] focus:ring-1 focus:ring-[#00e5ff] transition-all font-mono"
                   />
                 </div>
               </div>
@@ -741,11 +741,11 @@ export default function CodigosAdminPage() {
               <div className="flex-1 overflow-x-auto">
                 {loading ? (
                   <div className="flex items-center justify-center h-64">
-                    <div className="w-12 h-12 border-4 border-[#ff007f]/20 border-t-[#ff007f] rounded-full animate-spin"></div>
+                    <div className="w-12 h-12 border-4 border-[#C8102E]/20 border-t-[#ff007f] rounded-full animate-spin"></div>
                   </div>
                 ) : (
                   <table className="w-full text-left text-sm whitespace-nowrap">
-                    <thead className="bg-[#0b0b0f]/80 text-zinc-500 font-orbitron text-xs uppercase tracking-widest border-b border-zinc-800/80">
+                    <thead className="bg-[#0A0A0F]/80 text-[#8A8A9A] font-inter text-xs uppercase tracking-widest border-b border-[#1C1C28]">
                       <tr>
                         <th className="px-6 py-4 font-semibold">ID del Código</th>
                         <th className="px-6 py-4 font-semibold">Entidad</th>
@@ -763,25 +763,25 @@ export default function CodigosAdminPage() {
                             exit={{ opacity: 0, scale: 0.95 }}
                             transition={{ duration: 0.2, delay: idx * 0.03 }}
                             key={c.id} 
-                            className="group hover:bg-[#00e5ff]/[0.02] transition-colors duration-300"
+                            className="group hover:bg-[#1C1C28]/[0.02] transition-colors duration-300"
                           >
                             {/* Token ID */}
                             <td className="px-6 py-4">
-                              <span className="text-white font-bold font-mono text-base tracking-widest group-hover:text-[#00e5ff] transition-colors drop-shadow-[0_0_8px_rgba(0,229,255,0)] group-hover:drop-shadow-[0_0_8px_rgba(0,229,255,0.4)]">
+                              <span className="text-white font-bold font-mono text-base tracking-widest group-hover:text-white transition-colors drop-shadow-none group-hover:drop-shadow-none">
                                 {c.id}
                               </span>
                             </td>
                             
                             {/* Entity */}
                             <td className="px-6 py-4">
-                              <span className="text-zinc-300 font-rajdhani font-semibold text-base">{c.asignadoANombre}</span>
+                              <span className="text-[#F5F5F7] font-inter font-semibold text-base">{c.asignadoANombre}</span>
                             </td>
                             
                             {/* Value / Desc */}
                             <td className="px-6 py-4">
                               <div className="flex flex-col">
                                 <span className="text-white font-mono font-bold tracking-wider">${Number(c.valor).toLocaleString()}</span>
-                                <span className="text-xs text-zinc-500 font-rajdhani truncate max-w-[150px]">{c.descripcion}</span>
+                                <span className="text-xs text-[#8A8A9A] font-inter truncate max-w-[150px]">{c.descripcion}</span>
                                 {c.centroCosto && <span className="text-[10px] text-zinc-600 font-mono mt-1">CC: {c.centroCosto}</span>}
                               </div>
                             </td>
@@ -791,10 +791,10 @@ export default function CodigosAdminPage() {
                               {c.estado === 'disponible' ? (
                                 <div className="flex items-center gap-2">
                                   <div className="relative flex h-2.5 w-2.5">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ff007f] opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#ff007f]"></span>
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#C8102E] opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#C8102E]"></span>
                                   </div>
-                                  <span className="text-[#ff007f] font-orbitron text-[10px] font-bold uppercase tracking-widest drop-shadow-[0_0_5px_rgba(255,0,127,0.5)]">
+                                  <span className="text-[#C8102E] font-inter text-[10px] font-bold uppercase tracking-widest drop-shadow-[0_0_5px_rgba(255,0,127,0.5)]">
                                     PENDIENTE
                                   </span>
                                 </div>
@@ -805,7 +805,7 @@ export default function CodigosAdminPage() {
                                       <div className="relative flex h-2.5 w-2.5">
                                         <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]"></span>
                                       </div>
-                                      <span className="text-emerald-400 font-orbitron text-[10px] font-bold uppercase tracking-widest drop-shadow-[0_0_5px_rgba(52,211,153,0.5)]">
+                                      <span className="text-emerald-400 font-inter text-[10px] font-bold uppercase tracking-widest drop-shadow-[0_0_5px_rgba(52,211,153,0.5)]">
                                         APROBADO
                                       </span>
                                     </div>
@@ -814,7 +814,7 @@ export default function CodigosAdminPage() {
                                       <div className="relative flex h-2.5 w-2.5">
                                         <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.8)]"></span>
                                       </div>
-                                      <span className="text-rose-400 font-orbitron text-[10px] font-bold uppercase tracking-widest drop-shadow-[0_0_5px_rgba(251,113,133,0.5)]">
+                                      <span className="text-rose-400 font-inter text-[10px] font-bold uppercase tracking-widest drop-shadow-[0_0_5px_rgba(251,113,133,0.5)]">
                                         RECHAZADO
                                       </span>
                                     </div>
@@ -823,7 +823,7 @@ export default function CodigosAdminPage() {
                                       <div className="relative flex h-2.5 w-2.5">
                                         <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.8)]"></span>
                                       </div>
-                                      <span className="text-yellow-400 font-orbitron text-[10px] font-bold uppercase tracking-widest drop-shadow-[0_0_5px_rgba(250,204,21,0.5)]">
+                                      <span className="text-yellow-400 font-inter text-[10px] font-bold uppercase tracking-widest drop-shadow-[0_0_5px_rgba(250,204,21,0.5)]">
                                         PENDIENTE APROBACIÓN
                                       </span>
                                     </div>
@@ -839,7 +839,7 @@ export default function CodigosAdminPage() {
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => openDetalles(c)}
-                                className="inline-flex items-center gap-2 px-3 py-1.5 rounded bg-zinc-900 border border-zinc-800 text-[#00e5ff] hover:border-[#00e5ff]/50 hover:bg-[#00e5ff]/10 transition-all font-mono text-[10px] tracking-widest uppercase"
+                                className="inline-flex items-center gap-2 px-3 py-1.5 rounded bg-zinc-900 border border-[#1C1C28] text-white hover:border-[#1C1C28]/50 hover:bg-[#12121A] transition-all font-mono text-[10px] tracking-widest uppercase"
                               >
                                 Detalles
                               </motion.button>
@@ -851,10 +851,10 @@ export default function CodigosAdminPage() {
                         <tr>
                           <td colSpan={5} className="px-6 py-20 text-center">
                             <div className="inline-flex flex-col items-center justify-center text-zinc-600">
-                              <div className="w-16 h-16 border border-zinc-800 rounded-full flex items-center justify-center mb-4">
+                              <div className="w-16 h-16 border border-[#1C1C28] rounded-full flex items-center justify-center mb-4">
                                 <Search className="w-6 h-6 opacity-50" />
                               </div>
-                              <span className="font-orbitron tracking-widest uppercase text-sm">No se encontraron códigos</span>
+                              <span className="font-inter tracking-widest uppercase text-sm">No se encontraron códigos</span>
                             </div>
                           </td>
                         </tr>
@@ -878,10 +878,10 @@ export default function CodigosAdminPage() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-[#050816]/90 backdrop-blur-md flex items-center justify-center print:hidden p-4"
           >
-            <div className="bg-[#0b0b0f] border border-[#00e5ff]/30 shadow-2xl w-full max-w-2xl rounded-lg overflow-hidden flex flex-col">
-              <div className="flex justify-between items-center p-4 border-b border-[#00e5ff]/20 bg-[#00e5ff]/5">
-                <h3 className="font-orbitron font-bold text-white tracking-widest">DETALLES DE CÓDIGO</h3>
-                <button onClick={() => setShowDetallesModal(false)} className="text-zinc-500 hover:text-white transition-colors">
+            <div className="bg-[#0A0A0F] border border-[#1C1C28]/30 shadow-2xl w-full max-w-2xl rounded-lg overflow-hidden flex flex-col">
+              <div className="flex justify-between items-center p-4 border-b border-[#1C1C28]/20 bg-[#1C1C28]/5">
+                <h3 className="font-inter font-bold text-white tracking-widest">DETALLES DE CÓDIGO</h3>
+                <button onClick={() => setShowDetallesModal(false)} className="text-[#8A8A9A] hover:text-white transition-colors">
                   <XCircle className="w-5 h-5" />
                 </button>
               </div>
@@ -889,42 +889,42 @@ export default function CodigosAdminPage() {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-[10px] text-[#00e5ff] tracking-widest block mb-1">CÓDIGO ID</label>
-                    <div className="font-mono text-white text-sm bg-zinc-900 px-3 py-2 border border-zinc-800 rounded">{selectedCodigo.id}</div>
+                    <label className="text-[10px] text-white tracking-widest block mb-1">CÓDIGO ID</label>
+                    <div className="font-mono text-white text-sm bg-zinc-900 px-3 py-2 border border-[#1C1C28] rounded">{selectedCodigo.id}</div>
                   </div>
                   <div>
-                    <label className="text-[10px] text-[#00e5ff] tracking-widest block mb-1">ASIGNADO A</label>
-                    <div className="font-rajdhani text-white text-sm bg-zinc-900 px-3 py-2 border border-zinc-800 rounded">{selectedCodigo.asignadoANombre}</div>
+                    <label className="text-[10px] text-white tracking-widest block mb-1">ASIGNADO A</label>
+                    <div className="font-inter text-white text-sm bg-zinc-900 px-3 py-2 border border-[#1C1C28] rounded">{selectedCodigo.asignadoANombre}</div>
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-[10px] text-[#00e5ff] tracking-widest block mb-1">VALOR ($)</label>
+                  <label className="text-[10px] text-white tracking-widest block mb-1">VALOR ($)</label>
                   <input
                     type="number"
                     value={editValor}
                     onChange={e => setEditValor(e.target.value)}
-                    className="w-full bg-[#050816] border border-[#00e5ff]/30 text-white rounded px-3 py-2 text-sm focus:border-[#00e5ff] outline-none font-mono"
+                    className="w-full bg-[#050816] border border-[#1C1C28]/30 text-white rounded px-3 py-2 text-sm focus:border-[#1C1C28] outline-none font-mono"
                   />
                 </div>
 
                 <div>
-                  <label className="text-[10px] text-[#00e5ff] tracking-widest block mb-1">DESCRIPCIÓN</label>
+                  <label className="text-[10px] text-white tracking-widest block mb-1">DESCRIPCIÓN</label>
                   <input
                     type="text"
                     value={editDescripcion}
                     onChange={e => setEditDescripcion(e.target.value)}
-                    className="w-full bg-[#050816] border border-[#00e5ff]/30 text-white rounded px-3 py-2 text-sm focus:border-[#00e5ff] outline-none font-rajdhani"
+                    className="w-full bg-[#050816] border border-[#1C1C28]/30 text-white rounded px-3 py-2 text-sm focus:border-[#1C1C28] outline-none font-inter"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-[10px] text-[#00e5ff] tracking-widest block mb-1">CENTRO COSTO</label>
+                    <label className="text-[10px] text-white tracking-widest block mb-1">CENTRO COSTO</label>
                     <select
                       value={editCentroCosto}
                       onChange={e => setEditCentroCosto(e.target.value)}
-                      className="w-full bg-[#050816] border border-[#00e5ff]/30 text-white rounded px-3 py-2 text-sm focus:border-[#00e5ff] outline-none font-mono"
+                      className="w-full bg-[#050816] border border-[#1C1C28]/30 text-white rounded px-3 py-2 text-sm focus:border-[#1C1C28] outline-none font-mono"
                     >
                       <option value="">[ NINGUNO ]</option>
                       {centrosCostoList.map(cc => (
@@ -933,8 +933,8 @@ export default function CodigosAdminPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-[10px] text-[#00e5ff] tracking-widest block mb-1">ESTADO</label>
-                    <div className="font-orbitron text-white text-[11px] bg-zinc-900 px-3 py-2 border border-zinc-800 rounded flex items-center h-[38px] uppercase">
+                    <label className="text-[10px] text-white tracking-widest block mb-1">ESTADO</label>
+                    <div className="font-inter text-white text-[11px] bg-zinc-900 px-3 py-2 border border-[#1C1C28] rounded flex items-center h-[38px] uppercase">
                       {selectedCodigo.estado === 'disponible' ? 'DISPONIBLE' : (
                         selectedCodigo.estadoAprobacion === 'aprobado' ? 'APROBADO' :
                         selectedCodigo.estadoAprobacion === 'rechazado' ? 'RECHAZADO' : 'PENDIENTE APROBACIÓN'
@@ -945,40 +945,40 @@ export default function CodigosAdminPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-[10px] text-[#00e5ff] tracking-widest block mb-1">MOTIVO RETENCIÓN</label>
+                    <label className="text-[10px] text-white tracking-widest block mb-1">MOTIVO RETENCIÓN</label>
                     <input
                       type="text"
                       value={editRetencionMotivo}
                       onChange={e => setEditRetencionMotivo(e.target.value)}
-                      className="w-full bg-[#050816] border border-[#00e5ff]/30 text-white rounded px-3 py-2 text-sm focus:border-[#00e5ff] outline-none font-rajdhani"
+                      className="w-full bg-[#050816] border border-[#1C1C28]/30 text-white rounded px-3 py-2 text-sm focus:border-[#1C1C28] outline-none font-inter"
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] text-[#00e5ff] tracking-widest block mb-1">% RETENCIÓN</label>
+                    <label className="text-[10px] text-white tracking-widest block mb-1">% RETENCIÓN</label>
                     <input
                       type="number"
                       step="0.1"
                       value={editRetencionPorcentaje}
                       onChange={e => setEditRetencionPorcentaje(e.target.value)}
-                      className="w-full bg-[#050816] border border-[#00e5ff]/30 text-white rounded px-3 py-2 text-sm focus:border-[#00e5ff] outline-none font-mono"
+                      className="w-full bg-[#050816] border border-[#1C1C28]/30 text-white rounded px-3 py-2 text-sm focus:border-[#1C1C28] outline-none font-mono"
                     />
                   </div>
                 </div>
                 
               </div>
               
-              <div className="p-4 border-t border-[#00e5ff]/20 bg-zinc-950 grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+              <div className="p-4 border-t border-[#1C1C28]/20 bg-zinc-950 grid grid-cols-2 gap-2 sm:flex sm:justify-end">
                 {selectedCodigo.estado === 'cobrado' && selectedCodigo.estadoAprobacion !== 'aprobado' && selectedCodigo.estadoAprobacion !== 'rechazado' && (
                   <>
                     <button 
                       onClick={() => handleUpdateAndAprobar()}
-                      className="col-span-2 sm:col-span-1 justify-center px-4 py-2 bg-red-500/10 border border-red-500 text-red-500 hover:bg-red-500 hover:text-white rounded font-orbitron text-[10px] font-bold tracking-widest transition-colors flex items-center gap-2"
+                      className="col-span-2 sm:col-span-1 justify-center px-4 py-2 bg-red-500/10 border border-red-500 text-red-500 hover:bg-red-500 hover:text-white rounded font-inter text-[10px] font-bold tracking-widest transition-colors flex items-center gap-2"
                     >
                       <CheckCircle className="w-4 h-4" /> GUARDAR Y APROBAR
                     </button>
                     <button 
                       onClick={() => handleRechazar(selectedCodigo.id)}
-                      className="col-span-1 justify-center px-4 py-2 bg-rose-500/10 border border-rose-500 text-rose-500 hover:bg-rose-500 hover:text-white rounded font-orbitron text-[10px] font-bold tracking-widest transition-colors flex items-center gap-2"
+                      className="col-span-1 justify-center px-4 py-2 bg-rose-500/10 border border-rose-500 text-rose-500 hover:bg-rose-500 hover:text-white rounded font-inter text-[10px] font-bold tracking-widest transition-colors flex items-center gap-2"
                     >
                       <XCircle className="w-4 h-4" /> RECHAZAR
                     </button>
@@ -988,7 +988,7 @@ export default function CodigosAdminPage() {
                 {selectedCodigo.estado === 'disponible' && (
                   <button 
                     onClick={handleUpdate}
-                    className="col-span-2 sm:col-span-1 justify-center px-4 py-2 bg-[#00e5ff]/10 border border-[#00e5ff] text-[#00e5ff] hover:bg-[#00e5ff] hover:text-black rounded font-orbitron text-[10px] font-bold tracking-widest transition-colors flex items-center gap-2"
+                    className="col-span-2 sm:col-span-1 justify-center px-4 py-2 bg-[#12121A] border border-[#1C1C28] text-white hover:bg-[#1C1C28] hover:text-black rounded font-inter text-[10px] font-bold tracking-widest transition-colors flex items-center gap-2"
                   >
                     GUARDAR CAMBIOS
                   </button>
@@ -997,7 +997,7 @@ export default function CodigosAdminPage() {
                 {selectedCodigo.estado === 'cobrado' && (
                   <button 
                     onClick={() => handleViewInvoice(selectedCodigo)}
-                    className="col-span-1 justify-center px-4 py-2 bg-purple-500/10 border border-purple-500 text-purple-500 hover:bg-purple-500 hover:text-white rounded font-orbitron text-[10px] font-bold tracking-widest transition-colors flex items-center gap-2"
+                    className="col-span-1 justify-center px-4 py-2 bg-purple-500/10 border border-purple-500 text-purple-500 hover:bg-purple-500 hover:text-white rounded font-inter text-[10px] font-bold tracking-widest transition-colors flex items-center gap-2"
                   >
                     <Eye className="w-4 h-4" /> VER CUENTA
                   </button>
@@ -1005,7 +1005,7 @@ export default function CodigosAdminPage() {
 
                 <button 
                   onClick={() => handleDeleteCodigo(selectedCodigo.id)}
-                  className="col-span-2 sm:col-span-1 justify-center px-4 py-2 bg-zinc-800 border border-zinc-700 text-zinc-400 hover:bg-[#ff007f] hover:border-[#ff007f] hover:text-white rounded font-orbitron text-[10px] font-bold tracking-widest transition-colors flex items-center gap-2"
+                  className="col-span-2 sm:col-span-1 justify-center px-4 py-2 bg-zinc-800 border border-zinc-700 text-[#8A8A9A] hover:bg-[#C8102E] hover:border-[#C8102E] hover:text-white rounded font-inter text-[10px] font-bold tracking-widest transition-colors flex items-center gap-2"
                 >
                   <Trash2 className="w-4 h-4" /> ELIMINAR
                 </button>

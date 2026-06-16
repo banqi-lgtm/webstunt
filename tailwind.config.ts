@@ -13,6 +13,7 @@ export default {
         bebas: ['Bebas Neue', 'sans-serif'],
         inter: ['Inter', 'sans-serif'],
         oswald: ['Oswald', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
       },
       colors: {
         background: 'hsl(var(--background))',
