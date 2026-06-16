@@ -75,6 +75,20 @@ export function DashboardInicio({ activeTab, setActiveTab, rutUrl, certUrl, tota
       });
       const data = await response.json();
       console.log("Raw AI Response:", data);
+      
+      // Validar si la IA pudo extraer la info requerida
+      if (type === 'rut') {
+        if (!data.documentoIdentidad || !data.ciudad) {
+          toast({ title: "Documento ilegible", description: "No pudimos extraer el NIT o la Ciudad. El archivo puede estar bloqueado o borroso. Por favor, vuelve a subirlo.", variant: "destructive" });
+          return; // Detenemos el proceso y no lo marcamos como subido
+        }
+      } else if (type === 'cert') {
+        if (!data.banco || !data.tipoCuenta || !data.numeroCuenta) {
+          toast({ title: "Documento ilegible", description: "No pudimos extraer tu Banco, Tipo o Número de cuenta. El archivo puede estar bloqueado o borroso. Por favor, vuelve a subirlo.", variant: "destructive" });
+          return; // Detenemos el proceso
+        }
+      }
+
       toast({ title: "Debug IA", description: JSON.stringify(data).substring(0, 200) });
 
       // Update Firestore

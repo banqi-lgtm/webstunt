@@ -17,15 +17,15 @@ export async function POST(req: NextRequest) {
       mediaList.push({ media: { url: rutFile.dataUrl, contentType: rutFile.fileType } });
     }
 
-    const promptText = `Extract the banking information and personal identification from the provided document(s). It may be a bank certification, a Colombian RUT (Registro Único Tributario), or both.
-Your goal is to extract the following 5 fields:
-- "banco": The name of the bank (e.g. Bancolombia, Nequi, Davivienda, etc.). Look in the bank certification. If it is Nequi, just write "Nequi".
-- "tipoCuenta": The type of account (e.g. "Ahorros" or "Corriente", or "Nequi", "Daviplata"). If it's Nequi, write "Nequi" or "Ahorros".
-- "numeroCuenta": The bank account number or cell phone number. If it is a Nequi certificate, look for "Número de Depósito Nequi", "Número de producto", or the phone number.
-- "documentoIdentidad": The ID number of the person. If you see a RUT, extract the "NIT" (Número de Identificación Tributaria). IMPORTANTE: In a RUT, the NIT is inside a main box, and the DV (Dígito de Verificación) is in a separate TINY box next to it. YOU MUST IGNORE THE TINY BOX! Do not include the DV. For example, if the main box says "998877665" and the tiny box says "4", your output MUST BE EXACTLY "998877665". Read the actual document! If you see a Cédula, extract the ID number.
-- "ciudad": The city associated with the person. In a Colombian RUT, this is ALWAYS in Box 40 ("Ciudad/Municipio"). You MUST read the exact text written in Box 40 (e.g., "Medellín", "Bogotá, D.C.", "Cali"). NEVER guess or default to an example. If you cannot read Box 40, leave it empty. Do NOT include trailing periods or dots at the end of the city name.
+    const promptText = `Eres un experto en extraer datos de documentos legales y bancarios en Colombia. Revisa cuidadosamente los documentos adjuntos (RUT y/o Certificación Bancaria) y extrae estrictamente lo siguiente:
 
-Respond ONLY with a valid JSON object matching this structure. Do not include markdown formatting like \`\`\`json.
+1. "banco": El nombre del banco en la certificación bancaria (ej. Bancolombia, Nequi, Davivienda, Banco de Bogotá).
+2. "tipoCuenta": El tipo de cuenta bancaria (ej. Ahorros, Corriente, Nequi, Daviplata).
+3. "numeroCuenta": El número de la cuenta bancaria. Si es Nequi o Daviplata, suele ser un número de celular. Si dice "Número de producto", extrae los dígitos. Solo números.
+4. "documentoIdentidad": En el RUT, es el NIT (casilla 5). IMPORTANTE: Extrae SOLO el número principal, IGNORA el dígito de verificación (DV) que está en la casilla pequeñita al lado. Si es cédula, el número de cédula. Solo números.
+5. "ciudad": La ciudad del RUT. ESTÁ ESTRICTAMENTE EN LA CASILLA 40 ("Ciudad/Municipio"). Debes leer la CASILLA 40 del documento y extraer su valor exacto (ej. Medellín, Bello, Envigado, Bogotá). NUNCA inventes o uses ejemplos, lee la imagen. No incluyas puntos finales.
+
+Responde SOLO con un objeto JSON válido con esta estructura exacta, sin texto adicional ni bloques markdown:
 {
   "banco": "",
   "tipoCuenta": "",
