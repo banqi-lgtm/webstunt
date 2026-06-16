@@ -27,6 +27,7 @@ interface Codigo {
   estadoAprobacion?: 'pendiente' | 'aprobado' | 'rechazado';
   cuentaCobroNum?: string;
   firma?: string;
+  firmaGenerada?: string;
 }
 
 interface Usuario {
