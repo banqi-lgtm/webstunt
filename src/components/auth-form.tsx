@@ -259,6 +259,7 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode, onBackToMenu, mode
         instagram: mode === 'default' ? instagram : null, telefono, ciudad, direccion, 
         fechaNacimiento: mode === 'default' ? fechaNacimiento : null, 
         tallaCamisa: mode === 'default' ? tallaCamisa : null,
+        rol: mode,
         role: mode,
         nombreTutor: requireTutor ? nombreTutor : null,
         cedulaTutor: requireTutor ? cedulaTutor : null,

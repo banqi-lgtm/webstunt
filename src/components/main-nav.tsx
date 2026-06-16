@@ -36,6 +36,7 @@ export function MainNav() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileExpanded, setIsProfileExpanded] = useState(true);
   const [isAdminExpanded, setIsAdminExpanded] = useState(false);
+  const [userRol, setUserRol] = useState('');
 
   useEffect(() => {
     setIsMounted(true);
@@ -46,6 +47,7 @@ export function MainNav() {
           if (userDoc.exists()) {
             const data = userDoc.data();
             const interfaces = data.interfaces || [];
+            setUserRol(data.rol || data.role || '');
             
             const isSuperAdmin = ['wg12435@hotmail.com', 'walter12345@hotmail.com'].includes(user?.email || '') || interfaces.includes('admin');
             setIsAdmin(isSuperAdmin);
@@ -95,6 +97,7 @@ export function MainNav() {
         setHasJuecesAccess(false);
         setHasQrAccess(false);
         setHasCodigosAccess(false);
+        setUserRol('');
       }
     });
     return () => unsubscribe();
@@ -129,7 +132,8 @@ export function MainNav() {
     adminLinks.push({ href: '/admin', label: 'Panel Admin', icon: Shield });
   }
 
-  const allLinks = [...profileLinks, ...baseLinks, ...adminLinks];
+  const finalBaseLinks = (userRol === 'staff' || userRol === 'admin') ? [] : baseLinks;
+  const allLinks = [...profileLinks, ...finalBaseLinks, ...adminLinks];
 
   const NavButton = ({ link, isActive }: { link: any, isActive: boolean }) => {
     const isPilotos = link.href === '/pilotos';
