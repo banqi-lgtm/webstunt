@@ -99,12 +99,12 @@ input:-webkit-autofill:active {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background-color: #E60000;
+  background-color: #333333;
   border-radius: 10px;
 }
 * {
   scrollbar-width: thin;
-  scrollbar-color: #E60000 transparent;
+  scrollbar-color: #333333 transparent;
 }
 .custom-scrollbar {
   /* Kept for backwards compatibility if used elsewhere */

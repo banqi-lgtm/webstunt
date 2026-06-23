@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const images = [
-  "DSC05568.JPG", "DSC05571.JPG", "DSC05598.JPG",
+  "DSC05598.JPG",
   "DSC05616.JPG", "DSC05624.JPG", "DSC05641.JPG",
   "DSC05644.JPG", "DSC05654.JPG", "DSC05659.JPG",
   "DSC05692.JPG", "DSC05699.JPG", "DSC05763.JPG",

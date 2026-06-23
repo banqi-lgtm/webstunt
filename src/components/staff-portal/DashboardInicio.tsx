@@ -302,8 +302,17 @@ const handleCobrar = async (item: any) => {
         }
       });
       
-      const nextNumStr = (maxNum + 1).toString().padStart(3, '0');
-      const generatedCodigoId = `${prefix}${nextNumStr}`;
+      let nextNum = maxNum + 1;
+      let generatedCodigoId = `${prefix}${nextNum.toString().padStart(3, '0')}`;
+      let codigoRef = doc(db, 'codigos', generatedCodigoId);
+      let codigoSnap = await getDoc(codigoRef);
+      
+      while (codigoSnap.exists()) {
+        nextNum++;
+        generatedCodigoId = `${prefix}${nextNum.toString().padStart(3, '0')}`;
+        codigoRef = doc(db, 'codigos', generatedCodigoId);
+        codigoSnap = await getDoc(codigoRef);
+      }
 
       setInvoiceData({
         numero: generatedCodigoId,

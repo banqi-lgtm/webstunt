@@ -351,15 +351,16 @@ export default function CodigosAdminPage() {
         }
       });
       
-      const nextNumStr = (maxNum + 1).toString().padStart(3, '0');
-      const generatedCodigoId = `${prefix}${nextNumStr}`;
+      let nextNum = maxNum + 1;
+      let generatedCodigoId = `${prefix}${nextNum.toString().padStart(3, '0')}`;
+      let codigoRef = doc(db, 'codigos', generatedCodigoId);
+      let codigoSnap = await getDoc(codigoRef);
       
-      const codigoRef = doc(db, 'codigos', generatedCodigoId);
-      const codigoSnap = await getDoc(codigoRef);
-      if (codigoSnap.exists()) {
-        toast({ title: 'Colisión', description: 'Llave duplicada detectada. Reintente.', variant: 'destructive'});
-        setIsCreating(false);
-        return;
+      while (codigoSnap.exists()) {
+        nextNum++;
+        generatedCodigoId = `${prefix}${nextNum.toString().padStart(3, '0')}`;
+        codigoRef = doc(db, 'codigos', generatedCodigoId);
+        codigoSnap = await getDoc(codigoRef);
       }
 
       const newCodigoData = {
@@ -396,8 +397,65 @@ export default function CodigosAdminPage() {
     if (!window.confirm(`SOBREESCRITURA SEGURA: ¿Eliminar código ${id}?`)) return;
     
     try {
-      await deleteDoc(doc(db, 'codigos', id));
-      toast({ title: 'Eliminado', description: 'Código purgado del sistema.' });
+      const docRef = doc(db, 'codigos', id);
+      const docSnap = await getDoc(docRef);
+      if (!docSnap.exists()) return;
+      
+      const data = docSnap.data();
+      const uid = data.asignadoAUid;
+      const match = id.match(/^(PKS-[A-Z]+)(\d+)$/);
+
+      // Eliminar el documento original
+      await deleteDoc(docRef);
+
+      // Si tiene el formato correcto, reordenar los demás
+      if (match && uid) {
+        const prefix = match[1];
+        const q = query(collection(db, 'codigos'), where('asignadoAUid', '==', uid));
+        const userCodigosSnap = await getDocs(q);
+        
+        const codesToRenumber: any[] = [];
+        userCodigosSnap.forEach(snap => {
+          const cid = snap.id;
+          const cMatch = cid.match(new RegExp(`^${prefix}(\\d+)$`));
+          if (cMatch) {
+            codesToRenumber.push({
+              oldId: cid,
+              num: parseInt(cMatch[1], 10),
+              data: snap.data()
+            });
+          }
+        });
+        
+        // Ordenar por el número que tenían
+        codesToRenumber.sort((a, b) => a.num - b.num);
+        
+        // Reasignar desde 1
+        let expectedNum = 1;
+        const toCreate: any[] = [];
+        const toDelete: string[] = [];
+
+        for (const item of codesToRenumber) {
+          if (item.num !== expectedNum) {
+            const newId = `${prefix}${String(expectedNum).padStart(3, '0')}`;
+            toCreate.push({ newId, data: { ...item.data, numero: newId } });
+            toDelete.push(item.oldId);
+          }
+          expectedNum++;
+        }
+
+        // 1. Eliminar todos los IDs viejos primero
+        for (const id of toDelete) {
+          await deleteDoc(doc(db, 'codigos', id));
+        }
+
+        // 2. Crear los nuevos documentos
+        for (const item of toCreate) {
+          await setDoc(doc(db, 'codigos', item.newId), item.data);
+        }
+      }
+
+      toast({ title: 'Eliminado', description: 'Código purgado y consecutivos reordenados.' });
       setShowDetallesModal(false);
       fetchData();
     } catch (e) {
