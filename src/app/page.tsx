@@ -29,6 +29,7 @@ export default function Home() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isInscripcionesOpen, setIsInscripcionesOpen] = useState(false);
+  const [isEventosPropiosOpen, setIsEventosPropiosOpen] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'default' | 'staff'>('default');
   const [authIsLogin, setAuthIsLogin] = useState(false);
@@ -144,82 +145,144 @@ export default function Home() {
             </button>
           </div>
 
-          <button className="lg:hidden text-[#E60000] hover:text-[#CC0000] transition-colors" onClick={() => setIsMobileMenuOpen(true)}>
-            <Menu size={32} />
-          </button>
+          <div className="lg:hidden flex items-center gap-3">
+            <button 
+              onClick={() => { setAuthIsLogin(true); setShowAuthModal(true); }}
+              className="text-white bg-[#E60000] hover:bg-[#CC0000] px-3.5 py-1.5 rounded-sm text-[10px] font-inter font-bold tracking-widest uppercase transition-all whitespace-nowrap shadow-lg shadow-black/20 hover:shadow-[#E60000]/20"
+            >
+              INICIAR SESIÓN
+            </button>
+            <button className="text-[#E60000] hover:text-[#CC0000] transition-colors" onClick={() => setIsMobileMenuOpen(true)}>
+              <Menu size={32} />
+            </button>
+          </div>
         </div>
       </nav>
 
       {/* MOBILE MENU */}
       <div 
-        className={`fixed inset-0 z-[100] bg-[#080808]/70 backdrop-blur-md flex flex-col items-center justify-center px-8 transition-all duration-300 ease-in-out ${isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        className={`fixed inset-0 z-[100] bg-[#080808]/75 backdrop-blur-md flex flex-col items-center justify-center px-8 transition-all duration-300 ease-in-out ${isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
       >
         {/* Header */}
         <div className="absolute top-0 left-0 w-full flex items-center justify-between p-6">
           <img src="/sponsors/PKS Blanco.png" alt="PKS" className="h-8 md:h-10 object-contain" />
-          <button onClick={() => { setIsMobileMenuOpen(false); setIsInscripcionesOpen(false); }} className="text-white hover:text-[#E60000] transition-colors">
+          <button onClick={() => { setIsMobileMenuOpen(false); setIsInscripcionesOpen(false); setIsEventosPropiosOpen(false); }} className="text-white hover:text-[#E60000] transition-colors">
             <X size={36} strokeWidth={1.5} />
           </button>
         </div>
         
         <div 
-          className="flex flex-col items-center justify-center w-full max-w-md mx-auto -mt-16 transition-all duration-500 ease-out" 
+          className="flex flex-col items-center justify-center w-full max-w-md mx-auto -mt-8 transition-all duration-500 ease-out" 
           style={{ 
             transform: isMobileMenuOpen ? 'translateY(0)' : 'translateY(-40px)',
             opacity: isMobileMenuOpen ? 1 : 0
           }}
         >
           {/* Social Icons */}
-          <div className="flex items-center justify-center gap-8 mb-10 text-white">
-            <a href="#" className="hover:text-[#E60000] transition-colors"><Facebook size={26} /></a>
-            <a href="https://www.instagram.com/paskinesstunt/" target="_blank" rel="noopener noreferrer" className="hover:text-[#E60000] transition-colors"><Instagram size={26} /></a>
-            <a href="#" className="hover:text-[#E60000] transition-colors"><Youtube size={26} /></a>
-            <a href="#" className="hover:text-[#E60000] transition-colors"><Twitter size={26} /></a>
+          <div className="flex items-center justify-center gap-6 mb-5 text-white">
+            <a href="#" className="hover:text-[#E60000] transition-colors"><Facebook size={22} /></a>
+            <a href="https://www.instagram.com/paskinesstunt/" target="_blank" rel="noopener noreferrer" className="hover:text-[#E60000] transition-colors"><Instagram size={22} /></a>
+            <a href="#" className="hover:text-[#E60000] transition-colors"><Youtube size={22} /></a>
+            <a href="#" className="hover:text-[#E60000] transition-colors"><Twitter size={22} /></a>
           </div>
 
-          {/* Menu Items */}
-          <div className="flex flex-col items-center gap-6 w-full">
+          {/* Nosotros & Servicios Horizontal Buttons */}
+          <div className="flex items-center justify-center gap-6 mb-6">
+            <a 
+              href="#nosotros" 
+              onClick={() => { setIsMobileMenuOpen(false); setIsInscripcionesOpen(false); setIsEventosPropiosOpen(false); }}
+              className="font-bebas italic uppercase tracking-wider text-xl md:text-2xl text-white hover:text-[#E60000] transition-colors"
+            >
+              NOSOTROS
+            </a>
+            <span className="text-zinc-700 text-xs">|</span>
+            <a 
+              href="#servicios" 
+              onClick={() => { setIsMobileMenuOpen(false); setIsInscripcionesOpen(false); setIsEventosPropiosOpen(false); }}
+              className="font-bebas italic uppercase tracking-wider text-xl md:text-2xl text-white hover:text-[#E60000] transition-colors"
+            >
+              SERVICIOS
+            </a>
+          </div>
+
+          {/* Menu Items (Remaining items) */}
+          <div className="flex flex-col items-center gap-5 w-full max-h-[50vh] overflow-y-auto py-1 scrollbar-none" style={{ scrollbarWidth: 'none' }}>
+            
+            {/* EVENTOS PROPIOS (Dropdown) */}
             <div className="flex flex-col items-center w-full">
               <button 
-                onClick={() => setIsInscripcionesOpen(!isInscripcionesOpen)}
-                className={`font-bebas italic uppercase tracking-wide text-4xl md:text-5xl hover:text-[#E60000] outline-none focus:outline-none transition-colors flex items-center gap-3 text-center justify-center ${isInscripcionesOpen ? 'text-[#E60000]' : 'text-white'}`}
+                onClick={() => { setIsEventosPropiosOpen(!isEventosPropiosOpen); setIsInscripcionesOpen(false); }}
+                className={`font-bebas italic uppercase tracking-wider text-2xl md:text-3xl hover:text-[#E60000] outline-none focus:outline-none transition-colors flex items-center gap-2 text-center justify-center ${isEventosPropiosOpen ? 'text-[#E60000]' : 'text-white'}`}
               >
-                INSCRIPCIONES
-                <ArrowDown size={24} className={`opacity-70 mt-1 transition-transform duration-300 ${isInscripcionesOpen ? 'rotate-180' : ''}`} strokeWidth={2} />
+                EVENTOS PROPIOS
+                <ArrowDown size={18} className={`opacity-70 mt-0.5 transition-transform duration-300 ${isEventosPropiosOpen ? 'rotate-180' : ''}`} strokeWidth={2} />
               </button>
               
               <div 
-                className={`flex flex-col items-center overflow-hidden transition-all duration-300 ease-in-out ${isInscripcionesOpen ? 'max-h-40 opacity-100 mt-6 gap-4' : 'max-h-0 opacity-0 mt-0 gap-0'}`}
+                className={`flex flex-col items-center overflow-hidden transition-all duration-300 ease-in-out ${isEventosPropiosOpen ? 'max-h-20 opacity-100 mt-3' : 'max-h-0 opacity-0 mt-0 pointer-events-none'}`}
+              >
+                <button 
+                  onClick={() => { setIsMobileMenuOpen(false); setIsEventosPropiosOpen(false); setShowGalleryModal(true); setCurrentGalleryIndex(0); }}
+                  className="font-bebas text-xl md:text-2xl text-zinc-400 hover:text-white transition-colors py-1 tracking-widest uppercase outline-none focus:outline-none"
+                >
+                  GALERÍA
+                </button>
+              </div>
+            </div>
+
+            {/* CASOS DE ÉXITO */}
+            <a 
+              href="#casos-de-exito" 
+              onClick={() => { setIsMobileMenuOpen(false); setIsInscripcionesOpen(false); setIsEventosPropiosOpen(false); }}
+              className="font-bebas italic uppercase tracking-wider text-2xl md:text-3xl text-white hover:text-[#E60000] transition-colors"
+            >
+              CASOS DE ÉXITO
+            </a>
+
+            {/* INSCRIPCIÓN (Dropdown) */}
+            <div className="flex flex-col items-center w-full">
+              <button 
+                onClick={() => { setIsInscripcionesOpen(!isInscripcionesOpen); setIsEventosPropiosOpen(false); }}
+                className={`font-bebas italic uppercase tracking-wider text-2xl md:text-3xl hover:text-[#E60000] outline-none focus:outline-none transition-colors flex items-center gap-2 text-center justify-center ${isInscripcionesOpen ? 'text-[#E60000]' : 'text-white'}`}
+              >
+                INSCRIPCIÓN
+                <ArrowDown size={18} className={`opacity-70 mt-0.5 transition-transform duration-300 ${isInscripcionesOpen ? 'rotate-180' : ''}`} strokeWidth={2} />
+              </button>
+              
+              <div 
+                className={`flex flex-col items-center overflow-hidden transition-all duration-300 ease-in-out ${isInscripcionesOpen ? 'max-h-40 opacity-100 mt-4 gap-3' : 'max-h-0 opacity-0 mt-0 pointer-events-none'}`}
               >
                 <button 
                   onClick={() => { setAuthIsLogin(false); setAuthMode('staff'); setIsMobileMenuOpen(false); setIsInscripcionesOpen(false); setShowAuthModal(true); }}
-                  className="font-bebas text-3xl md:text-4xl text-white hover:text-[#E60000] transition-colors py-2 tracking-widest uppercase outline-none focus:outline-none"
+                  className="font-bebas text-xl md:text-2xl text-zinc-400 hover:text-white transition-colors py-1 tracking-wider uppercase outline-none focus:outline-none"
                 >
                   STAFF - PROVEEDORES
                 </button>
                 <button 
                   onClick={() => { setAuthIsLogin(false); setAuthMode('default'); setIsMobileMenuOpen(false); setIsInscripcionesOpen(false); setShowAuthModal(true); }}
-                  className="font-bebas text-3xl md:text-4xl text-white hover:text-[#E60000] transition-colors py-2 tracking-widest uppercase outline-none focus:outline-none"
+                  className="font-bebas text-xl md:text-2xl text-zinc-400 hover:text-white transition-colors py-1 tracking-wider uppercase outline-none focus:outline-none"
                 >
                   PILOTOS
                 </button>
               </div>
             </div>
 
-            <div className={`flex flex-col items-center gap-6 overflow-hidden transition-all duration-300 ease-in-out ${isInscripcionesOpen ? 'max-h-0 opacity-0 scale-95 pointer-events-none' : 'max-h-[500px] opacity-100 scale-100'}`}>
-              {['Contáctanos', 'Galería', 'Podios'].map(item => (
-                <button key={item} className="font-bebas italic uppercase tracking-wide text-4xl md:text-5xl text-white hover:text-[#E60000] transition-colors flex items-center gap-3 text-center justify-center">
-                  {item}
-                </button>
-              ))}
-              
-              <button 
-                onClick={() => { setAuthIsLogin(false); setAuthMode('default'); setIsMobileMenuOpen(false); setIsInscripcionesOpen(false); setShowAuthModal(true); }}
-                className="mt-6 bg-[#E60000] text-white font-inter font-bold text-sm tracking-widest uppercase py-4 px-8 rounded-sm w-max hover:bg-[#CC0000] transition-colors flex items-center gap-2"
-              >
-                INSCRÍBETE AHORA <ArrowUpRight size={16} />
-              </button>
-            </div>
+            {/* INICIAR SESIÓN */}
+            <button 
+              onClick={() => { setAuthIsLogin(true); setIsMobileMenuOpen(false); setIsInscripcionesOpen(false); setIsEventosPropiosOpen(false); setShowAuthModal(true); }}
+              className="font-bebas italic uppercase tracking-wider text-2xl md:text-3xl text-[#E60000] hover:text-white transition-colors flex items-center gap-2 text-center justify-center"
+            >
+              INICIAR SESIÓN
+            </button>
+
+            {/* INSCRÍBETE AHORA (CTA) */}
+            <button 
+              onClick={() => { setAuthIsLogin(false); setAuthMode('default'); setIsMobileMenuOpen(false); setIsInscripcionesOpen(false); setIsEventosPropiosOpen(false); setShowAuthModal(true); }}
+              className="mt-3 bg-[#E60000] text-white font-inter font-bold text-xs tracking-widest uppercase py-3 px-6 rounded-sm w-max hover:bg-[#CC0000] transition-colors flex items-center gap-2"
+            >
+              INSCRÍBETE AHORA <ArrowUpRight size={14} />
+            </button>
+
           </div>
         </div>
       </div>
