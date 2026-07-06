@@ -718,17 +718,16 @@ export default function Home() {
         </DialogContent>
       </Dialog>
 
-      {/* GALLERY MODAL */}
       <Dialog open={showGalleryModal} onOpenChange={setShowGalleryModal}>
-        <DialogContent className="max-w-[95vw] md:max-w-fit w-fit bg-black border border-[#1C1C1C] text-white p-0 overflow-hidden rounded-2xl shadow-2xl shadow-black/95">
+        <DialogContent className="max-w-[92vw] w-[92vw] md:max-w-fit md:w-fit bg-black border border-[#1C1C1C] text-white p-0 overflow-hidden rounded-2xl shadow-2xl shadow-black/95">
           <DialogTitle className="sr-only">Galería de Eventos</DialogTitle>
           
           {/* Photo Area */}
-          <div className="relative w-fit h-fit max-w-full flex items-center justify-center bg-[#050505] overflow-hidden">
+          <div className="relative w-full aspect-square md:w-fit md:h-fit max-w-full flex items-center justify-center bg-[#050505] overflow-hidden">
             <img 
               src={GALLERY_IMAGES[currentGalleryIndex]} 
               alt={`Gallery ${currentGalleryIndex + 1}`}
-              className="h-[85vh] md:h-[90vh] max-w-[95vw] md:max-w-[90vw] lg:max-w-[85vw] w-auto object-contain block mx-auto"
+              className="w-full h-full object-cover md:h-[85vh] md:w-auto md:object-contain block mx-auto"
             />
             
             {/* Logos flotantes dentro de la foto (superior izquierda) - Sin fondo negro, integrados como marca de agua */}
