@@ -30,14 +30,31 @@ export default function Home() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isInscripcionesOpen, setIsInscripcionesOpen] = useState(false);
   const [isEventosPropiosOpen, setIsEventosPropiosOpen] = useState(false);
+  const [isCasosDeExitoOpen, setIsCasosDeExitoOpen] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'default' | 'staff'>('default');
   const [authIsLogin, setAuthIsLogin] = useState(false);
   const [currentHeroImgIndex, setCurrentHeroImgIndex] = useState(0);
+  const [currentValPropIndex, setCurrentValPropIndex] = useState(0);
+  const [currentEventosIndex, setCurrentEventosIndex] = useState(0);
   
   const [showGalleryModal, setShowGalleryModal] = useState(false);
   const [currentGalleryIndex, setCurrentGalleryIndex] = useState(0);
   const [activePortfolioIndex, setActivePortfolioIndex] = useState<number>(1);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentValPropIndex((prev) => (prev + 1) % 3);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentEventosIndex((prev) => (prev + 1) % 3);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, []);
 
   const GALLERY_IMAGES = [
     "/sponsors/SPORNS/opt_DSC05598.JPG",
@@ -208,21 +225,21 @@ export default function Home() {
           {/* Menu Items (Remaining items) */}
           <div className="flex flex-col items-center gap-5 w-full max-h-[50vh] overflow-y-auto py-1 scrollbar-none" style={{ scrollbarWidth: 'none' }}>
             
-            {/* EVENTOS PROPIOS (Dropdown) */}
+            {/* CASOS DE ÉXITO (Dropdown) */}
             <div className="flex flex-col items-center w-full">
               <button 
-                onClick={() => { setIsEventosPropiosOpen(!isEventosPropiosOpen); setIsInscripcionesOpen(false); }}
-                className={`font-bebas italic uppercase tracking-wider text-2xl md:text-3xl hover:text-[#E60000] outline-none focus:outline-none transition-colors flex items-center gap-2 text-center justify-center ${isEventosPropiosOpen ? 'text-[#E60000]' : 'text-white'}`}
+                onClick={() => { setIsCasosDeExitoOpen(!isCasosDeExitoOpen); setIsInscripcionesOpen(false); }}
+                className={`font-bebas italic uppercase tracking-wider text-2xl md:text-3xl hover:text-[#E60000] outline-none focus:outline-none transition-colors flex items-center gap-2 text-center justify-center ${isCasosDeExitoOpen ? 'text-[#E60000]' : 'text-white'}`}
               >
-                EVENTOS PROPIOS
-                <ArrowDown size={18} className={`opacity-70 mt-0.5 transition-transform duration-300 ${isEventosPropiosOpen ? 'rotate-180' : ''}`} strokeWidth={2} />
+                CASOS DE ÉXITO
+                <ArrowDown size={18} className={`opacity-70 mt-0.5 transition-transform duration-300 ${isCasosDeExitoOpen ? 'rotate-180' : ''}`} strokeWidth={2} />
               </button>
               
               <div 
-                className={`flex flex-col items-center overflow-hidden transition-all duration-300 ease-in-out ${isEventosPropiosOpen ? 'max-h-20 opacity-100 mt-3' : 'max-h-0 opacity-0 mt-0 pointer-events-none'}`}
+                className={`flex flex-col items-center overflow-hidden transition-all duration-300 ease-in-out ${isCasosDeExitoOpen ? 'max-h-20 opacity-100 mt-3' : 'max-h-0 opacity-0 mt-0 pointer-events-none'}`}
               >
                 <button 
-                  onClick={() => { setIsMobileMenuOpen(false); setIsEventosPropiosOpen(false); setShowGalleryModal(true); setCurrentGalleryIndex(0); }}
+                  onClick={() => { setIsMobileMenuOpen(false); setIsCasosDeExitoOpen(false); setShowGalleryModal(true); setCurrentGalleryIndex(0); }}
                   className="font-bebas text-xl md:text-2xl text-zinc-400 hover:text-white transition-colors py-1 tracking-widest uppercase outline-none focus:outline-none"
                 >
                   GALERÍA
@@ -230,19 +247,10 @@ export default function Home() {
               </div>
             </div>
 
-            {/* CASOS DE ÉXITO */}
-            <a 
-              href="#casos-de-exito" 
-              onClick={() => { setIsMobileMenuOpen(false); setIsInscripcionesOpen(false); setIsEventosPropiosOpen(false); }}
-              className="font-bebas italic uppercase tracking-wider text-2xl md:text-3xl text-white hover:text-[#E60000] transition-colors"
-            >
-              CASOS DE ÉXITO
-            </a>
-
             {/* INSCRIPCIÓN (Dropdown) */}
             <div className="flex flex-col items-center w-full">
               <button 
-                onClick={() => { setIsInscripcionesOpen(!isInscripcionesOpen); setIsEventosPropiosOpen(false); }}
+                onClick={() => { setIsInscripcionesOpen(!isInscripcionesOpen); setIsCasosDeExitoOpen(false); }}
                 className={`font-bebas italic uppercase tracking-wider text-2xl md:text-3xl hover:text-[#E60000] outline-none focus:outline-none transition-colors flex items-center gap-2 text-center justify-center ${isInscripcionesOpen ? 'text-[#E60000]' : 'text-white'}`}
               >
                 INSCRIPCIÓN
@@ -288,7 +296,7 @@ export default function Home() {
       </div>
 
       {/* SEC 1: HERO */}
-      <section className="relative w-full min-h-[95vh] flex flex-col justify-center px-6 overflow-hidden bg-[#080808] pt-24" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 92%, 0 100%)' }}>
+      <section className="relative w-full min-h-[70vh] flex flex-col justify-center px-6 overflow-hidden bg-[#080808] pt-20" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 92%, 0 100%)' }}>
         {/* BACKGROUND SLIDER (RIGHT SIDE ONLY) */}
         <div 
           className="absolute right-0 top-0 w-full lg:w-[65%] h-full pointer-events-none z-0 overflow-hidden"
@@ -314,9 +322,9 @@ export default function Home() {
         {/* Extra text shadow gradient for mobile readability */}
         <div className="absolute inset-0 bg-gradient-to-r from-[#080808] via-[#080808]/80 to-transparent pointer-events-none z-0 lg:hidden"></div>
 
-        <div className="relative z-10 max-w-[1280px] mx-auto w-full pt-16 pb-32">
+        <div className="relative z-10 max-w-[1280px] mx-auto w-full pt-12 pb-16">
           {/* SLIDER CONTROLS */}
-          <div className="absolute right-0 bottom-32 hidden md:flex gap-4 pr-6 z-20 pointer-events-auto">
+          <div className="absolute right-0 bottom-16 hidden md:flex gap-4 pr-6 z-20 pointer-events-auto">
             <button 
               onClick={() => setCurrentHeroImgIndex(prev => prev === 0 ? SPORNS_IMAGES.length - 1 : prev - 1)}
               className="w-12 h-12 rounded-full border border-white/30 flex items-center justify-center text-white hover:bg-[#E60000] hover:text-black hover:border-[#E60000] transition-colors"
@@ -346,30 +354,16 @@ export default function Home() {
             </span>
           </h1>
           
-          <span className="text-[#888888] font-inter font-medium text-[10px] md:text-xs uppercase tracking-[0.12em] flex flex-wrap items-center gap-y-2 gap-x-3 mb-10">
+          <span className="text-[#888888] font-inter font-medium text-[10px] md:text-xs uppercase tracking-[0.12em] flex flex-wrap items-center gap-y-2 gap-x-3 mb-4">
             EXPERIENCIAS <span className="text-[#E60000]">●</span> BTL <span className="text-[#E60000]">●</span> PRODUCCIÓN <span className="text-[#E60000]">●</span> COMPETENCIA <span className="text-[#E60000]">●</span> TECNOLOGÍA
           </span>
-          
-          <div className="flex flex-col sm:flex-row items-center gap-6 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
-            <button onClick={() => { setAuthIsLogin(false); setAuthMode('default'); setShowAuthModal(true); }} className="bg-[#E60000] hover:bg-[#CC0000] text-white font-inter font-bold text-[12px] px-8 py-4 tracking-widest uppercase flex items-center gap-3 transition-transform hover:-translate-y-1 rounded-sm">
-              EXPLORA NUESTRO UNIVERSO <ArrowUpRight size={18} strokeWidth={2.5} />
-            </button>
-            <button className="bg-transparent text-white font-inter text-[11px] font-bold tracking-widest flex items-center gap-4 transition-all hover:text-[#E60000] uppercase group">
-              <div className="w-12 h-12 rounded-full border border-white/30 group-hover:border-[#E60000] flex items-center justify-center transition-colors">
-                <Play fill="currentColor" size={16} className="ml-1" />
-              </div>
-              <div className="flex flex-col text-left">
-                <span>VER SHOWREEL</span>
-                <span className="text-[#888888] font-medium text-[9px] mt-0.5 group-hover:text-white transition-colors">PLAY VIDEO</span>
-              </div>
-            </button>
-          </div>
         </div>
       </section>
 
       {/* SEC 2: VALUE PROP (3 CARDS) */}
-      <section className="py-16 px-6 max-w-[1400px] mx-auto -mt-16 relative z-20">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <section className="py-8 px-6 max-w-[1400px] mx-auto -mt-24 relative z-20">
+        {/* Desktop View */}
+        <div className="hidden md:grid grid-cols-3 gap-6">
           {/* Card 1: Marcas */}
           <div className="group relative bg-[#111111] rounded-xl overflow-hidden border border-[#1C1C1C] min-h-[380px] flex flex-col justify-end p-8 transition-all hover:border-[#333] shadow-2xl">
             <div className="absolute inset-0 z-0 overflow-hidden bg-[#0A0A0A]">
@@ -445,14 +439,122 @@ export default function Home() {
             </div>
           </div>
         </div>
+
+        {/* Mobile View: Carousel */}
+        <div className="block md:hidden relative w-full overflow-hidden">
+          <div className="relative min-h-[380px] w-full flex items-center justify-between">
+            {/* Left arrow */}
+            <button 
+              onClick={() => setCurrentValPropIndex((prev) => (prev === 0 ? 2 : prev - 1))}
+              className="absolute left-1 z-30 bg-black/60 hover:bg-[#E60000] text-white p-2.5 rounded-full border border-white/10 outline-none focus:outline-none transition-colors"
+            >
+              <ChevronLeft size={22} />
+            </button>
+
+            {/* Carousel track/slides */}
+            <div className="w-full h-full relative min-h-[380px] px-2">
+              {/* Card 1 */}
+              <div className={`absolute inset-0 px-2 transition-opacity duration-700 ease-in-out ${currentValPropIndex === 0 ? 'opacity-100 z-10 pointer-events-auto' : 'opacity-0 z-0 pointer-events-none'}`}>
+                <div className="group relative bg-[#111111] rounded-xl overflow-hidden border border-[#1C1C1C] min-h-[380px] flex flex-col justify-end p-8 shadow-2xl">
+                  <div className="absolute inset-0 z-0 overflow-hidden bg-[#0A0A0A]">
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/80 to-transparent z-0"></div>
+                    <div className="absolute inset-0 z-[5] flex flex-col justify-center gap-8 opacity-40 pointer-events-none -rotate-6 scale-125">
+                      <div className="w-full inline-flex flex-nowrap overflow-hidden [mask-image:_linear-gradient(to_right,transparent_0,_black_20px,_black_calc(100%-20px),transparent_100%)]">
+                        <div className="flex items-center justify-center md:justify-start [&_img]:max-w-none animate-marquee gap-10 px-4">
+                          {[...SPONSOR_LOGOS, ...SPONSOR_LOGOS].map((logo, idx) => (
+                            <img key={`row1-${idx}`} src={logo.src} alt={logo.alt} className="h-10 md:h-14 object-contain" />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="relative z-10 flex flex-col gap-3">
+                    <div className="flex items-baseline gap-2 mb-2">
+                      <span className="font-oswald text-4xl text-[#E60000]">01</span>
+                      <h3 className="font-bebas text-4xl text-white tracking-wide leading-none">PARA MARCAS</h3>
+                    </div>
+                    <p className="text-white text-[15px] leading-relaxed mb-4">Activaciones, lanzamientos y experiencias BTL que conectan tu marca con las personas correctas.</p>
+                    <button className="bg-transparent border border-[#E60000]/30 text-white hover:border-[#E60000] text-[11px] font-bold uppercase tracking-widest px-4 py-2 rounded-sm w-max transition-colors flex items-center gap-2">
+                      VER SERVICIOS <ArrowUpRight size={14} className="text-[#E60000]" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 2 */}
+              <div className={`absolute inset-0 px-2 transition-opacity duration-700 ease-in-out ${currentValPropIndex === 1 ? 'opacity-100 z-10 pointer-events-auto' : 'opacity-0 z-0 pointer-events-none'}`}>
+                <div className="group relative bg-[#111111] rounded-xl overflow-hidden border border-[#1C1C1C] min-h-[380px] flex flex-col justify-end p-8 shadow-2xl">
+                  <div className="absolute inset-0 z-0 overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#111] via-[#111]/80 to-transparent z-10"></div>
+                    <div className="w-full h-full bg-cover bg-center transform duration-700" style={{ backgroundImage: `url('/sponsors/stunt2026negro.jpeg')`, opacity: 0.4 }}></div>
+                  </div>
+                  <div className="relative z-10 flex flex-col gap-3">
+                    <div className="flex items-baseline gap-2 mb-2">
+                      <span className="font-oswald text-4xl text-[#E60000]">02</span>
+                      <h3 className="font-bebas text-4xl text-white tracking-wide leading-none">CAMPEONATOS</h3>
+                    </div>
+                    <p className="text-[#888888] text-[15px] leading-relaxed mb-4">Creamos y producimos los campeonatos de stunt más importantes de Colombia.</p>
+                    <div className="flex flex-col gap-2">
+                      <a href="#" className="flex items-center gap-2 text-white text-[12px] font-bold uppercase tracking-widest hover:text-[#E60000] transition-colors">
+                        <ArrowUpRight size={16} className="text-[#E60000]" /> COPA STUNT COLOMBIA
+                      </a>
+                      <a href="#" className="flex items-center gap-2 text-white text-[12px] font-bold uppercase tracking-widest hover:text-[#E60000] transition-colors">
+                        <ArrowUpRight size={16} className="text-[#E60000]" /> STUNT DAY
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 3 */}
+              <div className={`absolute inset-0 px-2 transition-opacity duration-700 ease-in-out ${currentValPropIndex === 2 ? 'opacity-100 z-10 pointer-events-auto' : 'opacity-0 z-0 pointer-events-none'}`}>
+                <div className="group relative bg-[#111111] rounded-xl overflow-hidden border border-[#1C1C1C] min-h-[380px] flex flex-col justify-end p-8 shadow-2xl">
+                  <div className="absolute inset-0 z-0 overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#111] via-[#111]/80 to-transparent z-10"></div>
+                    <div className="w-full h-full bg-cover bg-center transform duration-700" style={{ backgroundImage: `url('/sponsors/fondo1.jpg')`, opacity: 0.3 }}></div>
+                  </div>
+                  <div className="relative z-10 flex flex-col gap-3">
+                    <div className="flex items-baseline gap-2 mb-2">
+                      <span className="font-oswald text-4xl text-[#E60000]">03</span>
+                      <h3 className="font-bebas text-4xl text-white tracking-wide leading-none">TECNOLOGÍA</h3>
+                    </div>
+                    <p className="text-[#888888] text-[15px] leading-relaxed mb-4">PKS es nuestro ecosistema digital que conecta pilotos, organización, marcas y audiencia en tiempo real.</p>
+                    <button className="bg-transparent border border-[#E60000]/30 text-white hover:border-[#E60000] text-[11px] font-bold uppercase tracking-widest px-4 py-2 rounded-sm w-max transition-colors flex items-center gap-2">
+                      CONOCE PKS <ArrowUpRight size={14} className="text-[#E60000]" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right arrow */}
+            <button 
+              onClick={() => setCurrentValPropIndex((prev) => (prev + 1) % 3)}
+              className="absolute right-1 z-30 bg-black/60 hover:bg-[#E60000] text-white p-2.5 rounded-full border border-white/10 outline-none focus:outline-none transition-colors"
+            >
+              <ChevronRight size={22} />
+            </button>
+          </div>
+
+          {/* Dots Indicator */}
+          <div className="flex justify-center gap-2 mt-4">
+            {[0, 1, 2].map((idx) => (
+              <button 
+                key={idx}
+                onClick={() => setCurrentValPropIndex(idx)}
+                className={`w-2 h-2 rounded-full transition-all ${currentValPropIndex === idx ? 'bg-[#E60000] w-4' : 'bg-zinc-600'}`}
+              />
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* SEC 3: STATS BAR (ANIMATED) */}
       <AnimatedStatsSection />
 
       {/* SEC 4: LOGO STRIP */}
-      <section className="py-10 overflow-hidden bg-[#080808]">
-        <div className="max-w-[1400px] mx-auto px-6 mb-12 text-center">
+      <section className="py-6 overflow-hidden bg-[#080808]">
+        <div className="max-w-[1400px] mx-auto px-6 mb-6 text-center">
           <span className="text-[#888888] font-inter font-medium text-[11px] uppercase tracking-[0.15em]">MARCAS QUE CONFÍAN EN NOSOTROS</span>
         </div>
         <div className="w-full inline-flex flex-nowrap overflow-hidden [mask-image:_linear-gradient(to_right,transparent_0,_black_128px,_black_calc(100%-128px),transparent_100%)]">
@@ -465,13 +567,13 @@ export default function Home() {
       </section>
 
       {/* SEC 5: PORTFOLIO - NUESTRO EVENTOS PROPIOS (REDiseñado) */}
-      <section className="pt-10 pb-14 bg-[#0a0a0a]">
-        <div className="text-center mb-10 px-6">
+      <section className="pt-6 pb-8 bg-[#0a0a0a]">
+        <div className="text-center mb-6 px-6">
           <h2 className="font-bebas text-[48px] text-white tracking-wider uppercase">NUESTROS EVENTOS PROPIOS</h2>
         </div>
         
-        {/* Full-width grid container with 3px gap and zero lateral margins */}
-        <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-[3px] px-[3px]">
+        {/* Desktop View: Grid */}
+        <div className="hidden md:grid grid-cols-3 gap-[3px] px-[3px] w-full">
           {[
             { 
               title: 'COPA STUNT COLOMBIA', 
@@ -536,19 +638,122 @@ export default function Home() {
             </div>
           ))}
         </div>
+
+        {/* Mobile View: Carousel */}
+        <div className="block md:hidden relative w-full overflow-hidden">
+          <div className="relative h-[320px] w-full flex items-center justify-between">
+            {/* Left arrow */}
+            <button 
+              onClick={() => setCurrentEventosIndex((prev) => (prev === 0 ? 2 : prev - 1))}
+              className="absolute left-1 z-30 bg-black/60 hover:bg-[#E60000] text-white p-2.5 rounded-full border border-white/10 outline-none focus:outline-none transition-colors"
+            >
+              <ChevronLeft size={22} />
+            </button>
+
+            {/* Carousel track/slides */}
+            <div className="w-full h-full relative h-[320px] px-2">
+              {[
+                { 
+                  title: 'COPA STUNT COLOMBIA', 
+                  desc: 'El campeonato de stunt más importante del país.', 
+                  img: '/sponsors/stunt2026negro.jpeg',
+                  label: 'EVENTO PROPIO'
+                },
+                { 
+                  title: 'STUNT DAY', 
+                  desc: 'El encuentro que reúne la cultura stunt.', 
+                  img: '/sponsors/stunt_day_nitrox.png',
+                  label: 'EVENTO PROPIO'
+                },
+                { 
+                  title: 'NUEVOS FORMATOS', 
+                  desc: 'Desarrollamos experiencias y competencias a la medida.', 
+                  img: '/sponsors/carrera_observaciones.png',
+                  label: 'EVENTO DE CLIENTES'
+                },
+              ].map((item, idx) => (
+                <div 
+                  key={idx}
+                  className={`absolute inset-0 px-2 transition-opacity duration-700 ease-in-out ${currentEventosIndex === idx ? 'opacity-100 z-10 pointer-events-auto' : 'opacity-0 z-0 pointer-events-none'}`}
+                >
+                  <div 
+                    className="group relative w-full h-[320px] bg-[#0a0a0a] rounded-none overflow-hidden cursor-pointer transition-all duration-500 shadow-2xl flex flex-col justify-between p-[28px] sm:p-[32px] select-none"
+                  >
+                    {/* Left-side accent border */}
+                    <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-gradient-to-b from-[#FF1E27] to-[#C8102E] shadow-[2px_0_15px_rgba(255,30,39,0.5)] z-30" />
+
+                    {/* Background action photo with zoom and custom gradient overlay */}
+                    <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+                      <img 
+                        src={item.img} 
+                        alt="" 
+                        className="w-full h-full object-cover filter blur-[1.5px]"
+                      />
+                      {/* Overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/85 to-black/25 opacity-95 z-10" />
+                    </div>
+
+                    {/* Card Content - Top Area */}
+                    <div className="relative z-20">
+                      <span className="text-[#FF3A3A] font-inter font-bold text-[11px] uppercase tracking-[0.25em] block mb-3 drop-shadow-[0_0_6px_rgba(255,58,58,0.5)]">
+                        {item.label}
+                      </span>
+                    </div>
+
+                    {/* Card Content - Middle Area */}
+                    <div className="relative z-20 my-auto">
+                      <h3 className="font-bebas text-[38px] sm:text-[42px] text-white tracking-wide leading-[1.0] uppercase drop-shadow-[0_2px_12px_rgba(0,0,0,1)]">
+                        {item.title}
+                      </h3>
+                      <p className="text-[#e2e2e2] text-[14px] font-inter font-light mt-3 leading-relaxed max-w-[90%] drop-shadow-[0_2px_8px_rgba(0,0,0,1)] line-clamp-2">
+                        {item.desc}
+                      </p>
+                    </div>
+                    
+                    {/* Card Content - Bottom Area */}
+                    <div className="relative z-20 mt-auto">
+                      <div className="inline-flex items-center justify-center bg-transparent border-[1.5px] border-white/60 text-white text-[12px] font-inter font-semibold tracking-widest px-6 py-2.5 rounded-none transition-all duration-300 w-fit">
+                        CONOCE MÁS <span className="ml-2">→</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Right arrow */}
+            <button 
+              onClick={() => setCurrentEventosIndex((prev) => (prev + 1) % 3)}
+              className="absolute right-1 z-30 bg-black/60 hover:bg-[#E60000] text-white p-2.5 rounded-full border border-white/10 outline-none focus:outline-none transition-colors"
+            >
+              <ChevronRight size={22} />
+            </button>
+          </div>
+
+          {/* Dots Indicator */}
+          <div className="flex justify-center gap-2 mt-4">
+            {[0, 1, 2].map((idx) => (
+              <button 
+                key={idx}
+                onClick={() => setCurrentEventosIndex(idx)}
+                className={`w-2 h-2 rounded-full transition-all ${currentEventosIndex === idx ? 'bg-[#E60000] w-4' : 'bg-zinc-600'}`}
+              />
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* SEC 6: ECOSYSTEM (PKS) */}
-      <section className="py-14 bg-gradient-to-b from-[#080808] to-[#111111] border-y border-[#1C1C1C]">
-        <div className="max-w-[1400px] mx-auto px-6 grid grid-cols-1 xl:grid-cols-2 gap-16 items-center">
+      <section className="py-8 bg-gradient-to-b from-[#080808] to-[#111111] border-y border-[#1C1C1C]">
+        <div className="max-w-[1400px] mx-auto px-6 grid grid-cols-1 xl:grid-cols-2 gap-12 items-center">
           <div>
             <div className="flex items-center mb-4">
               <img src="/sponsors/PKS Blanco.png" alt="PKS" className="h-12 object-contain" />
             </div>
-            <span className="text-[#E60000] font-inter font-bold text-[12px] uppercase tracking-widest block mb-6">NUESTRO ECOSISTEMA DIGITAL</span>
-            <p className="text-[#888888] text-[15px] leading-relaxed mb-12 max-w-lg">El centro de control que hace posible cada experiencia. Conecta pilotos, organización, marcas y audiencia en un solo lugar.</p>
+            <span className="text-[#E60000] font-inter font-bold text-[12px] uppercase tracking-widest block mb-4">NUESTRO ECOSISTEMA DIGITAL</span>
+            <p className="text-[#888888] text-[15px] leading-relaxed mb-6 max-w-lg">El centro de control que hace posible cada experiencia. Conecta pilotos, organización, marcas y audiencia en un solo lugar.</p>
             
-            <div className="grid grid-cols-2 gap-y-10 gap-x-6">
+            <div className="grid grid-cols-2 gap-y-6 gap-x-6">
               {[
                 { icon: Users, title: 'REGISTRO DE PILOTOS' },
                 { icon: Ticket, title: 'QR Y ACCESOS EN TIEMPO REAL' },
@@ -564,7 +769,7 @@ export default function Home() {
               ))}
             </div>
             
-            <button className="mt-14 bg-transparent border border-[#E60000] text-[#E60000] hover:bg-[#E60000] hover:text-white font-inter font-bold text-xs px-8 py-3 tracking-widest uppercase transition-colors rounded-sm flex items-center gap-2 w-max">
+            <button className="mt-8 bg-transparent border border-[#E60000] text-[#E60000] hover:bg-[#E60000] hover:text-white font-inter font-bold text-xs px-8 py-3 tracking-widest uppercase transition-colors rounded-sm flex items-center gap-2 w-max">
               CONOCE PKS <ArrowUpRight size={16} />
             </button>
           </div>
@@ -593,7 +798,7 @@ export default function Home() {
       </section>
 
       {/* SEC 7: PORTALS */}
-      <section className="py-24 px-6 max-w-[1400px] mx-auto">
+      <section className="py-10 px-6 max-w-[1400px] mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {[
             { tag: '¿ERES PILOTO?', role: 'PORTAL DEL PILOTO', color: 'border-[#1C1C1C] hover:border-[#E60000]', items: ['Inscríbete a nuestros eventos', 'Gestiona tu información', 'Pagos y documentos', 'Tu QR y accesos'], btnText: 'IR AL PORTAL', btnColor: 'bg-transparent border border-[#E60000] text-white hover:bg-[#E60000] hover:text-white', onClick: () => { setAuthIsLogin(false); setAuthMode('default'); setShowAuthModal(true); } },
@@ -622,7 +827,7 @@ export default function Home() {
       </section>
 
       {/* SEC 8: CTA FINAL */}
-      <section className="py-24 border-t border-[#1C1C1C] px-6 relative overflow-hidden bg-[url('/sponsors/fondo1.jpg')] bg-cover bg-center">
+      <section className="py-10 border-t border-[#1C1C1C] px-6 relative overflow-hidden bg-[url('/sponsors/fondo1.jpg')] bg-cover bg-center">
         <div className="absolute inset-0 bg-gradient-to-r from-black via-black/90 to-black/50"></div>
         <div className="relative z-10 max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-10 text-center md:text-left">
           <div>
@@ -640,7 +845,7 @@ export default function Home() {
       </section>
 
       {/* FOOTER */}
-      <footer className="bg-[#080808] border-t border-[#1C1C1C] pt-20 pb-8 px-6">
+      <footer className="bg-[#080808] border-t border-[#1C1C1C] pt-10 pb-8 px-6">
         <div className="max-w-[1400px] mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 mb-16">
             <div className="lg:col-span-2">
