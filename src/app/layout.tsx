@@ -4,10 +4,10 @@ import { Toaster } from '@/components/ui/toaster';
 import { Facebook, Instagram } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'COPASTUNTF2R-NITROX',
+  title: 'PASKINES-STUNT',
   description: 'Inscripciones Oficiales a la Copa Stunt F2R Repuestos Nitrox. Vive una experiencia increíble.',
   openGraph: {
-    title: 'COPASTUNTF2R-NITROX',
+    title: 'PASKINES-STUNT',
     description: 'Inscripciones Oficiales a la Copa Stunt F2R Repuestos Nitrox. Vive una experiencia increíble y participa en la rifa de una MRX 200.',
     url: 'https://paskinesstunt.com/',
     siteName: 'Copa Stunt F2R',
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     type: 'website',
   },
   icons: {
-    icon: '/sponsors/stunt2026negro.jpeg',
+    icon: '/sponsors/PKS Blanco.png',
   },
 };
 
