@@ -24,10 +24,10 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: '/sponsors/PKS Negro.png?v=4', type: 'image/png' }
+      { url: '/sponsors/PKS Negro.png?v=5', type: 'image/png' }
     ],
-    shortcut: '/sponsors/PKS Negro.png?v=4',
-    apple: '/sponsors/PKS Negro.png?v=4',
+    shortcut: '/sponsors/PKS Negro.png?v=5',
+    apple: '/sponsors/PKS Negro.png?v=5',
   },
 };
 
