@@ -335,6 +335,11 @@ export default function PskPitxDashboard() {
             observaciones: [],
             rol
           });
+
+          if (rol !== 'staff' && rol !== 'admin') {
+            router.push('/inscripcion');
+            return;
+          }
           
         } catch (e) {
           console.error("Error al cargar datos del usuario", e);

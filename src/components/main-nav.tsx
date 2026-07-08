@@ -18,7 +18,7 @@ const profileLinks = [
 ];
 
 const baseLinks = [
-  { href: '/inscripcion', label: 'Inscripción F2R', icon: CalendarDays },
+  { href: '/inscripcion', label: 'Inscripciones Pilotos', icon: CalendarDays },
 ];
 
 export function MainNav() {
@@ -132,8 +132,12 @@ export function MainNav() {
     adminLinks.push({ href: '/admin', label: 'Panel Admin', icon: Shield });
   }
 
+  const filteredProfileLinks = (userRol === 'staff' || userRol === 'admin')
+    ? profileLinks
+    : profileLinks.filter(link => link.href !== '/profile?tab=cuentas');
+
   const finalBaseLinks = (userRol === 'staff' || userRol === 'admin') ? [] : baseLinks;
-  const allLinks = [...profileLinks, ...finalBaseLinks, ...adminLinks];
+  const allLinks = [...filteredProfileLinks, ...finalBaseLinks, ...adminLinks];
 
   const NavButton = ({ link, isActive }: { link: any, isActive: boolean }) => {
     const isPilotos = link.href === '/pilotos';
@@ -216,7 +220,7 @@ export function MainNav() {
                 
                 {isProfileExpanded && (
                   <div style={{display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '15px', paddingLeft: '30px', fontSize: '1.1rem'}}>
-                    {profileLinks.map(link => {
+                    {filteredProfileLinks.map(link => {
                       const urlParams = new URLSearchParams(link.href.split('?')[1]);
                       const tabParam = urlParams.get('tab');
                       const isActive = pathname === '/profile' && searchParams?.get('tab') === tabParam;

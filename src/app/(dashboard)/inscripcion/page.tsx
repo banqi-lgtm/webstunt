@@ -34,6 +34,11 @@ export default function InscripcionPage() {
   const [motivoSaldoFaltante, setMotivoSaldoFaltante] = useState('');
   const { toast } = useToast();
 
+  const [selectedEvent, setSelectedEvent] = useState<'f2r' | 'stuntday'>('f2r');
+  const [activeEvent, setActiveEvent] = useState<'f2r' | 'stuntday' | null>(null);
+  const [f2rStatus, setF2rStatus] = useState<string | null>(null);
+  const [stuntdayStatus, setStuntdayStatus] = useState<string | null>(null);
+
   // Pilot and Card Template State
   const [nombres, setNombres] = useState('');
   const [apellidos, setApellidos] = useState('');
@@ -41,10 +46,144 @@ export default function InscripcionPage() {
   const [ciudad, setCiudad] = useState('');
   const [templateConfig, setTemplateConfig] = useState<any>(null);
 
+  const fetchEventStatuses = async (userId: string) => {
+    try {
+      const [f2rDoc, stuntdayDoc] = await Promise.all([
+        getDoc(doc(db, 'event_registrations', `f2r_${userId}`)),
+        getDoc(doc(db, 'event_registrations', `stuntday_${userId}`))
+      ]);
+      setF2rStatus(f2rDoc.exists() ? (f2rDoc.data().estadoPago || 'pendiente') : 'no_inscrito');
+      setStuntdayStatus(stuntdayDoc.exists() ? (stuntdayDoc.data().estadoPago || 'pendiente') : 'no_inscrito');
+    } catch (e) {
+      console.error("Error fetching event statuses:", e);
+    }
+  };
+
+  const loadEventData = async (userId: string, eventKey: 'f2r' | 'stuntday') => {
+    setIsCheckingStatus(true);
+    try {
+      // 1. Reset all state values first
+      setCategorias([]);
+      setIdPdf(null);
+      setFotoPlaca(null);
+      setFotoPropiedad(null);
+      setFotoSoat(null);
+      setFotoDeportista(null);
+      setComprobantePago(null);
+      setPlaca('');
+      setMarca('');
+      setReferencia('');
+      setPatrocinadores(false);
+      setParticipacionPrevia('');
+      setInquietudes('');
+      setEstadoPago('pendiente');
+      setSaldoFaltante('');
+      setMotivoSaldoFaltante('');
+      setDocumentosRechazados([]);
+      setTemplateConfig(null);
+      setStep(1);
+
+      // 2. Fetch specific doc Snap
+      const docRef = doc(db, 'event_registrations', `${eventKey}_${userId}`);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.documentos) {
+          if (data.documentos.idUrl) setIdPdf({ url: data.documentos.idUrl, name: 'Identificación Guardada' });
+          if (data.documentos.placaUrl) setFotoPlaca({ url: data.documentos.placaUrl, name: 'Foto Placa Guardada' });
+          if (data.documentos.propiedadUrl) setFotoPropiedad({ url: data.documentos.propiedadUrl, name: 'Tarjeta Propiedad Guardada' });
+          if (data.documentos.soatUrl) setFotoSoat({ url: data.documentos.soatUrl, name: 'SOAT Guardado' });
+          if (data.documentos.deportistaUrl) setFotoDeportista({ url: data.documentos.deportistaUrl, name: 'Foto Deportista Guardada' });
+        }
+        if (data.categoria) {
+          const cats = Array.isArray(data.categoria) ? data.categoria : [data.categoria];
+          setCategorias(cats);
+          setCategoriaStr(cats.join(' / ').toUpperCase());
+        }
+        if (data.motocicleta) {
+          setPlaca(data.motocicleta.placa || '');
+          setMarca(data.motocicleta.marca || '');
+          setReferencia(data.motocicleta.referencia || '');
+        }
+        if (data.patrocinadores) setPatrocinadores(data.patrocinadores);
+        if (data.participacionPrevia) setParticipacionPrevia(data.participacionPrevia);
+        if (data.comprobanteUrl && data.estadoPago !== 'rechazado' && data.estadoPago !== 'saldo_pendiente' && data.estadoPago !== 'rechazado_saldo') {
+          setComprobantePago({ url: data.comprobanteUrl, name: 'Comprobante Guardado' });
+        }
+        setEstadoPago(data.estadoPago || 'pendiente');
+        setSaldoFaltante(data.saldoFaltante || '');
+        setMotivoSaldoFaltante(data.motivoSaldoFaltante || '');
+        setDocumentosRechazados(data.documentosRechazados || []);
+        setTemplateConfig(data.templateConfig || null);
+        if (data.estadoPago === 'aprobado' || data.estadoPago === 'pago_dia_evento' || data.estadoPago === 'en_revision' || data.estadoPago === 'rechazado' || data.estadoPago === 'revision_saldo' || data.estadoPago === 'saldo_pendiente' || data.estadoPago === 'rechazado_saldo') {
+           setStep(3);
+        } else {
+           setStep(1); // pendiente o borrador
+        }
+      }
+    } catch (e) {
+      console.error("Error validando el registro del evento:", e);
+    } finally {
+      setIsCheckingStatus(false);
+    }
+  };
+
+  const handleEventSwitch = (eventKey: 'f2r' | 'stuntday') => {
+    setSelectedEvent(eventKey);
+    if (uid) {
+      loadEventData(uid, eventKey);
+    }
+  };
+
+  const renderStatusBadge = (status: string | null) => {
+    if (!status) return null;
+    
+    switch (status) {
+      case 'aprobado':
+      case 'pago_dia_evento':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            INSCRITO APROBADO
+          </span>
+        );
+      case 'en_revision':
+      case 'revision_saldo':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+            EN REVISIÓN
+          </span>
+        );
+      case 'saldo_pendiente':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-500/10 text-blue-400 border border-blue-500/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+            SALDO PENDIENTE
+          </span>
+        );
+      case 'rechazado':
+      case 'rechazado_saldo':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-rose-500/10 text-rose-400 border border-rose-500/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+            RECHAZADO
+          </span>
+        );
+      case 'no_inscrito':
+      default:
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-zinc-800 text-zinc-400 border border-zinc-700">
+            SIN REGISTRO
+          </span>
+        );
+    }
+  };
+
   const refetchRegistrationData = async () => {
     if (!uid) return;
     try {
-      const docSnap = await getDoc(doc(db, 'event_registrations', `f2r_${uid}`));
+      const docSnap = await getDoc(doc(db, 'event_registrations', `${selectedEvent}_${uid}`));
       if (docSnap.exists()) {
         setTemplateConfig(docSnap.data().templateConfig || null);
       }
@@ -105,6 +244,7 @@ export default function InscripcionPage() {
 
       const pilots: any[] = [];
       regSnap.forEach(docSnap => {
+        if (!docSnap.id.startsWith(`${selectedEvent}_`)) return;
         const data = docSnap.data();
         if (data.uid && (data.estadoPago === 'aprobado' || data.estadoPago === 'pago_dia_evento')) {
           let regCats = Array.isArray(data.categoria) ? data.categoria.map(c => String(c).toUpperCase()) : [String(data.categoria || '').toUpperCase()];
@@ -202,11 +342,11 @@ export default function InscripcionPage() {
     toast({ title: 'Subiendo archivo...', description: 'Guardando documento...', duration: 2000 });
     try {
       // Guardar en la raíz de la carpeta del usuario para evitar restricciones de reglas de Storage (storage/unauthorized)
-      const storageRef = ref(storage, `events/f2r/${uid}/${docKey}_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`);
+      const storageRef = ref(storage, `events/${selectedEvent}/${uid}/${docKey}_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`);
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
       
-      const docRef = doc(db, 'event_registrations', `f2r_${uid}`);
+      const docRef = doc(db, 'event_registrations', `${selectedEvent}_${uid}`);
       if (docKey === 'comprobante') {
          await setDoc(docRef, { comprobanteUrl: url, estadoPago: estadoPago === 'pendiente' ? 'borrador' : estadoPago }, { merge: true });
       } else {
@@ -378,7 +518,6 @@ export default function InscripcionPage() {
       if (user) {
         setUid(user.uid);
         
-        // Verifica en tiempo real si el usuario ya envió sus documentos previamente.
         try {
           // Fetch user profile info
           const userDocRef = doc(db, 'users', user.uid);
@@ -398,50 +537,10 @@ export default function InscripcionPage() {
               setStaffRegistered(true);
             }
           }
-
-          const docRef = doc(db, 'event_registrations', `f2r_${user.uid}`);
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists()) {
-             const data = docSnap.data();
-             if (data.documentos) {
-               if (data.documentos.idUrl) setIdPdf({ url: data.documentos.idUrl, name: 'Identificación Guardada' });
-               if (data.documentos.placaUrl) setFotoPlaca({ url: data.documentos.placaUrl, name: 'Foto Placa Guardada' });
-               if (data.documentos.propiedadUrl) setFotoPropiedad({ url: data.documentos.propiedadUrl, name: 'Tarjeta Propiedad Guardada' });
-               if (data.documentos.soatUrl) setFotoSoat({ url: data.documentos.soatUrl, name: 'SOAT Guardado' });
-               if (data.documentos.deportistaUrl) setFotoDeportista({ url: data.documentos.deportistaUrl, name: 'Foto Deportista Guardada' });
-             }
-             if (data.categoria) {
-               const cats = Array.isArray(data.categoria) ? data.categoria : [data.categoria];
-               setCategorias(cats);
-               setCategoriaStr(cats.join(' / ').toUpperCase());
-             }
-             if (data.motocicleta) {
-               setPlaca(data.motocicleta.placa || '');
-               setMarca(data.motocicleta.marca || '');
-               setReferencia(data.motocicleta.referencia || '');
-             }
-             if (data.patrocinadores) setPatrocinadores(data.patrocinadores);
-             if (data.participacionPrevia) setParticipacionPrevia(data.participacionPrevia);
-             if (data.comprobanteUrl && data.estadoPago !== 'rechazado' && data.estadoPago !== 'saldo_pendiente' && data.estadoPago !== 'rechazado_saldo') {
-               setComprobantePago({ url: data.comprobanteUrl, name: 'Comprobante Guardado' });
-             }
-             setEstadoPago(data.estadoPago || 'pendiente');
-             setSaldoFaltante(data.saldoFaltante || '');
-             setMotivoSaldoFaltante(data.motivoSaldoFaltante || '');
-             setDocumentosRechazados(data.documentosRechazados || []);
-             setTemplateConfig(data.templateConfig || null);
-             if (data.estadoPago === 'aprobado' || data.estadoPago === 'pago_dia_evento' || data.estadoPago === 'en_revision' || data.estadoPago === 'rechazado' || data.estadoPago === 'revision_saldo' || data.estadoPago === 'saldo_pendiente' || data.estadoPago === 'rechazado_saldo') {
-                setStep(3);
-             } else {
-                setStep(1); // pendiente o borrador
-             }
-          }
+          await fetchEventStatuses(user.uid);
         } catch (e) {
-          console.error("Error validando el registro anterior:", e);
-        } finally {
-          setIsCheckingStatus(false);
+          console.error("Error loading user profile info:", e);
         }
-
       } else {
         setIsCheckingStatus(false);
         router.push('/');
@@ -454,11 +553,40 @@ export default function InscripcionPage() {
     };
   }, [router]);
 
+  // Load Event Specific Registration Data
+  useEffect(() => {
+    if (uid) {
+      loadEventData(uid, selectedEvent);
+    } else {
+      setIsCheckingStatus(false);
+    }
+  }, [uid, selectedEvent]);
+
   // FIX: Force remove pointer-events: none that Radix UI might leave behind on navigation or errors
   useEffect(() => {
     document.body.style.pointerEvents = '';
     return () => { document.body.style.pointerEvents = ''; };
   }, []);
+
+  // Force no-scroll on page level when selection cards are shown (desktop only)
+  useEffect(() => {
+    const handleScrollBlock = () => {
+      if (activeEvent === null && window.innerWidth >= 768) {
+        document.documentElement.style.overflow = 'hidden';
+        document.body.style.overflow = 'hidden';
+      } else {
+        document.documentElement.style.overflow = '';
+        document.body.style.overflow = '';
+      }
+    };
+    handleScrollBlock();
+    window.addEventListener('resize', handleScrollBlock);
+    return () => {
+      window.removeEventListener('resize', handleScrollBlock);
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+    };
+  }, [activeEvent]);
 
   useEffect(() => {
     if (documentosRechazados.length === 0) {
@@ -519,7 +647,7 @@ export default function InscripcionPage() {
 
   const handleFileUpload = async (file: File | null, pathPrefix: string): Promise<string | null> => {
     if (!file || !uid) return null;
-    const storageRef = ref(storage, `events/f2r/${uid}/${pathPrefix}_${file.name}`);
+    const storageRef = ref(storage, `events/${selectedEvent}/${uid}/${pathPrefix}_${file.name}`);
     await uploadBytes(storageRef, file);
     return await getDownloadURL(storageRef);
   };
@@ -541,7 +669,7 @@ export default function InscripcionPage() {
   const saveCategoriasToDB = async (newCats: string[]) => {
     if (!uid) return;
     try {
-      await setDoc(doc(db, 'event_registrations', `f2r_${uid}`), { uid, categoria: newCats }, { merge: true });
+      await setDoc(doc(db, 'event_registrations', `${selectedEvent}_${uid}`), { uid, categoria: newCats }, { merge: true });
     } catch (e) {
       console.error("Error auto-saving categorias:", e);
     }
@@ -550,7 +678,7 @@ export default function InscripcionPage() {
   const saveMotocicletaToDB = async (field: 'placa'|'marca'|'referencia', val: string) => {
     if (!uid) return;
     try {
-      await setDoc(doc(db, 'event_registrations', `f2r_${uid}`), { 
+      await setDoc(doc(db, 'event_registrations', `${selectedEvent}_${uid}`), { 
         uid,
         motocicleta: { placa, marca, referencia, [field]: val } 
       }, { merge: true });
@@ -562,7 +690,7 @@ export default function InscripcionPage() {
   const saveParticipacionToDB = async (val: string) => {
     if (!uid) return;
     try {
-      await setDoc(doc(db, 'event_registrations', `f2r_${uid}`), { uid, participacionPrevia: val }, { merge: true });
+      await setDoc(doc(db, 'event_registrations', `${selectedEvent}_${uid}`), { uid, participacionPrevia: val }, { merge: true });
     } catch (e) {
       console.error("Error auto-saving participacion:", e);
     }
@@ -571,7 +699,7 @@ export default function InscripcionPage() {
   const savePatrocinadoresToDB = async () => {
     if (!uid) return;
     try {
-      await setDoc(doc(db, 'event_registrations', `f2r_${uid}`), { uid, patrocinadores }, { merge: true });
+      await setDoc(doc(db, 'event_registrations', `${selectedEvent}_${uid}`), { uid, patrocinadores }, { merge: true });
     } catch (e) {
       console.error("Error auto-saving patrocinadores:", e);
     }
@@ -612,7 +740,7 @@ export default function InscripcionPage() {
 
       const formData = {
         uid,
-        eventId: 'f2r_2026',
+        eventId: selectedEvent === 'f2r' ? 'f2r_2026' : 'stuntday_2026',
         categoria: categorias,
         participacionPrevia,
         patrocinadores,
@@ -634,7 +762,7 @@ export default function InscripcionPage() {
         estadoPago: 'en_revision'
       };
 
-      await setDoc(doc(db, 'event_registrations', `f2r_${uid}`), formData);
+      await setDoc(doc(db, 'event_registrations', `${selectedEvent}_${uid}`), formData);
 
       toast({
         title: "Inscripción Enviada",
@@ -673,7 +801,7 @@ export default function InscripcionPage() {
          url = await handleFileUpload(comprobantePago.file, pathPrefix);
       }
       
-      const docRef = doc(db, 'event_registrations', `f2r_${uid}`);
+      const docRef = doc(db, 'event_registrations', `${selectedEvent}_${uid}`);
       
       if (isSaldo) {
         const docSnap = await getDoc(docRef);
@@ -767,38 +895,6 @@ export default function InscripcionPage() {
     );
   }
 
-  if (!isAdminBypass && !isPilotBypass && step !== 3) {
-    return (
-      <div className="min-h-screen relative overflow-hidden bg-[#121212] flex items-center justify-center p-4">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#E60000]/10 blur-[150px] mix-blend-screen pointer-events-none rounded-full"></div>
-        <Card className="max-w-md w-full bg-zinc-950/80 backdrop-blur-xl border-zinc-800/50 shadow-2xl relative z-10 text-center p-8">
-          <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-6" />
-          <h2 className="text-2xl font-black text-white uppercase tracking-widest mb-4">Inscripciones Cerradas</h2>
-          <p className="text-zinc-400 mb-8">
-            Lo sentimos, el periodo de inscripciones para la Copa Stunt F2R ha finalizado.
-          </p>
-          <div className="flex flex-col gap-3">
-            <Button 
-              onClick={() => quickAssignRole('staff')}
-              disabled={isLoading}
-              className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold"
-            >
-              {isLoading ? 'GUARDANDO...' : 'SER STAFF'}
-            </Button>
-            <Button 
-              onClick={() => router.push('/profile')}
-              variant="outline"
-              disabled={isLoading}
-              className="w-full border-zinc-700 text-zinc-300 hover:bg-zinc-800"
-            >
-              MI PERFIL
-            </Button>
-          </div>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen relative overflow-hidden bg-[#121212]">
       {mounted && windowSize.width > 0 && (estadoPago === 'aprobado' || estadoPago === 'pago_dia_evento') && (
@@ -815,15 +911,154 @@ export default function InscripcionPage() {
       {/* Background glow */}
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#E60000]/10 blur-[150px] mix-blend-screen pointer-events-none rounded-full"></div>
 
-      <div className="flex flex-col p-4 lg:p-8 text-zinc-100 max-w-5xl mx-auto w-full relative z-10">
+      <div className={activeEvent === null ? "flex flex-col text-zinc-100 w-full relative z-10 h-[calc(100vh-80px)] overflow-y-auto md:overflow-hidden" : "flex flex-col p-4 lg:p-8 text-zinc-100 max-w-5xl mx-auto w-full relative z-10"}>
         
         {isCheckingStatus ? (
           <div className="flex flex-col items-center justify-center min-h-[60vh]">
             <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin"></div>
             <p className="mt-6 text-red-600 font-bold uppercase tracking-widest text-sm animate-pulse">Sincronizando perfil...</p>
           </div>
+        ) : activeEvent === null ? (
+          /* PANTALLA DE SELECCIÓN DE EVENTOS */
+          <div className="relative w-full flex flex-col justify-start items-start p-6 sm:p-12 md:p-16 h-full z-10 text-left overflow-y-auto md:overflow-hidden">
+            {/* Fullscreen Backdrop specific to the selection view */}
+            <div 
+              className="fixed inset-0 bg-cover bg-center bg-no-repeat z-0" 
+              style={{ backgroundImage: "linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.7)), url('/sponsors/Diseño%20sin%20título.png')" }}
+            />
+            
+            <div className="relative z-10 text-left w-full max-w-4xl animate-in fade-in slide-in-from-top-4 duration-500 pb-16 md:pb-0">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                {/* Event Card 1: Stunt Day (Open Inscriptions First) */}
+                <div 
+                  onClick={() => {
+                    handleEventSwitch('stuntday');
+                    setActiveEvent('stuntday');
+                  }}
+                  className="group relative bg-[#09090b]/85 backdrop-blur-xl border border-zinc-800 rounded-3xl p-6 flex flex-col justify-between items-center text-center cursor-pointer transition-all duration-500 hover:border-red-500/40 hover:shadow-[0_0_50px_rgba(230,0,0,0.18)] hover:-translate-y-1.5 overflow-hidden min-h-[330px] shadow-2xl"
+                >
+                  {/* Red Neon Glowing Strips */}
+                  <div className="absolute top-0 inset-x-8 h-0.5 bg-gradient-to-r from-transparent via-[#E60000] to-transparent group-hover:h-1 group-hover:shadow-[0_0_15px_#E60000] transition-all duration-300"></div>
+                  <div className="absolute bottom-0 inset-x-8 h-0.5 bg-gradient-to-r from-transparent via-[#E60000] to-transparent group-hover:h-1 group-hover:shadow-[0_0_15px_#E60000] transition-all duration-300"></div>
+
+                  <div className="absolute -top-10 -right-10 w-40 h-40 bg-red-500/[0.02] rounded-full blur-3xl group-hover:bg-red-500/[0.06] transition-all"></div>
+                  
+                  {/* Logo Area */}
+                  <div className="h-28 flex items-center justify-center mb-4">
+                    <img 
+                      src="/sponsors/stuntday3.png" 
+                      alt="Stunt Day 2026" 
+                      className="max-h-full max-w-full object-contain filter drop-shadow-[0_0_15px_rgba(255,255,255,0.03)] group-hover:scale-105 transition-all duration-500"
+                    />
+                  </div>
+
+                  {/* Details */}
+                  <div className="mb-2 z-10">
+                    <h2 className="text-lg sm:text-xl font-black text-white tracking-wider uppercase mb-1">
+                      STUNT DAY 2026
+                    </h2>
+                    <p className="text-zinc-400 text-[11px] sm:text-xs line-clamp-1 px-4">
+                      El encuentro que reúne la cultura stunt nacional.
+                    </p>
+                  </div>
+
+                  {/* Countdown Time Badge */}
+                  <div className="mb-2.5 z-10 px-3 py-1 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 text-[9px] font-black tracking-widest uppercase flex items-center gap-1.5 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                    ⏱️ 50 DÍAS PARA EL CIERRE
+                  </div>
+
+                  {/* Status Badge */}
+                  <div className="mb-3.5 z-10">
+                    {renderStatusBadge(stuntdayStatus)}
+                  </div>
+
+                  {/* Action Button */}
+                  <button 
+                    type="button"
+                    className="w-full py-2.5 rounded-xl bg-zinc-900 text-white font-bold tracking-wider uppercase border border-zinc-850 group-hover:bg-[#E60000] group-hover:text-black group-hover:border-transparent transition-all duration-300 shadow-md group-hover:shadow-[0_0_20px_rgba(230,0,0,0.3)] z-10 text-[10px]"
+                  >
+                    REGISTRARSE O CONSULTAR ESTADO
+                  </button>
+                </div>
+
+                {/* Event Card 2: Copa Stunt F2R (Closed Event Second) */}
+                <div 
+                  onClick={() => {
+                    if (f2rStatus === 'no_inscrito') {
+                      toast({
+                        title: "Inscripciones Cerradas",
+                        description: "El periodo de registro para la Copa Stunt F2R 2026 ha finalizado.",
+                        variant: "destructive"
+                      });
+                      return;
+                    }
+                    handleEventSwitch('f2r');
+                    setActiveEvent('f2r');
+                  }}
+                  className="group relative bg-[#09090b]/85 backdrop-blur-xl border border-zinc-800 rounded-3xl p-6 flex flex-col justify-between items-center text-center cursor-pointer transition-all duration-500 hover:border-emerald-500/40 hover:shadow-[0_0_50px_rgba(16,185,129,0.18)] hover:-translate-y-1.5 overflow-hidden min-h-[330px] shadow-2xl"
+                >
+                  {/* Green Neon Glowing Strips */}
+                  <div className="absolute top-0 inset-x-8 h-0.5 bg-gradient-to-r from-transparent via-emerald-500 to-transparent group-hover:h-1 group-hover:shadow-[0_0_15px_#10B981] transition-all duration-300"></div>
+                  <div className="absolute bottom-0 inset-x-8 h-0.5 bg-gradient-to-r from-transparent via-emerald-500 to-transparent group-hover:h-1 group-hover:shadow-[0_0_15px_#10B981] transition-all duration-300"></div>
+
+                  <div className="absolute -top-10 -right-10 w-40 h-40 bg-emerald-500/[0.02] rounded-full blur-3xl group-hover:bg-emerald-500/[0.06] transition-all"></div>
+                  
+                  {/* Logo Area */}
+                  <div className="h-28 flex items-center justify-center mb-4">
+                    <img 
+                      src="/sponsors/copa%20stunt%20nitrox%20f2r.png" 
+                      alt="Copa Stunt F2R 2026" 
+                      className="max-h-full max-w-full object-contain filter drop-shadow-[0_0_15px_rgba(255,255,255,0.03)] group-hover:scale-105 transition-all duration-500"
+                    />
+                  </div>
+
+                  {/* Details */}
+                  <div className="mb-2 z-10">
+                    <h2 className="text-lg sm:text-xl font-black text-white tracking-wider uppercase mb-1">
+                      COPA STUNT F2R 2026
+                    </h2>
+                    <p className="text-zinc-400 text-[11px] sm:text-xs line-clamp-1 px-4">
+                      El campeonato de stunt más importante del país.
+                    </p>
+                  </div>
+
+                  {/* Event Closed Badge */}
+                  <div className="mb-2.5 z-10 px-3 py-1 rounded-lg bg-red-950/40 border border-red-500/30 text-[#E60000] text-[9px] font-black tracking-widest uppercase flex items-center gap-1.5 shadow-[0_0_15px_rgba(230,0,0,0.1)]">
+                    <span className="w-1 h-1 rounded-full bg-red-500 animate-pulse"></span>
+                    EVENTO CERRADO
+                  </div>
+
+                  {/* Status Badge */}
+                  <div className="mb-3.5 z-10">
+                    {renderStatusBadge(f2rStatus)}
+                  </div>
+
+                  {/* Action Button */}
+                  <button 
+                    type="button"
+                    className="w-full py-2.5 rounded-xl bg-zinc-900 text-white font-bold tracking-wider uppercase border border-zinc-850 group-hover:bg-[#E60000] group-hover:text-black group-hover:border-transparent transition-all duration-300 shadow-md group-hover:shadow-[0_0_20px_rgba(230,0,0,0.3)] z-10 text-[10px]"
+                  >
+                    CONSULTAR ESTADO
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         ) : (
           <>
+            {/* Botón Volver a Eventos */}
+            <button 
+              type="button" 
+              onClick={() => {
+                setActiveEvent(null);
+                if (uid) fetchEventStatuses(uid);
+              }} 
+              className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors mb-6 text-xs sm:text-sm font-bold uppercase tracking-widest bg-[#121212] hover:bg-[#1C1C1C] border border-zinc-800 px-4 py-2.5 rounded-2xl w-fit shadow-md"
+            >
+              <ArrowLeft className="w-4 h-4 text-[#E60000]" /> VOLVER A EVENTOS
+            </button>
+
             {/* PASO 1: FORMULARIO SECUENCIAL */}
             {step === 1 && (
               <form onSubmit={handleFormSubmit} className="animate-in fade-in zoom-in-95 duration-500 max-w-5xl mx-auto w-full">
@@ -835,7 +1070,7 @@ export default function InscripcionPage() {
                   <ArrowLeft className="w-6 h-6" />
                 </Link>
                 <h1 className="text-xl md:text-2xl font-black tracking-tight text-white uppercase">
-                  Adjunta tus Documentos
+                  {selectedEvent === 'f2r' ? 'Inscripción Copa Stunt F2R 2026' : 'Inscripción Stunt Day 2026'}
                 </h1>
               </div>
               <div className="flex items-center justify-between text-xs font-bold tracking-widest text-[#B0B0B0] mb-2">
@@ -1463,15 +1698,15 @@ export default function InscripcionPage() {
                 <div className="bg-[#121212] border border-[#2A2A2A] rounded-2xl overflow-hidden shadow-2xl mb-8 flex flex-col items-center" style={{ transform: 'scale(1.15)', transformOrigin: 'top center', margin: '20px auto 60px auto', maxWidth: '400px', width: '100%' }}>
                   <div className="panel-header font-display w-full" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px 10px', borderBottom: 'none' }}>
                     <img 
-                      src="/sponsors/copa%20stunt%20nitrox%20f2r.png" 
-                      alt="Copa Stunt F2R Nitrox" 
+                      src={selectedEvent === 'f2r' ? "/sponsors/copa%20stunt%20nitrox%20f2r.png" : "/sponsors/stuntday3.png"} 
+                      alt={selectedEvent === 'f2r' ? "Copa Stunt F2R Nitrox" : "Stunt Day Nitrox"} 
                       style={{ height: '90px', objectFit: 'contain', filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.2))' }} 
                     />
                   </div>
                   <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px', width: '100%' }}>
                     <div style={{ width: '100%', padding: '0 10px' }}>
                       <div style={{ fontSize: '0.9rem', color: '#00cfff', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 800, textAlign: 'center', marginBottom: '10px' }}>
-                        PUNTAJE VÁLIDA F2R {(() => {
+                        {selectedEvent === 'f2r' ? 'PUNTAJE VÁLIDA F2R' : 'PUNTAJE VÁLIDA STUNT DAY'} {(() => {
                           const getMappedCategory = (c: string) => {
                             let f = String(c).toUpperCase().trim();
                             if (f.includes('ALTO') || f === 'CATEGORIA NITROX' || f === 'NITROX') return 'NITROX';
@@ -1630,7 +1865,7 @@ export default function InscripcionPage() {
         {step === 3 && (estadoPago === 'aprobado' || estadoPago === 'pago_dia_evento') && (
           <div className="mt-8 w-full max-w-5xl mx-auto">
             <SocialMediaCard 
-              pilotId={`f2r_${uid}`}
+              pilotId={`${selectedEvent}_${uid}`}
               pilotName={`${nombres} ${apellidos}`}
               pilotPseudonym={seudonimo}
               pilotCategory={categorias.join(' / ')}
