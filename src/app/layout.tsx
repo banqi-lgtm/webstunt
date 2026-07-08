@@ -4,10 +4,10 @@ import { Toaster } from '@/components/ui/toaster';
 import { Facebook, Instagram } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'PASKINES-STUNT',
+  title: 'BTL & STUNT COL',
   description: 'Paskines Stunt (PKS) es la productora de eventos BTL y experiencias de stunt más importante de Colombia. Conectamos marcas, pilotos y audiencia.',
   openGraph: {
-    title: 'PASKINES-STUNT',
+    title: 'BTL & STUNT COL',
     description: 'Paskines Stunt (PKS) es la productora líder en eventos BTL, activaciones de marca y campeonatos de stunt en Colombia. Regístrate en nuestro ecosistema digital.',
     url: 'https://paskinesstunt.com/',
     siteName: 'Paskines Stunt',
@@ -24,10 +24,10 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: '/sponsors/PKS Negro.png?v=3', type: 'image/png' }
+      { url: '/sponsors/PKS Negro.png?v=4', type: 'image/png' }
     ],
-    shortcut: '/sponsors/PKS Negro.png?v=3',
-    apple: '/sponsors/PKS Negro.png?v=3',
+    shortcut: '/sponsors/PKS Negro.png?v=4',
+    apple: '/sponsors/PKS Negro.png?v=4',
   },
 };
 
