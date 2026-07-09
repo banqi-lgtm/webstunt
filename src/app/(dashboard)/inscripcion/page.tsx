@@ -136,8 +136,10 @@ export default function InscripcionPage() {
   };
 
   const renderStatusBadge = (status: string | null) => {
-    let text = 'SIN REGISTRO';
-    let colorClass = 'bg-zinc-950/80 border-zinc-850 text-zinc-500';
+    if (!status || status === 'no_inscrito') return null;
+    
+    let text = '';
+    let colorClass = '';
     
     if (status === 'aprobado' || status === 'pago_dia_evento') {
       text = 'APROBADO';
@@ -151,6 +153,8 @@ export default function InscripcionPage() {
     } else if (status === 'rechazado' || status === 'rechazado_saldo') {
       text = 'RECHAZADO';
       colorClass = 'bg-rose-950/20 border-rose-500/30 text-rose-400';
+    } else {
+      return null;
     }
     
     return (
@@ -883,7 +887,7 @@ export default function InscripcionPage() {
       subtitle: 'El encuentro que reúne la cultura stunt nacional.',
       bgImage: '/sponsors/stuntday_bg_card.png',
       logo: '/sponsors/stuntday3.png',
-      logoClass: 'h-20 sm:h-24 md:h-26 lg:h-28 -my-6 md:-my-8 object-contain scale-[1.3] origin-left',
+      logoClass: 'h-16 sm:h-20 md:h-22 -my-2 md:-my-3 object-contain scale-[1.18] origin-left',
       theme: {
         border: 'border-[#E60000]/30 hover:border-[#E60000]/70',
         glow: 'shadow-[0_0_30px_rgba(230,0,0,0.1)] hover:shadow-[0_0_50px_rgba(230,0,0,0.25)]',
@@ -903,7 +907,7 @@ export default function InscripcionPage() {
       subtitle: 'El campeonato de stunt más importante del país.',
       bgImage: '/sponsors/f2r_bg_card.png',
       logo: '/sponsors/copa stunt nitrox f2r.png',
-      logoClass: 'h-15 sm:h-18 md:h-20 lg:h-22 -my-3 md:-my-5 object-contain scale-[1.15] origin-left',
+      logoClass: 'h-14 sm:h-16 md:h-18 -my-2 md:-my-3 object-contain scale-[1.1] origin-left',
       theme: {
         border: 'border-emerald-500/30 hover:border-emerald-500/70',
         glow: 'shadow-[0_0_30px_rgba(16,185,129,0.06)] hover:shadow-[0_0_50px_rgba(16,185,129,0.18)]',
@@ -957,6 +961,15 @@ export default function InscripcionPage() {
         ) : activeEvent === null ? (
           /* PANTALLA DE SELECCIÓN DE EVENTOS */
           <div className="relative w-full flex flex-col justify-center items-center h-full z-10 text-center max-w-6xl px-4 py-4">
+            {/* Hard lock scrollbars at root layout viewport levels to completely disable page scrolling */}
+            <style dangerouslySetInnerHTML={{__html: `
+              html, body, #__next, main, .min-h-screen, div[class*="min-h-screen"], div[class*="min-h-[calc"] {
+                overflow: hidden !important;
+                height: 100vh !important;
+                max-height: 100vh !important;
+              }
+            `}} />
+
             {/* Fullscreen Backdrop specific to the selection view */}
             <div 
               className="fixed inset-0 bg-cover bg-center bg-no-repeat z-0" 
@@ -973,9 +986,9 @@ export default function InscripcionPage() {
                       onClick={() => handleCardClick(event)}
                       className={`group relative bg-[#060608] rounded-[2rem] flex flex-col md:flex-row justify-start items-center cursor-pointer transition-all duration-500 overflow-hidden min-h-[460px] md:min-h-0 md:h-[300px] w-full border ${event.theme.border} ${event.theme.glow}`}
                     >
-                      {/* Visual Side Column (45% on desktop) - Displays the rider image prominently using cover with top-center offset */}
+                      {/* Visual Side Column (45% on desktop) - Displays the rider image prominently shifted to the right */}
                       <div 
-                        className="w-full md:w-[45%] h-[180px] md:h-full bg-cover bg-[position:center_8%] bg-no-repeat pointer-events-none relative transition-transform duration-700 group-hover:scale-102 bg-[#060608]"
+                        className="w-full md:w-[45%] h-[180px] md:h-full bg-cover bg-[position:80%_8%] bg-no-repeat pointer-events-none relative transition-transform duration-700 group-hover:scale-102 bg-[#060608]"
                         style={{ backgroundImage: `url('${event.bgImage}')` }}
                       >
                         {/* Smooth visual to solid card background transition */}
