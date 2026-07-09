@@ -874,6 +874,60 @@ export default function InscripcionPage() {
       </div>
     );
   }
+  // Array definition and handler for premium event cards selection view
+  const eventsData = [
+    {
+      id: 'stuntday' as const,
+      title: 'STUNT DAY',
+      titleAccent: '2026',
+      subtitle: 'El encuentro que reúne la cultura stunt nacional.',
+      bgImage: '/sponsors/stuntday_bg_card.png',
+      logo: '/sponsors/stuntday3.png',
+      theme: {
+        border: 'border-[#E60000]/20 hover:border-[#E60000]/60',
+        glow: 'shadow-[0_0_30px_rgba(230,0,0,0.08)] hover:shadow-[0_0_50px_rgba(230,0,0,0.3)]',
+        badgeText: 'text-[#E60000]',
+        titleAccentColor: 'text-[#E60000]',
+        btnGradient: 'from-red-700 via-red-600 to-red-700 hover:from-red-650 hover:to-red-550 border-red-500/20 shadow-red-950/40',
+      },
+      statusText: '50 DÍAS PARA EL CIERRE',
+      statusIcon: Calendar,
+      userStatus: stuntdayStatus,
+      ctaText: 'REGISTRARSE AHORA',
+    },
+    {
+      id: 'f2r' as const,
+      title: 'COPA STUNT',
+      titleAccent: 'F2R 2026',
+      subtitle: 'El campeonato de stunt más importante del país.',
+      bgImage: '/sponsors/f2r_bg_card.png',
+      logo: '/sponsors/copa stunt nitrox f2r.png',
+      theme: {
+        border: 'border-emerald-500/10 hover:border-emerald-500/40',
+        glow: 'shadow-[0_0_30px_rgba(16,185,129,0.05)] hover:shadow-[0_0_50px_rgba(16,185,129,0.2)]',
+        badgeText: 'text-[#E60000]',
+        titleAccentColor: 'text-emerald-400',
+        btnGradient: 'from-emerald-600 via-emerald-500 to-emerald-600 hover:from-emerald-555 hover:to-emerald-455 border-emerald-500/20 shadow-emerald-950/40',
+      },
+      statusText: 'EVENTO CERRADO',
+      statusIcon: Lock,
+      userStatus: f2rStatus,
+      ctaText: 'CONSULTAR ESTADO',
+    }
+  ];
+
+  const handleCardClick = (event: typeof eventsData[0]) => {
+    if (event.id === 'f2r' && f2rStatus === 'no_inscrito') {
+      toast({
+        title: "Inscripciones Cerradas",
+        description: "El periodo de registro para la Copa Stunt F2R 2026 ha finalizado.",
+        variant: "destructive"
+      });
+      return;
+    }
+    handleEventSwitch(event.id);
+    setActiveEvent(event.id);
+  };
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-[#121212]">
@@ -909,133 +963,66 @@ export default function InscripcionPage() {
             
             <div className="relative z-10 flex flex-col items-center w-full animate-in fade-in zoom-in-95 duration-500">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full max-w-4xl justify-center items-center mb-8">
-                
-                {/* Event Card 1: Stunt Day (Open Inscriptions First) */}
-                <div 
-                  onClick={() => {
-                    handleEventSwitch('stuntday');
-                    setActiveEvent('stuntday');
-                  }}
-                  className="group relative bg-[#060608]/90 backdrop-blur-xl border border-[#E60000]/20 rounded-[2rem] flex flex-col md:flex-row justify-start items-center cursor-pointer transition-all duration-500 hover:border-[#E60000]/60 shadow-[0_0_30px_rgba(230,0,0,0.08)] hover:shadow-[0_0_50px_rgba(230,0,0,0.3)] hover:-translate-y-1.5 overflow-hidden min-h-[460px] md:h-[400px] w-full"
-                >
-                  {/* Visual Side Column (42%) */}
-                  <div 
-                    className="w-full md:w-[42%] h-[180px] md:h-full bg-cover bg-center pointer-events-none relative transition-transform duration-700 group-hover:scale-102"
-                    style={{ backgroundImage: "url('/sponsors/stuntday_bg_card.png')" }}
-                  >
-                    {/* Glowing overlay strip on the border boundary */}
-                    <div className="absolute inset-y-0 right-0 w-1/3 bg-gradient-to-l from-[#060608] to-transparent hidden md:block"></div>
-                    <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-[#060608] to-transparent md:hidden"></div>
-                  </div>
-
-                  {/* Content Column (58%) */}
-                  <div className="w-full md:w-[58%] h-auto md:h-full bg-[#060608] p-7 md:p-8 flex flex-col justify-between items-start text-left z-10 border-t md:border-t-0 md:border-l border-zinc-900/60 relative">
-                    {/* Top Row: Event Logo & User status badge */}
-                    <div className="w-full flex items-center justify-between gap-4 mb-4">
-                      <img 
-                        src="/sponsors/stuntday3.png" 
-                        alt="Stunt Day Logo" 
-                        className="h-8 object-contain filter opacity-80 group-hover:opacity-100 transition-all duration-500"
-                      />
-                      {renderStatusBadge(stuntdayStatus)}
-                    </div>
-
-                    {/* Middle Section: Event Badge, Title, and Description */}
-                    <div className="w-full flex flex-col gap-3 my-auto pb-4">
-                      {/* Event Status Badge */}
-                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-950/20 border border-red-500/20 text-[#E60000] text-[9px] font-black tracking-widest uppercase w-fit shadow-[0_0_15px_rgba(230,0,0,0.05)]">
-                        <Calendar className="w-3.5 h-3.5 text-[#E60000]" />
-                        <span>50 DÍAS PARA EL CIERRE</span>
+                {eventsData.map((event) => {
+                  const StatusIcon = event.statusIcon;
+                  return (
+                    <div 
+                      key={event.id}
+                      onClick={() => handleCardClick(event)}
+                      className={`group relative bg-[#060608]/90 backdrop-blur-xl rounded-[2rem] flex flex-col md:flex-row justify-start items-center cursor-pointer transition-all duration-500 overflow-hidden min-h-[460px] md:h-[400px] w-full border ${event.theme.border} ${event.theme.glow}`}
+                    >
+                      {/* Visual Side Column (42%) */}
+                      <div 
+                        className="w-full md:w-[42%] h-[180px] md:h-full bg-cover bg-center pointer-events-none relative transition-transform duration-700 group-hover:scale-102"
+                        style={{ backgroundImage: `url('${event.bgImage}')` }}
+                      >
+                        {/* Glowing overlay strip on the border boundary */}
+                        <div className="absolute inset-y-0 right-0 w-1/3 bg-gradient-to-l from-[#060608] to-transparent hidden md:block"></div>
+                        <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-[#060608] to-transparent md:hidden"></div>
                       </div>
 
-                      {/* Event Title */}
-                      <h2 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight leading-none">
-                        STUNT DAY <span className="text-[#E60000]">2026</span>
-                      </h2>
+                      {/* Content Column (58%) */}
+                      <div className="w-full md:w-[58%] h-auto md:h-full bg-[#060608] p-7 md:p-8 flex flex-col justify-between items-start text-left z-10 border-t md:border-t-0 md:border-l border-zinc-900/60 relative">
+                        {/* Top Row: Event Logo & User status badge */}
+                        <div className="w-full flex items-center justify-between gap-4 mb-4">
+                          <img 
+                            src={event.logo} 
+                            alt={`${event.title} Logo`} 
+                            className="h-8 object-contain filter opacity-80 group-hover:opacity-100 transition-all duration-500"
+                          />
+                          {renderStatusBadge(event.userStatus)}
+                        </div>
 
-                      {/* Event Description */}
-                      <p className="text-zinc-400 text-xs font-semibold leading-relaxed max-w-[240px]">
-                        El encuentro que reúne la cultura stunt nacional.
-                      </p>
-                    </div>
+                        {/* Middle Section: Event Badge, Title, and Description */}
+                        <div className="w-full flex flex-col gap-3 my-auto pb-4">
+                          {/* Event Status Badge */}
+                          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-950/20 border border-red-500/20 ${event.theme.badgeText} text-[9px] font-black tracking-widest uppercase w-fit shadow-[0_0_15px_rgba(230,0,0,0.05)]`}>
+                            <StatusIcon className={`w-3.5 h-3.5 ${event.theme.badgeText}`} />
+                            <span>{event.statusText}</span>
+                          </div>
 
-                    {/* Bottom Row: CTA Button */}
-                    <button 
-                      type="button"
-                      className="w-full py-3.5 rounded-xl bg-gradient-to-r from-red-700 via-red-600 to-red-700 hover:from-red-650 hover:to-red-550 text-white font-extrabold tracking-widest uppercase shadow-lg shadow-red-950/40 text-[9px] flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.02] border border-red-500/20"
-                    >
-                      REGISTRARSE AHORA <ChevronRight className="w-4 h-4 text-white/80" />
-                    </button>
-                  </div>
-                </div>
+                          {/* Event Title */}
+                          <h2 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight leading-none">
+                            {event.title} <span className={event.theme.titleAccentColor}>{event.titleAccent}</span>
+                          </h2>
 
-                {/* Event Card 2: Copa Stunt F2R (Closed Event Second) */}
-                <div 
-                  onClick={() => {
-                    if (f2rStatus === 'no_inscrito') {
-                      toast({
-                        title: "Inscripciones Cerradas",
-                        description: "El periodo de registro para la Copa Stunt F2R 2026 ha finalizado.",
-                        variant: "destructive"
-                      });
-                      return;
-                    }
-                    handleEventSwitch('f2r');
-                    setActiveEvent('f2r');
-                  }}
-                  className="group relative bg-[#060608]/90 backdrop-blur-xl border border-emerald-500/10 rounded-[2rem] flex flex-col md:flex-row justify-start items-center cursor-pointer transition-all duration-500 hover:border-emerald-500/40 shadow-[0_0_30px_rgba(16,185,129,0.05)] hover:shadow-[0_0_50px_rgba(16,185,129,0.2)] hover:-translate-y-1.5 overflow-hidden min-h-[460px] md:h-[400px] w-full"
-                >
-                  {/* Visual Side Column (42%) */}
-                  <div 
-                    className="w-full md:w-[42%] h-[180px] md:h-full bg-cover bg-center pointer-events-none relative transition-transform duration-700 group-hover:scale-102"
-                    style={{ backgroundImage: "url('/sponsors/f2r_bg_card.png')" }}
-                  >
-                    {/* Glowing overlay strip on the border boundary */}
-                    <div className="absolute inset-y-0 right-0 w-1/3 bg-gradient-to-l from-[#060608] to-transparent hidden md:block"></div>
-                    <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-[#060608] to-transparent md:hidden"></div>
-                  </div>
+                          {/* Event Description */}
+                          <p className="text-zinc-400 text-xs font-semibold leading-relaxed max-w-[240px]">
+                            {event.subtitle}
+                          </p>
+                        </div>
 
-                  {/* Content Column (58%) */}
-                  <div className="w-full md:w-[58%] h-auto md:h-full bg-[#060608] p-7 md:p-8 flex flex-col justify-between items-start text-left z-10 border-t md:border-t-0 md:border-l border-zinc-900/60 relative">
-                    {/* Top Row: Event Logo & User status badge */}
-                    <div className="w-full flex items-center justify-between gap-4 mb-4">
-                      <img 
-                        src="/sponsors/copa stunt nitrox f2r.png" 
-                        alt="Copa Stunt F2R Logo" 
-                        className="h-8 object-contain filter opacity-80 group-hover:opacity-100 transition-all duration-500"
-                      />
-                      {renderStatusBadge(f2rStatus)}
-                    </div>
-
-                    {/* Middle Section: Event Badge, Title, and Description */}
-                    <div className="w-full flex flex-col gap-3 my-auto pb-4">
-                      {/* Event Status Badge (Outline with Lock Icon) */}
-                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-950/20 border border-red-500/20 text-[#E60000] text-[9px] font-black tracking-widest uppercase w-fit shadow-[0_0_15px_rgba(230,0,0,0.05)]">
-                        <Lock className="w-3.5 h-3.5 text-[#E60000]" />
-                        <span>EVENTO CERRADO</span>
+                        {/* Bottom Row: CTA Button */}
+                        <button 
+                          type="button"
+                          className={`w-full py-3.5 rounded-xl bg-gradient-to-r text-white font-extrabold tracking-widest uppercase shadow-lg text-[9px] flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.02] border ${event.theme.btnGradient}`}
+                        >
+                          {event.ctaText} <ChevronRight className="w-4 h-4 text-white/80" />
+                        </button>
                       </div>
-
-                      {/* Event Title */}
-                      <h2 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight leading-none">
-                        COPA STUNT <span className="text-emerald-400">F2R 2026</span>
-                      </h2>
-
-                      {/* Event Description */}
-                      <p className="text-zinc-400 text-xs font-semibold leading-relaxed max-w-[240px]">
-                        El campeonato de stunt más importante del país.
-                      </p>
                     </div>
-
-                    {/* Bottom Row: CTA Button */}
-                    <button 
-                      type="button"
-                      className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-emerald-600 hover:from-emerald-555 hover:to-emerald-455 text-white font-extrabold tracking-widest uppercase shadow-lg shadow-emerald-950/40 text-[9px] flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.02] border border-emerald-500/20"
-                    >
-                      CONSULTAR ESTADO <ChevronRight className="w-4 h-4 text-white/80" />
-                    </button>
-                  </div>
-                </div>
-
+                  );
+                })}
               </div>
 
               {/* Extra Branding Footer */}
