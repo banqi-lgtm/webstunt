@@ -136,48 +136,28 @@ export default function InscripcionPage() {
   };
 
   const renderStatusBadge = (status: string | null) => {
-    if (!status) return null;
+    let text = 'SIN REGISTRO';
+    let colorClass = 'bg-zinc-950/80 border-zinc-850 text-zinc-500';
     
-    switch (status) {
-      case 'aprobado':
-      case 'pago_dia_evento':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            INSCRITO APROBADO
-          </span>
-        );
-      case 'en_revision':
-      case 'revision_saldo':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-            EN REVISIÓN
-          </span>
-        );
-      case 'saldo_pendiente':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-500/10 text-blue-400 border border-blue-500/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
-            SALDO PENDIENTE
-          </span>
-        );
-      case 'rechazado':
-      case 'rechazado_saldo':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-rose-500/10 text-rose-400 border border-rose-500/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
-            RECHAZADO
-          </span>
-        );
-      case 'no_inscrito':
-      default:
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-zinc-800 text-zinc-400 border border-zinc-700">
-            SIN REGISTRO
-          </span>
-        );
+    if (status === 'aprobado' || status === 'pago_dia_evento') {
+      text = 'APROBADO';
+      colorClass = 'bg-emerald-950/20 border-emerald-500/30 text-emerald-400';
+    } else if (status === 'en_revision' || status === 'revision_saldo') {
+      text = 'EN REVISIÓN';
+      colorClass = 'bg-amber-950/20 border-amber-500/30 text-amber-400';
+    } else if (status === 'saldo_pendiente') {
+      text = 'SALDO PENDIENTE';
+      colorClass = 'bg-blue-950/20 border-blue-500/30 text-blue-400';
+    } else if (status === 'rechazado' || status === 'rechazado_saldo') {
+      text = 'RECHAZADO';
+      colorClass = 'bg-rose-950/20 border-rose-500/30 text-rose-400';
     }
+    
+    return (
+      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[8px] font-black tracking-widest uppercase border ${colorClass}`}>
+        {text}
+      </span>
+    );
   };
 
   const refetchRegistrationData = async () => {
@@ -920,15 +900,15 @@ export default function InscripcionPage() {
           </div>
         ) : activeEvent === null ? (
           /* PANTALLA DE SELECCIÓN DE EVENTOS */
-          <div className="relative w-full flex flex-col justify-center items-center h-full z-10 text-center max-w-5xl px-4 py-6">
+          <div className="relative w-full flex flex-col justify-center items-center h-full z-10 text-center max-w-5xl px-4 py-8">
             {/* Fullscreen Backdrop specific to the selection view */}
             <div 
               className="fixed inset-0 bg-cover bg-center bg-no-repeat z-0" 
-              style={{ backgroundImage: "linear-gradient(rgba(0,0,0,0.65), rgba(0,0,0,0.85)), url('/sponsors/Diseño%20sin%20título.png')" }}
+              style={{ backgroundImage: "linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.9)), url('/sponsors/Diseño%20sin%20título.png')" }}
             />
             
             <div className="relative z-10 flex flex-col items-center w-full animate-in fade-in zoom-in-95 duration-500">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl justify-center items-center mb-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full max-w-4xl justify-center items-center mb-8">
                 
                 {/* Event Card 1: Stunt Day (Open Inscriptions First) */}
                 <div 
@@ -936,57 +916,55 @@ export default function InscripcionPage() {
                     handleEventSwitch('stuntday');
                     setActiveEvent('stuntday');
                   }}
-                  className="group relative bg-[#09090b]/90 backdrop-blur-xl border border-[#E60000]/30 rounded-[2rem] flex flex-row justify-start items-center cursor-pointer transition-all duration-500 hover:border-[#E60000]/80 shadow-[0_0_20px_rgba(230,0,0,0.15)] hover:shadow-[0_0_40px_rgba(230,0,0,0.45)] hover:-translate-y-1.5 overflow-hidden h-[380px] w-full bg-cover bg-center"
-                  style={{ backgroundImage: "url('/sponsors/stuntday_bg_card.png')" }}
+                  className="group relative bg-[#060608]/90 backdrop-blur-xl border border-[#E60000]/20 rounded-[2rem] flex flex-col md:flex-row justify-start items-center cursor-pointer transition-all duration-500 hover:border-[#E60000]/60 shadow-[0_0_30px_rgba(230,0,0,0.08)] hover:shadow-[0_0_50px_rgba(230,0,0,0.3)] hover:-translate-y-1.5 overflow-hidden min-h-[460px] md:h-[400px] w-full"
                 >
-                  {/* Red Neon Glowing Strips */}
-                  <div className="absolute top-0 inset-x-8 h-0.5 bg-gradient-to-r from-transparent via-[#E60000] to-transparent group-hover:h-1 group-hover:shadow-[0_0_15px_#E60000] transition-all duration-300"></div>
-                  <div className="absolute bottom-0 inset-x-8 h-0.5 bg-gradient-to-r from-transparent via-[#E60000] to-transparent group-hover:h-1 group-hover:shadow-[0_0_15px_#E60000] transition-all duration-300"></div>
+                  {/* Visual Side Column (42%) */}
+                  <div 
+                    className="w-full md:w-[42%] h-[180px] md:h-full bg-cover bg-center pointer-events-none relative transition-transform duration-700 group-hover:scale-102"
+                    style={{ backgroundImage: "url('/sponsors/stuntday_bg_card.png')" }}
+                  >
+                    {/* Glowing overlay strip on the border boundary */}
+                    <div className="absolute inset-y-0 right-0 w-1/3 bg-gradient-to-l from-[#060608] to-transparent hidden md:block"></div>
+                    <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-[#060608] to-transparent md:hidden"></div>
+                  </div>
 
-                  {/* Left Spacer to show the background stunt rider wheelie */}
-                  <div className="w-[42%] h-full pointer-events-none"></div>
-
-                  {/* Right Content Column */}
-                  <div className="w-[58%] h-full flex flex-col justify-between items-center text-center p-6 pl-2 z-10 bg-gradient-to-l from-black via-black/95 to-transparent">
-                    {/* Logo Area */}
-                    <div className="h-16 flex items-center justify-center mb-2">
+                  {/* Content Column (58%) */}
+                  <div className="w-full md:w-[58%] h-auto md:h-full bg-[#060608] p-7 md:p-8 flex flex-col justify-between items-start text-left z-10 border-t md:border-t-0 md:border-l border-zinc-900/60 relative">
+                    {/* Top Row: Event Logo & User status badge */}
+                    <div className="w-full flex items-center justify-between gap-4 mb-4">
                       <img 
                         src="/sponsors/stuntday3.png" 
-                        alt="Stunt Day 2026" 
-                        className="max-h-full object-contain filter drop-shadow-[0_0_10px_rgba(255,255,255,0.05)] group-hover:scale-105 transition-all duration-500"
+                        alt="Stunt Day Logo" 
+                        className="h-8 object-contain filter opacity-80 group-hover:opacity-100 transition-all duration-500"
                       />
+                      {renderStatusBadge(stuntdayStatus)}
                     </div>
 
-                    {/* Details */}
-                    <div className="mb-2">
-                      <h2 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tighter leading-none mb-1">
+                    {/* Middle Section: Event Badge, Title, and Description */}
+                    <div className="w-full flex flex-col gap-3 my-auto pb-4">
+                      {/* Event Status Badge */}
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-950/20 border border-red-500/20 text-[#E60000] text-[9px] font-black tracking-widest uppercase w-fit shadow-[0_0_15px_rgba(230,0,0,0.05)]">
+                        <Calendar className="w-3.5 h-3.5 text-[#E60000]" />
+                        <span>50 DÍAS PARA EL CIERRE</span>
+                      </div>
+
+                      {/* Event Title */}
+                      <h2 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight leading-none">
                         STUNT DAY <span className="text-[#E60000]">2026</span>
                       </h2>
-                      <p className="text-[10px] sm:text-xs text-zinc-400 font-medium leading-tight max-w-[200px] mx-auto">
+
+                      {/* Event Description */}
+                      <p className="text-zinc-400 text-xs font-semibold leading-relaxed max-w-[240px]">
                         El encuentro que reúne la cultura stunt nacional.
                       </p>
                     </div>
 
-                    {/* Time Badge (Calendar outline style) */}
-                    <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-zinc-950/80 border border-red-950 text-red-500 mb-2 w-fit">
-                      <Calendar className="w-5 h-5 text-[#E60000]" />
-                      <div className="text-left font-mono">
-                        <div className="text-xs font-black tracking-wide leading-none text-white">50 DÍAS</div>
-                        <div className="text-[7px] font-black tracking-widest text-[#E60000] uppercase">PARA EL CIERRE</div>
-                      </div>
-                    </div>
-
-                    {/* Status Badge */}
-                    <div className="mb-3">
-                      {renderStatusBadge(stuntdayStatus)}
-                    </div>
-
-                    {/* Action Button */}
+                    {/* Bottom Row: CTA Button */}
                     <button 
                       type="button"
-                      className="w-full max-w-[210px] py-2.5 rounded-xl bg-gradient-to-r from-red-700 via-red-600 to-red-700 hover:from-red-650 hover:to-red-550 text-white font-extrabold tracking-widest uppercase shadow-lg shadow-red-950/40 text-[9px] flex items-center justify-center gap-1 transition-all duration-300 hover:scale-[1.02]"
+                      className="w-full py-3.5 rounded-xl bg-gradient-to-r from-red-700 via-red-600 to-red-700 hover:from-red-650 hover:to-red-550 text-white font-extrabold tracking-widest uppercase shadow-lg shadow-red-950/40 text-[9px] flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.02] border border-red-500/20"
                     >
-                      REGISTRARSE AHORA <ChevronRight className="w-3.5 h-3.5" />
+                      REGISTRARSE AHORA <ChevronRight className="w-4 h-4 text-white/80" />
                     </button>
                   </div>
                 </div>
@@ -1005,57 +983,55 @@ export default function InscripcionPage() {
                     handleEventSwitch('f2r');
                     setActiveEvent('f2r');
                   }}
-                  className="group relative bg-[#09090b]/90 backdrop-blur-xl border border-emerald-500/20 rounded-[2rem] flex flex-row justify-start items-center cursor-pointer transition-all duration-500 hover:border-emerald-500/80 shadow-[0_0_20px_rgba(16,185,129,0.1)] hover:shadow-[0_0_40px_rgba(16,185,129,0.35)] hover:-translate-y-1.5 overflow-hidden h-[380px] w-full bg-cover bg-center"
-                  style={{ backgroundImage: "url('/sponsors/f2r_bg_card.png')" }}
+                  className="group relative bg-[#060608]/90 backdrop-blur-xl border border-emerald-500/10 rounded-[2rem] flex flex-col md:flex-row justify-start items-center cursor-pointer transition-all duration-500 hover:border-emerald-500/40 shadow-[0_0_30px_rgba(16,185,129,0.05)] hover:shadow-[0_0_50px_rgba(16,185,129,0.2)] hover:-translate-y-1.5 overflow-hidden min-h-[460px] md:h-[400px] w-full"
                 >
-                  {/* Green Neon Glowing Strips */}
-                  <div className="absolute top-0 inset-x-8 h-0.5 bg-gradient-to-r from-transparent via-emerald-500 to-transparent group-hover:h-1 group-hover:shadow-[0_0_15px_#10B981] transition-all duration-300"></div>
-                  <div className="absolute bottom-0 inset-x-8 h-0.5 bg-gradient-to-r from-transparent via-emerald-500 to-transparent group-hover:h-1 group-hover:shadow-[0_0_15px_#10B981] transition-all duration-300"></div>
+                  {/* Visual Side Column (42%) */}
+                  <div 
+                    className="w-full md:w-[42%] h-[180px] md:h-full bg-cover bg-center pointer-events-none relative transition-transform duration-700 group-hover:scale-102"
+                    style={{ backgroundImage: "url('/sponsors/f2r_bg_card.png')" }}
+                  >
+                    {/* Glowing overlay strip on the border boundary */}
+                    <div className="absolute inset-y-0 right-0 w-1/3 bg-gradient-to-l from-[#060608] to-transparent hidden md:block"></div>
+                    <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-[#060608] to-transparent md:hidden"></div>
+                  </div>
 
-                  {/* Left Spacer to show the background stunt rider wheelie */}
-                  <div className="w-[42%] h-full pointer-events-none"></div>
-
-                  {/* Right Content Column */}
-                  <div className="w-[58%] h-full flex flex-col justify-between items-center text-center p-6 pl-2 z-10 bg-gradient-to-l from-black via-black/95 to-transparent">
-                    {/* Logo Area */}
-                    <div className="h-16 flex items-center justify-center mb-2">
+                  {/* Content Column (58%) */}
+                  <div className="w-full md:w-[58%] h-auto md:h-full bg-[#060608] p-7 md:p-8 flex flex-col justify-between items-start text-left z-10 border-t md:border-t-0 md:border-l border-zinc-900/60 relative">
+                    {/* Top Row: Event Logo & User status badge */}
+                    <div className="w-full flex items-center justify-between gap-4 mb-4">
                       <img 
                         src="/sponsors/copa stunt nitrox f2r.png" 
-                        alt="Copa Stunt F2R 2026" 
-                        className="max-h-full object-contain filter drop-shadow-[0_0_10px_rgba(255,255,255,0.05)] group-hover:scale-105 transition-all duration-500"
+                        alt="Copa Stunt F2R Logo" 
+                        className="h-8 object-contain filter opacity-80 group-hover:opacity-100 transition-all duration-500"
                       />
+                      {renderStatusBadge(f2rStatus)}
                     </div>
 
-                    {/* Details */}
-                    <div className="mb-2">
-                      <h2 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tighter leading-none mb-1">
+                    {/* Middle Section: Event Badge, Title, and Description */}
+                    <div className="w-full flex flex-col gap-3 my-auto pb-4">
+                      {/* Event Status Badge (Outline with Lock Icon) */}
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-950/20 border border-red-500/20 text-[#E60000] text-[9px] font-black tracking-widest uppercase w-fit shadow-[0_0_15px_rgba(230,0,0,0.05)]">
+                        <Lock className="w-3.5 h-3.5 text-[#E60000]" />
+                        <span>EVENTO CERRADO</span>
+                      </div>
+
+                      {/* Event Title */}
+                      <h2 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight leading-none">
                         COPA STUNT <span className="text-emerald-400">F2R 2026</span>
                       </h2>
-                      <p className="text-[10px] sm:text-xs text-zinc-400 font-medium leading-tight max-w-[200px] mx-auto">
+
+                      {/* Event Description */}
+                      <p className="text-zinc-400 text-xs font-semibold leading-relaxed max-w-[240px]">
                         El campeonato de stunt más importante del país.
                       </p>
                     </div>
 
-                    {/* Time Badge (Closed Event outline style) */}
-                    <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-zinc-950/80 border border-red-950 text-red-500 mb-2 w-fit">
-                      <Lock className="w-4 h-4 text-[#E60000]" />
-                      <div className="text-left font-mono">
-                        <div className="text-xs font-black tracking-wide leading-none text-white">EVENTO</div>
-                        <div className="text-[7px] font-black tracking-widest text-[#E60000] uppercase">CERRADO</div>
-                      </div>
-                    </div>
-
-                    {/* Status Badge */}
-                    <div className="mb-3">
-                      {renderStatusBadge(f2rStatus)}
-                    </div>
-
-                    {/* Action Button */}
+                    {/* Bottom Row: CTA Button */}
                     <button 
                       type="button"
-                      className="w-full max-w-[210px] py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-emerald-600 hover:from-emerald-555 hover:to-emerald-455 text-white font-extrabold tracking-widest uppercase shadow-lg shadow-emerald-950/40 text-[9px] flex items-center justify-center gap-1 transition-all duration-300 hover:scale-[1.02]"
+                      className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-emerald-600 hover:from-emerald-555 hover:to-emerald-455 text-white font-extrabold tracking-widest uppercase shadow-lg shadow-emerald-950/40 text-[9px] flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.02] border border-emerald-500/20"
                     >
-                      CONSULTAR ESTADO <ChevronRight className="w-3.5 h-3.5" />
+                      CONSULTAR ESTADO <ChevronRight className="w-4 h-4 text-white/80" />
                     </button>
                   </div>
                 </div>
@@ -1063,7 +1039,7 @@ export default function InscripcionPage() {
               </div>
 
               {/* Extra Branding Footer */}
-              <div className="flex flex-col items-center justify-center gap-1.5 mt-4 border-t border-zinc-900/60 pt-6 w-full max-w-md z-10">
+              <div className="flex flex-col items-center justify-center gap-1.5 mt-4 border-t border-zinc-900/40 pt-6 w-full max-w-md z-10">
                 <p className="text-zinc-500 text-[10px] sm:text-xs font-black tracking-[0.4em] uppercase text-center">
                   PASIÓN &bull; EQUILIBRIO &bull; ADRENALINA
                 </p>
