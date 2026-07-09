@@ -969,11 +969,11 @@ export default function InscripcionPage() {
                     <div 
                       key={event.id}
                       onClick={() => handleCardClick(event)}
-                      className={`group relative bg-[#060608] rounded-[2rem] flex flex-col md:flex-row justify-start items-center cursor-pointer transition-all duration-500 overflow-hidden min-h-[500px] md:h-[480px] w-full border ${event.theme.border} ${event.theme.glow}`}
+                      className={`group relative bg-[#060608] rounded-[2rem] flex flex-col md:flex-row justify-start items-center cursor-pointer transition-all duration-500 overflow-hidden min-h-[460px] md:h-[380px] w-full border ${event.theme.border} ${event.theme.glow}`}
                     >
-                      {/* Visual Side Column (38% on desktop) - Displays the rider image */}
+                      {/* Visual Side Column (44% on desktop) - Displays the rider image fully using bg-contain */}
                       <div 
-                        className="w-full md:w-[38%] h-[200px] md:h-full bg-cover bg-center pointer-events-none relative transition-transform duration-700 group-hover:scale-102"
+                        className="w-full md:w-[44%] h-[180px] md:h-full bg-contain bg-center bg-no-repeat pointer-events-none relative transition-transform duration-700 group-hover:scale-102 bg-[#060608]"
                         style={{ backgroundImage: `url('${event.bgImage}')` }}
                       >
                         {/* Smooth visual to solid card background transition */}
@@ -981,33 +981,33 @@ export default function InscripcionPage() {
                         <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#060608] to-transparent md:hidden"></div>
                       </div>
 
-                      {/* Content Column (62% on desktop) - Solid dark background to prevent text overlay on rider photo */}
-                      <div className="w-full md:w-[62%] h-auto md:h-full bg-[#060608] p-8 md:p-10 flex flex-col justify-between items-start text-left z-10 relative border-t md:border-t-0 md:border-l border-zinc-900/40">
+                      {/* Content Column (56% on desktop) - Solid dark background to prevent text overlay on rider photo */}
+                      <div className="w-full md:w-[56%] h-auto md:h-full bg-[#060608] p-6 md:p-8 flex flex-col justify-between items-start text-left z-10 relative border-t md:border-t-0 md:border-l border-zinc-900/40">
                         {/* Top Row: Event Logo (left, enlarged) & User status badge (right) */}
                         <div className="w-full flex items-center justify-between gap-4 mb-2">
                           <img 
                             src={event.logo} 
                             alt={`${event.title} Logo`} 
-                            className="h-14 sm:h-16 object-contain filter opacity-95 group-hover:opacity-100 transition-all duration-500"
+                            className="h-10 sm:h-12 object-contain filter opacity-95 group-hover:opacity-100 transition-all duration-500"
                           />
                           {renderStatusBadge(event.userStatus)}
                         </div>
 
                         {/* Middle Section: Event Badge, Title, and Description (centered vertically) */}
-                        <div className="w-full flex-1 flex flex-col justify-center items-start gap-4 py-4">
+                        <div className="w-full flex-1 flex flex-col justify-center items-start gap-3 py-2">
                           {/* Event Status Badge */}
-                          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-950/20 border border-red-500/20 ${event.theme.badgeText} text-[9px] font-black tracking-widest uppercase w-fit shadow-[0_0_15px_rgba(230,0,0,0.05)]`}>
+                          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-950/20 border border-red-500/20 ${event.theme.badgeText} text-[8.5px] font-black tracking-widest uppercase w-fit shadow-[0_0_15px_rgba(230,0,0,0.03)]`}>
                             <StatusIcon className={`w-3.5 h-3.5 ${event.theme.badgeText}`} />
                             <span>{event.statusText}</span>
                           </div>
 
                           {/* Event Title */}
-                          <h2 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-tight leading-none">
+                          <h2 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight leading-none">
                             {event.title} <span className={event.theme.titleAccentColor}>{event.titleAccent}</span>
                           </h2>
 
                           {/* Event Description */}
-                          <p className="text-zinc-400 text-xs sm:text-sm font-semibold leading-relaxed max-w-[280px]">
+                          <p className="text-zinc-400 text-xs font-semibold leading-relaxed max-w-[250px]">
                             {event.subtitle}
                           </p>
                         </div>
@@ -1015,7 +1015,7 @@ export default function InscripcionPage() {
                         {/* Bottom Row: CTA Button (natural closing element) */}
                         <button 
                           type="button"
-                          className={`w-full py-4 rounded-xl text-white font-extrabold tracking-widest uppercase shadow-lg text-[10px] flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.01] border ${event.theme.btnGradient}`}
+                          className={`w-full py-3.5 rounded-xl text-white font-extrabold tracking-widest uppercase shadow-lg text-[9px] flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.01] border ${event.theme.btnGradient}`}
                         >
                           {event.ctaText} <ChevronRight className="w-4 h-4 text-white/80" />
                         </button>
