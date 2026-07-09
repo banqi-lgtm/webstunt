@@ -552,8 +552,8 @@ export default function InscripcionPage() {
   useEffect(() => {
     const handleScrollBlock = () => {
       if (activeEvent === null && window.innerWidth >= 768) {
-        document.documentElement.style.overflow = 'hidden';
-        document.body.style.overflow = 'hidden';
+        document.documentElement.style.overflow = 'auto';
+        document.body.style.overflow = 'auto';
       } else {
         document.documentElement.style.overflow = '';
         document.body.style.overflow = '';
@@ -945,7 +945,7 @@ export default function InscripcionPage() {
       {/* Background glow */}
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#E60000]/10 blur-[150px] mix-blend-screen pointer-events-none rounded-full"></div>
 
-      <div className={activeEvent === null ? "flex flex-col text-zinc-100 w-full relative z-10 min-h-[calc(100vh-80px)] justify-center items-center overflow-y-auto md:overflow-hidden p-4 sm:p-8" : "flex flex-col p-4 lg:p-8 text-zinc-100 max-w-5xl mx-auto w-full relative z-10"}>
+      <div className={activeEvent === null ? "flex flex-col text-zinc-100 w-full relative z-10 min-h-[calc(100vh-80px)] justify-center items-center overflow-y-auto p-4 sm:p-8" : "flex flex-col p-4 lg:p-8 text-zinc-100 max-w-5xl mx-auto w-full relative z-10"}>
         
         {isCheckingStatus ? (
           <div className="flex flex-col items-center justify-center min-h-[60vh]">
@@ -954,7 +954,7 @@ export default function InscripcionPage() {
           </div>
         ) : activeEvent === null ? (
           /* PANTALLA DE SELECCIÓN DE EVENTOS */
-          <div className="relative w-full flex flex-col justify-center items-center h-full z-10 text-center max-w-6xl px-4 py-8">
+          <div className="relative w-full flex flex-col justify-center items-center h-full z-10 text-center max-w-6xl px-4 py-4">
             {/* Fullscreen Backdrop specific to the selection view */}
             <div 
               className="fixed inset-0 bg-cover bg-center bg-no-repeat z-0" 
@@ -969,7 +969,7 @@ export default function InscripcionPage() {
                     <div 
                       key={event.id}
                       onClick={() => handleCardClick(event)}
-                      className={`group relative bg-[#060608] rounded-[2rem] flex flex-col md:flex-row justify-start items-center cursor-pointer transition-all duration-500 overflow-hidden min-h-[460px] md:h-[360px] w-full border ${event.theme.border} ${event.theme.glow}`}
+                      className={`group relative bg-[#060608] rounded-[2rem] flex flex-col md:flex-row justify-start items-center cursor-pointer transition-all duration-500 overflow-hidden min-h-[460px] md:h-[330px] w-full border ${event.theme.border} ${event.theme.glow}`}
                     >
                       {/* Visual Side Column (38% on desktop) - Displays the rider image */}
                       <div 
@@ -982,19 +982,19 @@ export default function InscripcionPage() {
                       </div>
 
                       {/* Content Column (62% on desktop) - Solid dark background to prevent text overlay on rider photo */}
-                      <div className="w-full md:w-[62%] h-auto md:h-full bg-[#060608] p-6 flex flex-col justify-between items-start text-left z-10 relative border-t md:border-t-0 md:border-l border-zinc-900/40">
+                      <div className="w-full md:w-[62%] h-auto md:h-full bg-[#060608] p-5 md:p-6 flex flex-col justify-between items-start text-left z-10 relative border-t md:border-t-0 md:border-l border-zinc-900/40">
                         {/* Top Row: Event Logo (left, enlarged) & User status badge (right) */}
                         <div className="w-full flex items-center justify-between gap-4 mb-2">
                           <img 
                             src={event.logo} 
                             alt={`${event.title} Logo`} 
-                            className="h-10 sm:h-12 object-contain filter opacity-95 group-hover:opacity-100 transition-all duration-500"
+                            className="h-12 sm:h-14 object-contain filter opacity-95 group-hover:opacity-100 transition-all duration-500"
                           />
                           {renderStatusBadge(event.userStatus)}
                         </div>
 
                         {/* Middle Section: Event Badge, Title, and Description (centered vertically) */}
-                        <div className="w-full flex-1 flex flex-col justify-center items-start gap-2.5 py-3">
+                        <div className="w-full flex-1 flex flex-col justify-center items-start gap-2 py-2">
                           {/* Event Status Badge */}
                           <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-950/20 border border-red-500/20 ${event.theme.badgeText} text-[8.5px] font-black tracking-widest uppercase w-fit shadow-[0_0_15px_rgba(230,0,0,0.03)]`}>
                             <StatusIcon className={`w-3.5 h-3.5 ${event.theme.badgeText}`} />
@@ -1015,7 +1015,7 @@ export default function InscripcionPage() {
                         {/* Bottom Row: CTA Button (natural closing element) */}
                         <button 
                           type="button"
-                          className={`w-full py-3.5 rounded-xl bg-gradient-to-r text-white font-extrabold tracking-widest uppercase shadow-lg text-[9px] flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.01] border ${event.theme.btnGradient}`}
+                          className={`w-full py-3 rounded-xl bg-gradient-to-r text-white font-extrabold tracking-widest uppercase shadow-lg text-[9px] flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.01] border ${event.theme.btnGradient}`}
                         >
                           {event.ctaText} <ChevronRight className="w-4 h-4 text-white/80" />
                         </button>
