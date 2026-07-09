@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { UploadCloud, AlertTriangle, CheckCircle2, ChevronRight, Gift, Trophy, Star, ShieldAlert, CreditCard, Clock, Image as ImageIcon, XCircle, ArrowLeft, CheckCircle, Smartphone, Phone, Lock, Camera, Instagram, AlertCircle } from 'lucide-react';
+import { UploadCloud, AlertTriangle, CheckCircle2, ChevronRight, Gift, Trophy, Star, ShieldAlert, CreditCard, Clock, Image as ImageIcon, XCircle, ArrowLeft, CheckCircle, Smartphone, Phone, Lock, Camera, Instagram, AlertCircle, Calendar } from 'lucide-react';
 import Link from 'next/link';
 import { CameraModal } from '@/components/camera-modal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -911,7 +911,7 @@ export default function InscripcionPage() {
       {/* Background glow */}
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#E60000]/10 blur-[150px] mix-blend-screen pointer-events-none rounded-full"></div>
 
-      <div className={activeEvent === null ? "flex flex-col text-zinc-100 w-full relative z-10 h-[calc(100vh-80px)] overflow-y-auto md:overflow-hidden" : "flex flex-col p-4 lg:p-8 text-zinc-100 max-w-5xl mx-auto w-full relative z-10"}>
+      <div className={activeEvent === null ? "flex flex-col text-zinc-100 w-full relative z-10 min-h-[calc(100vh-80px)] justify-center items-center overflow-y-auto md:overflow-hidden p-4 sm:p-8" : "flex flex-col p-4 lg:p-8 text-zinc-100 max-w-5xl mx-auto w-full relative z-10"}>
         
         {isCheckingStatus ? (
           <div className="flex flex-col items-center justify-center min-h-[60vh]">
@@ -920,66 +920,75 @@ export default function InscripcionPage() {
           </div>
         ) : activeEvent === null ? (
           /* PANTALLA DE SELECCIÓN DE EVENTOS */
-          <div className="relative w-full flex flex-col justify-start items-start p-6 sm:p-12 md:p-16 h-full z-10 text-left overflow-y-auto md:overflow-hidden">
+          <div className="relative w-full flex flex-col justify-center items-center h-full z-10 text-center max-w-5xl px-4 py-6">
             {/* Fullscreen Backdrop specific to the selection view */}
             <div 
               className="fixed inset-0 bg-cover bg-center bg-no-repeat z-0" 
-              style={{ backgroundImage: "linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.7)), url('/sponsors/Diseño%20sin%20título.png')" }}
+              style={{ backgroundImage: "linear-gradient(rgba(0,0,0,0.65), rgba(0,0,0,0.85)), url('/sponsors/Diseño%20sin%20título.png')" }}
             />
             
-            <div className="relative z-10 text-left w-full max-w-4xl animate-in fade-in slide-in-from-top-4 duration-500 pb-16 md:pb-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+            <div className="relative z-10 flex flex-col items-center w-full animate-in fade-in zoom-in-95 duration-500">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl justify-center items-center mb-8">
+                
                 {/* Event Card 1: Stunt Day (Open Inscriptions First) */}
                 <div 
                   onClick={() => {
                     handleEventSwitch('stuntday');
                     setActiveEvent('stuntday');
                   }}
-                  className="group relative bg-[#09090b]/85 backdrop-blur-xl border border-zinc-800 rounded-3xl p-6 flex flex-col justify-between items-center text-center cursor-pointer transition-all duration-500 hover:border-red-500/40 hover:shadow-[0_0_50px_rgba(230,0,0,0.18)] hover:-translate-y-1.5 overflow-hidden min-h-[330px] shadow-2xl"
+                  className="group relative bg-[#09090b]/90 backdrop-blur-xl border border-[#E60000]/30 rounded-[2rem] flex flex-row justify-start items-center cursor-pointer transition-all duration-500 hover:border-[#E60000]/80 shadow-[0_0_20px_rgba(230,0,0,0.15)] hover:shadow-[0_0_40px_rgba(230,0,0,0.45)] hover:-translate-y-1.5 overflow-hidden h-[380px] w-full bg-cover bg-center"
+                  style={{ backgroundImage: "url('/sponsors/stuntday_bg_card.png')" }}
                 >
                   {/* Red Neon Glowing Strips */}
                   <div className="absolute top-0 inset-x-8 h-0.5 bg-gradient-to-r from-transparent via-[#E60000] to-transparent group-hover:h-1 group-hover:shadow-[0_0_15px_#E60000] transition-all duration-300"></div>
                   <div className="absolute bottom-0 inset-x-8 h-0.5 bg-gradient-to-r from-transparent via-[#E60000] to-transparent group-hover:h-1 group-hover:shadow-[0_0_15px_#E60000] transition-all duration-300"></div>
 
-                  <div className="absolute -top-10 -right-10 w-40 h-40 bg-red-500/[0.02] rounded-full blur-3xl group-hover:bg-red-500/[0.06] transition-all"></div>
-                  
-                  {/* Logo Area */}
-                  <div className="h-28 flex items-center justify-center mb-4">
-                    <img 
-                      src="/sponsors/stuntday3.png" 
-                      alt="Stunt Day 2026" 
-                      className="max-h-full max-w-full object-contain filter drop-shadow-[0_0_15px_rgba(255,255,255,0.03)] group-hover:scale-105 transition-all duration-500"
-                    />
-                  </div>
+                  {/* Left Spacer to show the background stunt rider wheelie */}
+                  <div className="w-[42%] h-full pointer-events-none"></div>
 
-                  {/* Details */}
-                  <div className="mb-2 z-10">
-                    <h2 className="text-lg sm:text-xl font-black text-white tracking-wider uppercase mb-1">
-                      STUNT DAY 2026
-                    </h2>
-                    <p className="text-zinc-400 text-[11px] sm:text-xs line-clamp-1 px-4">
-                      El encuentro que reúne la cultura stunt nacional.
-                    </p>
-                  </div>
+                  {/* Right Content Column */}
+                  <div className="w-[58%] h-full flex flex-col justify-between items-center text-center p-6 pl-2 z-10 bg-gradient-to-l from-black via-black/95 to-transparent">
+                    {/* Logo Area */}
+                    <div className="h-16 flex items-center justify-center mb-2">
+                      <img 
+                        src="/sponsors/stuntday3.png" 
+                        alt="Stunt Day 2026" 
+                        className="max-h-full object-contain filter drop-shadow-[0_0_10px_rgba(255,255,255,0.05)] group-hover:scale-105 transition-all duration-500"
+                      />
+                    </div>
 
-                  {/* Countdown Time Badge */}
-                  <div className="mb-2.5 z-10 px-3 py-1 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 text-[9px] font-black tracking-widest uppercase flex items-center gap-1.5 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-                    ⏱️ 50 DÍAS PARA EL CIERRE
-                  </div>
+                    {/* Details */}
+                    <div className="mb-2">
+                      <h2 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tighter leading-none mb-1">
+                        STUNT DAY <span className="text-[#E60000]">2026</span>
+                      </h2>
+                      <p className="text-[10px] sm:text-xs text-zinc-400 font-medium leading-tight max-w-[200px] mx-auto">
+                        El encuentro que reúne la cultura stunt nacional.
+                      </p>
+                    </div>
 
-                  {/* Status Badge */}
-                  <div className="mb-3.5 z-10">
-                    {renderStatusBadge(stuntdayStatus)}
-                  </div>
+                    {/* Time Badge (Calendar outline style) */}
+                    <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-zinc-950/80 border border-red-950 text-red-500 mb-2 w-fit">
+                      <Calendar className="w-5 h-5 text-[#E60000]" />
+                      <div className="text-left font-mono">
+                        <div className="text-xs font-black tracking-wide leading-none text-white">50 DÍAS</div>
+                        <div className="text-[7px] font-black tracking-widest text-[#E60000] uppercase">PARA EL CIERRE</div>
+                      </div>
+                    </div>
 
-                  {/* Action Button */}
-                  <button 
-                    type="button"
-                    className="w-full py-2.5 rounded-xl bg-zinc-900 text-white font-bold tracking-wider uppercase border border-zinc-850 group-hover:bg-[#E60000] group-hover:text-black group-hover:border-transparent transition-all duration-300 shadow-md group-hover:shadow-[0_0_20px_rgba(230,0,0,0.3)] z-10 text-[10px]"
-                  >
-                    REGISTRARSE O CONSULTAR ESTADO
-                  </button>
+                    {/* Status Badge */}
+                    <div className="mb-3">
+                      {renderStatusBadge(stuntdayStatus)}
+                    </div>
+
+                    {/* Action Button */}
+                    <button 
+                      type="button"
+                      className="w-full max-w-[210px] py-2.5 rounded-xl bg-gradient-to-r from-red-700 via-red-600 to-red-700 hover:from-red-650 hover:to-red-550 text-white font-extrabold tracking-widest uppercase shadow-lg shadow-red-950/40 text-[9px] flex items-center justify-center gap-1 transition-all duration-300 hover:scale-[1.02]"
+                    >
+                      REGISTRARSE AHORA <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Event Card 2: Copa Stunt F2R (Closed Event Second) */}
@@ -996,53 +1005,73 @@ export default function InscripcionPage() {
                     handleEventSwitch('f2r');
                     setActiveEvent('f2r');
                   }}
-                  className="group relative bg-[#09090b]/85 backdrop-blur-xl border border-zinc-800 rounded-3xl p-6 flex flex-col justify-between items-center text-center cursor-pointer transition-all duration-500 hover:border-emerald-500/40 hover:shadow-[0_0_50px_rgba(16,185,129,0.18)] hover:-translate-y-1.5 overflow-hidden min-h-[330px] shadow-2xl"
+                  className="group relative bg-[#09090b]/90 backdrop-blur-xl border border-emerald-500/20 rounded-[2rem] flex flex-row justify-start items-center cursor-pointer transition-all duration-500 hover:border-emerald-500/80 shadow-[0_0_20px_rgba(16,185,129,0.1)] hover:shadow-[0_0_40px_rgba(16,185,129,0.35)] hover:-translate-y-1.5 overflow-hidden h-[380px] w-full bg-cover bg-center"
+                  style={{ backgroundImage: "url('/sponsors/f2r_bg_card.png')" }}
                 >
                   {/* Green Neon Glowing Strips */}
                   <div className="absolute top-0 inset-x-8 h-0.5 bg-gradient-to-r from-transparent via-emerald-500 to-transparent group-hover:h-1 group-hover:shadow-[0_0_15px_#10B981] transition-all duration-300"></div>
                   <div className="absolute bottom-0 inset-x-8 h-0.5 bg-gradient-to-r from-transparent via-emerald-500 to-transparent group-hover:h-1 group-hover:shadow-[0_0_15px_#10B981] transition-all duration-300"></div>
 
-                  <div className="absolute -top-10 -right-10 w-40 h-40 bg-emerald-500/[0.02] rounded-full blur-3xl group-hover:bg-emerald-500/[0.06] transition-all"></div>
-                  
-                  {/* Logo Area */}
-                  <div className="h-28 flex items-center justify-center mb-4">
-                    <img 
-                      src="/sponsors/copa%20stunt%20nitrox%20f2r.png" 
-                      alt="Copa Stunt F2R 2026" 
-                      className="max-h-full max-w-full object-contain filter drop-shadow-[0_0_15px_rgba(255,255,255,0.03)] group-hover:scale-105 transition-all duration-500"
-                    />
-                  </div>
+                  {/* Left Spacer to show the background stunt rider wheelie */}
+                  <div className="w-[42%] h-full pointer-events-none"></div>
 
-                  {/* Details */}
-                  <div className="mb-2 z-10">
-                    <h2 className="text-lg sm:text-xl font-black text-white tracking-wider uppercase mb-1">
-                      COPA STUNT F2R 2026
-                    </h2>
-                    <p className="text-zinc-400 text-[11px] sm:text-xs line-clamp-1 px-4">
-                      El campeonato de stunt más importante del país.
-                    </p>
-                  </div>
+                  {/* Right Content Column */}
+                  <div className="w-[58%] h-full flex flex-col justify-between items-center text-center p-6 pl-2 z-10 bg-gradient-to-l from-black via-black/95 to-transparent">
+                    {/* Logo Area */}
+                    <div className="h-16 flex items-center justify-center mb-2">
+                      <img 
+                        src="/sponsors/copa stunt nitrox f2r.png" 
+                        alt="Copa Stunt F2R 2026" 
+                        className="max-h-full object-contain filter drop-shadow-[0_0_10px_rgba(255,255,255,0.05)] group-hover:scale-105 transition-all duration-500"
+                      />
+                    </div>
 
-                  {/* Event Closed Badge */}
-                  <div className="mb-2.5 z-10 px-3 py-1 rounded-lg bg-red-950/40 border border-red-500/30 text-[#E60000] text-[9px] font-black tracking-widest uppercase flex items-center gap-1.5 shadow-[0_0_15px_rgba(230,0,0,0.1)]">
-                    <span className="w-1 h-1 rounded-full bg-red-500 animate-pulse"></span>
-                    EVENTO CERRADO
-                  </div>
+                    {/* Details */}
+                    <div className="mb-2">
+                      <h2 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tighter leading-none mb-1">
+                        COPA STUNT <span className="text-emerald-400">F2R 2026</span>
+                      </h2>
+                      <p className="text-[10px] sm:text-xs text-zinc-400 font-medium leading-tight max-w-[200px] mx-auto">
+                        El campeonato de stunt más importante del país.
+                      </p>
+                    </div>
 
-                  {/* Status Badge */}
-                  <div className="mb-3.5 z-10">
-                    {renderStatusBadge(f2rStatus)}
-                  </div>
+                    {/* Time Badge (Closed Event outline style) */}
+                    <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-zinc-950/80 border border-red-950 text-red-500 mb-2 w-fit">
+                      <Lock className="w-4 h-4 text-[#E60000]" />
+                      <div className="text-left font-mono">
+                        <div className="text-xs font-black tracking-wide leading-none text-white">EVENTO</div>
+                        <div className="text-[7px] font-black tracking-widest text-[#E60000] uppercase">CERRADO</div>
+                      </div>
+                    </div>
 
-                  {/* Action Button */}
-                  <button 
-                    type="button"
-                    className="w-full py-2.5 rounded-xl bg-zinc-900 text-white font-bold tracking-wider uppercase border border-zinc-850 group-hover:bg-[#E60000] group-hover:text-black group-hover:border-transparent transition-all duration-300 shadow-md group-hover:shadow-[0_0_20px_rgba(230,0,0,0.3)] z-10 text-[10px]"
-                  >
-                    CONSULTAR ESTADO
-                  </button>
+                    {/* Status Badge */}
+                    <div className="mb-3">
+                      {renderStatusBadge(f2rStatus)}
+                    </div>
+
+                    {/* Action Button */}
+                    <button 
+                      type="button"
+                      className="w-full max-w-[210px] py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-500 to-emerald-600 hover:from-emerald-555 hover:to-emerald-455 text-white font-extrabold tracking-widest uppercase shadow-lg shadow-emerald-950/40 text-[9px] flex items-center justify-center gap-1 transition-all duration-300 hover:scale-[1.02]"
+                    >
+                      CONSULTAR ESTADO <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Extra Branding Footer */}
+              <div className="flex flex-col items-center justify-center gap-1.5 mt-4 border-t border-zinc-900/60 pt-6 w-full max-w-md z-10">
+                <p className="text-zinc-500 text-[10px] sm:text-xs font-black tracking-[0.4em] uppercase text-center">
+                  PASIÓN &bull; EQUILIBRIO &bull; ADRENALINA
+                </p>
+                <div className="text-[#E60000] text-sm animate-pulse">
+                  ⚡
                 </div>
               </div>
+
             </div>
           </div>
         ) : (
