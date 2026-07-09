@@ -969,34 +969,34 @@ export default function InscripcionPage() {
                     <div 
                       key={event.id}
                       onClick={() => handleCardClick(event)}
-                      className={`group relative bg-[#060608]/90 backdrop-blur-xl rounded-[2rem] flex flex-col md:flex-row justify-start items-center cursor-pointer transition-all duration-500 overflow-hidden min-h-[460px] md:h-[400px] w-full border ${event.theme.border} ${event.theme.glow}`}
+                      className={`group relative bg-[#060608]/95 backdrop-blur-xl rounded-[2rem] flex flex-col md:flex-row justify-start items-center cursor-pointer transition-all duration-500 overflow-hidden min-h-[460px] md:h-[360px] w-full border ${event.theme.border} ${event.theme.glow}`}
                     >
-                      {/* Visual Side Column (42%) */}
+                      {/* Visual Side Column (38% on desktop) */}
                       <div 
-                        className="w-full md:w-[42%] h-[180px] md:h-full bg-cover bg-center pointer-events-none relative transition-transform duration-700 group-hover:scale-102"
+                        className="w-full md:w-[38%] h-[180px] md:h-full bg-cover bg-center pointer-events-none relative transition-transform duration-700 group-hover:scale-102"
                         style={{ backgroundImage: `url('${event.bgImage}')` }}
                       >
-                        {/* Glowing overlay strip on the border boundary */}
-                        <div className="absolute inset-y-0 right-0 w-1/3 bg-gradient-to-l from-[#060608] to-transparent hidden md:block"></div>
-                        <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-[#060608] to-transparent md:hidden"></div>
+                        {/* Smooth visual to content gradient overlay transition */}
+                        <div className="absolute inset-y-0 right-[-1px] w-[50%] bg-gradient-to-l from-[#060608] via-[#060608]/75 to-transparent hidden md:block z-20"></div>
+                        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#060608] to-transparent md:hidden"></div>
                       </div>
 
-                      {/* Content Column (58%) */}
-                      <div className="w-full md:w-[58%] h-auto md:h-full bg-[#060608] p-7 md:p-8 flex flex-col justify-between items-start text-left z-10 border-t md:border-t-0 md:border-l border-zinc-900/60 relative">
-                        {/* Top Row: Event Logo & User status badge */}
-                        <div className="w-full flex items-center justify-between gap-4 mb-4">
+                      {/* Content Column (62% on desktop) */}
+                      <div className="w-full md:w-[62%] h-auto md:h-full bg-[#060608] p-6 flex flex-col justify-between items-start text-left z-10 relative border-t md:border-t-0 border-zinc-900/40">
+                        {/* Top Row: Event Logo (left) & User status badge (right) */}
+                        <div className="w-full flex items-center justify-between gap-4 mb-2">
                           <img 
                             src={event.logo} 
                             alt={`${event.title} Logo`} 
-                            className="h-8 object-contain filter opacity-80 group-hover:opacity-100 transition-all duration-500"
+                            className="h-7 object-contain filter opacity-90 group-hover:opacity-100 transition-all duration-500"
                           />
                           {renderStatusBadge(event.userStatus)}
                         </div>
 
-                        {/* Middle Section: Event Badge, Title, and Description */}
-                        <div className="w-full flex flex-col gap-3 my-auto pb-4">
+                        {/* Middle Section: Event Badge, Title, and Description (centered vertically) */}
+                        <div className="w-full flex-1 flex flex-col justify-center items-start gap-2.5 py-3">
                           {/* Event Status Badge */}
-                          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-950/20 border border-red-500/20 ${event.theme.badgeText} text-[9px] font-black tracking-widest uppercase w-fit shadow-[0_0_15px_rgba(230,0,0,0.05)]`}>
+                          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-950/20 border border-red-500/20 ${event.theme.badgeText} text-[8.5px] font-black tracking-widest uppercase w-fit shadow-[0_0_15px_rgba(230,0,0,0.03)]`}>
                             <StatusIcon className={`w-3.5 h-3.5 ${event.theme.badgeText}`} />
                             <span>{event.statusText}</span>
                           </div>
@@ -1007,15 +1007,15 @@ export default function InscripcionPage() {
                           </h2>
 
                           {/* Event Description */}
-                          <p className="text-zinc-400 text-xs font-semibold leading-relaxed max-w-[240px]">
+                          <p className="text-zinc-400 text-xs font-semibold leading-relaxed max-w-[250px]">
                             {event.subtitle}
                           </p>
                         </div>
 
-                        {/* Bottom Row: CTA Button */}
+                        {/* Bottom Row: CTA Button (natural closing element) */}
                         <button 
                           type="button"
-                          className={`w-full py-3.5 rounded-xl bg-gradient-to-r text-white font-extrabold tracking-widest uppercase shadow-lg text-[9px] flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.02] border ${event.theme.btnGradient}`}
+                          className={`w-full py-3.5 rounded-xl bg-gradient-to-r text-white font-extrabold tracking-widest uppercase shadow-lg text-[9px] flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.01] border ${event.theme.btnGradient}`}
                         >
                           {event.ctaText} <ChevronRight className="w-4 h-4 text-white/80" />
                         </button>
