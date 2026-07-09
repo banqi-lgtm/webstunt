@@ -884,11 +884,11 @@ export default function InscripcionPage() {
       bgImage: '/sponsors/stuntday_bg_card.png',
       logo: '/sponsors/stuntday3.png',
       theme: {
-        border: 'border-[#E60000]/20 hover:border-[#E60000]/60',
-        glow: 'shadow-[0_0_30px_rgba(230,0,0,0.08)] hover:shadow-[0_0_50px_rgba(230,0,0,0.3)]',
+        border: 'border-[#E60000]/30 hover:border-[#E60000]/70',
+        glow: 'shadow-[0_0_30px_rgba(230,0,0,0.1)] hover:shadow-[0_0_50px_rgba(230,0,0,0.25)]',
         badgeText: 'text-[#E60000]',
         titleAccentColor: 'text-[#E60000]',
-        btnGradient: 'from-red-700 via-red-600 to-red-700 hover:from-red-650 hover:to-red-550 border-red-500/20 shadow-red-950/40',
+        btnGradient: 'bg-[#E60000] hover:bg-[#FF1A1A] text-white border-none shadow-red-950/40',
       },
       statusText: '50 DÍAS PARA EL CIERRE',
       statusIcon: Calendar,
@@ -903,11 +903,11 @@ export default function InscripcionPage() {
       bgImage: '/sponsors/f2r_bg_card.png',
       logo: '/sponsors/copa stunt nitrox f2r.png',
       theme: {
-        border: 'border-emerald-500/10 hover:border-emerald-500/40',
-        glow: 'shadow-[0_0_30px_rgba(16,185,129,0.05)] hover:shadow-[0_0_50px_rgba(16,185,129,0.2)]',
+        border: 'border-emerald-500/30 hover:border-emerald-500/70',
+        glow: 'shadow-[0_0_30px_rgba(16,185,129,0.06)] hover:shadow-[0_0_50px_rgba(16,185,129,0.18)]',
         badgeText: 'text-[#E60000]',
         titleAccentColor: 'text-emerald-400',
-        btnGradient: 'from-emerald-600 via-emerald-500 to-emerald-600 hover:from-emerald-555 hover:to-emerald-455 border-emerald-500/20 shadow-emerald-950/40',
+        btnGradient: 'bg-emerald-600 hover:bg-emerald-500 text-white border-none shadow-emerald-950/40',
       },
       statusText: 'EVENTO CERRADO',
       statusIcon: Lock,
@@ -969,11 +969,11 @@ export default function InscripcionPage() {
                     <div 
                       key={event.id}
                       onClick={() => handleCardClick(event)}
-                      className={`group relative bg-[#060608] rounded-[2rem] flex flex-col md:flex-row justify-start items-center cursor-pointer transition-all duration-500 overflow-hidden min-h-[460px] md:h-[330px] w-full border ${event.theme.border} ${event.theme.glow}`}
+                      className={`group relative bg-[#060608] rounded-[2rem] flex flex-col md:flex-row justify-start items-center cursor-pointer transition-all duration-500 overflow-hidden min-h-[500px] md:h-[480px] w-full border ${event.theme.border} ${event.theme.glow}`}
                     >
                       {/* Visual Side Column (38% on desktop) - Displays the rider image */}
                       <div 
-                        className="w-full md:w-[38%] h-[180px] md:h-full bg-cover bg-center pointer-events-none relative transition-transform duration-700 group-hover:scale-102"
+                        className="w-full md:w-[38%] h-[200px] md:h-full bg-cover bg-center pointer-events-none relative transition-transform duration-700 group-hover:scale-102"
                         style={{ backgroundImage: `url('${event.bgImage}')` }}
                       >
                         {/* Smooth visual to solid card background transition */}
@@ -982,32 +982,32 @@ export default function InscripcionPage() {
                       </div>
 
                       {/* Content Column (62% on desktop) - Solid dark background to prevent text overlay on rider photo */}
-                      <div className="w-full md:w-[62%] h-auto md:h-full bg-[#060608] p-5 md:p-6 flex flex-col justify-between items-start text-left z-10 relative border-t md:border-t-0 md:border-l border-zinc-900/40">
+                      <div className="w-full md:w-[62%] h-auto md:h-full bg-[#060608] p-8 md:p-10 flex flex-col justify-between items-start text-left z-10 relative border-t md:border-t-0 md:border-l border-zinc-900/40">
                         {/* Top Row: Event Logo (left, enlarged) & User status badge (right) */}
                         <div className="w-full flex items-center justify-between gap-4 mb-2">
                           <img 
                             src={event.logo} 
                             alt={`${event.title} Logo`} 
-                            className="h-12 sm:h-14 object-contain filter opacity-95 group-hover:opacity-100 transition-all duration-500"
+                            className="h-14 sm:h-16 object-contain filter opacity-95 group-hover:opacity-100 transition-all duration-500"
                           />
                           {renderStatusBadge(event.userStatus)}
                         </div>
 
                         {/* Middle Section: Event Badge, Title, and Description (centered vertically) */}
-                        <div className="w-full flex-1 flex flex-col justify-center items-start gap-2 py-2">
+                        <div className="w-full flex-1 flex flex-col justify-center items-start gap-4 py-4">
                           {/* Event Status Badge */}
-                          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-950/20 border border-red-500/20 ${event.theme.badgeText} text-[8.5px] font-black tracking-widest uppercase w-fit shadow-[0_0_15px_rgba(230,0,0,0.03)]`}>
+                          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-950/20 border border-red-500/20 ${event.theme.badgeText} text-[9px] font-black tracking-widest uppercase w-fit shadow-[0_0_15px_rgba(230,0,0,0.05)]`}>
                             <StatusIcon className={`w-3.5 h-3.5 ${event.theme.badgeText}`} />
                             <span>{event.statusText}</span>
                           </div>
 
                           {/* Event Title */}
-                          <h2 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight leading-none">
+                          <h2 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-tight leading-none">
                             {event.title} <span className={event.theme.titleAccentColor}>{event.titleAccent}</span>
                           </h2>
 
                           {/* Event Description */}
-                          <p className="text-zinc-400 text-xs font-semibold leading-relaxed max-w-[250px]">
+                          <p className="text-zinc-400 text-xs sm:text-sm font-semibold leading-relaxed max-w-[280px]">
                             {event.subtitle}
                           </p>
                         </div>
@@ -1015,7 +1015,7 @@ export default function InscripcionPage() {
                         {/* Bottom Row: CTA Button (natural closing element) */}
                         <button 
                           type="button"
-                          className={`w-full py-3 rounded-xl bg-gradient-to-r text-white font-extrabold tracking-widest uppercase shadow-lg text-[9px] flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.01] border ${event.theme.btnGradient}`}
+                          className={`w-full py-4 rounded-xl text-white font-extrabold tracking-widest uppercase shadow-lg text-[10px] flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.01] border ${event.theme.btnGradient}`}
                         >
                           {event.ctaText} <ChevronRight className="w-4 h-4 text-white/80" />
                         </button>
