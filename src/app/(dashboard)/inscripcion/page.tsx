@@ -883,6 +883,7 @@ export default function InscripcionPage() {
       subtitle: 'El encuentro que reúne la cultura stunt nacional.',
       bgImage: '/sponsors/stuntday_bg_card.png',
       logo: '/sponsors/stuntday3.png',
+      logoClass: 'h-20 sm:h-24 md:h-26 lg:h-28 -my-6 md:-my-8 object-contain scale-[1.3] origin-left',
       theme: {
         border: 'border-[#E60000]/30 hover:border-[#E60000]/70',
         glow: 'shadow-[0_0_30px_rgba(230,0,0,0.1)] hover:shadow-[0_0_50px_rgba(230,0,0,0.25)]',
@@ -902,6 +903,7 @@ export default function InscripcionPage() {
       subtitle: 'El campeonato de stunt más importante del país.',
       bgImage: '/sponsors/f2r_bg_card.png',
       logo: '/sponsors/copa stunt nitrox f2r.png',
+      logoClass: 'h-15 sm:h-18 md:h-20 lg:h-22 -my-3 md:-my-5 object-contain scale-[1.15] origin-left',
       theme: {
         border: 'border-emerald-500/30 hover:border-emerald-500/70',
         glow: 'shadow-[0_0_30px_rgba(16,185,129,0.06)] hover:shadow-[0_0_50px_rgba(16,185,129,0.18)]',
@@ -969,7 +971,7 @@ export default function InscripcionPage() {
                     <div 
                       key={event.id}
                       onClick={() => handleCardClick(event)}
-                      className={`group relative bg-[#060608] rounded-[2rem] flex flex-col md:flex-row justify-start items-center cursor-pointer transition-all duration-500 overflow-hidden min-h-[460px] md:h-[300px] w-full border ${event.theme.border} ${event.theme.glow}`}
+                      className={`group relative bg-[#060608] rounded-[2rem] flex flex-col md:flex-row justify-start items-center cursor-pointer transition-all duration-500 overflow-hidden min-h-[460px] md:min-h-0 md:h-[300px] w-full border ${event.theme.border} ${event.theme.glow}`}
                     >
                       {/* Visual Side Column (45% on desktop) - Displays the rider image prominently using cover with top-center offset */}
                       <div 
@@ -983,42 +985,48 @@ export default function InscripcionPage() {
 
                       {/* Content Column (55% on desktop) - Solid dark background to prevent text overlay on rider photo */}
                       <div className="w-full md:w-[55%] h-auto md:h-full bg-[#060608] p-5 md:p-6 flex flex-col justify-between items-start text-left z-10 relative border-t md:border-t-0 md:border-l border-zinc-900/40">
-                        {/* Top Row: Event Logo (left, enlarged) & User status badge (right) */}
-                        <div className="w-full flex items-center justify-between gap-4 mb-2">
-                          <img 
-                            src={event.logo} 
-                            alt={`${event.title} Logo`} 
-                            className="h-14 sm:h-16 object-contain filter opacity-95 group-hover:opacity-100 transition-all duration-500"
-                          />
-                          {renderStatusBadge(event.userStatus)}
+                        {/* Top Row: Event Logo (left, custom layout classes) & User status badge (right) */}
+                        <div className="w-full flex items-center justify-between gap-4 mb-1 h-14 md:h-16 relative overflow-visible">
+                          <div className="flex-1 flex justify-start items-center h-full">
+                            <img 
+                              src={event.logo} 
+                              alt={`${event.title} Logo`} 
+                              className={`${event.logoClass} filter opacity-95 group-hover:opacity-100 transition-all duration-500`}
+                            />
+                          </div>
+                          <div className="shrink-0">
+                            {renderStatusBadge(event.userStatus)}
+                          </div>
                         </div>
 
                         {/* Middle Section: Event Badge, Title, and Description (centered vertically) */}
-                        <div className="w-full flex-1 flex flex-col justify-center items-start gap-2 py-1">
+                        <div className="w-full flex-1 flex flex-col justify-center items-start gap-1.5 py-1">
                           {/* Event Status Badge */}
-                          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-950/20 border border-red-500/20 ${event.theme.badgeText} text-[8.5px] font-black tracking-widest uppercase w-fit shadow-[0_0_15px_rgba(230,0,0,0.03)]`}>
-                            <StatusIcon className={`w-3.5 h-3.5 ${event.theme.badgeText}`} />
+                          <div className={`flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-950/20 border border-red-500/20 ${event.theme.badgeText} text-[8px] font-black tracking-widest uppercase w-fit shadow-[0_0_15px_rgba(230,0,0,0.03)]`}>
+                            <StatusIcon className={`w-3 h-3 ${event.theme.badgeText}`} />
                             <span>{event.statusText}</span>
                           </div>
 
                           {/* Event Title */}
-                          <h2 className="text-lg sm:text-xl md:text-2xl font-black text-white uppercase tracking-tight leading-none">
+                          <h2 className="text-lg md:text-xl font-black text-white uppercase tracking-tight leading-none mt-1">
                             {event.title} <span className={event.theme.titleAccentColor}>{event.titleAccent}</span>
                           </h2>
 
                           {/* Event Description */}
-                          <p className="text-zinc-400 text-xs font-semibold leading-relaxed max-w-[250px]">
+                          <p className="text-zinc-400 text-[11px] font-semibold leading-relaxed max-w-[250px]">
                             {event.subtitle}
                           </p>
                         </div>
 
                         {/* Bottom Row: CTA Button (natural closing element) */}
-                        <button 
-                          type="button"
-                          className={`w-full py-3 rounded-xl text-white font-extrabold tracking-widest uppercase shadow-lg text-[9px] flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.01] border ${event.theme.btnGradient}`}
-                        >
-                          {event.ctaText} <ChevronRight className="w-4 h-4 text-white/80" />
-                        </button>
+                        <div className="w-full mt-auto pt-1">
+                          <button 
+                            type="button"
+                            className={`w-full py-2.5 rounded-xl text-white font-extrabold tracking-widest uppercase shadow-lg text-[9px] flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.01] border ${event.theme.btnGradient}`}
+                          >
+                            {event.ctaText} <ChevronRight className="w-4 h-4 text-white/80" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
