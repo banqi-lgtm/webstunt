@@ -954,7 +954,7 @@ export default function InscripcionPage() {
           </div>
         ) : activeEvent === null ? (
           /* PANTALLA DE SELECCIÓN DE EVENTOS */
-          <div className="relative w-full flex flex-col justify-center items-center h-full z-10 text-center max-w-5xl px-4 py-8">
+          <div className="relative w-full flex flex-col justify-center items-center h-full z-10 text-center max-w-6xl px-4 py-8">
             {/* Fullscreen Backdrop specific to the selection view */}
             <div 
               className="fixed inset-0 bg-cover bg-center bg-no-repeat z-0" 
@@ -962,27 +962,24 @@ export default function InscripcionPage() {
             />
             
             <div className="relative z-10 flex flex-col items-center w-full animate-in fade-in zoom-in-95 duration-500">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full max-w-4xl justify-center items-center mb-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full max-w-5xl justify-center items-center mb-8">
                 {eventsData.map((event) => {
                   const StatusIcon = event.statusIcon;
                   return (
                     <div 
                       key={event.id}
                       onClick={() => handleCardClick(event)}
-                      className={`group relative bg-[#060608]/95 backdrop-blur-xl rounded-[2rem] flex flex-col md:flex-row justify-start items-center cursor-pointer transition-all duration-500 overflow-hidden min-h-[460px] md:h-[360px] w-full border ${event.theme.border} ${event.theme.glow}`}
+                      className={`group relative bg-[#060608] rounded-[2rem] flex flex-col md:flex-row justify-start items-center cursor-pointer transition-all duration-500 overflow-hidden min-h-[460px] md:h-[360px] w-full border ${event.theme.border} ${event.theme.glow} bg-cover bg-[position:25%_center] md:bg-left-center`}
+                      style={{ backgroundImage: `url('${event.bgImage}')` }}
                     >
-                      {/* Visual Side Column (38% on desktop) */}
-                      <div 
-                        className="w-full md:w-[38%] h-[180px] md:h-full bg-cover bg-center pointer-events-none relative transition-transform duration-700 group-hover:scale-102"
-                        style={{ backgroundImage: `url('${event.bgImage}')` }}
-                      >
-                        {/* Smooth visual to content gradient overlay transition */}
-                        <div className="absolute inset-y-0 right-[-1px] w-[50%] bg-gradient-to-l from-[#060608] via-[#060608]/75 to-transparent hidden md:block z-20"></div>
+                      {/* Visual Side Column (38% on desktop) - Transparent to show the card background rider */}
+                      <div className="w-full md:w-[38%] h-[160px] md:h-full pointer-events-none relative transition-transform duration-700 group-hover:scale-102">
+                        {/* Smooth mobile bottom fade */}
                         <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#060608] to-transparent md:hidden"></div>
                       </div>
 
-                      {/* Content Column (62% on desktop) */}
-                      <div className="w-full md:w-[62%] h-auto md:h-full bg-[#060608] p-6 flex flex-col justify-between items-start text-left z-10 relative border-t md:border-t-0 border-zinc-900/40">
+                      {/* Content Column (62% on desktop) - Blends using horizontal transparent-to-solid gradient */}
+                      <div className="w-full md:w-[62%] h-auto md:h-full bg-gradient-to-t md:bg-gradient-to-l from-[#060608] via-[#060608]/98 md:via-[#060608]/95 to-transparent p-6 flex flex-col justify-between items-start text-left z-10 relative border-t md:border-t-0 border-zinc-900/40">
                         {/* Top Row: Event Logo (left) & User status badge (right) */}
                         <div className="w-full flex items-center justify-between gap-4 mb-2">
                           <img 
