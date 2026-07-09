@@ -969,23 +969,26 @@ export default function InscripcionPage() {
                     <div 
                       key={event.id}
                       onClick={() => handleCardClick(event)}
-                      className={`group relative bg-[#060608] rounded-[2rem] flex flex-col md:flex-row justify-start items-center cursor-pointer transition-all duration-500 overflow-hidden min-h-[460px] md:h-[360px] w-full border ${event.theme.border} ${event.theme.glow} bg-cover bg-[position:25%_center] md:bg-left-center`}
-                      style={{ backgroundImage: `url('${event.bgImage}')` }}
+                      className={`group relative bg-[#060608] rounded-[2rem] flex flex-col md:flex-row justify-start items-center cursor-pointer transition-all duration-500 overflow-hidden min-h-[460px] md:h-[360px] w-full border ${event.theme.border} ${event.theme.glow}`}
                     >
-                      {/* Visual Side Column (38% on desktop) - Transparent to show the card background rider */}
-                      <div className="w-full md:w-[38%] h-[160px] md:h-full pointer-events-none relative transition-transform duration-700 group-hover:scale-102">
-                        {/* Smooth mobile bottom fade */}
+                      {/* Visual Side Column (38% on desktop) - Displays the rider image */}
+                      <div 
+                        className="w-full md:w-[38%] h-[180px] md:h-full bg-cover bg-center pointer-events-none relative transition-transform duration-700 group-hover:scale-102"
+                        style={{ backgroundImage: `url('${event.bgImage}')` }}
+                      >
+                        {/* Smooth visual to solid card background transition */}
+                        <div className="absolute inset-y-0 right-[-1px] w-1/3 bg-gradient-to-l from-[#060608] to-transparent hidden md:block z-20"></div>
                         <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#060608] to-transparent md:hidden"></div>
                       </div>
 
-                      {/* Content Column (62% on desktop) - Blends using horizontal transparent-to-solid gradient */}
-                      <div className="w-full md:w-[62%] h-auto md:h-full bg-gradient-to-t md:bg-gradient-to-l from-[#060608] via-[#060608]/98 md:via-[#060608]/95 to-transparent p-6 flex flex-col justify-between items-start text-left z-10 relative border-t md:border-t-0 border-zinc-900/40">
-                        {/* Top Row: Event Logo (left) & User status badge (right) */}
+                      {/* Content Column (62% on desktop) - Solid dark background to prevent text overlay on rider photo */}
+                      <div className="w-full md:w-[62%] h-auto md:h-full bg-[#060608] p-6 flex flex-col justify-between items-start text-left z-10 relative border-t md:border-t-0 md:border-l border-zinc-900/40">
+                        {/* Top Row: Event Logo (left, enlarged) & User status badge (right) */}
                         <div className="w-full flex items-center justify-between gap-4 mb-2">
                           <img 
                             src={event.logo} 
                             alt={`${event.title} Logo`} 
-                            className="h-7 object-contain filter opacity-90 group-hover:opacity-100 transition-all duration-500"
+                            className="h-10 sm:h-12 object-contain filter opacity-95 group-hover:opacity-100 transition-all duration-500"
                           />
                           {renderStatusBadge(event.userStatus)}
                         </div>
