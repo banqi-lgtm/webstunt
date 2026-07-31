@@ -37,6 +37,7 @@ export default function InscripcionPage() {
   const [selectedEvent, setSelectedEvent] = useState<'f2r' | 'stuntday' | 'nitrox' | 'festival'>('nitrox');
   const [activeEvent, setActiveEvent] = useState<'f2r' | 'stuntday' | 'nitrox' | 'festival' | null>(null);
   const [showClosedEvents, setShowClosedEvents] = useState(false);
+  const [isCustomMenuOpen, setIsCustomMenuOpen] = useState(false);
   const [f2rStatus, setF2rStatus] = useState<string | null>(null);
   const [stuntdayStatus, setStuntdayStatus] = useState<string | null>(null);
   const [nitroxStatus, setNitroxStatus] = useState<string | null>(null);
@@ -998,7 +999,7 @@ export default function InscripcionPage() {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-[#121212]">
+    <div className="min-h-screen relative overflow-hidden bg-[#09090b] flex flex-col">
       {mounted && windowSize.width > 0 && (estadoPago === 'aprobado' || estadoPago === 'pago_dia_evento') && (
         <Confetti 
           width={windowSize.width} 
@@ -1011,9 +1012,146 @@ export default function InscripcionPage() {
         />
       )}
       {/* Background glow */}
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#E60000]/10 blur-[150px] mix-blend-screen pointer-events-none rounded-full"></div>
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#E60000]/5 blur-[180px] mix-blend-screen pointer-events-none rounded-full"></div>
 
-      <div className={activeEvent === null ? "flex flex-col text-zinc-100 w-full relative z-10 min-h-[calc(100vh-80px)] justify-center items-center overflow-hidden p-4 sm:p-6" : "flex flex-col p-4 lg:p-8 text-zinc-100 max-w-5xl mx-auto w-full relative z-10"}>
+      {/* Custom Carbon Fiber Header */}
+      {activeEvent === null && (
+        <header className="sticky top-0 z-50 w-full border-b border-zinc-800/80 bg-[#0d0d11]/90 backdrop-blur-md py-4 transition-all duration-300 custom-header">
+          <style dangerouslySetInnerHTML={{__html: `
+            header.sticky:not(.custom-header) {
+              display: none !important;
+            }
+          `}} />
+          <div 
+            className="absolute inset-0 opacity-10 pointer-events-none z-0"
+            style={{
+              backgroundColor: '#0b0b0d',
+              backgroundImage: `
+                linear-gradient(45deg, #ffffff 25%, transparent 25%), 
+                linear-gradient(-45deg, #ffffff 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #ffffff 75%), 
+                linear-gradient(-45deg, transparent 75%, #ffffff 75%)
+              `,
+              backgroundSize: '8px 8px',
+              backgroundPosition: '0 0, 0 4px, 4px -4px, -4px 0px'
+            }}
+          />
+          <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-12 flex items-center justify-between h-12 w-full">
+            {/* Left: Mobile Menu Trigger (Hamburger) */}
+            <div className="flex md:hidden w-1/3">
+              <button 
+                type="button"
+                onClick={() => setIsCustomMenuOpen(true)}
+                className="text-[#E60000] text-3xl focus:outline-none hover:scale-105 transition-transform"
+              >
+                ☰
+              </button>
+            </div>
+
+            {/* Left Desktop: Empty Spacer to balance the layout */}
+            <div className="hidden md:flex w-1/3"></div>
+
+            {/* Center: Centered Logo */}
+            <div className="flex justify-center w-1/3">
+              <Link href="/profile">
+                <img 
+                  src="/sponsors/PKS Blanco.png" 
+                  alt="PKS Logo" 
+                  className="h-10 md:h-12 w-auto object-contain hover:opacity-90 transition-opacity"
+                />
+              </Link>
+            </div>
+
+            {/* Right: Desktop Navigation Links */}
+            <nav className="hidden md:flex items-center justify-end gap-8 w-1/3">
+              <Link href="/" className="text-zinc-400 hover:text-white text-xs font-black tracking-widest uppercase transition-colors">
+                Inicio
+              </Link>
+              <Link href="/inscripcion" className="text-white hover:text-zinc-200 text-xs font-black tracking-widest uppercase transition-colors border-b-2 border-[#E60000] pb-1">
+                Eventos
+              </Link>
+              <Link href="/inscripcion" className="text-zinc-400 hover:text-white text-xs font-black tracking-widest uppercase transition-colors">
+                Copa Stunt
+              </Link>
+              <a href="#" className="text-zinc-400 hover:text-white text-xs font-black tracking-widest uppercase transition-colors">
+                Tienda
+              </a>
+              <Link href="/profile" className="text-zinc-400 hover:text-white text-xs font-black tracking-widest uppercase transition-colors">
+                Mi Cuenta
+              </Link>
+            </nav>
+
+            {/* Right Mobile: Account shortcut */}
+            <div className="flex md:hidden justify-end w-1/3">
+              <Link href="/profile" className="text-zinc-400 hover:text-[#E60000] transition-colors">
+                <User className="w-6 h-6" />
+              </Link>
+            </div>
+          </div>
+        </header>
+      )}
+
+      {/* Mobile Drawer */}
+      {isCustomMenuOpen && (
+        <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex flex-col justify-between p-8 animate-in slide-in-from-left duration-300 md:hidden">
+          <div>
+            <div className="flex justify-between items-center mb-12">
+              <img src="/sponsors/PKS Blanco.png" alt="PKS" className="h-8 object-contain" />
+              <button 
+                type="button"
+                onClick={() => setIsCustomMenuOpen(false)}
+                className="text-white text-3xl focus:outline-none hover:text-[#E60000] transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+            <nav className="flex flex-col gap-6 text-2xl font-black uppercase tracking-widest font-display text-left">
+              <Link 
+                href="/" 
+                className="text-zinc-400 hover:text-white transition-colors"
+                onClick={() => setIsCustomMenuOpen(false)}
+              >
+                Inicio
+              </Link>
+              <Link 
+                href="/inscripcion" 
+                className="text-white hover:text-zinc-200 transition-colors border-l-4 border-[#E60000] pl-3"
+                onClick={() => setIsCustomMenuOpen(false)}
+              >
+                Eventos
+              </Link>
+              <Link 
+                href="/inscripcion" 
+                className="text-zinc-400 hover:text-white transition-colors"
+                onClick={() => setIsCustomMenuOpen(false)}
+              >
+                Copa Stunt
+              </Link>
+              <a 
+                href="#" 
+                className="text-zinc-400 hover:text-white transition-colors"
+                onClick={() => setIsCustomMenuOpen(false)}
+              >
+                Tienda
+              </a>
+              <Link 
+                href="/profile" 
+                className="text-zinc-400 hover:text-white transition-colors"
+                onClick={() => setIsCustomMenuOpen(false)}
+              >
+                Mi Cuenta
+              </Link>
+            </nav>
+          </div>
+          <div className="border-t border-zinc-900 pt-6">
+            <p className="text-zinc-600 text-xs font-bold tracking-widest uppercase text-center">
+              PASKINES STUNT &copy; 2026
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div className={activeEvent === null ? "flex flex-col text-zinc-100 w-full relative z-10 min-h-[calc(100vh-80px)] justify-start items-center p-4 sm:p-6 md:p-12" : "flex flex-col p-4 lg:p-8 text-zinc-100 max-w-5xl mx-auto w-full relative z-10"}>
         
         {isCheckingStatus ? (
           <div className="flex flex-col items-center justify-center min-h-[60vh]">
@@ -1022,7 +1160,7 @@ export default function InscripcionPage() {
           </div>
         ) : activeEvent === null ? (
           /* PANTALLA DE SELECCIÓN DE EVENTOS */
-          <div className="relative w-full flex flex-col justify-center items-center h-full z-10 text-center max-w-6xl px-4 py-4">
+          <div className="relative w-full flex flex-col justify-start items-center h-full z-10 text-center max-w-7xl px-4 py-8 animate-in fade-in zoom-in-95 duration-500">
             {/* Hard lock scrollbars at root layout viewport levels to completely disable page scrolling, unless showing closed events */}
             {!showClosedEvents && (
               <style dangerouslySetInnerHTML={{__html: `
@@ -1037,69 +1175,75 @@ export default function InscripcionPage() {
             {/* Fullscreen Backdrop specific to the selection view */}
             <div 
               className="fixed inset-0 bg-cover bg-center bg-no-repeat z-0" 
-              style={{ backgroundImage: "linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.9)), url('/sponsors/Diseño%20sin%20título.png')" }}
+              style={{ backgroundImage: "linear-gradient(rgba(0,0,0,0.85), rgba(0,0,0,0.95)), url('/sponsors/Diseño sin título.png')" }}
             />
             
-            <div className="relative z-10 flex flex-col items-center w-full animate-in fade-in zoom-in-95 duration-500">
-              <div className={`grid grid-cols-1 ${visibleEvents.length > 1 ? 'lg:grid-cols-2' : 'max-w-2xl'} gap-8 w-full max-w-5xl justify-center items-center mb-8`}>
+            {/* Section Title */}
+            <div className="text-center max-w-3xl mb-12 relative z-10 mt-4">
+              <h2 className="text-[#E60000] text-[10px] md:text-[11px] font-black tracking-[0.4em] uppercase mb-3 animate-pulse">
+                EVENTOS PKS 2026
+              </h2>
+              <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-white tracking-tight uppercase leading-none font-display">
+                DESCUBRE LOS MEJORES <br />
+                <span className="text-[#E60000] drop-shadow-[0_0_15px_rgba(230,0,0,0.4)]">EVENTOS DE STUNT</span>
+              </h1>
+              <div className="h-1 w-20 bg-[#E60000] mx-auto mt-6 rounded-full shadow-[0_0_10px_rgba(230,0,0,0.5)]"></div>
+            </div>
+
+            <div className="relative z-10 flex flex-col items-center w-full">
+              {/* Event Cards Grid: 4 columns on desktop, 2 on tablet, 1 on mobile */}
+              <div className={`grid grid-cols-1 md:grid-cols-2 ${visibleEvents.length > 2 ? 'lg:grid-cols-4' : 'lg:grid-cols-2 max-w-5xl'} gap-8 w-full max-w-7xl justify-center items-stretch mb-12`}>
                 {visibleEvents.map((event) => {
                   const StatusIcon = event.statusIcon;
                   return (
                     <div 
                       key={event.id}
                       onClick={() => handleCardClick(event)}
-                      className={`group relative bg-[#060608] rounded-[2rem] flex flex-col md:flex-row justify-start items-center cursor-pointer transition-all duration-500 overflow-hidden min-h-[460px] md:min-h-0 md:h-[300px] w-full border ${event.theme.border} ${event.theme.glow}`}
+                      className={`group relative bg-[#0b0b0d] rounded-[2rem] overflow-hidden border ${event.isClosed ? 'border-zinc-800/80 hover:border-zinc-700/80' : event.theme.border} ${event.isClosed ? 'shadow-xl' : event.theme.glow} flex flex-col h-[480px] w-full transition-all duration-500 hover:translate-y-[-4px] cursor-pointer`}
                     >
-                      {/* Visual Side Column (45% on desktop) - Displays the rider image prominently aligned with custom offset */}
+                      {/* Background Image full-bleed */}
                       <div 
-                        className={`w-full md:w-[45%] h-[180px] md:h-full bg-cover ${event.bgPosition} bg-no-repeat pointer-events-none relative transition-transform duration-700 group-hover:scale-102 bg-[#060608]`}
+                        className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105 pointer-events-none z-0"
                         style={{ backgroundImage: `url('${event.bgImage}')` }}
-                      >
-                        {/* Smooth visual to solid card background transition */}
-                        <div className="absolute inset-y-0 right-[-1px] w-1/3 bg-gradient-to-l from-[#060608] to-transparent hidden md:block z-20"></div>
-                        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#060608] to-transparent md:hidden"></div>
-                      </div>
+                      />
+                      
+                      {/* Gradient Overlay for Legibility */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/85 to-black/30 transition-opacity duration-500 group-hover:opacity-95 z-10" />
 
-                      {/* Content Column (55% on desktop) - Solid dark background to prevent text overlay on rider photo */}
-                      <div className="w-full md:w-[55%] h-auto md:h-full bg-[#060608] p-5 md:p-6 flex flex-col justify-between items-start text-left z-10 relative border-t md:border-t-0 md:border-l border-zinc-900/40">
-                        {/* Top Row: Event Logo (left, custom layout classes) & User status badge (right) */}
-                        <div className="w-full flex items-center justify-between gap-4 mb-1 h-14 md:h-16 relative overflow-visible">
-                          <div className="flex-1 flex justify-start items-center h-full">
+                      {/* Card Content wrapper */}
+                      <div className="relative z-20 h-full p-6 flex flex-col justify-between items-stretch text-center">
+                        {/* Top: Logo and Status Badge */}
+                        <div className="flex flex-col items-center gap-3">
+                          {/* Logo container */}
+                          <div className="h-20 flex items-center justify-center relative overflow-visible w-full mt-2">
                             <img 
                               src={event.logo} 
                               alt={`${event.title} Logo`} 
-                              className={`${event.logoClass} filter opacity-95 group-hover:opacity-100 transition-all duration-500`}
+                              className="max-h-16 max-w-[85%] object-contain filter drop-shadow-[0_0_10px_rgba(255,255,255,0.15)] transition-transform duration-500 group-hover:scale-[1.03]"
                             />
                           </div>
-                          <div className="shrink-0">
-                            {renderStatusBadge(event.userStatus)}
+                          {/* Status Badge */}
+                          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border ${event.isClosed ? 'bg-zinc-950/40 border-zinc-800 text-zinc-400' : 'bg-red-950/20 border-red-500/20 ' + event.theme.badgeText} text-[9px] font-black tracking-widest uppercase w-fit shadow-[0_0_15px_rgba(0,0,0,0.4)]`}>
+                            <StatusIcon className="w-3.5 h-3.5" />
+                            <span>{event.statusText}</span>
                           </div>
                         </div>
 
-                        {/* Middle Section: Event Badge, Title, and Description (centered vertically) */}
-                        <div className="w-full flex-1 flex flex-col justify-center items-start gap-1.5 py-1">
-                          {/* Event Status Badge */}
-                          <div className={`flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-950/20 border border-red-500/20 ${event.theme.badgeText} text-[8px] font-black tracking-widest uppercase w-fit shadow-[0_0_15px_rgba(230,0,0,0.03)]`}>
-                            <StatusIcon className={`w-3 h-3 ${event.theme.badgeText}`} />
-                            <span>{event.statusText}</span>
-                          </div>
-
-                          {/* Event Title */}
-                          <h2 className="text-lg md:text-xl font-black text-white uppercase tracking-tight leading-none mt-1">
-                            {event.title} <span className={event.theme.titleAccentColor}>{event.titleAccent}</span>
+                        {/* Middle: Title & Subtitle */}
+                        <div className="flex flex-col justify-end items-center gap-2 mb-4 flex-1">
+                          <h2 className="text-lg md:text-xl font-black text-white uppercase tracking-tight leading-snug line-clamp-2 min-h-[3.5rem] flex items-end">
+                            {event.title} <span className={`ml-1.5 ${event.isClosed ? 'text-zinc-500' : event.theme.titleAccentColor}`}>{event.titleAccent}</span>
                           </h2>
-
-                          {/* Event Description */}
-                          <p className="text-zinc-400 text-[11px] font-semibold leading-relaxed max-w-[250px]">
+                          <p className="text-zinc-400 text-[11px] font-medium leading-relaxed max-w-[220px] line-clamp-1">
                             {event.subtitle}
                           </p>
                         </div>
 
-                        {/* Bottom Row: CTA Button (natural closing element) */}
-                        <div className="w-full mt-auto pt-1">
+                        {/* Bottom: CTA Button */}
+                        <div className="w-full mt-auto pt-2">
                           <button 
                             type="button"
-                            className={`w-full py-2.5 rounded-xl text-white font-extrabold tracking-widest uppercase shadow-lg text-[9px] flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.01] border ${event.theme.btnGradient}`}
+                            className={`w-full py-3 rounded-xl text-white font-extrabold tracking-widest uppercase shadow-lg text-[9px] flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.01] border ${event.isClosed ? 'bg-zinc-900/60 hover:bg-zinc-800/80 border-zinc-800 text-zinc-400' : event.theme.btnGradient}`}
                           >
                             {event.ctaText} <ChevronRight className="w-4 h-4 text-white/80" />
                           </button>
@@ -1115,16 +1259,16 @@ export default function InscripcionPage() {
                 <button
                   type="button"
                   onClick={() => setShowClosedEvents(!showClosedEvents)}
-                  className="px-6 py-3 bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white rounded-2xl text-[10px] font-bold tracking-widest uppercase transition-all duration-300 flex items-center gap-2 shadow-md mb-4"
+                  className="px-6 py-3 bg-zinc-950/90 hover:bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white rounded-full text-[10px] font-black tracking-widest uppercase transition-all duration-300 flex items-center gap-2 shadow-xl hover:shadow-[0_0_15px_rgba(230,0,0,0.1)] mb-4"
                 >
-                  {showClosedEvents ? 'VER MENOS EVENTOS' : 'VER MÁS EVENTOS'}
+                  {showClosedEvents ? 'OCULTAR EVENTOS CERRADOS' : 'VER MÁS EVENTOS'}
                   <ChevronDown className={`w-4 h-4 text-[#E60000] transition-transform duration-300 ${showClosedEvents ? 'rotate-180' : ''}`} />
                 </button>
               )}
 
               {/* Extra Branding Footer */}
-              <div className="flex flex-col items-center justify-center gap-1.5 mt-4 border-t border-zinc-900/40 pt-6 w-full max-w-md z-10">
-                <p className="text-zinc-500 text-[10px] sm:text-xs font-black tracking-[0.4em] uppercase text-center">
+              <div className="flex flex-col items-center justify-center gap-1.5 mt-8 border-t border-zinc-900/40 pt-8 w-full max-w-md z-10">
+                <p className="text-zinc-600 text-[10px] sm:text-xs font-black tracking-[0.4em] uppercase text-center">
                   PASIÓN &bull; EQUILIBRIO &bull; ADRENALINA
                 </p>
                 <div className="text-[#E60000] text-sm animate-pulse">
@@ -1133,6 +1277,8 @@ export default function InscripcionPage() {
               </div>
 
             </div>
+          </div>
+        ) : (v>
           </div>
         ) : (
           <>
