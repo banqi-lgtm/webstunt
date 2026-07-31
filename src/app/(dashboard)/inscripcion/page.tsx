@@ -1278,8 +1278,6 @@ export default function InscripcionPage() {
 
             </div>
           </div>
-        ) : (v>
-          </div>
         ) : (
           <>
             {/* Botón Volver a Eventos */}
