@@ -34,11 +34,13 @@ export default function InscripcionPage() {
   const [motivoSaldoFaltante, setMotivoSaldoFaltante] = useState('');
   const { toast } = useToast();
 
-  const [selectedEvent, setSelectedEvent] = useState<'f2r' | 'stuntday'>('f2r');
-  const [activeEvent, setActiveEvent] = useState<'f2r' | 'stuntday' | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<'f2r' | 'stuntday' | 'nitrox' | 'festival'>('nitrox');
+  const [activeEvent, setActiveEvent] = useState<'f2r' | 'stuntday' | 'nitrox' | 'festival' | null>(null);
   const [showClosedEvents, setShowClosedEvents] = useState(false);
   const [f2rStatus, setF2rStatus] = useState<string | null>(null);
   const [stuntdayStatus, setStuntdayStatus] = useState<string | null>(null);
+  const [nitroxStatus, setNitroxStatus] = useState<string | null>(null);
+  const [festivalStatus, setFestivalStatus] = useState<string | null>(null);
 
   // Pilot and Card Template State
   const [nombres, setNombres] = useState('');
@@ -49,18 +51,22 @@ export default function InscripcionPage() {
 
   const fetchEventStatuses = async (userId: string) => {
     try {
-      const [f2rDoc, stuntdayDoc] = await Promise.all([
+      const [f2rDoc, stuntdayDoc, nitroxDoc, festivalDoc] = await Promise.all([
         getDoc(doc(db, 'event_registrations', `f2r_${userId}`)),
-        getDoc(doc(db, 'event_registrations', `stuntday_${userId}`))
+        getDoc(doc(db, 'event_registrations', `stuntday_${userId}`)),
+        getDoc(doc(db, 'event_registrations', `nitrox_${userId}`)),
+        getDoc(doc(db, 'event_registrations', `festival_${userId}`))
       ]);
       setF2rStatus(f2rDoc.exists() ? (f2rDoc.data().estadoPago || 'pendiente') : 'no_inscrito');
       setStuntdayStatus(stuntdayDoc.exists() ? (stuntdayDoc.data().estadoPago || 'pendiente') : 'no_inscrito');
+      setNitroxStatus(nitroxDoc.exists() ? (nitroxDoc.data().estadoPago || 'pendiente') : 'no_inscrito');
+      setFestivalStatus(festivalDoc.exists() ? (festivalDoc.data().estadoPago || 'pendiente') : 'no_inscrito');
     } catch (e) {
       console.error("Error fetching event statuses:", e);
     }
   };
 
-  const loadEventData = async (userId: string, eventKey: 'f2r' | 'stuntday') => {
+  const loadEventData = async (userId: string, eventKey: 'f2r' | 'stuntday' | 'nitrox' | 'festival') => {
     setIsCheckingStatus(true);
     try {
       // 1. Reset all state values first
@@ -129,7 +135,7 @@ export default function InscripcionPage() {
     }
   };
 
-  const handleEventSwitch = (eventKey: 'f2r' | 'stuntday') => {
+  const handleEventSwitch = (eventKey: 'f2r' | 'stuntday' | 'nitrox' | 'festival') => {
     setSelectedEvent(eventKey);
     if (uid) {
       loadEventData(uid, eventKey);
@@ -721,7 +727,7 @@ export default function InscripcionPage() {
 
       const formData = {
         uid,
-        eventId: selectedEvent === 'f2r' ? 'f2r_2026' : 'stuntday_2026',
+        eventId: `${selectedEvent}_2026`,
         categoria: categorias,
         participacionPrevia,
         patrocinadores,
@@ -878,6 +884,50 @@ export default function InscripcionPage() {
   // Array definition and handler for premium event cards selection view
   const eventsData = [
     {
+      id: 'nitrox' as const,
+      title: 'COPA STUNT',
+      titleAccent: 'NITROX',
+      subtitle: 'El campeonato de stunt definitivo.',
+      bgImage: '/sponsors/stunt_hero_bg.png',
+      logo: '/sponsors/Copa Stunt Nitrox Blanco.png',
+      logoClass: 'h-16 sm:h-20 md:h-22 -my-2 md:-my-3 object-contain scale-[1.15] origin-left',
+      bgPosition: 'bg-[position:center_8%]',
+      theme: {
+        border: 'border-blue-500/30 hover:border-blue-500/70',
+        glow: 'shadow-[0_0_30px_rgba(59,130,246,0.06)] hover:shadow-[0_0_50px_rgba(59,130,246,0.18)]',
+        badgeText: 'text-[#E60000]',
+        titleAccentColor: 'text-blue-400',
+        btnGradient: 'bg-blue-600 hover:bg-blue-500 text-white border-none shadow-blue-950/40',
+      },
+      statusText: '30 DÍAS PARA EL CIERRE',
+      statusIcon: Calendar,
+      userStatus: nitroxStatus,
+      ctaText: nitroxStatus === 'no_inscrito' || !nitroxStatus ? 'REGISTRARSE AHORA' : 'CONSULTAR ESTADO',
+      isClosed: false,
+    },
+    {
+      id: 'festival' as const,
+      title: 'FESTIVAL STUNT',
+      titleAccent: '30 DE AGOSTO',
+      subtitle: 'El mayor show y adrenalina de la temporada.',
+      bgImage: '/sponsors/moto-stunt.png',
+      logo: '/sponsors/PKS Blanco.png',
+      logoClass: 'h-14 sm:h-16 md:h-18 -my-2 md:-my-3 object-contain scale-[1.1] origin-left',
+      bgPosition: 'bg-[position:center_8%]',
+      theme: {
+        border: 'border-orange-500/30 hover:border-orange-500/70',
+        glow: 'shadow-[0_0_30px_rgba(249,115,22,0.06)] hover:shadow-[0_0_50px_rgba(249,115,22,0.18)]',
+        badgeText: 'text-[#E60000]',
+        titleAccentColor: 'text-orange-400',
+        btnGradient: 'bg-orange-600 hover:bg-orange-500 text-white border-none shadow-orange-950/40',
+      },
+      statusText: '30 DÍAS PARA EL CIERRE',
+      statusIcon: Calendar,
+      userStatus: festivalStatus,
+      ctaText: festivalStatus === 'no_inscrito' || !festivalStatus ? 'REGISTRARSE AHORA' : 'CONSULTAR ESTADO',
+      isClosed: false,
+    },
+    {
       id: 'stuntday' as const,
       title: 'STUNT DAY',
       titleAccent: '2026',
@@ -891,13 +941,13 @@ export default function InscripcionPage() {
         glow: 'shadow-[0_0_30px_rgba(230,0,0,0.1)] hover:shadow-[0_0_50px_rgba(230,0,0,0.25)]',
         badgeText: 'text-[#E60000]',
         titleAccentColor: 'text-[#E60000]',
-        btnGradient: 'bg-[#E60000] hover:bg-[#FF1A1A] text-white border-none shadow-red-950/40',
+        btnGradient: 'bg-zinc-800 hover:bg-zinc-700 text-white border-zinc-700 hover:border-zinc-650',
       },
-      statusText: '50 DÍAS PARA EL CIERRE',
-      statusIcon: Calendar,
+      statusText: 'EVENTO CERRADO',
+      statusIcon: Lock,
       userStatus: stuntdayStatus,
-      ctaText: stuntdayStatus === 'no_inscrito' || !stuntdayStatus ? 'REGISTRARSE AHORA' : 'CONSULTAR ESTADO',
-      isClosed: false,
+      ctaText: 'CONSULTAR ESTADO',
+      isClosed: true,
     },
     {
       id: 'f2r' as const,
@@ -913,7 +963,7 @@ export default function InscripcionPage() {
         glow: 'shadow-[0_0_30px_rgba(16,185,129,0.06)] hover:shadow-[0_0_50px_rgba(16,185,129,0.18)]',
         badgeText: 'text-[#E60000]',
         titleAccentColor: 'text-emerald-400',
-        btnGradient: 'bg-emerald-600 hover:bg-emerald-500 text-white border-none shadow-emerald-950/40',
+        btnGradient: 'bg-zinc-800 hover:bg-zinc-700 text-white border-zinc-700 hover:border-zinc-650',
       },
       statusText: 'EVENTO CERRADO',
       statusIcon: Lock,
@@ -924,12 +974,21 @@ export default function InscripcionPage() {
   ];
 
   const visibleEvents = eventsData.filter(event => !event.isClosed || showClosedEvents);
+  const activeEventObj = eventsData.find(e => e.id === selectedEvent) || eventsData[0];
 
   const handleCardClick = (event: typeof eventsData[0]) => {
     if (event.id === 'f2r' && f2rStatus === 'no_inscrito') {
       toast({
         title: "Inscripciones Cerradas",
         description: "El periodo de registro para la Copa Stunt F2R 2026 ha finalizado.",
+        variant: "destructive"
+      });
+      return;
+    }
+    if (event.id === 'stuntday' && stuntdayStatus === 'no_inscrito') {
+      toast({
+        title: "Inscripciones Cerradas",
+        description: "El periodo de registro para Stunt Day 2026 ha finalizado.",
         variant: "destructive"
       });
       return;
@@ -1100,7 +1159,7 @@ export default function InscripcionPage() {
                   <ArrowLeft className="w-6 h-6" />
                 </Link>
                 <h1 className="text-xl md:text-2xl font-black tracking-tight text-white uppercase">
-                  {selectedEvent === 'f2r' ? 'Inscripción Copa Stunt F2R 2026' : 'Inscripción Stunt Day 2026'}
+                  Inscripción {activeEventObj ? `${activeEventObj.title} ${activeEventObj.titleAccent}` : ''}
                 </h1>
               </div>
               <div className="flex items-center justify-between text-xs font-bold tracking-widest text-[#B0B0B0] mb-2">
@@ -1728,15 +1787,15 @@ export default function InscripcionPage() {
                 <div className="bg-[#121212] border border-[#2A2A2A] rounded-2xl overflow-hidden shadow-2xl mb-8 flex flex-col items-center" style={{ transform: 'scale(1.15)', transformOrigin: 'top center', margin: '20px auto 60px auto', maxWidth: '400px', width: '100%' }}>
                   <div className="panel-header font-display w-full" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px 10px', borderBottom: 'none' }}>
                     <img 
-                      src={selectedEvent === 'f2r' ? "/sponsors/copa%20stunt%20nitrox%20f2r.png" : "/sponsors/stuntday3.png"} 
-                      alt={selectedEvent === 'f2r' ? "Copa Stunt F2R Nitrox" : "Stunt Day Nitrox"} 
+                      src={activeEventObj?.logo || "/sponsors/stuntday3.png"} 
+                      alt={activeEventObj ? `${activeEventObj.title} Logo` : "Event Logo"} 
                       style={{ height: '90px', objectFit: 'contain', filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.2))' }} 
                     />
                   </div>
                   <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px', width: '100%' }}>
                     <div style={{ width: '100%', padding: '0 10px' }}>
                       <div style={{ fontSize: '0.9rem', color: '#00cfff', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 800, textAlign: 'center', marginBottom: '10px' }}>
-                        {selectedEvent === 'f2r' ? 'PUNTAJE VÁLIDA F2R' : 'PUNTAJE VÁLIDA STUNT DAY'} {(() => {
+                        PUNTAJE VÁLIDA {activeEventObj ? activeEventObj.title : ''} {(() => {
                           const getMappedCategory = (c: string) => {
                             let f = String(c).toUpperCase().trim();
                             if (f.includes('ALTO') || f === 'CATEGORIA NITROX' || f === 'NITROX') return 'NITROX';
