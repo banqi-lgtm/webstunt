@@ -36,6 +36,7 @@ interface Registration {
   ciudad?: string;
   prioridadRechazado?: boolean;
   tallaCamisa?: string;
+  eventKey: 'f2r' | 'stuntday' | 'nitrox' | 'festival';
 }
 
 export default function PilotosPage() {
@@ -46,6 +47,7 @@ export default function PilotosPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('todos'); // 'todos', 'en_revision', 'aprobado', 'pendiente', 'saldo_pendiente', 'revision_saldo'
+  const [selectedEventFilter, setSelectedEventFilter] = useState<'todos' | 'f2r' | 'stuntday' | 'nitrox' | 'festival'>('todos');
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scannedPilot, setScannedPilot] = useState<any | null>(null);
   const [isScannedDialogOpen, setIsScannedDialogOpen] = useState(false);
@@ -93,12 +95,37 @@ export default function PilotosPage() {
 
       // 2. Fetch Registrations
       const regSnap = await getDocs(collection(db, 'event_registrations'));
-      const regsMap = new Map();
+      const userRegsMap = new Map<string, any[]>();
       regSnap.forEach(docSnap => {
         const data = docSnap.data();
-        const extractedUid = data.uid || docSnap.id.replace('f2r_', '');
+        const id = docSnap.id;
+        
+        let eventKey: 'f2r' | 'stuntday' | 'nitrox' | 'festival' = 'f2r';
+        let extractedUid = data.uid || '';
+        
+        if (id.startsWith('f2r_')) {
+          eventKey = 'f2r';
+          extractedUid = extractedUid || id.substring(4);
+        } else if (id.startsWith('stuntday_')) {
+          eventKey = 'stuntday';
+          extractedUid = extractedUid || id.substring(9);
+        } else if (id.startsWith('nitrox_')) {
+          eventKey = 'nitrox';
+          extractedUid = extractedUid || id.substring(7);
+        } else if (id.startsWith('festival_')) {
+          eventKey = 'festival';
+          extractedUid = extractedUid || id.substring(9);
+        } else {
+          eventKey = 'f2r';
+          extractedUid = extractedUid || id;
+        }
+        
         if (extractedUid) {
-          regsMap.set(extractedUid, { id: docSnap.id, ...data });
+          const regObj = { id, eventKey, ...data };
+          if (!userRegsMap.has(extractedUid)) {
+            userRegsMap.set(extractedUid, []);
+          }
+          userRegsMap.get(extractedUid)!.push(regObj);
         }
       });
 
@@ -115,24 +142,47 @@ export default function PilotosPage() {
         // Skip staff members and judges
         if (userData.rol === 'staff' || userData.rol === 'juez') return;
 
-        const regData = regsMap.get(userId) || {};
+        const userRegs = userRegsMap.get(userId) || [];
         
-        fetched.push({
-          id: regData.id || `f2r_${userId}`,
-          uid: userId,
-          categoria: regData.categoria || 'N/A',
-          motocicleta: regData.motocicleta || { placa: 'N/A', marca: 'N/A', referencia: 'N/A' },
-          registradoEl: regData.registradoEl || userData.createdAt || new Date().toISOString(),
-          estadoPago: (regData.estadoPago === 'borrador' ? 'pendiente' : regData.estadoPago) || 'pendiente',
-          nombres: userData.nombres || 'Desconocido',
-          apellidos: userData.apellidos || '',
-          email: userData.email || 'N/A',
-          numeroIdentificacion: userData.numeroIdentificacion || regData.numeroIdentificacion || 'N/A',
-          telefono: userData.telefono || regData.telefono || 'N/A',
-          ciudad: userData.ciudad || regData.ciudad || 'Medellin',
-          prioridadRechazado: regData.prioridadRechazado || false,
-          tallaCamisa: userData.tallaCamisa || regData.tallaCamisa || 'N/A',
-        });
+        if (userRegs.length === 0) {
+          fetched.push({
+            id: `f2r_${userId}`,
+            uid: userId,
+            categoria: 'N/A',
+            motocicleta: { placa: 'N/A', marca: 'N/A', referencia: 'N/A' },
+            registradoEl: userData.createdAt || new Date().toISOString(),
+            estadoPago: 'pendiente',
+            nombres: userData.nombres || 'Desconocido',
+            apellidos: userData.apellidos || '',
+            email: userData.email || 'N/A',
+            numeroIdentificacion: userData.numeroIdentificacion || 'N/A',
+            telefono: userData.telefono || 'N/A',
+            ciudad: userData.ciudad || 'Medellin',
+            prioridadRechazado: false,
+            tallaCamisa: userData.tallaCamisa || 'N/A',
+            eventKey: 'f2r',
+          });
+        } else {
+          userRegs.forEach(regData => {
+            fetched.push({
+              id: regData.id,
+              uid: userId,
+              categoria: Array.isArray(regData.categoria) ? regData.categoria.join(' / ') : (regData.categoria || 'N/A'),
+              motocicleta: regData.motocicleta || { placa: 'N/A', marca: 'N/A', referencia: 'N/A' },
+              registradoEl: regData.registradoEl || userData.createdAt || new Date().toISOString(),
+              estadoPago: (regData.estadoPago === 'borrador' ? 'pendiente' : regData.estadoPago) || 'pendiente',
+              nombres: userData.nombres || 'Desconocido',
+              apellidos: userData.apellidos || '',
+              email: userData.email || 'N/A',
+              numeroIdentificacion: userData.numeroIdentificacion || regData.numeroIdentificacion || 'N/A',
+              telefono: userData.telefono || regData.telefono || 'N/A',
+              ciudad: userData.ciudad || regData.ciudad || 'Medellin',
+              prioridadRechazado: regData.prioridadRechazado || false,
+              tallaCamisa: userData.tallaCamisa || regData.tallaCamisa || 'N/A',
+              eventKey: regData.eventKey,
+            });
+          });
+        }
       });
       
       // Ordenar por fecha de registro (más recientes primero)
@@ -175,7 +225,9 @@ export default function PilotosPage() {
                           (filterStatus === 'pendiente' && r.estadoPago === 'rechazado') ||
                           (filterStatus === 'aprobado' && r.estadoPago === 'pago_dia_evento');
     
-    return matchesSearch && matchesFilter;
+    const matchesEvent = selectedEventFilter === 'todos' || r.eventKey === selectedEventFilter;
+    
+    return matchesSearch && matchesFilter && matchesEvent;
   });
 
   const exportToExcel = () => {
@@ -207,14 +259,16 @@ export default function PilotosPage() {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Pilotos");
     
-    XLSX.writeFile(workbook, `Pilotos_F2R_${filterStatus}_${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.writeFile(workbook, `Pilotos_${selectedEventFilter.toUpperCase()}_${filterStatus}_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
-  const countTodos = registrations.length;
-  const countEnRevision = registrations.filter(r => r.estadoPago === 'en_revision' || r.estadoPago === 'revision_saldo').length;
-  const countAprobados = registrations.filter(r => r.estadoPago === 'aprobado' || r.estadoPago === 'pago_dia_evento').length;
-  const countSinPagar = registrations.filter(r => r.estadoPago === 'pendiente' || r.estadoPago === 'rechazado').length;
-  const countDebenSaldo = registrations.filter(r => r.estadoPago === 'saldo_pendiente').length;
+  const eventFilteredRegs = registrations.filter(r => selectedEventFilter === 'todos' || r.eventKey === selectedEventFilter);
+
+  const countTodos = eventFilteredRegs.length;
+  const countEnRevision = eventFilteredRegs.filter(r => r.estadoPago === 'en_revision' || r.estadoPago === 'revision_saldo').length;
+  const countAprobados = eventFilteredRegs.filter(r => r.estadoPago === 'aprobado' || r.estadoPago === 'pago_dia_evento').length;
+  const countSinPagar = eventFilteredRegs.filter(r => r.estadoPago === 'pendiente' || r.estadoPago === 'rechazado').length;
+  const countDebenSaldo = eventFilteredRegs.filter(r => r.estadoPago === 'saldo_pendiente').length;
 
   return (
     <div className="min-h-screen p-4 lg:p-10 relative">
@@ -229,11 +283,41 @@ export default function PilotosPage() {
             </div>
             <div>
               <h1 className="text-3xl font-bold text-white">Directorio de Pilotos</h1>
-              <p className="text-zinc-400">Listado y gestión de pilotos inscritos en la Copa Stunt F2R.</p>
+              <p className="text-zinc-400">Listado y gestión de pilotos inscritos en la Copa Stunt.</p>
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-            <BulkSocialMediaExport pilots={filteredRegistrations} />
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto items-center">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="bg-[#E60000] hover:bg-[#CC0000] text-white gap-2 h-12 px-6 w-full sm:w-auto font-bold uppercase tracking-wider shadow-[0_0_20px_rgba(230,0,0,0.2)]">
+                  <span>Filtrar: {
+                    selectedEventFilter === 'todos' ? 'Todos los Eventos' :
+                    selectedEventFilter === 'f2r' ? 'Copa Stunt F2R' :
+                    selectedEventFilter === 'stuntday' ? 'Stunt Day 2026' :
+                    selectedEventFilter === 'nitrox' ? 'Copa Stunt Nitrox' :
+                    'Festival Stunt'
+                  }</span>
+                  <ChevronRight className="w-4 h-4 rotate-90" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="bg-zinc-950 border-zinc-800 text-white font-bold font-sans">
+                <DropdownMenuItem onClick={() => setSelectedEventFilter('todos')} className="hover:bg-zinc-900 focus:bg-zinc-900 cursor-pointer text-xs uppercase tracking-wider">
+                  Todos los Eventos
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSelectedEventFilter('f2r')} className="hover:bg-zinc-900 focus:bg-zinc-900 cursor-pointer text-xs uppercase tracking-wider">
+                  Copa Stunt F2R
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSelectedEventFilter('stuntday')} className="hover:bg-zinc-900 focus:bg-zinc-900 cursor-pointer text-xs uppercase tracking-wider">
+                  Stunt Day 2026
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSelectedEventFilter('nitrox')} className="hover:bg-zinc-900 focus:bg-zinc-900 cursor-pointer text-xs uppercase tracking-wider">
+                  Copa Stunt Nitrox
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSelectedEventFilter('festival')} className="hover:bg-zinc-900 focus:bg-zinc-900 cursor-pointer text-xs uppercase tracking-wider">
+                  Festival Stunt 30 de Agosto
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             
             <Button onClick={exportToExcel} className="bg-zinc-800 hover:bg-zinc-700 text-white gap-2 h-12 px-6 w-full sm:w-auto font-bold shadow-[0_0_20px_rgba(255,255,255,0.05)] border border-zinc-700">
               <Download className="w-5 h-5" /> EXPORTAR EXCEL
@@ -256,8 +340,9 @@ export default function PilotosPage() {
                       if (detectedCodes && detectedCodes.length > 0) {
                         const value = detectedCodes[0].rawValue;
                         if (value) {
-                          const isPilot = value.startsWith('f2r_');
-                          const isKit = value.startsWith('kit_f2r_');
+                          const eventKeys = ['f2r', 'stuntday', 'nitrox', 'festival'];
+                          const isPilot = eventKeys.some(key => value.startsWith(`${key}_`));
+                          const isKit = eventKeys.some(key => value.startsWith(`kit_${key}_`));
                           
                           if (isPilot || isKit) {
                             const docId = isKit ? value.replace('kit_', '') : value;
