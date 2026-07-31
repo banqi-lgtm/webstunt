@@ -899,7 +899,7 @@ export default function InscripcionPage() {
       statusText: '50 DÍAS PARA EL CIERRE',
       statusIcon: Calendar,
       userStatus: stuntdayStatus,
-      ctaText: 'REGISTRARSE AHORA',
+      ctaText: stuntdayStatus === 'no_inscrito' || !stuntdayStatus ? 'REGISTRARSE AHORA' : 'CONSULTAR ESTADO',
     },
     {
       id: 'f2r' as const,
@@ -917,22 +917,14 @@ export default function InscripcionPage() {
         titleAccentColor: 'text-emerald-400',
         btnGradient: 'bg-emerald-600 hover:bg-emerald-500 text-white border-none shadow-emerald-950/40',
       },
-      statusText: 'EVENTO CERRADO',
-      statusIcon: Lock,
+      statusText: '50 DÍAS PARA EL CIERRE',
+      statusIcon: Calendar,
       userStatus: f2rStatus,
-      ctaText: 'CONSULTAR ESTADO',
+      ctaText: f2rStatus === 'no_inscrito' || !f2rStatus ? 'REGISTRARSE AHORA' : 'CONSULTAR ESTADO',
     }
   ];
 
   const handleCardClick = (event: typeof eventsData[0]) => {
-    if (event.id === 'f2r' && f2rStatus === 'no_inscrito') {
-      toast({
-        title: "Inscripciones Cerradas",
-        description: "El periodo de registro para la Copa Stunt F2R 2026 ha finalizado.",
-        variant: "destructive"
-      });
-      return;
-    }
     handleEventSwitch(event.id);
     setActiveEvent(event.id);
   };
