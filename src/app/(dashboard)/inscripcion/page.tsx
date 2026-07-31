@@ -516,10 +516,6 @@ export default function InscripcionPage() {
             setStaffCedula(userData.numeroIdentificacion || '');
             setStaffCargo(userData.cargo || '');
             setStaffTelefono(userData.telefono || '');
-            
-            if (userData.rol === 'staff') {
-              setStaffRegistered(true);
-            }
           }
           await fetchEventStatuses(user.uid);
         } catch (e) {
