@@ -112,7 +112,9 @@ export default function Home() {
                 <a 
                   href={item.id === 'inscripcion' ? '#' : `#${item.id}`} 
                   onClick={(e) => { if(item.id === 'inscripcion') e.preventDefault(); }}
-                  className={`text-white hover:text-[#E60000] text-[11px] xl:text-[12px] font-inter font-medium tracking-widest uppercase transition-colors relative after:content-[''] after:absolute after:-bottom-2 after:left-0 after:w-full after:h-0.5 after:bg-[#E60000] after:transition-transform after:duration-300 ${item.id === 'inicio' ? 'after:scale-x-100' : 'after:scale-x-0 group-hover:after:scale-x-100'} whitespace-nowrap flex items-center gap-1.5 cursor-pointer`}
+                  className={item.id === 'inscripcion'
+                    ? "text-white bg-[#E60000] hover:bg-[#CC0000] px-5 py-2 rounded-sm text-[11px] xl:text-[12px] font-inter font-bold tracking-widest uppercase transition-all whitespace-nowrap shadow-lg shadow-black/20 hover:shadow-[#E60000]/20 flex items-center gap-1.5 cursor-pointer"
+                    : `text-white hover:text-[#E60000] text-[11px] xl:text-[12px] font-inter font-medium tracking-widest uppercase transition-colors relative after:content-[''] after:absolute after:-bottom-2 after:left-0 after:w-full after:h-0.5 after:bg-[#E60000] after:transition-transform after:duration-300 ${item.id === 'inicio' ? 'after:scale-x-100' : 'after:scale-x-0 group-hover:after:scale-x-100'} whitespace-nowrap flex items-center gap-1.5 cursor-pointer`}
                 >
                   {item.label}
                   {item.subItems && <ChevronDown size={14} className="opacity-70 group-hover:rotate-180 transition-transform duration-300" />}
