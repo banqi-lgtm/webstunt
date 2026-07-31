@@ -928,11 +928,11 @@ export default function Home() {
           <DialogTitle className="sr-only">Galería de Eventos</DialogTitle>
           
           {/* Photo Area */}
-          <div className="relative w-full aspect-square md:w-fit md:h-fit max-w-full flex items-center justify-center bg-[#050505] overflow-hidden">
+          <div className="relative w-full aspect-square md:aspect-auto md:w-fit md:h-fit max-w-full flex items-center justify-center bg-[#050505] overflow-hidden">
             <img 
               src={GALLERY_IMAGES[currentGalleryIndex]} 
               alt={`Gallery ${currentGalleryIndex + 1}`}
-              className="w-full h-full object-cover md:h-[85vh] md:w-auto md:object-contain block mx-auto"
+              className="w-full h-full object-cover md:w-auto md:h-auto md:max-w-[92vw] md:max-h-[85vh] block mx-auto"
             />
             
             {/* Logos flotantes dentro de la foto (superior izquierda) - Sin fondo negro, integrados como marca de agua */}
