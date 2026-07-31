@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { UploadCloud, AlertTriangle, CheckCircle2, ChevronRight, ChevronDown, Gift, Trophy, Star, ShieldAlert, CreditCard, Clock, Image as ImageIcon, XCircle, ArrowLeft, CheckCircle, Smartphone, Phone, Lock, Camera, Instagram, AlertCircle, Calendar } from 'lucide-react';
+import { UploadCloud, AlertTriangle, CheckCircle2, ChevronRight, ChevronDown, User, Gift, Trophy, Star, ShieldAlert, CreditCard, Clock, Image as ImageIcon, XCircle, ArrowLeft, CheckCircle, Smartphone, Phone, Lock, Camera, Instagram, AlertCircle, Calendar } from 'lucide-react';
 import Link from 'next/link';
 import { CameraModal } from '@/components/camera-modal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
