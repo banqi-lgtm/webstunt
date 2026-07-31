@@ -1165,58 +1165,65 @@ export default function InscripcionPage() {
 
             <div className="relative z-10 flex flex-col items-center w-full">
               {/* Event Cards Grid: 4 columns on desktop, 2 on tablet, 1 on mobile */}
-              <div className={`grid grid-cols-1 md:grid-cols-2 ${visibleEvents.length > 2 ? 'lg:grid-cols-4' : 'lg:grid-cols-2 max-w-5xl'} gap-8 w-full max-w-7xl justify-center items-stretch mb-12`}>
+              <div className={`grid grid-cols-1 ${visibleEvents.length > 1 ? 'lg:grid-cols-2' : 'max-w-3xl'} gap-8 w-full max-w-6xl justify-center items-stretch mb-12`}>
                 {visibleEvents.map((event) => {
                   const StatusIcon = event.statusIcon;
                   return (
                     <div 
                       key={event.id}
                       onClick={() => handleCardClick(event)}
-                      className={`group relative bg-[#0b0b0d] rounded-[2rem] overflow-hidden border ${event.isClosed ? 'border-zinc-800/80 hover:border-zinc-700/80' : event.theme.border} ${event.isClosed ? 'shadow-xl' : event.theme.glow} flex flex-col h-[480px] w-full transition-all duration-500 hover:translate-y-[-4px] cursor-pointer`}
+                      className={`group relative bg-[#060608] rounded-[2rem] flex flex-col md:flex-row justify-start items-center cursor-pointer transition-all duration-500 overflow-hidden min-h-[460px] md:min-h-0 md:h-[300px] w-full border ${event.isClosed ? 'border-zinc-800/80 hover:border-zinc-700/80' : event.theme.border} ${event.isClosed ? 'shadow-xl' : event.theme.glow}`}
                     >
-                      {/* Background Image full-bleed */}
+                      {/* Visual Side Column (45% on desktop) - Displays the rider image prominently aligned with custom offset */}
                       <div 
-                        className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105 pointer-events-none z-0"
+                        className={`w-full md:w-[45%] h-[180px] md:h-full bg-cover ${event.bgPosition} bg-no-repeat pointer-events-none relative transition-transform duration-700 group-hover:scale-102 bg-[#060608]`}
                         style={{ backgroundImage: `url('${event.bgImage}')` }}
-                      />
-                      
-                      {/* Gradient Overlay for Legibility */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/85 to-black/30 transition-opacity duration-500 group-hover:opacity-95 z-10" />
+                      >
+                        {/* Smooth visual to solid card background transition */}
+                        <div className="absolute inset-y-0 right-[-1px] w-1/3 bg-gradient-to-l from-[#060608] to-transparent hidden md:block z-20"></div>
+                        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#060608] to-transparent md:hidden"></div>
+                      </div>
 
-                      {/* Card Content wrapper */}
-                      <div className="relative z-20 h-full p-6 flex flex-col justify-between items-stretch text-center">
-                        {/* Top: Logo and Status Badge */}
-                        <div className="flex flex-col items-center gap-3">
-                          {/* Logo container */}
-                          <div className="h-20 flex items-center justify-center relative overflow-visible w-full mt-2">
+                      {/* Content Column (55% on desktop) - Solid dark background to prevent text overlay on rider photo */}
+                      <div className="w-full md:w-[55%] h-auto md:h-full bg-[#060608] p-5 md:p-6 flex flex-col justify-between items-start text-left z-10 relative border-t md:border-t-0 md:border-l border-zinc-900/40">
+                        {/* Top Row: Event Logo (left, custom layout classes) & User status badge (right) */}
+                        <div className="w-full flex items-center justify-between gap-4 mb-1 h-14 md:h-16 relative overflow-visible">
+                          <div className="flex-1 flex justify-start items-center h-full">
                             <img 
                               src={event.logo} 
                               alt={`${event.title} Logo`} 
-                              className="max-h-16 max-w-[85%] object-contain filter drop-shadow-[0_0_10px_rgba(255,255,255,0.15)] transition-transform duration-500 group-hover:scale-[1.03]"
+                              className={`${event.logoClass} filter opacity-95 group-hover:opacity-100 transition-all duration-500`}
                             />
                           </div>
-                          {/* Status Badge */}
+                          <div className="shrink-0">
+                            {renderStatusBadge(event.userStatus)}
+                          </div>
+                        </div>
+
+                        {/* Middle Section: Event Badge, Title, and Description (centered vertically) */}
+                        <div className="w-full flex-1 flex flex-col justify-center items-start gap-1.5 py-1">
+                          {/* Event Status Badge */}
                           <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border ${event.isClosed ? 'bg-zinc-950/40 border-zinc-800 text-zinc-400' : 'bg-red-950/20 border-red-500/20 ' + event.theme.badgeText} text-[9px] font-black tracking-widest uppercase w-fit shadow-[0_0_15px_rgba(0,0,0,0.4)]`}>
                             <StatusIcon className="w-3.5 h-3.5" />
                             <span>{event.statusText}</span>
                           </div>
-                        </div>
 
-                        {/* Middle: Title & Subtitle */}
-                        <div className="flex flex-col justify-end items-center gap-2 mb-4 flex-1">
-                          <h2 className="text-lg md:text-xl font-black text-white uppercase tracking-tight leading-snug line-clamp-2 min-h-[3.5rem] flex items-end">
-                            {event.title} <span className={`ml-1.5 ${event.isClosed ? 'text-zinc-500' : event.theme.titleAccentColor}`}>{event.titleAccent}</span>
+                          {/* Event Title */}
+                          <h2 className="text-lg md:text-xl font-black text-white uppercase tracking-tight leading-none mt-1">
+                            {event.title} <span className={event.isClosed ? 'text-zinc-500' : event.theme.titleAccentColor}>{event.titleAccent}</span>
                           </h2>
-                          <p className="text-zinc-400 text-[11px] font-medium leading-relaxed max-w-[220px] line-clamp-1">
+
+                          {/* Event Description */}
+                          <p className="text-zinc-400 text-[11px] font-semibold leading-relaxed max-w-[250px] line-clamp-2">
                             {event.subtitle}
                           </p>
                         </div>
 
-                        {/* Bottom: CTA Button */}
+                        {/* Bottom Row: CTA Button (natural closing element) */}
                         <div className="w-full mt-auto pt-2">
                           <button 
                             type="button"
-                            className={`w-full py-3 rounded-xl text-white font-extrabold tracking-widest uppercase shadow-lg text-[9px] flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.01] border ${event.isClosed ? 'bg-zinc-900/60 hover:bg-zinc-800/80 border-zinc-800 text-zinc-400' : event.theme.btnGradient}`}
+                            className={`w-full py-2.5 rounded-xl text-white font-extrabold tracking-widest uppercase shadow-lg text-[9px] flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.01] border ${event.isClosed ? 'bg-zinc-900/60 hover:bg-zinc-800/80 border-zinc-800 text-zinc-400' : event.theme.btnGradient}`}
                           >
                             {event.ctaText} <ChevronRight className="w-4 h-4 text-white/80" />
                           </button>
