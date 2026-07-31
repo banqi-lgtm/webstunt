@@ -24,6 +24,171 @@ import dynamic from 'next/dynamic';
 import SocialMediaCard from '@/components/social-media-card';
 const Confetti = dynamic(() => import('react-confetti'), { ssr: false });
 
+interface EventCardProps {
+  id: string;
+  image: string;
+  logo: string;
+  logoClass?: string;
+  bgPosition?: string;
+  status: string;
+  statusIcon: React.ComponentType<any>;
+  statusColor: 'blue' | 'orange' | 'red' | 'emerald';
+  title: string;
+  titleAccent: string;
+  description: string;
+  ctaText: string;
+  ctaVariant: 'active' | 'closed';
+  userStatus?: string | null;
+  onClick: () => void;
+  renderStatusBadge: (status: string | null) => React.ReactNode;
+}
+
+function EventCard({
+  id,
+  image,
+  logo,
+  logoClass = '',
+  bgPosition = 'bg-center',
+  status,
+  statusIcon: StatusIcon,
+  statusColor,
+  title,
+  titleAccent,
+  description,
+  ctaText,
+  ctaVariant,
+  userStatus,
+  onClick,
+  renderStatusBadge
+}: EventCardProps) {
+  const theme = {
+    blue: {
+      border: 'border-blue-600/50 hover:border-blue-500 group-hover:shadow-[0_0_35px_rgba(37,99,235,0.25)]',
+      divider: 'bg-blue-600',
+      badge: 'border-blue-500/40 text-blue-400 bg-blue-950/20',
+      titleAccent: 'text-blue-400',
+      btn: 'bg-blue-600 hover:bg-blue-500 text-white shadow-[0_4px_20px_rgba(37,99,235,0.3)]',
+    },
+    orange: {
+      border: 'border-orange-600/50 hover:border-orange-500 group-hover:shadow-[0_0_35px_rgba(234,88,12,0.25)]',
+      divider: 'bg-orange-600',
+      badge: 'border-orange-500/40 text-orange-400 bg-orange-950/20',
+      titleAccent: 'text-orange-400',
+      btn: 'bg-orange-600 hover:bg-orange-500 text-white shadow-[0_4px_20px_rgba(234,88,12,0.3)]',
+    },
+    red: {
+      border: 'border-zinc-800/80 hover:border-[#E60000] group-hover:shadow-[0_0_35px_rgba(230,0,0,0.25)]',
+      divider: 'bg-zinc-800 group-hover:bg-[#E60000]',
+      badge: 'border-zinc-800 text-zinc-400 bg-zinc-950/50',
+      titleAccent: 'text-zinc-500',
+      btn: 'bg-zinc-900 hover:bg-zinc-800 border-zinc-800/80 text-zinc-400',
+    },
+    emerald: {
+      border: 'border-zinc-800/80 hover:border-emerald-500 group-hover:shadow-[0_0_35px_rgba(16,185,129,0.25)]',
+      divider: 'bg-zinc-800 group-hover:bg-emerald-600',
+      badge: 'border-zinc-800 text-zinc-400 bg-zinc-950/50',
+      titleAccent: 'text-zinc-500',
+      btn: 'bg-zinc-900 hover:bg-zinc-800 border-zinc-800/80 text-zinc-400',
+    }
+  }[statusColor] || {
+    border: 'border-zinc-800 hover:border-zinc-700',
+    divider: 'bg-zinc-700',
+    badge: 'border-zinc-700 text-zinc-400 bg-zinc-950/20',
+    titleAccent: 'text-zinc-400',
+    btn: 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300',
+  };
+
+  return (
+    <article 
+      onClick={onClick}
+      className={`group relative bg-[#070709] rounded-[2.5rem] flex flex-col md:flex-row justify-start items-center cursor-pointer transition-all duration-500 overflow-hidden min-h-[460px] md:min-h-0 md:h-[305px] w-full border ${theme.border} shadow-[0_15px_40px_rgba(0,0,0,0.65)]`}
+    >
+      {/* Checkered pattern background */}
+      <div 
+        className="absolute inset-0 opacity-[0.12] pointer-events-none z-0"
+        style={{
+          backgroundColor: '#070709',
+          backgroundImage: `
+            linear-gradient(45deg, #18181b 25%, transparent 25%), 
+            linear-gradient(-45deg, #18181b 25%, transparent 25%), 
+            linear-gradient(45deg, transparent 75%, #18181b 75%), 
+            linear-gradient(-45deg, transparent 75%, #18181b 75%)
+          `,
+          backgroundSize: '16px 16px',
+          backgroundPosition: '0 0, 0 8px, 8px -8px, -8px 0px'
+        }}
+      />
+
+      {/* Visual Side Column (45% on desktop) - Displays the rider image */}
+      <div 
+        className={`w-full md:w-[45%] h-[180px] md:h-full bg-cover ${bgPosition} bg-no-repeat pointer-events-none relative overflow-hidden transition-transform duration-700 group-hover:scale-[1.03]`}
+        style={{ backgroundImage: `url('${image}')` }}
+      >
+        {/* Smooth visual to solid card background transition */}
+        <div className="absolute inset-y-0 right-[-1px] w-1/3 bg-gradient-to-l from-[#070709] via-[#070709]/70 to-transparent hidden md:block z-20"></div>
+        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#070709] via-[#070709]/70 to-transparent md:hidden"></div>
+      </div>
+
+      {/* Vertical solid separator accent line */}
+      <div className={`absolute top-0 bottom-0 left-[45%] w-[1.5px] ${theme.divider} hidden md:block z-30 transition-colors duration-500`} />
+
+      {/* Content Column (55% on desktop) */}
+      <div className="w-full md:w-[55%] h-auto md:h-full p-6 md:p-8 flex flex-col justify-between items-start text-left z-10 relative">
+        {/* Top Row: Event Logo (left) & User status badge (right) */}
+        <div className="w-full flex items-center justify-between gap-4 mb-2 h-14 md:h-16 relative overflow-visible">
+          <div className="flex-1 flex justify-start items-center h-full">
+            <img 
+              src={logo} 
+              alt={`${title} Logo`} 
+              className={`${logoClass} filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)] opacity-95 group-hover:opacity-100 group-hover:scale-[1.02] transition-all duration-500`}
+              loading="lazy"
+            />
+          </div>
+          {userStatus && (
+            <div className="shrink-0 z-20">
+              {renderStatusBadge(userStatus)}
+            </div>
+          )}
+        </div>
+
+        {/* Middle Section: Event Badge, Title, and Description */}
+        <div className="w-full flex-1 flex flex-col justify-center items-start gap-2.5 py-1">
+          {/* Event Status Badge */}
+          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border ${theme.badge} text-[9px] font-black tracking-widest uppercase w-fit shadow-[0_0_15px_rgba(0,0,0,0.4)]`}>
+            <StatusIcon className="w-3.5 h-3.5" />
+            <span>{status}</span>
+          </div>
+
+          {/* Event Title */}
+          <h2 className="text-xl md:text-[22px] font-black text-white uppercase tracking-tight leading-none mt-1">
+            {title} <span className={theme.titleAccent}>{titleAccent}</span>
+          </h2>
+
+          {/* Event Description */}
+          <p className="text-zinc-400 text-[11px] font-semibold leading-relaxed max-w-[280px] line-clamp-2">
+            {description}
+          </p>
+        </div>
+
+        {/* Bottom Row: CTA Button */}
+        <div className="w-full mt-4">
+          <button 
+            type="button"
+            className={`relative overflow-hidden w-full py-3 rounded-full text-white font-extrabold tracking-widest uppercase shadow-lg text-[10px] flex items-center justify-center gap-2 transition-all duration-300 border border-transparent ${theme.btn}`}
+          >
+            <span className="relative z-10 flex items-center justify-center gap-2">
+              {ctaText} <ChevronRight className="w-4 h-4 text-white/90 transition-transform duration-300 group-hover:translate-x-1" />
+            </span>
+            {ctaVariant === 'active' && (
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out pointer-events-none skew-x-12" />
+            )}
+          </button>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 export default function InscripcionPage() {
   const router = useRouter();
   const [uid, setUid] = useState<string | null>(null);
@@ -1021,138 +1186,27 @@ export default function InscripcionPage() {
             <div className="relative z-10 flex flex-col items-center w-full">
               {/* Event Cards Grid: 4 columns on desktop, 2 on tablet, 1 on mobile */}
               <div className={`grid grid-cols-1 ${visibleEvents.length > 1 ? 'lg:grid-cols-2' : 'max-w-3xl'} gap-8 w-full max-w-6xl justify-center items-stretch mb-12`}>
-                {visibleEvents.map((event) => {
-                  const StatusIcon = event.statusIcon;
-                  return (
-                    <div 
-                      key={event.id}
-                      onClick={() => handleCardClick(event)}
-                      className={`group relative bg-gradient-to-br from-[#0c0c10] via-[#060608] to-[#030304] rounded-[2rem] flex flex-col md:flex-row justify-start items-center cursor-pointer transition-all duration-500 overflow-hidden min-h-[460px] md:min-h-0 md:h-[300px] w-full border ${
-                        event.isClosed 
-                          ? 'border-zinc-800/80 hover:border-zinc-700/80' 
-                          : event.theme.border
-                      } ${
-                        event.isClosed 
-                          ? 'shadow-xl hover:shadow-zinc-950/50' 
-                          : event.theme.glow
-                      } hover:scale-[1.02] shadow-[0_15px_40px_rgba(0,0,0,0.6)]`}
-                    >
-                      {/* Subtle Carbon Fiber Pattern Overlay */}
-                      <div 
-                        className="absolute inset-0 opacity-[0.03] pointer-events-none z-0 transition-opacity duration-500 group-hover:opacity-[0.06]"
-                        style={{
-                          backgroundColor: '#000000',
-                          backgroundImage: `
-                            linear-gradient(45deg, #ffffff 25%, transparent 25%), 
-                            linear-gradient(-45deg, #ffffff 25%, transparent 25%), 
-                            linear-gradient(45deg, transparent 75%, #ffffff 75%), 
-                            linear-gradient(-45deg, transparent 75%, #ffffff 75%)
-                          `,
-                          backgroundSize: '12px 12px',
-                          backgroundPosition: '0 0, 0 6px, 6px -6px, -6px 0px'
-                        }}
-                      />
-
-                      {/* Visual Side Column (45% on desktop) - Displays the rider image prominently aligned with custom offset */}
-                      <div 
-                        className={`w-full md:w-[45%] h-[180px] md:h-full bg-cover ${event.bgPosition} bg-no-repeat pointer-events-none relative overflow-hidden transition-transform duration-700 group-hover:scale-[1.03]`}
-                        style={{ backgroundImage: `url('${event.bgImage}')` }}
-                      >
-                        {/* Smooth visual to solid card background transition with diagonal blur */}
-                        <div className="absolute inset-y-0 right-[-1px] w-1/3 bg-gradient-to-l from-[#060608] via-[#060608]/70 to-transparent hidden md:block z-20"></div>
-                        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#060608] via-[#060608]/70 to-transparent md:hidden"></div>
-                        {/* Color accent overlay on image on hover */}
-                        <div className={`absolute inset-0 transition-opacity duration-500 opacity-0 group-hover:opacity-10 bg-gradient-to-tr ${
-                          event.isClosed 
-                            ? 'from-zinc-500 to-transparent' 
-                            : event.id === 'nitrox' 
-                              ? 'from-blue-600 to-transparent' 
-                              : event.id === 'festival'
-                                ? 'from-orange-600 to-transparent'
-                                : 'from-[#E60000] to-transparent'
-                        }`} />
-                      </div>
-
-                      {/* Vertical separator accent line */}
-                      <div className={`absolute top-0 bottom-0 left-[45%] w-[2px] bg-gradient-to-b ${
-                        event.isClosed 
-                          ? 'from-zinc-800 via-zinc-800/40 to-transparent' 
-                          : event.id === 'nitrox' 
-                            ? 'from-blue-500 via-blue-500/30 to-transparent' 
-                            : event.id === 'festival'
-                              ? 'from-orange-500 via-orange-500/30 to-transparent'
-                              : 'from-[#E60000] via-[#E60000]/30 to-transparent'
-                      } hidden md:block z-30`} />
-
-                      {/* Content Column (55% on desktop) */}
-                      <div className="w-full md:w-[55%] h-auto md:h-full p-5 md:p-6 flex flex-col justify-between items-start text-left z-10 relative border-t md:border-t-0 border-zinc-900/40">
-                        {/* Top Row: Event Logo (left, custom layout classes) & User status badge (right) */}
-                        <div className="w-full flex items-center justify-between gap-4 mb-1 h-14 md:h-16 relative overflow-visible">
-                          <div className="flex-1 flex justify-start items-center h-full">
-                            <img 
-                              src={event.logo} 
-                              alt={`${event.title} Logo`} 
-                              className={`${event.logoClass} filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)] opacity-95 group-hover:opacity-100 group-hover:scale-[1.03] transition-all duration-500`}
-                            />
-                          </div>
-                          <div className="shrink-0">
-                            {renderStatusBadge(event.userStatus)}
-                          </div>
-                        </div>
-
-                        {/* Middle Section: Event Badge, Title, and Description (centered vertically) */}
-                        <div className="w-full flex-1 flex flex-col justify-center items-start gap-2 py-2">
-                          {/* Event Status Badge */}
-                          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border ${
-                            event.isClosed 
-                              ? 'bg-zinc-950/50 border-zinc-800/80 text-zinc-400' 
-                              : event.id === 'nitrox' 
-                                ? 'bg-blue-950/20 border-blue-500/20 text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.1)]' 
-                                : 'bg-orange-950/20 border-orange-500/20 text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.1)]'
-                          } text-[9px] font-black tracking-widest uppercase w-fit shadow-[0_0_15px_rgba(0,0,0,0.4)]`}>
-                            <StatusIcon className={`w-3.5 h-3.5 ${
-                              event.isClosed 
-                                ? 'text-zinc-500' 
-                                : event.id === 'nitrox' 
-                                  ? 'text-blue-400' 
-                                  : 'text-orange-400'
-                            }`} />
-                            <span>{event.statusText}</span>
-                          </div>
-
-                          {/* Event Title */}
-                          <h2 className="text-xl md:text-2xl font-black text-white uppercase tracking-tight leading-none mt-1 transition-colors duration-300">
-                            {event.title} <span className={event.isClosed ? 'text-zinc-500' : event.theme.titleAccentColor}>{event.titleAccent}</span>
-                          </h2>
-
-                          {/* Event Description */}
-                          <p className="text-zinc-400 text-[11px] font-semibold leading-relaxed max-w-[280px] line-clamp-2">
-                            {event.subtitle}
-                          </p>
-                        </div>
-
-                        {/* Bottom Row: CTA Button */}
-                        <div className="w-full mt-auto pt-2">
-                          <button 
-                            type="button"
-                            className={`relative overflow-hidden w-full py-3 rounded-xl text-white font-extrabold tracking-widest uppercase shadow-lg text-[10px] flex items-center justify-center gap-2 transition-all duration-300 border ${
-                              event.isClosed 
-                                ? 'bg-zinc-900/60 hover:bg-zinc-800/80 border-zinc-800/80 text-zinc-400' 
-                                : event.theme.btnGradient
-                            }`}
-                          >
-                            <span className="relative z-10 flex items-center justify-center gap-2">
-                              {event.ctaText} <ChevronRight className="w-4 h-4 text-white/90 transition-transform duration-300 group-hover:translate-x-1" />
-                            </span>
-                            {!event.isClosed && (
-                              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out pointer-events-none skew-x-12" />
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                {visibleEvents.map((event) => (
+                  <EventCard
+                    key={event.id}
+                    id={event.id}
+                    image={event.bgImage}
+                    logo={event.logo}
+                    logoClass={event.logoClass}
+                    bgPosition={event.bgPosition}
+                    status={event.statusText}
+                    statusIcon={event.statusIcon}
+                    statusColor={event.id === 'nitrox' ? 'blue' : event.id === 'festival' ? 'orange' : event.id === 'stuntday' ? 'red' : 'emerald'}
+                    title={event.title}
+                    titleAccent={event.titleAccent}
+                    description={event.subtitle}
+                    ctaText={event.ctaText}
+                    ctaVariant={event.isClosed ? 'closed' : 'active'}
+                    userStatus={event.userStatus}
+                    onClick={() => handleCardClick(event)}
+                    renderStatusBadge={renderStatusBadge}
+                  />
+                ))}
               </div>
 
               {/* Toggle closed events button */}
