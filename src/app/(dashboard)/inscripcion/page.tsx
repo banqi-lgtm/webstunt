@@ -36,6 +36,7 @@ export default function InscripcionPage() {
 
   const [selectedEvent, setSelectedEvent] = useState<'f2r' | 'stuntday'>('f2r');
   const [activeEvent, setActiveEvent] = useState<'f2r' | 'stuntday' | null>(null);
+  const [showClosedEvents, setShowClosedEvents] = useState(false);
   const [f2rStatus, setF2rStatus] = useState<string | null>(null);
   const [stuntdayStatus, setStuntdayStatus] = useState<string | null>(null);
 
@@ -896,6 +897,7 @@ export default function InscripcionPage() {
       statusIcon: Calendar,
       userStatus: stuntdayStatus,
       ctaText: stuntdayStatus === 'no_inscrito' || !stuntdayStatus ? 'REGISTRARSE AHORA' : 'CONSULTAR ESTADO',
+      isClosed: false,
     },
     {
       id: 'f2r' as const,
@@ -913,14 +915,25 @@ export default function InscripcionPage() {
         titleAccentColor: 'text-emerald-400',
         btnGradient: 'bg-emerald-600 hover:bg-emerald-500 text-white border-none shadow-emerald-950/40',
       },
-      statusText: '50 DÍAS PARA EL CIERRE',
-      statusIcon: Calendar,
+      statusText: 'EVENTO CERRADO',
+      statusIcon: Lock,
       userStatus: f2rStatus,
-      ctaText: f2rStatus === 'no_inscrito' || !f2rStatus ? 'REGISTRARSE AHORA' : 'CONSULTAR ESTADO',
+      ctaText: 'CONSULTAR ESTADO',
+      isClosed: true,
     }
   ];
 
+  const visibleEvents = eventsData.filter(event => !event.isClosed || showClosedEvents);
+
   const handleCardClick = (event: typeof eventsData[0]) => {
+    if (event.id === 'f2r' && f2rStatus === 'no_inscrito') {
+      toast({
+        title: "Inscripciones Cerradas",
+        description: "El periodo de registro para la Copa Stunt F2R 2026 ha finalizado.",
+        variant: "destructive"
+      });
+      return;
+    }
     handleEventSwitch(event.id);
     setActiveEvent(event.id);
   };
@@ -951,14 +964,16 @@ export default function InscripcionPage() {
         ) : activeEvent === null ? (
           /* PANTALLA DE SELECCIÓN DE EVENTOS */
           <div className="relative w-full flex flex-col justify-center items-center h-full z-10 text-center max-w-6xl px-4 py-4">
-            {/* Hard lock scrollbars at root layout viewport levels to completely disable page scrolling */}
-            <style dangerouslySetInnerHTML={{__html: `
-              html, body, #__next, main, .min-h-screen, div[class*="min-h-screen"], div[class*="min-h-[calc"] {
-                overflow: hidden !important;
-                height: 100vh !important;
-                max-height: 100vh !important;
-              }
-            `}} />
+            {/* Hard lock scrollbars at root layout viewport levels to completely disable page scrolling, unless showing closed events */}
+            {!showClosedEvents && (
+              <style dangerouslySetInnerHTML={{__html: `
+                html, body, #__next, main, .min-h-screen, div[class*="min-h-screen"], div[class*="min-h-[calc"] {
+                  overflow: hidden !important;
+                  height: 100vh !important;
+                  max-height: 100vh !important;
+                }
+              `}} />
+            )}
 
             {/* Fullscreen Backdrop specific to the selection view */}
             <div 
@@ -967,8 +982,8 @@ export default function InscripcionPage() {
             />
             
             <div className="relative z-10 flex flex-col items-center w-full animate-in fade-in zoom-in-95 duration-500">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full max-w-5xl justify-center items-center mb-8">
-                {eventsData.map((event) => {
+              <div className={`grid grid-cols-1 ${visibleEvents.length > 1 ? 'lg:grid-cols-2' : 'max-w-2xl'} gap-8 w-full max-w-5xl justify-center items-center mb-8`}>
+                {visibleEvents.map((event) => {
                   const StatusIcon = event.statusIcon;
                   return (
                     <div 
@@ -1035,6 +1050,18 @@ export default function InscripcionPage() {
                   );
                 })}
               </div>
+
+              {/* Toggle closed events button */}
+              {eventsData.some(e => e.isClosed) && (
+                <button
+                  type="button"
+                  onClick={() => setShowClosedEvents(!showClosedEvents)}
+                  className="px-6 py-3 bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white rounded-2xl text-[10px] font-bold tracking-widest uppercase transition-all duration-300 flex items-center gap-2 shadow-md mb-4"
+                >
+                  {showClosedEvents ? 'VER MENOS EVENTOS' : 'VER MÁS EVENTOS'}
+                  <ChevronDown className={`w-4 h-4 text-[#E60000] transition-transform duration-300 ${showClosedEvents ? 'rotate-180' : ''}`} />
+                </button>
+              )}
 
               {/* Extra Branding Footer */}
               <div className="flex flex-col items-center justify-center gap-1.5 mt-4 border-t border-zinc-900/40 pt-6 w-full max-w-md z-10">
