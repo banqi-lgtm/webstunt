@@ -556,25 +556,7 @@ export default function InscripcionPage() {
     return () => { document.body.style.pointerEvents = ''; };
   }, []);
 
-  // Force no-scroll on page level when selection cards are shown (desktop only)
-  useEffect(() => {
-    const handleScrollBlock = () => {
-      if (activeEvent === null && window.innerWidth >= 768) {
-        document.documentElement.style.overflow = 'hidden';
-        document.body.style.overflow = 'hidden';
-      } else {
-        document.documentElement.style.overflow = '';
-        document.body.style.overflow = '';
-      }
-    };
-    handleScrollBlock();
-    window.addEventListener('resize', handleScrollBlock);
-    return () => {
-      window.removeEventListener('resize', handleScrollBlock);
-      document.documentElement.style.overflow = '';
-      document.body.style.overflow = '';
-    };
-  }, [activeEvent]);
+
 
   useEffect(() => {
     if (documentosRechazados.length === 0) {
@@ -999,7 +981,7 @@ export default function InscripcionPage() {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-[#09090b] flex flex-col">
+    <div className="min-h-screen relative overflow-y-auto overflow-x-hidden bg-[#09090b] flex flex-col">
       {mounted && windowSize.width > 0 && (estadoPago === 'aprobado' || estadoPago === 'pago_dia_evento') && (
         <Confetti 
           width={windowSize.width} 
@@ -1161,16 +1143,7 @@ export default function InscripcionPage() {
         ) : activeEvent === null ? (
           /* PANTALLA DE SELECCIÓN DE EVENTOS */
           <div className="relative w-full flex flex-col justify-start items-center h-full z-10 text-center max-w-7xl px-4 py-8 animate-in fade-in zoom-in-95 duration-500">
-            {/* Hard lock scrollbars at root layout viewport levels to completely disable page scrolling, unless showing closed events */}
-            {!showClosedEvents && (
-              <style dangerouslySetInnerHTML={{__html: `
-                html, body, #__next, main, .min-h-screen, div[class*="min-h-screen"], div[class*="min-h-[calc"] {
-                  overflow: hidden !important;
-                  height: 100vh !important;
-                  max-height: 100vh !important;
-                }
-              `}} />
-            )}
+
 
             {/* Fullscreen Backdrop specific to the selection view */}
             <div 
