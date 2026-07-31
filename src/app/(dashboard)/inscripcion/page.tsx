@@ -1020,17 +1020,7 @@ export default function InscripcionPage() {
               style={{ backgroundImage: "linear-gradient(rgba(0,0,0,0.85), rgba(0,0,0,0.95)), url('/sponsors/Diseño sin título.png')" }}
             />
             
-            {/* Section Title */}
-            <div className="text-center max-w-3xl mb-12 relative z-10 mt-4">
-              <h2 className="text-[#E60000] text-[10px] md:text-[11px] font-black tracking-[0.4em] uppercase mb-3 animate-pulse">
-                EVENTOS PKS 2026
-              </h2>
-              <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-white tracking-tight uppercase leading-none font-display">
-                DESCUBRE LOS MEJORES <br />
-                <span className="text-[#E60000] drop-shadow-[0_0_15px_rgba(230,0,0,0.4)]">EVENTOS DE STUNT</span>
-              </h1>
-              <div className="h-1 w-20 bg-[#E60000] mx-auto mt-6 rounded-full shadow-[0_0_10px_rgba(230,0,0,0.5)]"></div>
-            </div>
+
 
             <div className="relative z-10 flex flex-col items-center w-full">
               {/* Event Cards Grid: 4 columns on desktop, 2 on tablet, 1 on mobile */}
