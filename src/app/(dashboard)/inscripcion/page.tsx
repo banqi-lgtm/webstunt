@@ -956,7 +956,11 @@ export default function InscripcionPage() {
     }
   ];
 
-  const visibleEvents = eventsData.filter(event => !event.isClosed || showClosedEvents);
+  const visibleEvents = eventsData.filter(event => 
+    !event.isClosed || 
+    showClosedEvents || 
+    (event.userStatus && event.userStatus !== 'no_inscrito')
+  );
   const activeEventObj = eventsData.find(e => e.id === selectedEvent) || eventsData[0];
 
   const handleCardClick = (event: typeof eventsData[0]) => {
