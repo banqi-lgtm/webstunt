@@ -865,6 +865,7 @@ export default function InscripcionPage() {
     if (categorias.length === 0) return "Selecciona al menos una categoría";
     if (isSimplifiedEvent) {
       if (!idPdf) return "Debes subir la foto de tu Cédula o TI por ambos lados.";
+      if (!fotoDeportista) return "Debes subir la foto con tu moto donde se te vea la cara.";
       if (selectedEvent === 'festival' && !videoFile) {
         return "Debes subir el video explicando por qué debes participar.";
       }
@@ -1456,34 +1457,60 @@ export default function InscripcionPage() {
                 </div>
               )}
 
-              {/* Sub-paso 2 de Nitrox: Subir Documento de Identificación / Video */}
+              {/* Sub-paso 2 de Nitrox: Subir Documento de Identificación / Foto con la Moto */}
               {isSimplifiedEvent && nitroxSubStep === 2 && (
                 <div className="space-y-4 bg-[#1A1A1A] p-3 sm:p-4 rounded-2xl border border-[#2A2A2A]">
-                  <div className="space-y-3">
-                    <Label className="text-white text-xs font-bold uppercase tracking-wider block flex items-center gap-2 mb-1">
-                      <span className="text-[#E60000]">📄</span> Subir Foto de la Cédula o TI por ambos lados
-                    </Label>
-                    
-                    <p className="text-[9px] text-[#B0B0B0] mb-2 leading-relaxed">
-                      Sube una fotografía clara donde se aprecien ambos lados de tu documento de identificación.
-                    </p>
-
-                    <div onClick={() => openOptions('id')} className={`relative bg-[#121212] border-2 border-dashed ${idPdf ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.1)]' : 'border-[#2A2A2A] hover:border-[#424242]'} rounded-xl p-4 sm:p-5 flex flex-col items-center justify-center text-center cursor-pointer transition-all hover:bg-[#1A1A1A]`}>
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 border ${idPdf ? 'bg-[#E60000]/10 border-[#E60000]/30 text-[#E60000]' : 'bg-[#1A1A1A] border-[#2A2A2A] text-zinc-500'}`}>
-                        <ImageIcon className="w-5 h-5" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* ID Card Upload */}
+                    <div className="space-y-2">
+                      <Label className="text-white text-xs font-bold uppercase tracking-wider block flex items-center gap-2 mb-1">
+                        <span className="text-[#E60000]">📄</span> Foto Cédula o TI (Ambos Lados)
+                      </Label>
+                      <p className="text-[9px] text-[#B0B0B0] leading-relaxed">
+                        Sube una foto clara por ambos lados de tu documento.
+                      </p>
+                      <div onClick={() => openOptions('id')} className={`relative bg-[#121212] border-2 border-dashed ${idPdf ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.1)]' : 'border-[#2A2A2A] hover:border-[#424242]'} rounded-xl p-4 sm:p-5 flex flex-col items-center justify-center text-center cursor-pointer transition-all hover:bg-[#1A1A1A] h-[115px]`}>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-1.5 border ${idPdf ? 'bg-[#E60000]/10 border-[#E60000]/30 text-[#E60000]' : 'bg-[#1A1A1A] border-[#2A2A2A] text-zinc-500'}`}>
+                          <ImageIcon className="w-4 h-4" />
+                        </div>
+                        {idPdf ? (
+                          <>
+                            <p className="text-[11px] font-bold text-[#E60000] truncate max-w-[180px]">{idPdf.name}</p>
+                            <span className="text-[8px] text-zinc-500 mt-0.5 uppercase font-bold tracking-widest">Documento Adjuntado</span>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-[11px] font-bold text-white mb-0.5">Seleccionar foto</p>
+                            <p className="text-[8px] text-zinc-500">Tomar foto o elegir archivo</p>
+                          </>
+                        )}
                       </div>
-                      
-                      {idPdf ? (
-                        <>
-                          <p className="text-xs font-bold text-[#E60000] truncate max-w-xs">{idPdf.name}</p>
-                          <span className="text-[9px] text-zinc-500 mt-1 uppercase font-bold tracking-widest">Documento Adjuntado</span>
-                        </>
-                      ) : (
-                        <>
-                          <p className="text-xs font-bold text-white mb-0.5">Seleccionar foto o PDF</p>
-                          <p className="text-[9px] text-zinc-500">Haz clic aquí para tomar foto o elegir archivo</p>
-                        </>
-                      )}
+                    </div>
+
+                    {/* Foto con la Moto (que se le vea la cara) */}
+                    <div className="space-y-2">
+                      <Label className="text-white text-xs font-bold uppercase tracking-wider block flex items-center gap-2 mb-1">
+                        <span className="text-[#E60000]">🏍️</span> Foto con la Moto (Se vea tu cara)
+                      </Label>
+                      <p className="text-[9px] text-[#B0B0B0] leading-relaxed">
+                        Sube una foto tuya junto a tu moto donde se aprecie tu rostro.
+                      </p>
+                      <div onClick={() => openOptions('deportista')} className={`relative bg-[#121212] border-2 border-dashed ${fotoDeportista ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.1)]' : 'border-[#2A2A2A] hover:border-[#424242]'} rounded-xl p-4 sm:p-5 flex flex-col items-center justify-center text-center cursor-pointer transition-all hover:bg-[#1A1A1A] h-[115px]`}>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-1.5 border ${fotoDeportista ? 'bg-[#E60000]/10 border-[#E60000]/30 text-[#E60000]' : 'bg-[#1A1A1A] border-[#2A2A2A] text-zinc-500'}`}>
+                          <Camera className="w-4 h-4" />
+                        </div>
+                        {fotoDeportista ? (
+                          <>
+                            <p className="text-[11px] font-bold text-[#E60000] truncate max-w-[180px]">{fotoDeportista.name}</p>
+                            <span className="text-[8px] text-zinc-500 mt-0.5 uppercase font-bold tracking-widest">Foto Adjuntada</span>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-[11px] font-bold text-white mb-0.5">Seleccionar foto</p>
+                            <p className="text-[8px] text-zinc-500">Tomar foto o elegir archivo</p>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
 
