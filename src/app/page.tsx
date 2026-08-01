@@ -92,7 +92,12 @@ export default function Home() {
       {/* NAVBAR */}
       <nav className="fixed top-0 left-0 w-full z-50 bg-[#080808] py-4 border-b border-[#1C1C1C]">
         <div className="max-w-[1600px] mx-auto px-6 flex items-center justify-between">
-          <img src="/sponsors/PKS Blanco.png" alt="PKS" className="h-8 md:h-10 object-contain drop-shadow-md shrink-0" />
+          <div className="flex items-center gap-3">
+            <button className="lg:hidden text-[#E60000] hover:text-[#CC0000] transition-colors" onClick={() => setIsMobileMenuOpen(true)}>
+              <Menu size={28} />
+            </button>
+            <img src="/sponsors/PKS Blanco.png" alt="PKS" className="h-8 md:h-10 object-contain drop-shadow-md shrink-0" />
+          </div>
           
           <div className="hidden lg:flex items-center justify-end gap-6 xl:gap-8 flex-1 px-4">
             {[
@@ -223,9 +228,6 @@ export default function Home() {
               className="text-white bg-[#E60000] hover:bg-[#CC0000] px-3 py-1.5 rounded-sm text-[10px] font-inter font-bold tracking-widest uppercase transition-all whitespace-nowrap shadow-lg shadow-black/20 hover:shadow-[#E60000]/20"
             >
               INICIAR SESIÓN
-            </button>
-            <button className="text-[#E60000] hover:text-[#CC0000] transition-colors ml-1" onClick={() => setIsMobileMenuOpen(true)}>
-              <Menu size={28} />
             </button>
           </div>
         </div>
