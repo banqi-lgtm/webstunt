@@ -1057,10 +1057,10 @@ export default function InscripcionPage() {
       title: 'FESTIVAL STUNT',
       titleAccent: '30 DE AGOSTO',
       subtitle: 'El mayor show y adrenalina de la temporada.',
-      bgImage: '/sponsors/moto-stunt.png',
+      bgImage: '/sponsors/IMG_2174.JPG.jpeg',
       logo: '/sponsors/PKS Blanco.png',
       logoClass: 'h-14 sm:h-16 md:h-18 -my-2 md:-my-3 object-contain scale-[1.15] origin-center',
-      bgPosition: 'bg-[position:center_8%]',
+      bgPosition: 'bg-[position:center_35%]',
       theme: {
         border: 'border-orange-500/30 hover:border-orange-500/70',
         glow: 'shadow-[0_0_30px_rgba(249,115,22,0.06)] hover:shadow-[0_0_50px_rgba(249,115,22,0.18)]',
