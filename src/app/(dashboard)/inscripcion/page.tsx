@@ -77,17 +77,17 @@ function EventCard({
       btn: 'bg-orange-600 hover:bg-orange-500 text-white shadow-[0_4px_20px_rgba(234,88,12,0.3)]',
     },
     red: {
-      border: 'border-zinc-800/80 hover:border-[#E60000] group-hover:shadow-[0_0_35px_rgba(230,0,0,0.25)]',
-      divider: 'bg-zinc-800 group-hover:bg-[#E60000]',
-      badge: 'border-zinc-800 text-zinc-400 bg-zinc-950/50',
-      titleAccent: 'text-zinc-500',
+      border: 'border-red-600/50 hover:border-red-500 group-hover:shadow-[0_0_35px_rgba(230,0,0,0.25)]',
+      divider: 'bg-red-600',
+      badge: 'border-red-500/40 text-red-500 bg-red-950/20',
+      titleAccent: 'text-red-500',
       btn: 'bg-zinc-900 hover:bg-zinc-800 border-zinc-800/80 text-zinc-400',
     },
     emerald: {
-      border: 'border-zinc-800/80 hover:border-emerald-500 group-hover:shadow-[0_0_35px_rgba(16,185,129,0.25)]',
-      divider: 'bg-zinc-800 group-hover:bg-emerald-600',
-      badge: 'border-zinc-800 text-zinc-400 bg-zinc-950/50',
-      titleAccent: 'text-zinc-500',
+      border: 'border-emerald-600/50 hover:border-emerald-500 group-hover:shadow-[0_0_35px_rgba(16,185,129,0.25)]',
+      divider: 'bg-emerald-600',
+      badge: 'border-emerald-500/40 text-emerald-400 bg-emerald-950/20',
+      titleAccent: 'text-emerald-400',
       btn: 'bg-zinc-900 hover:bg-zinc-800 border-zinc-800/80 text-zinc-400',
     }
   }[statusColor] || {
@@ -118,6 +118,14 @@ function EventCard({
           backgroundPosition: '0 0, 0 8px, 8px -8px, -8px 0px'
         }}
       />
+
+      {/* Radial glow background in bottom right */}
+      <div className={`absolute bottom-0 right-0 w-[180px] h-[180px] rounded-full blur-[80px] mix-blend-screen pointer-events-none opacity-[0.07] transition-opacity duration-500 group-hover:opacity-15 ${
+        statusColor === 'blue' ? 'bg-blue-500' :
+        statusColor === 'orange' ? 'bg-orange-500' :
+        statusColor === 'red' ? 'bg-red-600' :
+        'bg-emerald-500'
+      }`} />
 
       {/* Visual Side Column (45% on desktop) - Displays the rider image */}
       <div 
