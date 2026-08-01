@@ -1035,7 +1035,7 @@ export default function InscripcionPage() {
       title: 'COPA STUNT',
       titleAccent: 'NITROX',
       subtitle: 'El campeonato de stunt definitivo.',
-      bgImage: '/sponsors/stunt_hero_bg.png',
+      bgImage: '/sponsors/SPORNS/DSC05839.JPG',
       logo: '/sponsors/Copa Stunt Nitrox Blanco.png',
       logoClass: 'h-16 sm:h-20 md:h-22 -my-2 md:-my-3 object-contain scale-[1.2] origin-center',
       bgPosition: 'bg-[position:center_8%]',
