@@ -108,23 +108,8 @@ function EventCard({
   return (
     <article 
       onClick={onClick}
-      className={`group relative bg-[#070709] rounded-[2.5rem] flex flex-col md:flex-row justify-start items-center cursor-pointer transition-all duration-500 overflow-hidden min-h-[460px] md:min-h-0 md:h-[305px] w-full border ${theme.border} shadow-[0_15px_40px_rgba(0,0,0,0.65)]`}
+      className={`group relative bg-black rounded-[2.5rem] flex flex-col md:flex-row justify-start items-center cursor-pointer transition-all duration-500 overflow-hidden min-h-[460px] md:min-h-0 md:h-[305px] w-full border ${theme.border} shadow-[0_15px_40px_rgba(0,0,0,0.65)]`}
     >
-      {/* Checkered pattern background */}
-      <div 
-        className="absolute inset-0 opacity-[0.12] pointer-events-none z-0"
-        style={{
-          backgroundColor: '#070709',
-          backgroundImage: `
-            linear-gradient(45deg, #18181b 25%, transparent 25%), 
-            linear-gradient(-45deg, #18181b 25%, transparent 25%), 
-            linear-gradient(45deg, transparent 75%, #18181b 75%), 
-            linear-gradient(-45deg, transparent 75%, #18181b 75%)
-          `,
-          backgroundSize: '16px 16px',
-          backgroundPosition: '0 0, 0 8px, 8px -8px, -8px 0px'
-        }}
-      />
 
       {/* Radial glow background in bottom right */}
       <div className={`absolute bottom-0 right-0 w-[180px] h-[180px] rounded-full blur-[80px] mix-blend-screen pointer-events-none opacity-[0.07] transition-opacity duration-500 group-hover:opacity-15 ${
@@ -141,8 +126,8 @@ function EventCard({
         style={{ backgroundImage: `url('${image}')` }}
       >
         {/* Smooth visual to solid card background transition */}
-        <div className="absolute inset-y-0 right-[-1px] w-1/3 bg-gradient-to-l from-[#070709] via-[#070709]/70 to-transparent hidden md:block z-20"></div>
-        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#070709] via-[#070709]/70 to-transparent md:hidden"></div>
+        <div className="absolute inset-y-0 right-[-1px] w-1/3 bg-gradient-to-l from-black via-black/70 to-transparent hidden md:block z-20"></div>
+        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black via-black/70 to-transparent md:hidden"></div>
       </div>
 
       {/* Vertical solid separator accent line */}
