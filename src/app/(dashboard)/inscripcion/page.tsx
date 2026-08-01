@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { UploadCloud, AlertTriangle, CheckCircle2, ChevronRight, ChevronDown, User, Gift, Trophy, Star, ShieldAlert, CreditCard, Clock, Image as ImageIcon, XCircle, ArrowLeft, CheckCircle, Smartphone, Phone, Lock, Camera, Instagram, AlertCircle, Calendar } from 'lucide-react';
+import { UploadCloud, AlertTriangle, CheckCircle2, ChevronRight, ChevronDown, User, Gift, Trophy, Star, ShieldAlert, CreditCard, Clock, Image as ImageIcon, XCircle, ArrowLeft, CheckCircle, Smartphone, Phone, Lock, Camera, Instagram, AlertCircle, Calendar, Video } from 'lucide-react';
 import Link from 'next/link';
 import { CameraModal } from '@/components/camera-modal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -61,6 +61,11 @@ function EventCard({
   onClick,
   renderStatusBadge
 }: EventCardProps) {
+  const mobileLogoClass = logoClass
+    .split(' ')
+    .filter(c => !c.startsWith('h-') && !c.startsWith('sm:h-') && !c.startsWith('md:h-'))
+    .join(' ');
+
   const theme = {
     gold: {
       border: 'border-[#D49E35]/50 hover:border-[#D49E35] group-hover:shadow-[0_0_35px_rgba(212,158,53,0.25)]',
@@ -108,8 +113,14 @@ function EventCard({
   return (
     <article 
       onClick={onClick}
-      className={`group relative bg-black rounded-[2.5rem] flex flex-col md:flex-row justify-start items-center cursor-pointer transition-all duration-500 overflow-hidden min-h-[460px] md:min-h-0 md:h-[305px] w-full border ${theme.border} shadow-[0_15px_40px_rgba(0,0,0,0.65)]`}
+      className={`group relative bg-black rounded-[2.5rem] flex flex-col md:flex-row justify-start items-center cursor-pointer transition-all duration-500 overflow-hidden h-[390px] md:h-[305px] w-full border ${theme.border} shadow-[0_15px_40px_rgba(0,0,0,0.65)]`}
     >
+      {/* User status badge floating in the top-right corner */}
+      {userStatus && (
+        <div className="absolute right-5 top-5 z-30 scale-95 md:scale-100 origin-top-right">
+          {renderStatusBadge(userStatus)}
+        </div>
+      )}
 
       {/* Radial glow background in bottom right */}
       <div className={`absolute bottom-0 right-0 w-[180px] h-[180px] rounded-full blur-[80px] mix-blend-screen pointer-events-none opacity-[0.07] transition-opacity duration-500 group-hover:opacity-15 ${
@@ -120,57 +131,67 @@ function EventCard({
         'bg-emerald-500'
       }`} />
 
+      {/* Background Image for mobile (entire card, blurred/difuminada) */}
+      <div 
+        className="absolute inset-0 md:hidden bg-cover bg-center bg-no-repeat filter blur-[0.4px] opacity-65 scale-[1.05] z-0 transition-transform duration-700 group-hover:scale-[1.1]"
+        style={{ backgroundImage: `url('${image}')` }}
+      />
+      {/* Dark overlay for mobile readability */}
+      <div className="absolute inset-0 md:hidden bg-gradient-to-b from-black/45 via-black/75 to-black z-0" />
+
       {/* Visual Side Column (45% on desktop) - Displays the rider image */}
       <div 
-        className={`w-full md:w-[45%] h-[180px] md:h-full bg-cover ${bgPosition} bg-no-repeat pointer-events-none relative overflow-hidden transition-transform duration-700 group-hover:scale-[1.03]`}
+        className={`hidden md:block md:w-[45%] h-full bg-cover ${bgPosition} bg-no-repeat pointer-events-none relative overflow-hidden transition-transform duration-700 group-hover:scale-[1.03]`}
         style={{ backgroundImage: `url('${image}')` }}
       >
         {/* Smooth visual to solid card background transition */}
-        <div className="absolute inset-y-0 right-[-1px] w-1/3 bg-gradient-to-l from-black via-black/70 to-transparent hidden md:block z-20"></div>
-        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black via-black/70 to-transparent md:hidden"></div>
+        <div className="absolute inset-y-0 right-[-1px] w-1/3 bg-gradient-to-l from-black via-black/70 to-transparent z-20"></div>
       </div>
 
       {/* Vertical solid separator accent line */}
       <div className={`absolute top-0 bottom-0 left-[45%] w-[1.5px] ${theme.divider} hidden md:block z-30 transition-colors duration-500`} />
 
-      {/* Content Column (55% on desktop) */}
-      <div className="w-full md:w-[55%] h-auto md:h-full p-6 md:p-7 flex flex-col justify-center items-center text-center z-10 relative gap-3.5">
-        {/* Top Row: Event Logo (centered) & User status badge (right absolute) */}
-        <div className="w-full flex items-center justify-center h-20 md:h-24 relative overflow-visible shrink-0">
+      {/* Content Column (55% on desktop, 100% on mobile) */}
+      <div className="w-full md:w-[55%] h-full p-6 md:p-7 flex flex-col justify-between items-center text-center z-10 relative">
+        {/* Top Row: Event Logo (centered) */}
+        <div className="w-full flex items-center justify-center h-28 relative overflow-visible shrink-0">
+          {/* Logo on desktop */}
           <img 
             src={logo} 
             alt={`${title} Logo`} 
-            className={`${logoClass} max-h-full object-contain filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)] opacity-95 group-hover:opacity-100 transition-all duration-500`}
+            className={`hidden md:block ${logoClass} max-h-full object-contain filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)] opacity-95 group-hover:opacity-100 transition-all duration-500`}
             loading="lazy"
           />
-          {userStatus && (
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 z-20 scale-95 origin-right">
-              {renderStatusBadge(userStatus)}
-            </div>
-          )}
+          {/* Logo on mobile (larger and cleaned of other height classes) */}
+          <img 
+            src={logo} 
+            alt={`${title} Logo`} 
+            className={`md:hidden h-[76px] ${mobileLogoClass} max-h-full object-contain filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)] opacity-95 group-hover:opacity-100 transition-all duration-500`}
+            loading="lazy"
+          />
         </div>
 
         {/* Centered clustered details with tighter gaps */}
-        <div className="flex flex-col items-center w-full gap-2 shrink-0">
+        <div className="flex flex-col items-center w-full gap-2.5 shrink-0">
           {/* Event Status Badge */}
-          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border ${theme.badge} text-[9px] font-black tracking-widest uppercase w-fit shadow-[0_0_15px_rgba(0,0,0,0.4)]`}>
+          <div className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full border ${theme.badge} text-[10.5px] md:text-[9px] font-black tracking-widest uppercase w-fit shadow-[0_0_15px_rgba(0,0,0,0.4)]`}>
             <StatusIcon className="w-3.5 h-3.5" />
             <span>{status}</span>
           </div>
 
           {/* Event Title */}
-          <h2 className="text-xl md:text-[22px] font-black text-white uppercase tracking-tight leading-none mt-1">
+          <h2 className="text-2xl md:text-[22px] font-black text-white uppercase tracking-tight leading-none mt-1">
             {title} <span className={theme.titleAccent}>{titleAccent}</span>
           </h2>
 
           {/* Event Description */}
-          <p className="text-zinc-400 text-[11px] font-semibold leading-relaxed max-w-[280px] line-clamp-2 mx-auto">
+          <p className="text-zinc-200 md:text-zinc-400 text-[13px] md:text-[11px] font-semibold leading-relaxed max-w-[280px] line-clamp-2 mx-auto">
             {description}
           </p>
         </div>
 
         {/* Bottom Row: CTA Button (Original size, but centered) */}
-        <div className="w-full mt-1 shrink-0">
+        <div className="w-full shrink-0">
           <button 
             type="button"
             className={`relative overflow-hidden w-full py-3 rounded-full text-white font-extrabold tracking-widest uppercase shadow-lg text-[10px] flex items-center justify-center gap-2 transition-all duration-300 border border-transparent ${theme.btn}`}
@@ -199,6 +220,7 @@ export default function InscripcionPage() {
   const { toast } = useToast();
 
   const [selectedEvent, setSelectedEvent] = useState<'f2r' | 'stuntday' | 'nitrox' | 'festival'>('nitrox');
+  const [nitroxSubStep, setNitroxSubStep] = useState<1 | 2>(1);
   const [activeEvent, setActiveEvent] = useState<'f2r' | 'stuntday' | 'nitrox' | 'festival' | null>(null);
   const [showClosedEvents, setShowClosedEvents] = useState(false);
   const [isCustomMenuOpen, setIsCustomMenuOpen] = useState(false);
@@ -213,6 +235,7 @@ export default function InscripcionPage() {
   const [seudonimo, setSeudonimo] = useState('');
   const [ciudad, setCiudad] = useState('');
   const [templateConfig, setTemplateConfig] = useState<any>(null);
+  const isSimplifiedEvent = selectedEvent === 'nitrox' || selectedEvent === 'festival';
 
   const fetchEventStatuses = async (userId: string) => {
     try {
@@ -237,6 +260,7 @@ export default function InscripcionPage() {
       // 1. Reset all state values first
       setCategorias([]);
       setIdPdf(null);
+      setVideoFile(null);
       setFotoPlaca(null);
       setFotoPropiedad(null);
       setFotoSoat(null);
@@ -262,6 +286,7 @@ export default function InscripcionPage() {
         const data = docSnap.data();
         if (data.documentos) {
           if (data.documentos.idUrl) setIdPdf({ url: data.documentos.idUrl, name: 'Identificación Guardada' });
+          if (data.documentos.videoUrl) setVideoFile({ url: data.documentos.videoUrl, name: 'Video Guardado' });
           if (data.documentos.placaUrl) setFotoPlaca({ url: data.documentos.placaUrl, name: 'Foto Placa Guardada' });
           if (data.documentos.propiedadUrl) setFotoPropiedad({ url: data.documentos.propiedadUrl, name: 'Tarjeta Propiedad Guardada' });
           if (data.documentos.soatUrl) setFotoSoat({ url: data.documentos.soatUrl, name: 'SOAT Guardado' });
@@ -302,6 +327,7 @@ export default function InscripcionPage() {
 
   const handleEventSwitch = (eventKey: 'f2r' | 'stuntday' | 'nitrox' | 'festival') => {
     setSelectedEvent(eventKey);
+    setNitroxSubStep(1);
     if (uid) {
       loadEventData(uid, eventKey);
     }
@@ -486,6 +512,7 @@ export default function InscripcionPage() {
     if (url) {
       const stateObj = { url, name: file.name };
       if (currentDocKey === 'id') setIdPdf(stateObj);
+      else if (currentDocKey === 'video') setVideoFile(stateObj);
       else if (currentDocKey === 'placa') setFotoPlaca(stateObj);
       else if (currentDocKey === 'propiedad') setFotoPropiedad(stateObj);
       else if (currentDocKey === 'soat') setFotoSoat(stateObj);
@@ -532,6 +559,7 @@ export default function InscripcionPage() {
   // Form State
   const [categorias, setCategorias] = useState<string[]>([]);
   const [idPdf, setIdPdf] = useState<any>(null);
+  const [videoFile, setVideoFile] = useState<any>(null);
   const [participacionPrevia, setParticipacionPrevia] = useState('');
   const [patrocinadores, setPatrocinadores] = useState<boolean>(false);
   const [placa, setPlaca] = useState('');
@@ -627,27 +655,7 @@ export default function InscripcionPage() {
       window.addEventListener('resize', updateSize);
     }
     
-    const fetchCounts = async () => {
-      try {
-        const snapshot = await getDocs(collection(db, 'event_registrations'));
-        const counts: { [key: string]: number } = { open: 0, '2t': 0, '4t': 0, alto: 0, bikelife: 0 };
-        snapshot.forEach(d => {
-          const data = d.data();
-          const cats = data.categoria || data.categorias;
-          if (cats && (data.estadoPago === 'aprobado' || data.estadoPago === 'pago_dia_evento')) {
-            if (Array.isArray(cats)) {
-              cats.forEach(c => counts[c] = (counts[c] || 0) + 1);
-            } else {
-              counts[cats] = (counts[cats] || 0) + 1;
-            }
-          }
-        });
-        setCategoryCounts(counts);
-      } catch (e) {
-        console.error("Error fetching category counts", e);
-      }
-    };
-    fetchCounts();
+    
 
     const initDetector = async () => {
       try {
@@ -728,6 +736,32 @@ export default function InscripcionPage() {
     }
   }, [documentosRechazados.length]);
 
+  useEffect(() => {
+    const fetchCounts = async () => {
+      if (!selectedEvent) return;
+      try {
+        const snapshot = await getDocs(collection(db, 'event_registrations'));
+        const counts: { [key: string]: number } = { open: 0, '2t': 0, '4t': 0, alto: 0, bikelife: 0 };
+        snapshot.forEach(d => {
+          if (!d.id.startsWith(selectedEvent + '_')) return;
+          const data = d.data();
+          const cats = data.categoria || data.categorias;
+          if (cats && (data.estadoPago === 'aprobado' || data.estadoPago === 'pago_dia_evento')) {
+            if (Array.isArray(cats)) {
+              cats.forEach(c => counts[c] = (counts[c] || 0) + 1);
+            } else {
+              counts[cats] = (counts[cats] || 0) + 1;
+            }
+          }
+        });
+        setCategoryCounts(counts);
+      } catch (e) {
+        console.error("Error fetching category counts:", e);
+      }
+    };
+    fetchCounts();
+  }, [selectedEvent]);
+
   const handleFotoDeportistaChange = async (file: File | null) => {
     if (!file) {
       setFotoDeportista(null);
@@ -779,6 +813,42 @@ export default function InscripcionPage() {
     }
   };
 
+  const handleCatClick = (catKey: string) => {
+    const maxCupos = isSimplifiedEvent ? 30 : (catKey === 'open' ? 30 : 15);
+    if ((categoryCounts[catKey] || 0) >= maxCupos) return;
+
+    if (isSimplifiedEvent) {
+      setCategorias([catKey]);
+      saveCategoriasToDB([catKey]);
+      setNitroxSubStep(2);
+      return;
+    }
+
+    if (catKey === 'open') {
+      if (categorias.includes('open')) {
+        setCategorias([]);
+        saveCategoriasToDB([]);
+      } else {
+        setCategorias(['open']);
+        saveCategoriasToDB(['open']);
+      }
+    } else {
+      if (categorias.includes('open')) {
+        toast({ title: "Categoría exclusiva", description: "La categoría OPEN no se puede combinar con otras.", variant: "default" });
+        return;
+      }
+      if (categorias.includes(catKey)) {
+        const newCats = categorias.filter(c => c !== catKey);
+        setCategorias(newCats);
+        saveCategoriasToDB(newCats);
+      } else {
+        const newCats = [...categorias, catKey];
+        setCategorias(newCats);
+        saveCategoriasToDB(newCats);
+      }
+    }
+  };
+
   const handleFileUpload = async (file: File | null, pathPrefix: string): Promise<string | null> => {
     if (!file || !uid) return null;
     const storageRef = ref(storage, `events/${selectedEvent}/${uid}/${pathPrefix}_${file.name}`);
@@ -788,7 +858,13 @@ export default function InscripcionPage() {
 
   const validateForm = () => {
     if (categorias.length === 0) return "Selecciona al menos una categoría";
-    if (selectedEvent === 'nitrox') return null; // Solo la categoría es requerida para Nitrox por el momento
+    if (isSimplifiedEvent) {
+      if (!idPdf) return "Debes subir la foto de tu Cédula o TI por ambos lados.";
+      if (selectedEvent === 'festival' && !videoFile) {
+        return "Debes subir el video explicando por qué debes participar.";
+      }
+      return null;
+    }
     
     if (!idPdf) return "Falta anexar el PDF/Foto de tu identificación";
     if (!participacionPrevia) return "Responde si has participado antes";
@@ -854,12 +930,12 @@ export default function InscripcionPage() {
     setIsLoading(true);
 
     // Validación estricta final de cupos antes de guardar
-    const isNitrox = selectedEvent === 'nitrox';
+    const isSimplified = isSimplifiedEvent;
     const limits: { [key: string]: number } = { 
       open: 30, 
-      '2t': isNitrox ? 30 : 15, 
-      '4t': isNitrox ? 30 : 15, 
-      alto: isNitrox ? 30 : 15, 
+      '2t': isSimplified ? 30 : 15, 
+      '4t': isSimplified ? 30 : 15, 
+      alto: isSimplified ? 30 : 15, 
       bikelife: 30 
     };
     for (const cat of categorias) {
@@ -894,6 +970,7 @@ export default function InscripcionPage() {
         },
         documentos: {
           idUrl: urls[0],
+          videoUrl: videoFile?.url || null,
           placaUrl: urls[1],
           propiedadUrl: urls[2],
           soatUrl: urls[3],
@@ -1171,7 +1248,7 @@ export default function InscripcionPage() {
 
 
 
-      <div className={activeEvent === null ? "flex flex-col text-zinc-100 w-full relative z-10 min-h-[calc(100vh-80px)] justify-start items-center p-4 sm:p-6 md:p-12" : "flex flex-col p-4 lg:p-8 text-zinc-100 max-w-5xl mx-auto w-full relative z-10"}>
+      <div className={activeEvent === null ? "flex flex-col text-zinc-100 w-full relative z-10 min-h-[calc(100vh-80px)] justify-start items-center p-4 sm:p-6 md:p-12" : (isSimplifiedEvent ? "flex flex-col p-2 sm:p-4 text-zinc-100 max-w-2xl mx-auto w-full relative z-10" : "flex flex-col p-4 lg:p-8 text-zinc-100 max-w-5xl mx-auto w-full relative z-10")}>
         
         {isCheckingStatus ? (
           <div className="flex flex-col items-center justify-center min-h-[60vh]">
@@ -1244,180 +1321,201 @@ export default function InscripcionPage() {
         ) : (
           <>
             {/* Botón Volver a Eventos */}
-            <button 
-              type="button" 
-              onClick={() => {
-                setActiveEvent(null);
-                if (uid) fetchEventStatuses(uid);
-              }} 
-              className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors mb-6 text-xs sm:text-sm font-bold uppercase tracking-widest bg-[#121212] hover:bg-[#1C1C1C] border border-zinc-800 px-4 py-2.5 rounded-2xl w-fit shadow-md"
-            >
-              <ArrowLeft className="w-4 h-4 text-[#E60000]" /> VOLVER A EVENTOS
-            </button>
+            {!isSimplifiedEvent && (
+              <button 
+                type="button" 
+                onClick={() => {
+                  setActiveEvent(null);
+                  setNitroxSubStep(1);
+                  if (uid) fetchEventStatuses(uid);
+                }} 
+                className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors mb-6 text-xs sm:text-sm font-bold uppercase tracking-widest bg-[#121212] hover:bg-[#1C1C1C] border border-zinc-800 px-4 py-2.5 rounded-2xl w-fit shadow-md"
+              >
+                <ArrowLeft className="w-4 h-4 text-[#E60000]" /> VOLVER A EVENTOS
+              </button>
+            )}
 
             {/* PASO 1: FORMULARIO SECUENCIAL */}
             {step === 1 && (
-              <form onSubmit={handleFormSubmit} className="animate-in fade-in zoom-in-95 duration-500 max-w-5xl mx-auto w-full">
+              <form onSubmit={handleFormSubmit} className={isSimplifiedEvent ? "animate-in fade-in zoom-in-95 duration-500 max-w-2xl mx-auto w-full" : "animate-in fade-in zoom-in-95 duration-500 max-w-5xl mx-auto w-full"}>
             
             {/* Header de Progreso */}
-            <div className="flex flex-col mb-8 border-b border-[#2A2A2A] pb-4">
-              <div className="flex items-center gap-3 mb-4">
-                <Link href="/profile" className="text-[#B0B0B0] hover:text-white transition-colors">
+            {isSimplifiedEvent ? (
+              <div className="flex items-center gap-3 mb-4 border-b border-[#2A2A2A] pb-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (nitroxSubStep === 2) {
+                      setNitroxSubStep(1);
+                    } else {
+                      setActiveEvent(null);
+                      if (uid) fetchEventStatuses(uid);
+                    }
+                  }}
+                  className="text-[#B0B0B0] hover:text-white transition-colors p-1"
+                >
                   <ArrowLeft className="w-6 h-6" />
-                </Link>
-                <h1 className="text-xl md:text-2xl font-black tracking-tight text-white uppercase">
+                </button>
+                <h1 className="text-lg md:text-xl font-black tracking-tight text-white uppercase">
                   Inscripción {activeEventObj ? `${activeEventObj.title} ${activeEventObj.titleAccent}` : ''}
                 </h1>
               </div>
-              <div className="flex items-center justify-between text-xs font-bold tracking-widest text-[#B0B0B0] mb-2">
-                <span className="text-[#E60000]">Paso 2 de 3</span>
-                <span className="text-white">66%</span>
+            ) : (
+              <div className="flex flex-col mb-8 border-b border-[#2A2A2A] pb-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <Link href="/profile" className="text-[#B0B0B0] hover:text-white transition-colors">
+                    <ArrowLeft className="w-6 h-6" />
+                  </Link>
+                  <h1 className="text-xl md:text-2xl font-black tracking-tight text-white uppercase">
+                    Inscripción {activeEventObj ? `${activeEventObj.title} ${activeEventObj.titleAccent}` : ''}
+                  </h1>
+                </div>
+                <div className="flex items-center justify-between text-xs font-bold tracking-widest text-[#B0B0B0] mb-2">
+                  <span className="text-[#E60000]">Paso 2 de 3</span>
+                  <span className="text-white">66%</span>
+                </div>
+                <div className="h-1.5 w-full bg-[#1A1A1A] rounded-full overflow-hidden border border-[#2A2A2A]">
+                  <div className="h-full bg-[#E60000] w-[66%] rounded-full shadow-[0_0_15px_rgba(230, 0, 0,0.5)]"></div>
+                </div>
               </div>
-              <div className="h-1.5 w-full bg-[#1A1A1A] rounded-full overflow-hidden border border-[#2A2A2A]">
-                <div className="h-full bg-[#E60000] w-[66%] rounded-full shadow-[0_0_15px_rgba(230, 0, 0,0.5)]"></div>
-              </div>
-            </div>
+            )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+            <div className={isSimplifiedEvent ? "max-w-2xl mx-auto w-full" : "grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12"}>
               {/* Columna Izquierda: Datos y Documentos */}
               <div className="space-y-6">
               
               {/* Categorías */}
-              <div className="space-y-3 bg-[#1A1A1A] p-5 rounded-2xl border border-[#2A2A2A]">
-                <Label className="text-white text-sm font-bold uppercase tracking-wider flex items-center gap-2 mb-4">
-                  1. Categoría <span className="text-[#FF9800] text-[10px] bg-[#FF9800]/10 px-2 py-0.5 rounded border border-[#FF9800]/20 flex items-center gap-1"><AlertTriangle className="w-3 h-3"/> Cupos limitados</span>
-                </Label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('open') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['open'] || 0) >= 30 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { 
-                    if ((categoryCounts['open'] || 0) >= 30) return;
-                    if (categorias.includes('open')) {
-                      setCategorias([]);
-                      saveCategoriasToDB([]);
-                    } else {
-                      setCategorias(['open']);
-                      saveCategoriasToDB(['open']);
-                    }
-                  }}>
-                    <div className="w-10 h-10 rounded-full bg-[#1A1A1A] flex items-center justify-center mr-3 border border-[#2A2A2A]">
-                      <span className="text-xl">🟢</span>
-                    </div>
-                    <div className="flex-1">
-                      <Label className="font-bold text-white text-sm cursor-pointer notranslate" translate="no">OPEN</Label>
-                      <p className="text-[10px] text-[#B0B0B0] mt-0.5 font-medium">{Math.max(0, 30 - (categoryCounts['open'] || 0))} CUPOS RESTANTES</p>
-                    </div>
-                    {categorias.includes('open') && <CheckCircle2 className="w-5 h-5 text-[#E60000] absolute top-2 right-2" />}
-                  </div>
-                  
-                  <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('2t') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['2t'] || 0) >= (selectedEvent === 'nitrox' ? 30 : 15) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { 
-                    if ((categoryCounts['2t'] || 0) >= (selectedEvent === 'nitrox' ? 30 : 15)) return;
-                    if (categorias.includes('open')) {
-                      toast({ title: "Categoría exclusiva", description: "La categoría OPEN no se puede combinar con otras.", variant: "default" });
-                      return;
-                    }
-                    if (categorias.includes('2t')) {
-                      const newCats = categorias.filter(c => c !== '2t');
-                      setCategorias(newCats);
-                      saveCategoriasToDB(newCats);
-                    } else {
-                      const newCats = [...categorias, '2t'];
-                      setCategorias(newCats);
-                      saveCategoriasToDB(newCats);
-                    }
-                  }}>
-                    <div className="w-10 h-10 rounded-full bg-[#1A1A1A] flex items-center justify-center mr-3 border border-[#2A2A2A]">
-                      <span className="text-xl">🏍️</span>
-                    </div>
-                    <div className="flex-1">
-                      <Label className="font-bold text-white text-sm cursor-pointer">2 TIEMPOS</Label>
-                      <p className="text-[10px] text-[#B0B0B0] mt-0.5 font-medium">{Math.max(0, (selectedEvent === 'nitrox' ? 30 : 15) - (categoryCounts['2t'] || 0))} CUPOS RESTANTES</p>
-                    </div>
-                    {categorias.includes('2t') && <CheckCircle2 className="w-5 h-5 text-[#E60000] absolute top-2 right-2" />}
-                  </div>
-
-                  <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('4t') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['4t'] || 0) >= (selectedEvent === 'nitrox' ? 30 : 15) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { 
-                    if ((categoryCounts['4t'] || 0) >= (selectedEvent === 'nitrox' ? 30 : 15)) return;
-                    if (categorias.includes('open')) {
-                      toast({ title: "Categoría exclusiva", description: "La categoría OPEN no se puede combinar con otras.", variant: "default" });
-                      return;
-                    }
-                    if (categorias.includes('4t')) {
-                      const newCats = categorias.filter(c => c !== '4t');
-                      setCategorias(newCats);
-                      saveCategoriasToDB(newCats);
-                    } else {
-                      const newCats = [...categorias, '4t'];
-                      setCategorias(newCats);
-                      saveCategoriasToDB(newCats);
-                    }
-                  }}>
-                    <div className="w-10 h-10 rounded-full bg-[#1A1A1A] flex items-center justify-center mr-3 border border-[#2A2A2A]">
-                      <span className="text-xl">🛵</span>
-                    </div>
-                    <div className="flex-1">
-                      <Label className="font-bold text-white text-sm cursor-pointer">4 TIEMPOS</Label>
-                      <p className="text-[10px] text-[#B0B0B0] mt-0.5 font-medium">{Math.max(0, (selectedEvent === 'nitrox' ? 30 : 15) - (categoryCounts['4t'] || 0))} CUPOS RESTANTES</p>
-                    </div>
-                    {categorias.includes('4t') && <CheckCircle2 className="w-5 h-5 text-[#E60000] absolute top-2 right-2" />}
-                  </div>
-
-                  <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('alto') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['alto'] || 0) >= (selectedEvent === 'nitrox' ? 30 : 15) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { 
-                    if ((categoryCounts['alto'] || 0) >= (selectedEvent === 'nitrox' ? 30 : 15)) return;
-                    if (categorias.includes('open')) {
-                      toast({ title: "Categoría exclusiva", description: "La categoría OPEN no se puede combinar con otras.", variant: "default" });
-                      return;
-                    }
-                    if (categorias.includes('alto')) {
-                      const newCats = categorias.filter(c => c !== 'alto');
-                      setCategorias(newCats);
-                      saveCategoriasToDB(newCats);
-                    } else {
-                      const newCats = [...categorias, 'alto'];
-                      setCategorias(newCats);
-                      saveCategoriasToDB(newCats);
-                    }
-                  }}>
-                    <div className="w-10 h-10 rounded-full bg-[#1A1A1A] flex items-center justify-center mr-3 border border-[#2A2A2A]">
-                      <span className="text-xl">🔥</span>
-                    </div>
-                    <div className="flex-1">
-                      <Label className="font-bold text-white text-sm cursor-pointer">ALTO CILINDRAJE</Label>
-                      <p className="text-[10px] text-[#B0B0B0] mt-0.5 font-medium">{Math.max(0, (selectedEvent === 'nitrox' ? 30 : 15) - (categoryCounts['alto'] || 0))} CUPOS RESTANTES</p>
-                    </div>
-                    {categorias.includes('alto') && <CheckCircle2 className="w-5 h-5 text-[#E60000] absolute top-2 right-2" />}
-                  </div>
-
-                  {selectedEvent === 'nitrox' && (
-                    <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('bikelife') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['bikelife'] || 0) >= 30 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { 
-                      if ((categoryCounts['bikelife'] || 0) >= 30) return;
-                      if (categorias.includes('open')) {
-                        toast({ title: "Categoría exclusiva", description: "La categoría OPEN no se puede combinar con otras.", variant: "default" });
-                        return;
-                      }
-                      if (categorias.includes('bikelife')) {
-                        const newCats = categorias.filter(c => c !== 'bikelife');
-                        setCategorias(newCats);
-                        saveCategoriasToDB(newCats);
-                      } else {
-                        const newCats = [...categorias, 'bikelife'];
-                        setCategorias(newCats);
-                        saveCategoriasToDB(newCats);
-                      }
-                    }}>
-                      <div className="w-10 h-10 rounded-full bg-[#1A1A1A] flex items-center justify-center mr-3 border border-[#2A2A2A]">
-                        <span className="text-xl">🚲</span>
+              {(!isSimplifiedEvent || nitroxSubStep === 1) && (
+                <div className={isSimplifiedEvent ? "space-y-2 bg-[#1A1A1A] p-3 sm:p-4 rounded-2xl border border-[#2A2A2A]" : "space-y-3 bg-[#1A1A1A] p-5 rounded-2xl border border-[#2A2A2A]"}>
+                  <Label className={`text-white ${isSimplifiedEvent ? 'text-xs mb-1.5' : 'text-sm mb-4'} font-bold uppercase tracking-wider flex items-center gap-2`}>
+                    1. Categoría <span className="text-[#FF9800] text-[10px] bg-[#FF9800]/10 px-2 py-0.5 rounded border border-[#FF9800]/20 flex items-center gap-1"><AlertTriangle className="w-3 h-3"/> Cupos limitados</span>
+                  </Label>
+                  <div className={`grid grid-cols-1 md:grid-cols-2 ${isSimplifiedEvent ? 'gap-2' : 'gap-3'}`}>
+                    <div className={`relative flex items-center ${isSimplifiedEvent ? 'p-2.5 sm:p-3' : 'p-4'} rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('open') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['open'] || 0) >= 30 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => handleCatClick('open')}>
+                      <div className={`shrink-0 ${isSimplifiedEvent ? 'w-8 h-8 mr-2' : 'w-10 h-10 mr-3'} rounded-full bg-[#1A1A1A] flex items-center justify-center border border-[#2A2A2A]`}>
+                        <span className={isSimplifiedEvent ? 'text-lg' : 'text-xl'}>🟢</span>
                       </div>
-                      <div className="flex-1">
-                        <Label className="font-bold text-white text-sm cursor-pointer">BIKELIFE</Label>
-                        <p className="text-[10px] text-[#B0B0B0] mt-0.5 font-medium">{Math.max(0, 30 - (categoryCounts['bikelife'] || 0))} CUPOS RESTANTES</p>
+                      <div className="flex-1 min-w-0">
+                        <Label className={`font-bold text-white ${isSimplifiedEvent ? 'text-xs' : 'text-sm'} cursor-pointer notranslate`} translate="no">OPEN</Label>
+                        <p className={`${isSimplifiedEvent ? 'text-[9px]' : 'text-[10px]'} text-[#B0B0B0] mt-0.5 font-medium`}>{Math.max(0, 30 - (categoryCounts['open'] || 0))} CUPOS RESTANTES</p>
                       </div>
-                      {categorias.includes('bikelife') && <CheckCircle2 className="w-5 h-5 text-[#E60000] absolute top-2 right-2" />}
+                      {categorias.includes('open') && <CheckCircle2 className="w-5 h-5 text-[#E60000] absolute top-2 right-2" />}
+                    </div>
+                    
+                    <div className={`relative flex items-center ${isSimplifiedEvent ? 'p-2.5 sm:p-3' : 'p-4'} rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('2t') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['2t'] || 0) >= (isSimplifiedEvent ? 30 : 15) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => handleCatClick('2t')}>
+                      <div className={`shrink-0 ${isSimplifiedEvent ? 'w-8 h-8 mr-2' : 'w-10 h-10 mr-3'} rounded-full bg-[#1A1A1A] flex items-center justify-center border border-[#2A2A2A]`}>
+                        <span className={isSimplifiedEvent ? 'text-lg' : 'text-xl'}>🏍️</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <Label className={`font-bold text-white ${isSimplifiedEvent ? 'text-xs' : 'text-sm'} cursor-pointer`}>2 TIEMPOS</Label>
+                        <p className={`${isSimplifiedEvent ? 'text-[9px]' : 'text-[10px]'} text-[#B0B0B0] mt-0.5 font-medium`}>{Math.max(0, (isSimplifiedEvent ? 30 : 15) - (categoryCounts['2t'] || 0))} CUPOS RESTANTES</p>
+                      </div>
+                      {categorias.includes('2t') && <CheckCircle2 className="w-5 h-5 text-[#E60000] absolute top-2 right-2" />}
+                    </div>
+
+                    <div className={`relative flex items-center ${isSimplifiedEvent ? 'p-2.5 sm:p-3' : 'p-4'} rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('4t') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['4t'] || 0) >= (isSimplifiedEvent ? 30 : 15) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => handleCatClick('4t')}>
+                      <div className={`shrink-0 ${isSimplifiedEvent ? 'w-8 h-8 mr-2' : 'w-10 h-10 mr-3'} rounded-full bg-[#1A1A1A] flex items-center justify-center border border-[#2A2A2A]`}>
+                        <span className={isSimplifiedEvent ? 'text-lg' : 'text-xl'}>🛵</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <Label className={`font-bold text-white ${isSimplifiedEvent ? 'text-xs' : 'text-sm'} cursor-pointer`}>4 TIEMPOS</Label>
+                        <p className={`${isSimplifiedEvent ? 'text-[9px]' : 'text-[10px]'} text-[#B0B0B0] mt-0.5 font-medium`}>{Math.max(0, (isSimplifiedEvent ? 30 : 15) - (categoryCounts['4t'] || 0))} CUPOS RESTANTES</p>
+                      </div>
+                      {categorias.includes('4t') && <CheckCircle2 className="w-5 h-5 text-[#E60000] absolute top-2 right-2" />}
+                    </div>
+
+                    <div className={`relative flex items-center ${isSimplifiedEvent ? 'p-2.5 sm:p-3' : 'p-4'} rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('alto') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['alto'] || 0) >= (isSimplifiedEvent ? 30 : 15) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => handleCatClick('alto')}>
+                      <div className={`shrink-0 ${isSimplifiedEvent ? 'w-8 h-8 mr-2' : 'w-10 h-10 mr-3'} rounded-full bg-[#1A1A1A] flex items-center justify-center border border-[#2A2A2A]`}>
+                        <span className={isSimplifiedEvent ? 'text-lg' : 'text-xl'}>🔥</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <Label className={`font-bold text-white ${isSimplifiedEvent ? 'text-xs' : 'text-sm'} cursor-pointer`}>ALTO CILINDRAJE</Label>
+                        <p className={`${isSimplifiedEvent ? 'text-[9px]' : 'text-[10px]'} text-[#B0B0B0] mt-0.5 font-medium`}>{Math.max(0, (isSimplifiedEvent ? 30 : 15) - (categoryCounts['alto'] || 0))} CUPOS RESTANTES</p>
+                      </div>
+                      {categorias.includes('alto') && <CheckCircle2 className="w-5 h-5 text-[#E60000] absolute top-2 right-2" />}
+                    </div>
+
+                    {isSimplifiedEvent && (
+                      <div className={`relative flex items-center ${isSimplifiedEvent ? 'p-2.5 sm:p-3' : 'p-4'} rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('bikelife') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['bikelife'] || 0) >= 30 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => handleCatClick('bikelife')}>
+                        <div className={`shrink-0 ${isSimplifiedEvent ? 'w-8 h-8 mr-2' : 'w-10 h-10 mr-3'} rounded-full bg-[#1A1A1A] flex items-center justify-center border border-[#2A2A2A]`}>
+                          <span className={isSimplifiedEvent ? 'text-lg' : 'text-xl'}>🚲</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <Label className={`font-bold text-white ${isSimplifiedEvent ? 'text-xs' : 'text-sm'} cursor-pointer`}>BIKELIFE</Label>
+                          <p className={`${isSimplifiedEvent ? 'text-[9px]' : 'text-[10px]'} text-[#B0B0B0] mt-0.5 font-medium`}>{Math.max(0, 30 - (categoryCounts['bikelife'] || 0))} CUPOS RESTANTES</p>
+                        </div>
+                        {categorias.includes('bikelife') && <CheckCircle2 className="w-5 h-5 text-[#E60000] absolute top-2 right-2" />}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Sub-paso 2 de Nitrox: Subir Documento de Identificación / Video */}
+              {isSimplifiedEvent && nitroxSubStep === 2 && (
+                <div className="space-y-4 bg-[#1A1A1A] p-3 sm:p-4 rounded-2xl border border-[#2A2A2A]">
+                  <div className="space-y-3">
+                    <Label className="text-white text-xs font-bold uppercase tracking-wider block flex items-center gap-2 mb-1">
+                      <span className="text-[#E60000]">📄</span> Subir Foto de la Cédula o TI por ambos lados
+                    </Label>
+                    
+                    <p className="text-[9px] text-[#B0B0B0] mb-2 leading-relaxed">
+                      Sube una fotografía clara donde se aprecien ambos lados de tu documento de identificación.
+                    </p>
+
+                    <div onClick={() => openOptions('id')} className={`relative bg-[#121212] border-2 border-dashed ${idPdf ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.1)]' : 'border-[#2A2A2A] hover:border-[#424242]'} rounded-xl p-4 sm:p-5 flex flex-col items-center justify-center text-center cursor-pointer transition-all hover:bg-[#1A1A1A]`}>
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 border ${idPdf ? 'bg-[#E60000]/10 border-[#E60000]/30 text-[#E60000]' : 'bg-[#1A1A1A] border-[#2A2A2A] text-zinc-500'}`}>
+                        <ImageIcon className="w-5 h-5" />
+                      </div>
+                      
+                      {idPdf ? (
+                        <>
+                          <p className="text-xs font-bold text-[#E60000] truncate max-w-xs">{idPdf.name}</p>
+                          <span className="text-[9px] text-zinc-500 mt-1 uppercase font-bold tracking-widest">Documento Adjuntado</span>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-xs font-bold text-white mb-0.5">Seleccionar foto o PDF</p>
+                          <p className="text-[9px] text-zinc-500">Haz clic aquí para tomar foto o elegir archivo</p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {selectedEvent === 'festival' && (
+                    <div className="space-y-3 pt-3 border-t border-[#2A2A2A]">
+                      <Label className="text-white text-xs font-bold uppercase tracking-wider block flex items-center gap-2 mb-1">
+                        <span className="text-[#E60000]">🎥</span> ¿Por qué debes participar en la 4ta edición del Festival de Stunt?
+                      </Label>
+                      
+                      <p className="text-[9px] text-[#B0B0B0] mb-2 leading-relaxed font-bold text-[#FF9800]">
+                        Graba o selecciona un video corto contándonos por qué deberías ser elegido para esta edición.
+                      </p>
+
+                      <div onClick={() => openOptions('video')} className={`relative bg-[#121212] border-2 border-dashed ${videoFile ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.1)]' : 'border-[#2A2A2A] hover:border-[#424242]'} rounded-xl p-4 sm:p-5 flex flex-col items-center justify-center text-center cursor-pointer transition-all hover:bg-[#1A1A1A]`}>
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 border ${videoFile ? 'bg-[#E60000]/10 border-[#E60000]/30 text-[#E60000]' : 'bg-[#1A1A1A] border-[#2A2A2A] text-zinc-500'}`}>
+                          <Video className="w-5 h-5" />
+                        </div>
+                        
+                        {videoFile ? (
+                          <>
+                            <p className="text-xs font-bold text-[#E60000] truncate max-w-xs">{videoFile.name}</p>
+                            <span className="text-[9px] text-zinc-500 mt-1 uppercase font-bold tracking-widest">Video Adjuntado</span>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-xs font-bold text-white mb-0.5">Seleccionar o grabar video</p>
+                            <p className="text-[9px] text-zinc-500">Haz clic aquí para grabar o elegir video</p>
+                          </>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
-              </div>
+              )}
               
               {/* Experiencia y Compromiso */}
-              {selectedEvent !== 'nitrox' && (
+              {!isSimplifiedEvent && (
                 <div className="space-y-3 pt-4 border-t border-zinc-800/50">
                   <Label className="text-white text-sm font-bold uppercase tracking-wider block">2. Experiencia y Compromiso</Label>
                   <p className="text-xs text-zinc-400 mb-2">¿Has participado en la Copa Stunt F2R en versiones anteriores?</p>
@@ -1453,7 +1551,7 @@ export default function InscripcionPage() {
               )}
 
               {/* Datos Motocicleta */}
-              {selectedEvent !== 'nitrox' && (
+              {!isSimplifiedEvent && (
                 <div className="space-y-4 pt-6 border-t border-[#2A2A2A]">
                   <Label className="text-white text-sm font-bold uppercase tracking-wider block flex items-center gap-2 mb-2">
                     <span className="text-[#E60000]">🏍️</span> 3. Datos de la Motocicleta
@@ -1486,7 +1584,7 @@ export default function InscripcionPage() {
               )}
 
               {/* Documentos Legales */}
-              {selectedEvent !== 'nitrox' && (
+              {!isSimplifiedEvent && (
                 <div className="space-y-3 pt-6 border-t border-[#2A2A2A] pb-6">
                   <div className="flex justify-between items-center mb-2">
                     <Label className="text-white text-sm font-bold uppercase tracking-wider block flex items-center gap-2">
@@ -1534,10 +1632,10 @@ export default function InscripcionPage() {
               </div>
 
               {/* Columna Derecha: Pagos y Comprobante */}
-              <div className="space-y-6">
-                
-                {/* Alerta Importante */}
-                {selectedEvent !== 'nitrox' && (
+              {!isSimplifiedEvent && (
+                <div className="space-y-6">
+                  
+                  {/* Alerta Importante */}
                   <div className="bg-[#1A1A1A] border border-[#FF9800]/50 rounded-2xl p-5 flex flex-col items-center text-center shadow-[0_0_20px_rgba(255,152,0,0.15)] relative overflow-hidden">
                     <div className="absolute top-0 w-full h-1 bg-gradient-to-r from-transparent via-[#FF9800] to-transparent opacity-50"></div>
                     <div className="flex items-center justify-center gap-2 mb-3">
@@ -1546,10 +1644,8 @@ export default function InscripcionPage() {
                     </div>
                     <p className="text-[#B0B0B0] text-sm leading-relaxed">Tu cupo <strong className="text-white">NO</strong> está asegurado<br/>hasta completar el pago.</p>
                   </div>
-                )}
 
-                {/* Comprobante de Pago */}
-                {selectedEvent !== 'nitrox' && (
+                  {/* Comprobante de Pago */}
                   <div className="space-y-4 pt-4 lg:pt-0 pb-6">
                     <div className="flex justify-between items-center mb-2">
                       <Label className="text-white text-sm font-bold uppercase tracking-wider block flex items-center gap-2">
@@ -1606,10 +1702,8 @@ export default function InscripcionPage() {
                       </div>
                     </div>
                   </div>
-                )}
 
-                {/* Ayuda WhatsApp */}
-                {selectedEvent !== 'nitrox' && (
+                  {/* Ayuda WhatsApp */}
                   <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl p-5 shadow-[0_0_15px_rgba(0,0,0,0.5)]">
                     <p className="text-white font-bold mb-1 text-sm">¿Problemas con el pago?</p>
                     <p className="text-[#B0B0B0] text-[10px] mb-4">Comunícate a nuestro canal oficial de WhatsApp</p>
@@ -1621,47 +1715,49 @@ export default function InscripcionPage() {
                       <ChevronRight className="w-5 h-5 text-[#E60000]/50 group-hover:text-[#E60000] transition-colors" />
                     </a>
                   </div>
-                )}
 
-                {/* Graphic Footer */}
-                <div className="relative rounded-2xl overflow-hidden border border-[#2A2A2A] bg-[#121212] shadow-2xl mt-0">
-                  {/* Background Image Oscurecida */}
-                  <div 
-                    className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20 mix-blend-luminosity"
-                    style={{ backgroundImage: "url('/sponsors/Screenshot 2026-04-24 175445.png')" }}
-                  ></div>
-                  {/* Gradient overlay to ensure text readability */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#121212] via-[#121212]/80 to-transparent"></div>
-                  
-                  <div className="relative z-10 p-8 flex flex-col items-center text-center">
-                    <div className="w-20 h-20 mb-4 bg-[#FF9800]/10 rounded-full flex items-center justify-center border border-[#FF9800]/20 shadow-[0_0_30px_rgba(255,152,0,0.15)]">
-                      <span className="text-4xl">🏆</span>
-                    </div>
-                    <p className="text-[#B0B0B0] text-xs md:text-sm leading-relaxed mb-6 max-w-[280px]">
-                      Gracias por ser parte de la <span className="text-white font-bold">Copa Stunt Colombia 2026</span>, el evento que impulsa el talento, la disciplina y la pasión por el stunt a nivel nacional e internacional.
-                    </p>
-                    <div className="inline-block bg-[#1A1A1A]/80 backdrop-blur-md border border-[#FF9800]/30 px-6 py-2 rounded-lg shadow-[0_0_15px_rgba(255,152,0,0.1)]">
-                      <p className="text-[#FF9800] font-black tracking-widest text-sm uppercase">
-                        🔥 Nos vemos en la pista. 🔥
+                  {/* Graphic Footer */}
+                  <div className="relative rounded-2xl overflow-hidden border border-[#2A2A2A] bg-[#121212] shadow-2xl mt-0">
+                    {/* Background Image Oscurecida */}
+                    <div 
+                      className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20 mix-blend-luminosity"
+                      style={{ backgroundImage: "url('/sponsors/Screenshot 2026-04-24 175445.png')" }}
+                    ></div>
+                    {/* Gradient overlay to ensure text readability */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#121212] via-[#121212]/80 to-transparent"></div>
+                    
+                    <div className="relative z-10 p-8 flex flex-col items-center text-center">
+                      <div className="w-20 h-20 mb-4 bg-[#FF9800]/10 rounded-full flex items-center justify-center border border-[#FF9800]/20 shadow-[0_0_30px_rgba(255,152,0,0.15)]">
+                        <span className="text-4xl">🏆</span>
+                      </div>
+                      <p className="text-[#B0B0B0] text-xs md:text-sm leading-relaxed mb-6 max-w-[280px]">
+                        Gracias por ser parte de la <span className="text-white font-bold">Copa Stunt Colombia 2026</span>, el evento que impulsa el talento, la disciplina y la pasión por el stunt a nivel nacional e internacional.
                       </p>
+                      <div className="inline-block bg-[#1A1A1A]/80 backdrop-blur-md border border-[#FF9800]/30 px-6 py-2 rounded-lg shadow-[0_0_15px_rgba(255,152,0,0.1)]">
+                        <p className="text-[#FF9800] font-black tracking-widest text-sm uppercase">
+                          🔥 Nos vemos en la pista. 🔥
+                        </p>
+                      </div>
                     </div>
                   </div>
+
                 </div>
-
-              </div>
+              )}
 
             </div>
 
-            <div className="mt-12 mb-16 max-w-2xl mx-auto">
-              <Button type="submit" disabled={isLoading} className="bg-[#E60000] text-black hover:bg-[#E60000]/90 font-black h-16 w-full text-sm md:text-base shadow-[0_0_20px_rgba(230, 0, 0,0.4)] transition-all uppercase tracking-wider rounded-2xl">
-                {isLoading ? "GUARDANDO..." : "CONFIRMACIÓN"}
-                {!isLoading && <ChevronRight className="w-6 h-6 ml-2" />}
-              </Button>
-              <div className="flex items-center justify-center gap-2 mt-4 text-[#424242] text-[10px] uppercase font-bold tracking-widest mb-10">
-                <Lock className="w-3 h-3" />
-                Tu información está segura con nosotros.
+            {(!isSimplifiedEvent || nitroxSubStep === 2) && (
+              <div className={isSimplifiedEvent ? "mt-4 mb-4 max-w-2xl mx-auto" : "mt-12 mb-16 max-w-2xl mx-auto"}>
+                <Button type="submit" disabled={isLoading} className={isSimplifiedEvent ? "bg-[#E60000] text-black hover:bg-[#E60000]/90 font-black h-12 w-full text-xs sm:text-sm shadow-[0_0_15px_rgba(230, 0, 0,0.4)] transition-all uppercase tracking-wider rounded-xl" : "bg-[#E60000] text-black hover:bg-[#E60000]/90 font-black h-16 w-full text-sm md:text-base shadow-[0_0_20px_rgba(230, 0, 0,0.4)] transition-all uppercase tracking-wider rounded-2xl"}>
+                  {isLoading ? "GUARDANDO..." : "CONFIRMACIÓN"}
+                  {!isLoading && <ChevronRight className="w-6 h-6 ml-2" />}
+                </Button>
+                <div className="flex items-center justify-center gap-2 mt-4 text-[#424242] text-[10px] uppercase font-bold tracking-widest mb-10">
+                  <Lock className="w-3 h-3" />
+                  Tu información está segura con nosotros.
+                </div>
               </div>
-            </div>
+            )}
 
           </form>
         )}
@@ -1910,18 +2006,58 @@ export default function InscripcionPage() {
                 <div className="w-20 h-20 bg-yellow-500/20 rounded-full flex items-center justify-center mb-6 border border-yellow-500/30 shadow-[0_0_30px_rgba(234,179,8,0.15)]">
                   <Clock className="w-10 h-10 text-yellow-500 animate-pulse" />
                 </div>
-                <h2 className="text-3xl font-extrabold text-white mb-2 text-center">
-                  {selectedEvent === 'nitrox' ? 'Inscripción Recibida' : (estadoPago === 'revision_saldo' ? 'Saldo en Validación' : 'Pago en Validación')}
+                <h2 className="text-2xl md:text-3xl font-extrabold text-white mb-4 text-center leading-tight">
+                  {selectedEvent === 'nitrox' ? '🏁 COPA STUNT – 3.ª VÁLIDA 2026 🏍️🔥' :
+                   selectedEvent === 'festival' ? '🔥 ¡ATENCIÓN, STUNTERS! 🔥' :
+                   isSimplifiedEvent ? 'Inscripción Recibida' : 
+                   (estadoPago === 'revision_saldo' ? 'Saldo en Validación' : 'Pago en Validación')}
                 </h2>
-                <p className="text-zinc-400 text-center mb-8">
-                  {selectedEvent === 'nitrox' 
-                    ? "Hemos recibido tu inscripción para la Copa Stunt Nitrox. Nuestro equipo validará tu registro pronto."
-                    : (estadoPago === 'revision_saldo' 
-                      ? "Hemos recibido el comprobante de tu saldo faltante. Nuestro equipo lo revisará en breve." 
-                      : "Hemos recibido tu comprobante de pago. Nuestro equipo lo revisará en breve.")}
-                  <br/><br/>
-                  Vuelve a ingresar a esta sección más tarde para ver tu código QR de acceso oficial.
-                </p>
+                <div className="text-zinc-400 text-center mb-8 space-y-4 max-w-md mx-auto text-sm md:text-base leading-relaxed">
+                  {selectedEvent === 'nitrox' ? (
+                    <>
+                      <p className="text-emerald-400 font-bold text-lg">✅ ¡Tu proceso de inscripción está en marcha!</p>
+                      <p className="text-zinc-300">
+                        📩 Muy pronto recibirás un correo electrónico con toda la información.
+                      </p>
+                      <p className="text-zinc-400 text-xs">
+                        Recuerda revisar tanto tu bandeja de entrada como la carpeta de Spam o Correo no deseado, ya que nuestro mensaje podría llegar allí.
+                      </p>
+                      <p className="text-[#E60000] font-black text-xl tracking-wider pt-2">🚀 ¡Nos vemos en la pista!</p>
+                    </>
+                  ) : selectedEvent === 'festival' ? (
+                    <>
+                      <p className="text-orange-400 font-bold text-lg">🏍️ ¿Quieres ser parte del Festival de Stunt?</p>
+                      <div className="text-yellow-400 font-semibold bg-yellow-500/10 border border-yellow-500/20 py-2.5 px-4 rounded-xl">
+                        <p className="mb-1">⚠️ Tu cupo aún NO está asegurado.</p>
+                        <p className="text-xs text-zinc-300 font-normal">Antes de confirmar tu participación, revisaremos tu video de presentación.</p>
+                      </div>
+                      <div className="grid grid-cols-1 gap-2 pt-2 text-zinc-300 font-medium">
+                        <div className="flex items-center justify-center gap-2">
+                          <span>📍</span> <span>Ubicación: Pereira</span>
+                        </div>
+                        <div className="flex items-center justify-center gap-2">
+                          <span>🎉</span> <span>Evento 100% GRATIS</span>
+                        </div>
+                        <div className="flex items-center justify-center gap-2">
+                          <span>🚨</span> <span>Cupos limitados</span>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p>
+                        {isSimplifiedEvent 
+                          ? `Hemos recibido tu inscripción para ${activeEventObj ? activeEventObj.title : 'el evento'}. Nuestro equipo validará tu registro pronto.`
+                          : (estadoPago === 'revision_saldo' 
+                            ? "Hemos recibido el comprobante de tu saldo faltante. Nuestro equipo lo revisará en breve." 
+                            : "Hemos recibido tu comprobante de pago. Nuestro equipo lo revisará en breve.")}
+                      </p>
+                      <p className="text-xs text-zinc-500 pt-2">
+                        Vuelve a ingresar a esta sección más tarde para ver tu código QR de acceso oficial.
+                      </p>
+                    </>
+                  )}
+                </div>
                 <Link href="/profile" className="w-full">
                   <Button className="w-full bg-zinc-800 text-white hover:bg-zinc-700 h-12">
                     Ir a mi perfil
@@ -2147,23 +2283,38 @@ export default function InscripcionPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-3 mt-4">
-            <Button onClick={() => { 
-              setOptionsModalOpen(false); 
-              setTimeout(() => setCameraOpen(true), 100); 
-            }} className="w-full h-14 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-white flex items-center justify-start gap-3 rounded-xl">
-              <Camera className="w-5 h-5 text-red-600" />
-              <span className="font-bold">Tomar Foto</span>
-            </Button>
-            <div className="relative">
-              <Input type="file" id="dialog-file" onChange={(e) => {
-                const file = e.target.files ? e.target.files[0] : null;
-                if (file) handleFileFromDialog(file);
-              }} className="hidden" accept=".pdf,image/*" />
-              <Label htmlFor="dialog-file" className="w-full h-14 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-white flex items-center justify-start gap-3 rounded-xl cursor-pointer px-4">
-                <UploadCloud className="w-5 h-5 text-red-600" />
-                <span className="font-bold">Subir Archivo / PDF</span>
-              </Label>
-            </div>
+            {currentDocKey === 'video' ? (
+              <div className="relative">
+                <Input type="file" id="dialog-file" onChange={(e) => {
+                  const file = e.target.files ? e.target.files[0] : null;
+                  if (file) handleFileFromDialog(file);
+                }} className="hidden" accept="video/*" />
+                <Label htmlFor="dialog-file" className="w-full h-14 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-white flex items-center justify-start gap-3 rounded-xl cursor-pointer px-4">
+                  <UploadCloud className="w-5 h-5 text-red-600" />
+                  <span className="font-bold">Seleccionar o Grabar Video</span>
+                </Label>
+              </div>
+            ) : (
+              <>
+                <Button onClick={() => { 
+                  setOptionsModalOpen(false); 
+                  setTimeout(() => setCameraOpen(true), 100); 
+                }} className="w-full h-14 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-white flex items-center justify-start gap-3 rounded-xl">
+                  <Camera className="w-5 h-5 text-red-600" />
+                  <span className="font-bold">Tomar Foto</span>
+                </Button>
+                <div className="relative">
+                  <Input type="file" id="dialog-file" onChange={(e) => {
+                    const file = e.target.files ? e.target.files[0] : null;
+                    if (file) handleFileFromDialog(file);
+                  }} className="hidden" accept=".pdf,image/*" />
+                  <Label htmlFor="dialog-file" className="w-full h-14 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-white flex items-center justify-start gap-3 rounded-xl cursor-pointer px-4">
+                    <UploadCloud className="w-5 h-5 text-red-600" />
+                    <span className="font-bold">Subir Archivo / PDF</span>
+                  </Label>
+                </div>
+              </>
+            )}
           </div>
         </DialogContent>
       </Dialog>

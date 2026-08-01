@@ -121,7 +121,7 @@ export default function PilotosPage() {
         }
         
         if (extractedUid) {
-          const regObj = { id, eventKey, ...data };
+          const regObj = { id, ...data, eventKey };
           if (!userRegsMap.has(extractedUid)) {
             userRegsMap.set(extractedUid, []);
           }
@@ -130,21 +130,44 @@ export default function PilotosPage() {
       });
 
       const fetched: Registration[] = [];
+      const processedUserIds = new Set<string>();
       
       // Combine users and registrations to show everyone
       usersMap.forEach((userData, userId) => {
-        // Exclude super admin if they don't have basic pilot data
-        if (['wg12435@hotmail.com', 'walter12345@hotmail.com'].includes(userData.email) && !userData.numeroIdentificacion) return;
-        
-        // Skip users with missing names
-        if (!userData.nombres) return;
-
-        // Skip staff members and judges
-        if (userData.rol === 'staff' || userData.rol === 'juez') return;
-
         const userRegs = userRegsMap.get(userId) || [];
         
-        if (userRegs.length === 0) {
+        if (userRegs.length > 0) {
+          processedUserIds.add(userId);
+          userRegs.forEach(regData => {
+            fetched.push({
+              id: regData.id,
+              uid: userId,
+              categoria: Array.isArray(regData.categoria) ? regData.categoria.join(' / ') : (regData.categoria || 'N/A'),
+              motocicleta: regData.motocicleta || { placa: 'N/A', marca: 'N/A', referencia: 'N/A' },
+              registradoEl: regData.registradoEl || userData.createdAt || new Date().toISOString(),
+              estadoPago: (regData.estadoPago === 'borrador' ? 'pendiente' : regData.estadoPago) || 'pendiente',
+              nombres: userData.nombres || 'Desconocido',
+              apellidos: userData.apellidos || '',
+              email: userData.email || 'N/A',
+              numeroIdentificacion: userData.numeroIdentificacion || regData.numeroIdentificacion || 'N/A',
+              telefono: userData.telefono || regData.telefono || 'N/A',
+              ciudad: userData.ciudad || regData.ciudad || 'Medellin',
+              prioridadRechazado: regData.prioridadRechazado || false,
+              tallaCamisa: userData.tallaCamisa || regData.tallaCamisa || 'N/A',
+              eventKey: regData.eventKey,
+            });
+          });
+        } else {
+          // Exclude super admin if they don't have basic pilot data
+          if (['wg12435@hotmail.com', 'walter12345@hotmail.com'].includes(userData.email) && !userData.numeroIdentificacion) return;
+          
+          // Skip users with missing names
+          if (!userData.nombres) return;
+
+          // Skip staff members and judges
+          if (userData.rol === 'staff' || userData.rol === 'juez') return;
+
+          processedUserIds.add(userId);
           fetched.push({
             id: `f2r_${userId}`,
             uid: userId,
@@ -162,23 +185,28 @@ export default function PilotosPage() {
             tallaCamisa: userData.tallaCamisa || 'N/A',
             eventKey: 'f2r',
           });
-        } else {
+        }
+      });
+
+      // Process any registrations that are in userRegsMap but the user wasn't in usersMap or was skipped
+      userRegsMap.forEach((userRegs, userId) => {
+        if (!processedUserIds.has(userId)) {
           userRegs.forEach(regData => {
             fetched.push({
               id: regData.id,
               uid: userId,
               categoria: Array.isArray(regData.categoria) ? regData.categoria.join(' / ') : (regData.categoria || 'N/A'),
               motocicleta: regData.motocicleta || { placa: 'N/A', marca: 'N/A', referencia: 'N/A' },
-              registradoEl: regData.registradoEl || userData.createdAt || new Date().toISOString(),
+              registradoEl: regData.registradoEl || new Date().toISOString(),
               estadoPago: (regData.estadoPago === 'borrador' ? 'pendiente' : regData.estadoPago) || 'pendiente',
-              nombres: userData.nombres || 'Desconocido',
-              apellidos: userData.apellidos || '',
-              email: userData.email || 'N/A',
-              numeroIdentificacion: userData.numeroIdentificacion || regData.numeroIdentificacion || 'N/A',
-              telefono: userData.telefono || regData.telefono || 'N/A',
-              ciudad: userData.ciudad || regData.ciudad || 'Medellin',
+              nombres: regData.nombres || 'Desconocido',
+              apellidos: regData.apellidos || '',
+              email: regData.email || 'N/A',
+              numeroIdentificacion: regData.numeroIdentificacion || 'N/A',
+              telefono: regData.telefono || 'N/A',
+              ciudad: regData.ciudad || 'Medellin',
               prioridadRechazado: regData.prioridadRechazado || false,
-              tallaCamisa: userData.tallaCamisa || regData.tallaCamisa || 'N/A',
+              tallaCamisa: regData.tallaCamisa || 'N/A',
               eventKey: regData.eventKey,
             });
           });
