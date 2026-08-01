@@ -136,7 +136,7 @@ function EventCard({
       {/* Content Column (55% on desktop) */}
       <div className="w-full md:w-[55%] h-auto md:h-full p-6 md:p-7 flex flex-col justify-center items-center text-center z-10 relative gap-3.5">
         {/* Top Row: Event Logo (centered) & User status badge (right absolute) */}
-        <div className="w-full flex items-center justify-center h-14 md:h-16 relative overflow-visible shrink-0">
+        <div className="w-full flex items-center justify-center h-20 md:h-24 relative overflow-visible shrink-0">
           <img 
             src={logo} 
             alt={`${title} Logo`} 
@@ -1037,7 +1037,7 @@ export default function InscripcionPage() {
       subtitle: 'El campeonato de stunt definitivo.',
       bgImage: '/sponsors/stunt_hero_bg.png',
       logo: '/sponsors/Copa Stunt Nitrox Blanco.png',
-      logoClass: 'h-16 sm:h-20 md:h-22 -my-2 md:-my-3 object-contain scale-[1.15] origin-left',
+      logoClass: 'h-16 sm:h-20 md:h-22 -my-2 md:-my-3 object-contain scale-[1.2] origin-center',
       bgPosition: 'bg-[position:center_8%]',
       theme: {
         border: 'border-blue-500/30 hover:border-blue-500/70',
@@ -1059,7 +1059,7 @@ export default function InscripcionPage() {
       subtitle: 'El mayor show y adrenalina de la temporada.',
       bgImage: '/sponsors/moto-stunt.png',
       logo: '/sponsors/PKS Blanco.png',
-      logoClass: 'h-14 sm:h-16 md:h-18 -my-2 md:-my-3 object-contain scale-[1.1] origin-left',
+      logoClass: 'h-14 sm:h-16 md:h-18 -my-2 md:-my-3 object-contain scale-[1.15] origin-center',
       bgPosition: 'bg-[position:center_8%]',
       theme: {
         border: 'border-orange-500/30 hover:border-orange-500/70',
@@ -1081,7 +1081,7 @@ export default function InscripcionPage() {
       subtitle: 'El encuentro que reúne la cultura stunt nacional.',
       bgImage: '/sponsors/stuntday_bg_card.png',
       logo: '/sponsors/stuntday3.png',
-      logoClass: 'h-16 sm:h-20 md:h-22 -my-2 md:-my-3 object-contain scale-[1.18] origin-left',
+      logoClass: 'h-16 sm:h-20 md:h-22 -my-2 md:-my-3 object-contain scale-[1.2] origin-center',
       bgPosition: 'bg-[position:-40px_8%]',
       theme: {
         border: 'border-[#E60000]/30 hover:border-[#E60000]/70',
@@ -1103,7 +1103,7 @@ export default function InscripcionPage() {
       subtitle: 'El campeonato de stunt más importante del país.',
       bgImage: '/sponsors/f2r_bg_card.png',
       logo: '/sponsors/copa stunt nitrox f2r.png',
-      logoClass: 'h-14 sm:h-16 md:h-18 -my-2 md:-my-3 object-contain scale-[1.1] origin-left',
+      logoClass: 'h-14 sm:h-16 md:h-18 -my-2 md:-my-3 object-contain scale-[1.15] origin-center',
       bgPosition: 'bg-[position:left_8%]',
       theme: {
         border: 'border-emerald-500/30 hover:border-emerald-500/70',
