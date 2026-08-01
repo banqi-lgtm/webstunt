@@ -140,7 +140,7 @@ function EventCard({
           <img 
             src={logo} 
             alt={`${title} Logo`} 
-            className={`${logoClass} max-h-full object-contain filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)] opacity-95 group-hover:opacity-100 group-hover:scale-[0.88] transition-all duration-500`}
+            className={`${logoClass} max-h-full object-contain filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)] opacity-95 group-hover:opacity-100 transition-all duration-500`}
             loading="lazy"
           />
           {userStatus && (
