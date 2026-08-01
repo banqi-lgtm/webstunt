@@ -1143,7 +1143,7 @@ export default function InscripcionPage() {
       title: 'FESTIVAL STUNT',
       titleAccent: '30 DE AGOSTO',
       subtitle: 'El mayor show y adrenalina de la temporada.',
-      bgImage: '/sponsors/SPORNS/opt_DSC05809.JPG',
+      bgImage: '/sponsors/IMG_2174.JPG.jpeg',
       logo: '/sponsors/IMG_4313.PNG',
       logoClass: 'h-16 sm:h-20 md:h-22 object-contain scale-[2.8] origin-center',
       bgPosition: 'md:bg-[length:auto_135%] bg-cover bg-[position:center_35%] bg-no-repeat bg-black',
