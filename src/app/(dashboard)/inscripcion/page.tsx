@@ -1059,7 +1059,7 @@ export default function InscripcionPage() {
       subtitle: 'El mayor show y adrenalina de la temporada.',
       bgImage: '/sponsors/IMG_2174.JPG.jpeg',
       logo: '/sponsors/IMG_4313.PNG',
-      logoClass: 'h-14 sm:h-16 md:h-18 -my-2 md:-my-3 object-contain scale-[1.15] origin-center',
+      logoClass: 'h-16 sm:h-20 md:h-22 object-contain scale-[2.1] origin-center',
       bgPosition: 'md:bg-[length:auto_135%] bg-cover bg-[position:center_35%] bg-no-repeat bg-black',
       theme: {
         border: 'border-orange-500/30 hover:border-orange-500/70',
