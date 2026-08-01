@@ -199,8 +199,6 @@ export function MainNav() {
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px'}}>
               <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
                 <img src="/sponsors/PKS Blanco.png" alt="PKS" style={{ height: '24px', objectFit: 'contain' }} />
-                <span style={{color: '#3f3f46', fontSize: '0.9rem'}}>|</span>
-                <img src="/sponsors/Stunt Festival 9.png" alt="Stunt Festival" style={{ height: '26px', objectFit: 'contain' }} />
               </div>
               <button onClick={() => setIsMobileMenuOpen(false)} style={{background:'none', border:'none', color:'white', fontSize:'1.5rem', cursor: 'pointer'}}>✕</button>
             </div>
@@ -303,9 +301,6 @@ export function MainNav() {
           <Link href="/profile" className="flex items-center gap-2 sm:gap-3.5 shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/sponsors/PKS Blanco.png" alt="Paskines Stunt" className="h-6 md:h-8 w-auto object-contain" />
-            <span className="text-zinc-600 text-sm md:text-lg select-none">|</span>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/sponsors/Stunt Festival 9.png" alt="Stunt Festival" className="h-9 md:h-[45px] w-auto object-contain" />
           </Link>
         </div>
 
