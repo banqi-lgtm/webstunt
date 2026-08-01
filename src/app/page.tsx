@@ -41,6 +41,7 @@ export default function Home() {
   const [showGalleryModal, setShowGalleryModal] = useState(false);
   const [currentGalleryIndex, setCurrentGalleryIndex] = useState(0);
   const [activePortfolioIndex, setActivePortfolioIndex] = useState<number>(1);
+  const [isMobileInscripcionOpen, setIsMobileInscripcionOpen] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -187,15 +188,44 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="lg:hidden flex items-center gap-3">
+          <div className="lg:hidden flex items-center gap-2">
+            {/* INSCRIPCIÓN on mobile */}
+            <div className="relative">
+              <button 
+                onClick={() => setIsMobileInscripcionOpen(!isMobileInscripcionOpen)}
+                className="text-white bg-[#E60000] hover:bg-[#CC0000] px-3 py-1.5 rounded-sm text-[10px] font-inter font-bold tracking-widest uppercase transition-all whitespace-nowrap shadow-lg shadow-black/20 hover:shadow-[#E60000]/20 flex items-center gap-1 cursor-pointer"
+              >
+                <span>INSCRIPCIÓN</span>
+                <ChevronDown size={12} className={`opacity-70 transition-transform duration-300 ${isMobileInscripcionOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {isMobileInscripcionOpen && (
+                <div className="absolute right-0 top-full mt-2 w-36 bg-[#0D0D0D] border border-[#1C1C1C] rounded-md shadow-lg shadow-black/50 overflow-hidden z-[110]">
+                  <div className="py-1">
+                    <button
+                      onClick={() => { setIsMobileInscripcionOpen(false); setAuthIsLogin(false); setAuthMode('default'); setShowAuthModal(true); }}
+                      className="w-full text-left px-4 py-2.5 text-[10px] font-inter font-medium tracking-widest uppercase text-gray-300 hover:text-white hover:bg-[#E60000] transition-colors whitespace-nowrap block"
+                    >
+                      PILOTOS
+                    </button>
+                    <button
+                      onClick={() => { setIsMobileInscripcionOpen(false); setAuthIsLogin(false); setAuthMode('staff'); setShowAuthModal(true); }}
+                      className="w-full text-left px-4 py-2.5 text-[10px] font-inter font-medium tracking-widest uppercase text-gray-300 hover:text-white hover:bg-[#E60000] transition-colors whitespace-nowrap block"
+                    >
+                      PROVEEDORES
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <button 
               onClick={() => { setAuthIsLogin(true); setShowAuthModal(true); }}
-              className="text-white bg-[#E60000] hover:bg-[#CC0000] px-3.5 py-1.5 rounded-sm text-[10px] font-inter font-bold tracking-widest uppercase transition-all whitespace-nowrap shadow-lg shadow-black/20 hover:shadow-[#E60000]/20"
+              className="text-white bg-[#E60000] hover:bg-[#CC0000] px-3 py-1.5 rounded-sm text-[10px] font-inter font-bold tracking-widest uppercase transition-all whitespace-nowrap shadow-lg shadow-black/20 hover:shadow-[#E60000]/20"
             >
               INICIAR SESIÓN
             </button>
-            <button className="text-[#E60000] hover:text-[#CC0000] transition-colors" onClick={() => setIsMobileMenuOpen(true)}>
-              <Menu size={32} />
+            <button className="text-[#E60000] hover:text-[#CC0000] transition-colors ml-1" onClick={() => setIsMobileMenuOpen(true)}>
+              <Menu size={28} />
             </button>
           </div>
         </div>
