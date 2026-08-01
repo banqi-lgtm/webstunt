@@ -1058,7 +1058,7 @@ export default function InscripcionPage() {
       titleAccent: '30 DE AGOSTO',
       subtitle: 'El mayor show y adrenalina de la temporada.',
       bgImage: '/sponsors/IMG_2174.JPG.jpeg',
-      logo: '/sponsors/PKS Blanco.png',
+      logo: '/sponsors/IMG_4313.PNG',
       logoClass: 'h-14 sm:h-16 md:h-18 -my-2 md:-my-3 object-contain scale-[1.15] origin-center',
       bgPosition: 'md:bg-[length:auto_135%] bg-cover bg-[position:center_35%] bg-no-repeat bg-black',
       theme: {
