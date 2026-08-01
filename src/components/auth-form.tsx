@@ -209,24 +209,65 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode, onBackToMenu, mode
     }
 
     try {
-      // 1. Crear la cuenta en Auth primero para obtener permisos de lectura en Firestore
+      // 1. Verificar si el correo o la cédula ya existen en Firestore antes de crear el usuario (si las reglas de lectura lo permiten)
+      let isIdDuplicate = false;
+      let isEmailDuplicate = false;
+      try {
+        const usersRef = collection(db, 'users');
+        
+        // Consultar por numeroIdentificacion
+        const qId = query(usersRef, where("numeroIdentificacion", "==", numeroIdentificacion));
+        const snapId = await getDocs(qId);
+        if (!snapId.empty) {
+          isIdDuplicate = true;
+        }
+
+        // Consultar por email
+        const qEmail = query(usersRef, where("email", "==", email.trim().toLowerCase()));
+        const snapEmail = await getDocs(qEmail);
+        if (!snapEmail.empty) {
+          isEmailDuplicate = true;
+        }
+      } catch (queryErr) {
+        console.warn("Aviso: No se pudo verificar duplicados preliminarmente por reglas de Firestore.", queryErr);
+      }
+
+      if (isIdDuplicate) {
+        setDuplicateIdValue(numeroIdentificacion);
+        setDuplicateIdDialogOpen(true);
+        setIsLoading(false);
+        return;
+      }
+
+      if (isEmailDuplicate) {
+        toast({ 
+          title: "Correo ya registrado", 
+          description: "El correo electrónico ya se encuentra registrado. Por favor, inicia sesión.", 
+          variant: "destructive" 
+        });
+        setIsLogin(true);
+        setIsLoading(false);
+        return;
+      }
+
+      // 2. Crear la cuenta en Auth
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // 2. Ahora que hay sesión, verificar si la cédula ya existe
-      let isDuplicate = false;
+      // 3. Verificación de seguridad secundaria por si la verificación preliminar no pudo leer por falta de sesión
+      let isDuplicateSec = false;
       try {
         const usersRef = collection(db, 'users');
         const q = query(usersRef, where("numeroIdentificacion", "==", numeroIdentificacion));
         const querySnapshot = await getDocs(q);
         if (!querySnapshot.empty) {
-          isDuplicate = true;
+          isDuplicateSec = true;
         }
       } catch (queryErr) {
-        console.warn("Aviso: No se pudo verificar duplicados por reglas de Firestore.", queryErr);
+        console.warn("Aviso: No se pudo verificar duplicados secundaria por reglas de Firestore.", queryErr);
       }
 
-      if (isDuplicate) {
+      if (isDuplicateSec) {
         // Borrar la cuenta Auth recién creada porque la cédula ya estaba registrada
         await user.delete();
         setDuplicateIdValue(numeroIdentificacion);
@@ -235,7 +276,7 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode, onBackToMenu, mode
         return;
       }
       
-      // 3. Crear el documento del usuario en la base de datos
+      // 4. Crear el documento del usuario en la base de datos
       let rutUrl = null;
       let certUrl = null;
 
@@ -280,7 +321,16 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode, onBackToMenu, mode
       setIsLoading(false);
 
     } catch (error: any) {
-      toast({ title: "Error de registro", description: error.message, variant: "destructive" });
+      if (error.code === 'auth/email-already-in-use' || error.message?.includes('email-already-in-use')) {
+        toast({ 
+          title: "Correo ya registrado", 
+          description: "El correo electrónico ya se encuentra registrado. Por favor, inicia sesión.", 
+          variant: "destructive" 
+        });
+        setIsLogin(true);
+      } else {
+        toast({ title: "Error de registro", description: error.message, variant: "destructive" });
+      }
       setIsLoading(false);
     }
   };
@@ -369,6 +419,13 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode, onBackToMenu, mode
   return (
     <>
       <div className="w-full max-h-[85vh] overflow-y-auto bg-[#0A0A0A]/95 backdrop-blur-xl border border-zinc-800/80 rounded-3xl shadow-[0_30px_60px_rgba(0,0,0,0.9)] relative drop-shadow-[0_0_15px_rgba(0,0,0,1)] flex flex-col pb-8">
+        
+        {/* Support Alert Box */}
+        <div className="bg-[#E60000]/10 border-b border-[#E60000]/20 py-2.5 px-4 text-center select-none relative z-20">
+          <p className="text-[10px] sm:text-xs font-bold text-white tracking-wider flex items-center justify-center gap-1.5">
+            <span className="text-[#E60000] animate-pulse">⚠️</span> ¿TIENES PROBLEMAS? COMUNÍCATE AL <a href="https://wa.me/573208185796" target="_blank" rel="noopener noreferrer" className="underline hover:text-[#E60000] font-black text-[#FFB700] transition-colors">3208185796</a>
+          </p>
+        </div>
         
         {/* Subtle Neon Glow behind form */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#E60000]/[0.03] to-transparent pointer-events-none rounded-3xl"></div>

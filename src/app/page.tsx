@@ -31,7 +31,7 @@ export default function Home() {
   const [isInscripcionesOpen, setIsInscripcionesOpen] = useState(false);
   const [isEventosPropiosOpen, setIsEventosPropiosOpen] = useState(false);
   const [isCasosDeExitoOpen, setIsCasosDeExitoOpen] = useState(false);
-  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(true);
   const [authMode, setAuthMode] = useState<'default' | 'staff'>('default');
   const [authIsLogin, setAuthIsLogin] = useState(false);
   const [currentHeroImgIndex, setCurrentHeroImgIndex] = useState(0);
