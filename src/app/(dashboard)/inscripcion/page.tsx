@@ -157,8 +157,8 @@ function EventCard({
                   alt={`${title} Logo ${index + 1}`} 
                   className={`w-auto object-contain filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)] opacity-95 group-hover:opacity-100 transition-all duration-500 ${
                     src.includes('Stunt Festival 9') 
-                      ? 'h-[40px] sm:h-[44px] md:h-[48px]' 
-                      : (src.includes('IMG_4313') ? 'h-[32px] sm:h-[36px] md:h-[40px]' : 'h-[36px] sm:h-[40px] md:h-[44px]')
+                      ? 'h-[54px] sm:h-[62px] md:h-[66px]' 
+                      : (src.includes('IMG_4313') ? 'h-[32px] sm:h-[36px] md:h-[40px]' : 'h-[50px] sm:h-[58px] md:h-[62px]')
                   }`}
                   loading="lazy"
                 />
@@ -1185,7 +1185,7 @@ export default function InscripcionPage() {
       titleAccent: 'NITROX',
       subtitle: 'El campeonato de stunt definitivo.',
       bgImage: '/sponsors/SPORNS/opt_DSC05624.JPG',
-      logo: '/sponsors/5C.jpeg',
+      logo: '/sponsors/Copa Stunt Nitrox Blanco.png,/sponsors/Stunt Festival 9.png',
       logoClass: 'h-20 sm:h-24 object-contain scale-y-[1.45] scale-x-[1.75] origin-center',
       bgPosition: 'bg-[position:center_60%]',
       theme: {
