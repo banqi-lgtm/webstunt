@@ -136,7 +136,7 @@ function EventCard({
       {/* Content Column (55% on desktop) */}
       <div className="w-full md:w-[55%] h-auto md:h-full p-6 md:p-8 flex flex-col justify-between items-center text-center z-10 relative">
         {/* Top Row: Event Logo (centered) & User status badge (right absolute) */}
-        <div className="w-full flex items-center justify-center gap-4 mb-2 h-14 md:h-16 relative overflow-visible">
+        <div className="w-full flex items-center justify-center gap-4 mb-4 md:mb-5 h-14 md:h-16 relative overflow-visible">
           <div className="flex-1 flex justify-center items-center h-full">
             <img 
               src={logo} 
@@ -153,20 +153,20 @@ function EventCard({
         </div>
 
         {/* Middle Section: Event Badge, Title, and Description */}
-        <div className="w-full flex-1 flex flex-col justify-center items-center gap-2.5 py-1">
+        <div className="w-full flex-1 flex flex-col justify-center items-center py-1">
           {/* Event Status Badge */}
-          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border ${theme.badge} text-[9px] font-black tracking-widest uppercase w-fit shadow-[0_0_15px_rgba(0,0,0,0.4)]`}>
+          <div className={`flex items-center gap-1.5 px-4 py-2 rounded-full border ${theme.badge} text-[10px] font-black tracking-widest uppercase w-fit shadow-[0_0_15px_rgba(0,0,0,0.4)] mb-3`}>
             <StatusIcon className="w-3.5 h-3.5" />
             <span>{status}</span>
           </div>
 
           {/* Event Title */}
-          <h2 className="text-xl md:text-[22px] font-black text-white uppercase tracking-tight leading-none mt-1">
+          <h2 className="text-xl md:text-[22px] font-black text-white uppercase tracking-tight leading-none mt-1 mb-2.5">
             {title} <span className={theme.titleAccent}>{titleAccent}</span>
           </h2>
 
           {/* Event Description */}
-          <p className="text-zinc-400 text-[11px] font-semibold leading-relaxed max-w-[280px] line-clamp-2 mx-auto">
+          <p className="text-zinc-400 text-[12px] font-medium leading-relaxed max-w-[320px] line-clamp-2 mx-auto">
             {description}
           </p>
         </div>
