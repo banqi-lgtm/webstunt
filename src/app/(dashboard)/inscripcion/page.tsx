@@ -311,12 +311,17 @@ export default function InscripcionPage() {
         setSaldoFaltante(data.saldoFaltante || '');
         setMotivoSaldoFaltante(data.motivoSaldoFaltante || '');
         setDocumentosRechazados(data.documentosRechazados || []);
-        setTemplateConfig(data.templateConfig || null);
-        if (data.estadoPago === 'aprobado' || data.estadoPago === 'pago_dia_evento' || data.estadoPago === 'en_revision' || data.estadoPago === 'rechazado' || data.estadoPago === 'revision_saldo' || data.estadoPago === 'saldo_pendiente' || data.estadoPago === 'rechazado_saldo') {
+        
+        const isSimplified = eventKey === 'nitrox' || eventKey === 'festival';
+        const hasFinishedStatus = data.estadoPago === 'aprobado' || data.estadoPago === 'pago_dia_evento' || data.estadoPago === 'en_revision' || data.estadoPago === 'revision_saldo' || data.estadoPago === 'saldo_pendiente' || data.estadoPago === 'rechazado_saldo';
+        const shouldGoToStep3 = hasFinishedStatus || (data.estadoPago === 'rechazado' && !isSimplified);
+
+        if (shouldGoToStep3) {
            setStep(3);
         } else {
-           setStep(1); // pendiente o borrador
+           setStep(1); // pendiente, borrador o rechazado en evento simplificado
         }
+        setTemplateConfig(data.templateConfig || null);
       }
     } catch (e) {
       console.error("Error validando el registro del evento:", e);
