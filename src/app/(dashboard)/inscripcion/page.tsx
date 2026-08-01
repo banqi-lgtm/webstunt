@@ -854,7 +854,14 @@ export default function InscripcionPage() {
     setIsLoading(true);
 
     // Validación estricta final de cupos antes de guardar
-    const limits: { [key: string]: number } = { open: 30, '2t': 15, '4t': 15, alto: 15, bikelife: 15 };
+    const isNitrox = selectedEvent === 'nitrox';
+    const limits: { [key: string]: number } = { 
+      open: 30, 
+      '2t': isNitrox ? 30 : 15, 
+      '4t': isNitrox ? 30 : 15, 
+      alto: isNitrox ? 30 : 15, 
+      bikelife: 30 
+    };
     for (const cat of categorias) {
       if (limits[cat] !== undefined && categoryCounts[cat] >= limits[cat]) {
         toast({ title: "Cupos Llenos", description: `Lo sentimos, los cupos para la categoría ${cat === '2t' ? '2 TIEMPOS' : cat === '4t' ? '4 TIEMPOS' : cat === 'alto' ? 'ALTO CILINDRAJE' : cat === 'bikelife' ? 'BIKELIFE' : 'OPEN'} se acaban de llenar.`, variant: "destructive" });
@@ -1299,10 +1306,8 @@ export default function InscripcionPage() {
                       <p className="text-[10px] text-[#B0B0B0] mt-0.5 font-medium">{Math.max(0, 30 - (categoryCounts['open'] || 0))} CUPOS RESTANTES</p>
                     </div>
                     {categorias.includes('open') && <CheckCircle2 className="w-5 h-5 text-[#E60000] absolute top-2 right-2" />}
-                  </div>
-                  
-                  <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('2t') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['2t'] || 0) >= 15 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { 
-                    if ((categoryCounts['2t'] || 0) >= 15) return;
+                     <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('2t') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['2t'] || 0) >= (selectedEvent === 'nitrox' ? 30 : 15) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { 
+                    if ((categoryCounts['2t'] || 0) >= (selectedEvent === 'nitrox' ? 30 : 15)) return;
                     if (categorias.includes('open')) {
                       toast({ title: "Categoría exclusiva", description: "La categoría OPEN no se puede combinar con otras.", variant: "default" });
                       return;
@@ -1322,13 +1327,13 @@ export default function InscripcionPage() {
                     </div>
                     <div className="flex-1">
                       <Label className="font-bold text-white text-sm cursor-pointer">2 TIEMPOS</Label>
-                      <p className="text-[10px] text-[#B0B0B0] mt-0.5 font-medium">{Math.max(0, 15 - (categoryCounts['2t'] || 0))} CUPOS RESTANTES</p>
+                      <p className="text-[10px] text-[#B0B0B0] mt-0.5 font-medium">{Math.max(0, (selectedEvent === 'nitrox' ? 30 : 15) - (categoryCounts['2t'] || 0))} CUPOS RESTANTES</p>
                     </div>
                     {categorias.includes('2t') && <CheckCircle2 className="w-5 h-5 text-[#E60000] absolute top-2 right-2" />}
                   </div>
 
-                  <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('4t') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['4t'] || 0) >= 15 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { 
-                    if ((categoryCounts['4t'] || 0) >= 15) return;
+                  <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('4t') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['4t'] || 0) >= (selectedEvent === 'nitrox' ? 30 : 15) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { 
+                    if ((categoryCounts['4t'] || 0) >= (selectedEvent === 'nitrox' ? 30 : 15)) return;
                     if (categorias.includes('open')) {
                       toast({ title: "Categoría exclusiva", description: "La categoría OPEN no se puede combinar con otras.", variant: "default" });
                       return;
@@ -1348,13 +1353,13 @@ export default function InscripcionPage() {
                     </div>
                     <div className="flex-1">
                       <Label className="font-bold text-white text-sm cursor-pointer">4 TIEMPOS</Label>
-                      <p className="text-[10px] text-[#B0B0B0] mt-0.5 font-medium">{Math.max(0, 15 - (categoryCounts['4t'] || 0))} CUPOS RESTANTES</p>
+                      <p className="text-[10px] text-[#B0B0B0] mt-0.5 font-medium">{Math.max(0, (selectedEvent === 'nitrox' ? 30 : 15) - (categoryCounts['4t'] || 0))} CUPOS RESTANTES</p>
                     </div>
                     {categorias.includes('4t') && <CheckCircle2 className="w-5 h-5 text-[#E60000] absolute top-2 right-2" />}
                   </div>
 
-                  <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('alto') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['alto'] || 0) >= 15 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { 
-                    if ((categoryCounts['alto'] || 0) >= 15) return;
+                  <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('alto') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['alto'] || 0) >= (selectedEvent === 'nitrox' ? 30 : 15) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { 
+                    if ((categoryCounts['alto'] || 0) >= (selectedEvent === 'nitrox' ? 30 : 15)) return;
                     if (categorias.includes('open')) {
                       toast({ title: "Categoría exclusiva", description: "La categoría OPEN no se puede combinar con otras.", variant: "default" });
                       return;
@@ -1374,14 +1379,14 @@ export default function InscripcionPage() {
                     </div>
                     <div className="flex-1">
                       <Label className="font-bold text-white text-sm cursor-pointer">ALTO CILINDRAJE</Label>
-                      <p className="text-[10px] text-[#B0B0B0] mt-0.5 font-medium">{Math.max(0, 15 - (categoryCounts['alto'] || 0))} CUPOS RESTANTES</p>
+                      <p className="text-[10px] text-[#B0B0B0] mt-0.5 font-medium">{Math.max(0, (selectedEvent === 'nitrox' ? 30 : 15) - (categoryCounts['alto'] || 0))} CUPOS RESTANTES</p>
                     </div>
                     {categorias.includes('alto') && <CheckCircle2 className="w-5 h-5 text-[#E60000] absolute top-2 right-2" />}
                   </div>
 
                   {selectedEvent === 'nitrox' && (
-                    <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('bikelife') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['bikelife'] || 0) >= 15 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { 
-                      if ((categoryCounts['bikelife'] || 0) >= 15) return;
+                    <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('bikelife') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['bikelife'] || 0) >= 30 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { 
+                      if ((categoryCounts['bikelife'] || 0) >= 30) return;
                       if (categorias.includes('open')) {
                         toast({ title: "Categoría exclusiva", description: "La categoría OPEN no se puede combinar con otras.", variant: "default" });
                         return;
@@ -1401,7 +1406,7 @@ export default function InscripcionPage() {
                       </div>
                       <div className="flex-1">
                         <Label className="font-bold text-white text-sm cursor-pointer">BIKELIFE</Label>
-                        <p className="text-[10px] text-[#B0B0B0] mt-0.5 font-medium">{Math.max(0, 15 - (categoryCounts['bikelife'] || 0))} CUPOS RESTANTES</p>
+                        <p className="text-[10px] text-[#B0B0B0] mt-0.5 font-medium">{Math.max(0, 30 - (categoryCounts['bikelife'] || 0))} CUPOS RESTANTES</p>
                       </div>
                       {categorias.includes('bikelife') && <CheckCircle2 className="w-5 h-5 text-[#E60000] absolute top-2 right-2" />}
                     </div>
