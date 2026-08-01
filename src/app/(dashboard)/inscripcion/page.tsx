@@ -295,7 +295,23 @@ export default function InscripcionPage() {
         if (data.categoria) {
           const cats = Array.isArray(data.categoria) ? data.categoria : [data.categoria];
           setCategorias(cats);
-          setCategoriaStr(cats.join(' / ').toUpperCase());
+          const mappedCats = cats.map(c => {
+            const f = String(c).toLowerCase().trim();
+            if (eventKey === 'festival') {
+              if (f === 'open') return 'Novatos';
+              if (f === '2t') return 'Preexpertos';
+              if (f === '4t') return 'Expertos';
+              if (f === 'alto') return 'Élite';
+            } else {
+              if (f === '2t') return '2 Tiempos';
+              if (f === '4t') return '4 Tiempos';
+              if (f === 'alto') return 'Alto Cilindraje';
+              if (f === 'open') return 'Open';
+              if (f === 'bikelife') return 'Bikelife';
+            }
+            return f;
+          });
+          setCategoriaStr(mappedCats.join(' / ').toUpperCase());
         }
         if (data.motocicleta) {
           setPlaca(data.motocicleta.placa || '');
@@ -590,7 +606,23 @@ export default function InscripcionPage() {
   useEffect(() => {
     if (!uid || categorias.length === 0) return;
     
-    const targetCat = String(categorias[activeCategoryIndex] || '').toUpperCase();
+    const getDisplayCat = (c: string) => {
+      const f = String(c).toLowerCase().trim();
+      if (selectedEvent === 'festival') {
+        if (f === 'open') return 'NOVATOS';
+        if (f === '2t') return 'PREEXPERTOS';
+        if (f === '4t') return 'EXPERTOS';
+        if (f === 'alto') return 'ÉLITE';
+      } else {
+        if (f === '2t') return '2 TIEMPOS';
+        if (f === '4t') return '4 TIEMPOS';
+        if (f === 'alto') return 'ALTO CILINDRAJE';
+        if (f === 'open') return 'OPEN';
+        if (f === 'bikelife') return 'BIKELIFE';
+      }
+      return f.toUpperCase();
+    };
+    const targetCat = getDisplayCat(categorias[activeCategoryIndex] || '');
     if (!targetCat) return;
 
     setCategoriaStr(targetCat);
@@ -938,15 +970,21 @@ export default function InscripcionPage() {
     // Validación estricta final de cupos antes de guardar
     const isSimplified = isSimplifiedEvent;
     const limits: { [key: string]: number } = { 
-      open: 30, 
-      '2t': isSimplified ? 30 : 15, 
-      '4t': isSimplified ? 30 : 15, 
-      alto: isSimplified ? 30 : 15, 
+      open: selectedEvent === 'festival' ? 20 : 30, 
+      '2t': selectedEvent === 'festival' ? 20 : (isSimplified ? 30 : 15), 
+      '4t': selectedEvent === 'festival' ? 20 : (isSimplified ? 30 : 15), 
+      alto: selectedEvent === 'festival' ? 20 : (isSimplified ? 30 : 15), 
       bikelife: 30 
     };
     for (const cat of categorias) {
       if (limits[cat] !== undefined && categoryCounts[cat] >= limits[cat]) {
-        toast({ title: "Cupos Llenos", description: `Lo sentimos, los cupos para la categoría ${cat === '2t' ? '2 TIEMPOS' : cat === '4t' ? '4 TIEMPOS' : cat === 'alto' ? 'ALTO CILINDRAJE' : cat === 'bikelife' ? 'BIKELIFE' : 'OPEN'} se acaban de llenar.`, variant: "destructive" });
+        let catLabel = '';
+        if (selectedEvent === 'festival') {
+          catLabel = cat === 'open' ? 'NOVATOS' : cat === '2t' ? 'PREEXPERTOS' : cat === '4t' ? 'EXPERTOS' : 'ÉLITE';
+        } else {
+          catLabel = cat === '2t' ? '2 TIEMPOS' : cat === '4t' ? '4 TIEMPOS' : cat === 'alto' ? 'ALTO CILINDRAJE' : cat === 'bikelife' ? 'BIKELIFE' : 'OPEN';
+        }
+        toast({ title: "Cupos Llenos", description: `Lo sentimos, los cupos para la categoría ${catLabel} se acaban de llenar.`, variant: "destructive" });
         setIsLoading(false);
         return;
       }
@@ -1397,51 +1435,67 @@ export default function InscripcionPage() {
                     1. Categoría <span className="text-[#FF9800] text-[10px] bg-[#FF9800]/10 px-2 py-0.5 rounded border border-[#FF9800]/20 flex items-center gap-1"><AlertTriangle className="w-3 h-3"/> Cupos limitados</span>
                   </Label>
                   <div className={`grid grid-cols-1 md:grid-cols-2 ${isSimplifiedEvent ? 'gap-2' : 'gap-3'}`}>
-                    <div className={`relative flex items-center ${isSimplifiedEvent ? 'p-2.5 sm:p-3' : 'p-4'} rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('open') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['open'] || 0) >= 30 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => handleCatClick('open')}>
+                    <div className={`relative flex items-center ${isSimplifiedEvent ? 'p-2.5 sm:p-3' : 'p-4'} rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('open') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['open'] || 0) >= (selectedEvent === 'festival' ? 20 : 30) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => handleCatClick('open')}>
                       <div className={`shrink-0 ${isSimplifiedEvent ? 'w-8 h-8 mr-2' : 'w-10 h-10 mr-3'} rounded-full bg-[#1A1A1A] flex items-center justify-center border border-[#2A2A2A]`}>
                         <span className={isSimplifiedEvent ? 'text-lg' : 'text-xl'}>🟢</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <Label className={`font-bold text-white ${isSimplifiedEvent ? 'text-xs' : 'text-sm'} cursor-pointer notranslate`} translate="no">OPEN</Label>
-                        <p className={`${isSimplifiedEvent ? 'text-[9px]' : 'text-[10px]'} text-[#B0B0B0] mt-0.5 font-medium`}>{Math.max(0, 30 - (categoryCounts['open'] || 0))} CUPOS RESTANTES</p>
+                        <Label className={`font-bold text-white ${isSimplifiedEvent ? 'text-xs' : 'text-sm'} cursor-pointer notranslate`} translate="no">
+                          {selectedEvent === 'festival' ? 'NOVATOS' : 'OPEN'}
+                        </Label>
+                        <p className={`${isSimplifiedEvent ? 'text-[9px]' : 'text-[10px]'} text-[#B0B0B0] mt-0.5 font-medium`}>
+                          {Math.max(0, (selectedEvent === 'festival' ? 20 : 30) - (categoryCounts['open'] || 0))} CUPOS RESTANTES
+                        </p>
                       </div>
                       {categorias.includes('open') && <CheckCircle2 className="w-5 h-5 text-[#E60000] absolute top-2 right-2" />}
                     </div>
                     
-                    <div className={`relative flex items-center ${isSimplifiedEvent ? 'p-2.5 sm:p-3' : 'p-4'} rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('2t') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['2t'] || 0) >= (isSimplifiedEvent ? 30 : 15) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => handleCatClick('2t')}>
+                    <div className={`relative flex items-center ${isSimplifiedEvent ? 'p-2.5 sm:p-3' : 'p-4'} rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('2t') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['2t'] || 0) >= (selectedEvent === 'festival' ? 20 : (isSimplifiedEvent ? 30 : 15)) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => handleCatClick('2t')}>
                       <div className={`shrink-0 ${isSimplifiedEvent ? 'w-8 h-8 mr-2' : 'w-10 h-10 mr-3'} rounded-full bg-[#1A1A1A] flex items-center justify-center border border-[#2A2A2A]`}>
                         <span className={isSimplifiedEvent ? 'text-lg' : 'text-xl'}>🏍️</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <Label className={`font-bold text-white ${isSimplifiedEvent ? 'text-xs' : 'text-sm'} cursor-pointer`}>2 TIEMPOS</Label>
-                        <p className={`${isSimplifiedEvent ? 'text-[9px]' : 'text-[10px]'} text-[#B0B0B0] mt-0.5 font-medium`}>{Math.max(0, (isSimplifiedEvent ? 30 : 15) - (categoryCounts['2t'] || 0))} CUPOS RESTANTES</p>
+                        <Label className={`font-bold text-white ${isSimplifiedEvent ? 'text-xs' : 'text-sm'} cursor-pointer`}>
+                          {selectedEvent === 'festival' ? 'PREEXPERTOS' : '2 TIEMPOS'}
+                        </Label>
+                        <p className={`${isSimplifiedEvent ? 'text-[9px]' : 'text-[10px]'} text-[#B0B0B0] mt-0.5 font-medium`}>
+                          {Math.max(0, (selectedEvent === 'festival' ? 20 : (isSimplifiedEvent ? 30 : 15)) - (categoryCounts['2t'] || 0))} CUPOS RESTANTES
+                        </p>
                       </div>
                       {categorias.includes('2t') && <CheckCircle2 className="w-5 h-5 text-[#E60000] absolute top-2 right-2" />}
                     </div>
 
-                    <div className={`relative flex items-center ${isSimplifiedEvent ? 'p-2.5 sm:p-3' : 'p-4'} rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('4t') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['4t'] || 0) >= (isSimplifiedEvent ? 30 : 15) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => handleCatClick('4t')}>
+                    <div className={`relative flex items-center ${isSimplifiedEvent ? 'p-2.5 sm:p-3' : 'p-4'} rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('4t') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['4t'] || 0) >= (selectedEvent === 'festival' ? 20 : (isSimplifiedEvent ? 30 : 15)) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => handleCatClick('4t')}>
                       <div className={`shrink-0 ${isSimplifiedEvent ? 'w-8 h-8 mr-2' : 'w-10 h-10 mr-3'} rounded-full bg-[#1A1A1A] flex items-center justify-center border border-[#2A2A2A]`}>
                         <span className={isSimplifiedEvent ? 'text-lg' : 'text-xl'}>🛵</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <Label className={`font-bold text-white ${isSimplifiedEvent ? 'text-xs' : 'text-sm'} cursor-pointer`}>4 TIEMPOS</Label>
-                        <p className={`${isSimplifiedEvent ? 'text-[9px]' : 'text-[10px]'} text-[#B0B0B0] mt-0.5 font-medium`}>{Math.max(0, (isSimplifiedEvent ? 30 : 15) - (categoryCounts['4t'] || 0))} CUPOS RESTANTES</p>
+                        <Label className={`font-bold text-white ${isSimplifiedEvent ? 'text-xs' : 'text-sm'} cursor-pointer`}>
+                          {selectedEvent === 'festival' ? 'EXPERTOS' : '4 TIEMPOS'}
+                        </Label>
+                        <p className={`${isSimplifiedEvent ? 'text-[9px]' : 'text-[10px]'} text-[#B0B0B0] mt-0.5 font-medium`}>
+                          {Math.max(0, (selectedEvent === 'festival' ? 20 : (isSimplifiedEvent ? 30 : 15)) - (categoryCounts['4t'] || 0))} CUPOS RESTANTES
+                        </p>
                       </div>
                       {categorias.includes('4t') && <CheckCircle2 className="w-5 h-5 text-[#E60000] absolute top-2 right-2" />}
                     </div>
 
-                    <div className={`relative flex items-center ${isSimplifiedEvent ? 'p-2.5 sm:p-3' : 'p-4'} rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('alto') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['alto'] || 0) >= (isSimplifiedEvent ? 30 : 15) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => handleCatClick('alto')}>
+                    <div className={`relative flex items-center ${isSimplifiedEvent ? 'p-2.5 sm:p-3' : 'p-4'} rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('alto') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['alto'] || 0) >= (selectedEvent === 'festival' ? 20 : (isSimplifiedEvent ? 30 : 15)) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => handleCatClick('alto')}>
                       <div className={`shrink-0 ${isSimplifiedEvent ? 'w-8 h-8 mr-2' : 'w-10 h-10 mr-3'} rounded-full bg-[#1A1A1A] flex items-center justify-center border border-[#2A2A2A]`}>
                         <span className={isSimplifiedEvent ? 'text-lg' : 'text-xl'}>🔥</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <Label className={`font-bold text-white ${isSimplifiedEvent ? 'text-xs' : 'text-sm'} cursor-pointer`}>ALTO CILINDRAJE</Label>
-                        <p className={`${isSimplifiedEvent ? 'text-[9px]' : 'text-[10px]'} text-[#B0B0B0] mt-0.5 font-medium`}>{Math.max(0, (isSimplifiedEvent ? 30 : 15) - (categoryCounts['alto'] || 0))} CUPOS RESTANTES</p>
+                        <Label className={`font-bold text-white ${isSimplifiedEvent ? 'text-xs' : 'text-sm'} cursor-pointer`}>
+                          {selectedEvent === 'festival' ? 'ÉLITE' : 'ALTO CILINDRAJE'}
+                        </Label>
+                        <p className={`${isSimplifiedEvent ? 'text-[9px]' : 'text-[10px]'} text-[#B0B0B0] mt-0.5 font-medium`}>
+                          {Math.max(0, (selectedEvent === 'festival' ? 20 : (isSimplifiedEvent ? 30 : 15)) - (categoryCounts['alto'] || 0))} CUPOS RESTANTES
+                        </p>
                       </div>
                       {categorias.includes('alto') && <CheckCircle2 className="w-5 h-5 text-[#E60000] absolute top-2 right-2" />}
                     </div>
 
-                    {isSimplifiedEvent && (
+                    {isSimplifiedEvent && selectedEvent !== 'festival' && (
                       <div className={`relative flex items-center ${isSimplifiedEvent ? 'p-2.5 sm:p-3' : 'p-4'} rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('bikelife') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['bikelife'] || 0) >= 30 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => handleCatClick('bikelife')}>
                         <div className={`shrink-0 ${isSimplifiedEvent ? 'w-8 h-8 mr-2' : 'w-10 h-10 mr-3'} rounded-full bg-[#1A1A1A] flex items-center justify-center border border-[#2A2A2A]`}>
                           <span className={isSimplifiedEvent ? 'text-lg' : 'text-xl'}>🚲</span>
@@ -2111,9 +2165,15 @@ export default function InscripcionPage() {
                   <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px', width: '100%' }}>
                     <div style={{ width: '100%', padding: '0 10px' }}>
                       <div style={{ fontSize: '0.9rem', color: '#00cfff', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 800, textAlign: 'center', marginBottom: '10px' }}>
-                        PUNTAJE VÁLIDA {activeEventObj ? activeEventObj.title : ''} {(() => {
+                        PUNTAJE VÁLIDO {activeEventObj ? activeEventObj.title : ''} {(() => {
                           const getMappedCategory = (c: string) => {
                             let f = String(c).toUpperCase().trim();
+                            if (selectedEvent === 'festival') {
+                              if (f === 'OPEN') return 'NOVATOS';
+                              if (f === '2T' || f === '2 TIEMPOS') return 'PREEXPERTOS';
+                              if (f === '4T' || f === '4 TIEMPOS') return 'EXPERTOS';
+                              if (f === 'ALTO' || f === 'ALTO CILINDRAJE' || f === 'NITROX') return 'ÉLITE';
+                            }
                             if (f.includes('ALTO') || f === 'CATEGORIA NITROX' || f === 'NITROX') return 'NITROX';
                             if (f === '2T') return '2 TIEMPOS';
                             if (f === '4T') return '4 TIEMPOS';
@@ -2128,6 +2188,12 @@ export default function InscripcionPage() {
                           {categorias.map((cat, idx) => {
                             const getMappedCategory = (c: string) => {
                               let f = String(c).toUpperCase().trim();
+                              if (selectedEvent === 'festival') {
+                                if (f === 'OPEN') return 'NOVATOS';
+                                if (f === '2T' || f === '2 TIEMPOS') return 'PREEXPERTOS';
+                                if (f === '4T' || f === '4 TIEMPOS') return 'EXPERTOS';
+                                if (f === 'ALTO' || f === 'ALTO CILINDRAJE' || f === 'NITROX') return 'ÉLITE';
+                              }
                               if (f.includes('ALTO') || f === 'CATEGORIA NITROX' || f === 'NITROX') return 'NITROX';
                               if (f === '2T') return '2 TIEMPOS';
                               if (f === '4T') return '4 TIEMPOS';

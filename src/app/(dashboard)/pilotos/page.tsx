@@ -39,6 +39,31 @@ interface Registration {
   eventKey: 'f2r' | 'stuntday' | 'nitrox' | 'festival';
 }
 
+const formatCategoryName = (c: any, regId: string) => {
+  const isFestival = String(regId).startsWith('festival_');
+  const formatSingle = (cat: string) => {
+    const f = String(cat).toUpperCase().trim();
+    if (isFestival) {
+      if (f === 'OPEN') return 'NOVATOS';
+      if (f === '2T' || f === '2 TIEMPOS') return 'PREEXPERTOS';
+      if (f === '4T' || f === '4 TIEMPOS') return 'EXPERTOS';
+      if (f === 'ALTO' || f === 'ALTO CILINDRAJE' || f === 'NITROX') return 'ÉLITE';
+    } else {
+      if (f === '2T' || f === '2 TIEMPOS') return '2 TIEMPOS';
+      if (f === '4T' || f === '4 TIEMPOS') return '4 TIEMPOS';
+      if (f === 'ALTO' || f === 'ALTO CILINDRAJE') return 'ALTO CILINDRAJE';
+      if (f === 'OPEN') return 'OPEN';
+      if (f === 'BIKELIFE') return 'BIKELIFE';
+    }
+    return f;
+  };
+
+  if (Array.isArray(c)) {
+    return c.map(cat => formatSingle(cat)).join(' / ');
+  }
+  return formatSingle(String(c));
+};
+
 export default function PilotosPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -142,7 +167,7 @@ export default function PilotosPage() {
             fetched.push({
               id: regData.id,
               uid: userId,
-              categoria: Array.isArray(regData.categoria) ? regData.categoria.join(' / ') : (regData.categoria || 'N/A'),
+              categoria: formatCategoryName(regData.categoria || 'N/A', regData.id),
               motocicleta: regData.motocicleta || { placa: 'N/A', marca: 'N/A', referencia: 'N/A' },
               registradoEl: regData.registradoEl || userData.createdAt || new Date().toISOString(),
               estadoPago: (regData.estadoPago === 'borrador' ? 'pendiente' : regData.estadoPago) || 'pendiente',
@@ -195,7 +220,7 @@ export default function PilotosPage() {
             fetched.push({
               id: regData.id,
               uid: userId,
-              categoria: Array.isArray(regData.categoria) ? regData.categoria.join(' / ') : (regData.categoria || 'N/A'),
+              categoria: formatCategoryName(regData.categoria || 'N/A', regData.id),
               motocicleta: regData.motocicleta || { placa: 'N/A', marca: 'N/A', referencia: 'N/A' },
               registradoEl: regData.registradoEl || new Date().toISOString(),
               estadoPago: (regData.estadoPago === 'borrador' ? 'pendiente' : regData.estadoPago) || 'pendiente',
@@ -232,7 +257,7 @@ export default function PilotosPage() {
       await updateDoc(doc(db, 'event_registrations', docId), {
         categoria: newCats
       });
-      setRegistrations(prev => prev.map(r => r.id === regId ? { ...r, categoria: newCats as any } : r));
+      setRegistrations(prev => prev.map(r => r.id === regId ? { ...r, categoria: formatCategoryName(newCats, regId) } : r));
       toast({ title: 'Categoría actualizada', description: 'La categoría se ha actualizado exitosamente.' });
     } catch (e) {
       console.error(e);
@@ -722,11 +747,21 @@ export default function PilotosPage() {
                             </span>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent className="bg-zinc-900 border-zinc-800 text-zinc-300 min-w-[120px]">
-                            <DropdownMenuItem onClick={() => handleUpdateCategory(reg.id, 'open')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">OPEN</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleUpdateCategory(reg.id, '2t')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">2T</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleUpdateCategory(reg.id, '4t')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">4T</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleUpdateCategory(reg.id, 'alto')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">ALTO</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleUpdateCategory(reg.id, 'novatos')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">NOVATOS</DropdownMenuItem>
+                            {reg.id.startsWith('festival_') ? (
+                              <>
+                                <DropdownMenuItem onClick={() => handleUpdateCategory(reg.id, 'open')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">NOVATOS</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleUpdateCategory(reg.id, '2t')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">PREEXPERTOS</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleUpdateCategory(reg.id, '4t')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">EXPERTOS</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleUpdateCategory(reg.id, 'alto')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">ÉLITE</DropdownMenuItem>
+                              </>
+                            ) : (
+                              <>
+                                <DropdownMenuItem onClick={() => handleUpdateCategory(reg.id, 'open')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">OPEN</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleUpdateCategory(reg.id, '2t')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">2T</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleUpdateCategory(reg.id, '4t')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">4T</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleUpdateCategory(reg.id, 'alto')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">ALTO</DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </td>
