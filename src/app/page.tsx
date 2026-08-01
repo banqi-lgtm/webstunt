@@ -102,19 +102,12 @@ export default function Home() {
                 { id: 'galeria', label: 'GALERÍA', isGallery: true }
               ] },
               { id: 'casos-de-exito', label: 'CASOS DE ÉXITO' },
-              { id: 'contacto', label: 'CONTACTO' },
-              { id: 'inscripcion', label: 'INSCRIPCIÓN', subItems: [
-                { id: 'pilotos', label: 'PILOTOS', isAuth: true, authMode: 'default' },
-                { id: 'proveedores', label: 'PROVEEDORES', isAuth: true, authMode: 'staff' }
-              ] }
+              { id: 'contacto', label: 'CONTACTO' }
             ].map((item) => (
               <div key={item.id} className="relative group py-4">
                 <a 
-                  href={item.id === 'inscripcion' ? '#' : `#${item.id}`} 
-                  onClick={(e) => { if(item.id === 'inscripcion') e.preventDefault(); }}
-                  className={item.id === 'inscripcion'
-                    ? "text-white bg-[#E60000] hover:bg-[#CC0000] px-5 py-2 rounded-sm text-[11px] xl:text-[12px] font-inter font-bold tracking-widest uppercase transition-all whitespace-nowrap shadow-lg shadow-black/20 hover:shadow-[#E60000]/20 flex items-center gap-1.5 cursor-pointer"
-                    : `text-white hover:text-[#E60000] text-[11px] xl:text-[12px] font-inter font-medium tracking-widest uppercase transition-colors relative after:content-[''] after:absolute after:-bottom-2 after:left-0 after:w-full after:h-0.5 after:bg-[#E60000] after:transition-transform after:duration-300 ${item.id === 'inicio' ? 'after:scale-x-100' : 'after:scale-x-0 group-hover:after:scale-x-100'} whitespace-nowrap flex items-center gap-1.5 cursor-pointer`}
+                  href={`#${item.id}`} 
+                  className={`text-white hover:text-[#E60000] text-[11px] xl:text-[12px] font-inter font-medium tracking-widest uppercase transition-colors relative after:content-[''] after:absolute after:-bottom-2 after:left-0 after:w-full after:h-0.5 after:bg-[#E60000] after:transition-transform after:duration-300 ${item.id === 'inicio' ? 'after:scale-x-100' : 'after:scale-x-0 group-hover:after:scale-x-100'} whitespace-nowrap flex items-center gap-1.5 cursor-pointer`}
                 >
                   {item.label}
                   {item.subItems && <ChevronDown size={14} className="opacity-70 group-hover:rotate-180 transition-transform duration-300" />}
@@ -156,12 +149,42 @@ export default function Home() {
               </div>
             ))}
             
-            <button 
-              onClick={() => { setAuthIsLogin(true); setShowAuthModal(true); }}
-              className="text-white bg-[#E60000] hover:bg-[#CC0000] px-5 py-2 rounded-sm text-[11px] xl:text-[12px] font-inter font-bold tracking-widest uppercase transition-all whitespace-nowrap shadow-lg shadow-black/20 hover:shadow-[#E60000]/20 ml-2"
-            >
-              INICIAR SESIÓN
-            </button>
+            {/* INSCRIPCIÓN & INICIAR SESIÓN BUTTONS GROUP */}
+            <div className="flex items-center gap-2.5 ml-1">
+              <div className="relative group py-4">
+                <a 
+                  href="#" 
+                  onClick={(e) => { e.preventDefault(); }}
+                  className="text-white bg-[#E60000] hover:bg-[#CC0000] px-5 py-2 rounded-sm text-[11px] xl:text-[12px] font-inter font-bold tracking-widest uppercase transition-all whitespace-nowrap shadow-lg shadow-black/20 hover:shadow-[#E60000]/20 flex items-center gap-1.5 cursor-pointer"
+                >
+                  INSCRIPCIÓN
+                  <ChevronDown size={14} className="opacity-70 group-hover:rotate-180 transition-transform duration-300" />
+                </a>
+                <div className="absolute top-full left-0 mt-0 w-48 bg-[#0D0D0D] border border-[#1C1C1C] rounded-md shadow-lg shadow-black/50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 overflow-hidden z-50">
+                  <div className="py-2">
+                    <button
+                      onClick={() => { setAuthIsLogin(false); setAuthMode('default'); setShowAuthModal(true); }}
+                      className="w-full text-left px-5 py-3 text-[12px] xl:text-[13px] font-inter font-medium tracking-widest uppercase text-gray-300 hover:text-white hover:bg-[#E60000] transition-colors whitespace-nowrap block"
+                    >
+                      PILOTOS
+                    </button>
+                    <button
+                      onClick={() => { setAuthIsLogin(false); setAuthMode('staff'); setShowAuthModal(true); }}
+                      className="w-full text-left px-5 py-3 text-[12px] xl:text-[13px] font-inter font-medium tracking-widest uppercase text-gray-300 hover:text-white hover:bg-[#E60000] transition-colors whitespace-nowrap block"
+                    >
+                      PROVEEDORES
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => { setAuthIsLogin(true); setShowAuthModal(true); }}
+                className="text-white bg-[#E60000] hover:bg-[#CC0000] px-5 py-2 rounded-sm text-[11px] xl:text-[12px] font-inter font-bold tracking-widest uppercase transition-all whitespace-nowrap shadow-lg shadow-black/20 hover:shadow-[#E60000]/20"
+              >
+                INICIAR SESIÓN
+              </button>
+            </div>
           </div>
 
           <div className="lg:hidden flex items-center gap-3">
