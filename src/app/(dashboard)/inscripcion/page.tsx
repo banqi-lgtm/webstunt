@@ -1038,7 +1038,7 @@ export default function InscripcionPage() {
       bgImage: '/sponsors/SPORNS/DSC05839.JPG',
       logo: '/sponsors/Copa Stunt Nitrox Blanco.png',
       logoClass: 'h-16 sm:h-20 md:h-22 -my-2 md:-my-3 object-contain scale-[1.2] origin-center',
-      bgPosition: 'bg-[position:center_30%]',
+      bgPosition: 'bg-[position:center_60%]',
       theme: {
         border: 'border-blue-500/30 hover:border-blue-500/70',
         glow: 'shadow-[0_0_30px_rgba(59,130,246,0.06)] hover:shadow-[0_0_50px_rgba(59,130,246,0.18)]',
