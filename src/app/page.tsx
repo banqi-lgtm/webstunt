@@ -91,12 +91,12 @@ export default function Home() {
       
       {/* NAVBAR */}
       <nav className="fixed top-0 left-0 w-full z-50 bg-[#080808] py-4 border-b border-[#1C1C1C]">
-        <div className="max-w-[1600px] mx-auto px-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="max-w-[1600px] mx-auto px-3 sm:px-6 flex items-center justify-between">
+          <div className="flex items-center gap-1.5 sm:gap-3">
             <button className="lg:hidden text-[#E60000] hover:text-[#CC0000] transition-colors" onClick={() => setIsMobileMenuOpen(true)}>
               <Menu size={28} />
             </button>
-            <img src="/sponsors/PKS Blanco.png" alt="PKS" className="h-8 md:h-10 object-contain drop-shadow-md shrink-0" />
+            <img src="/sponsors/PKS Blanco.png" alt="PKS" className="h-[26px] sm:h-8 md:h-10 object-contain drop-shadow-md shrink-0" />
           </div>
           
           <div className="hidden lg:flex items-center justify-end gap-6 xl:gap-8 flex-1 px-4">
@@ -193,28 +193,28 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="lg:hidden flex items-center gap-2">
+          <div className="lg:hidden flex items-center gap-1.5">
             {/* INSCRIPCIÓN on mobile */}
             <div className="relative">
               <button 
                 onClick={() => setIsMobileInscripcionOpen(!isMobileInscripcionOpen)}
-                className="text-white bg-[#E60000] hover:bg-[#CC0000] px-3 py-1.5 rounded-sm text-[10px] font-inter font-bold tracking-widest uppercase transition-all whitespace-nowrap shadow-lg shadow-black/20 hover:shadow-[#E60000]/20 flex items-center gap-1 cursor-pointer"
+                className="text-white bg-[#E60000] hover:bg-[#CC0000] px-2 py-1.5 sm:px-3 sm:py-1.5 rounded-sm text-[9px] sm:text-[10px] font-inter font-bold tracking-widest uppercase transition-all whitespace-nowrap shadow-lg shadow-black/20 hover:shadow-[#E60000]/20 flex items-center gap-0.5 cursor-pointer"
               >
                 <span>INSCRIPCIÓN</span>
-                <ChevronDown size={12} className={`opacity-70 transition-transform duration-300 ${isMobileInscripcionOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown size={11} className={`opacity-70 transition-transform duration-300 ${isMobileInscripcionOpen ? 'rotate-180' : ''}`} />
               </button>
               {isMobileInscripcionOpen && (
-                <div className="absolute right-0 top-full mt-2 w-36 bg-[#0D0D0D] border border-[#1C1C1C] rounded-md shadow-lg shadow-black/50 overflow-hidden z-[110]">
+                <div className="absolute right-0 top-full mt-2 w-32 bg-[#0D0D0D] border border-[#1C1C1C] rounded-md shadow-lg shadow-black/50 overflow-hidden z-[110]">
                   <div className="py-1">
                     <button
                       onClick={() => { setIsMobileInscripcionOpen(false); setAuthIsLogin(false); setAuthMode('default'); setShowAuthModal(true); }}
-                      className="w-full text-left px-4 py-2.5 text-[10px] font-inter font-medium tracking-widest uppercase text-gray-300 hover:text-white hover:bg-[#E60000] transition-colors whitespace-nowrap block"
+                      className="w-full text-left px-3 py-2 text-[9px] sm:text-[10px] font-inter font-medium tracking-widest uppercase text-gray-300 hover:text-white hover:bg-[#E60000] transition-colors whitespace-nowrap block"
                     >
                       PILOTOS
                     </button>
                     <button
                       onClick={() => { setIsMobileInscripcionOpen(false); setAuthIsLogin(false); setAuthMode('staff'); setShowAuthModal(true); }}
-                      className="w-full text-left px-4 py-2.5 text-[10px] font-inter font-medium tracking-widest uppercase text-gray-300 hover:text-white hover:bg-[#E60000] transition-colors whitespace-nowrap block"
+                      className="w-full text-left px-3 py-2 text-[9px] sm:text-[10px] font-inter font-medium tracking-widest uppercase text-gray-300 hover:text-white hover:bg-[#E60000] transition-colors whitespace-nowrap block"
                     >
                       PROVEEDORES
                     </button>
@@ -225,9 +225,9 @@ export default function Home() {
 
             <button 
               onClick={() => { setAuthIsLogin(true); setShowAuthModal(true); }}
-              className="text-white bg-[#E60000] hover:bg-[#CC0000] px-3 py-1.5 rounded-sm text-[10px] font-inter font-bold tracking-widest uppercase transition-all whitespace-nowrap shadow-lg shadow-black/20 hover:shadow-[#E60000]/20"
+              className="text-white bg-[#E60000] hover:bg-[#CC0000] px-2 py-1.5 sm:px-3 sm:py-1.5 rounded-sm text-[9px] sm:text-[10px] font-inter font-bold tracking-widest uppercase transition-all whitespace-nowrap shadow-lg shadow-black/20 hover:shadow-[#E60000]/20"
             >
-              INICIAR SESIÓN
+              ACCEDER
             </button>
           </div>
         </div>
