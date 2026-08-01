@@ -348,7 +348,7 @@ export default function InscripcionPage() {
     }
   };
   const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
-  const [categoryCounts, setCategoryCounts] = useState<{ [key: string]: number }>({ open: 0, '2t': 0, '4t': 0, alto: 0 });
+  const [categoryCounts, setCategoryCounts] = useState<{ [key: string]: number }>({ open: 0, '2t': 0, '4t': 0, alto: 0, bikelife: 0 });
 
   // Options Modal State
   const [optionsModalOpen, setOptionsModalOpen] = useState(false);
@@ -630,7 +630,7 @@ export default function InscripcionPage() {
     const fetchCounts = async () => {
       try {
         const snapshot = await getDocs(collection(db, 'event_registrations'));
-        const counts: { [key: string]: number } = { open: 0, '2t': 0, '4t': 0, alto: 0 };
+        const counts: { [key: string]: number } = { open: 0, '2t': 0, '4t': 0, alto: 0, bikelife: 0 };
         snapshot.forEach(d => {
           const data = d.data();
           const cats = data.categoria || data.categorias;
@@ -788,6 +788,8 @@ export default function InscripcionPage() {
 
   const validateForm = () => {
     if (categorias.length === 0) return "Selecciona al menos una categoría";
+    if (selectedEvent === 'nitrox') return null; // Solo la categoría es requerida para Nitrox por el momento
+    
     if (!idPdf) return "Falta anexar el PDF/Foto de tu identificación";
     if (!participacionPrevia) return "Responde si has participado antes";
     if (!patrocinadores) return "Debes confirmar que sigues a los patrocinadores";
@@ -852,10 +854,10 @@ export default function InscripcionPage() {
     setIsLoading(true);
 
     // Validación estricta final de cupos antes de guardar
-    const limits: { [key: string]: number } = { open: 30, '2t': 15, '4t': 15, alto: 15 };
+    const limits: { [key: string]: number } = { open: 30, '2t': 15, '4t': 15, alto: 15, bikelife: 15 };
     for (const cat of categorias) {
       if (limits[cat] !== undefined && categoryCounts[cat] >= limits[cat]) {
-        toast({ title: "Cupos Llenos", description: `Lo sentimos, los cupos para la categoría ${cat === '2t' ? '2 TIEMPOS' : cat === '4t' ? '4 TIEMPOS' : cat === 'alto' ? 'ALTO CILINDRAJE' : 'OPEN'} se acaban de llenar.`, variant: "destructive" });
+        toast({ title: "Cupos Llenos", description: `Lo sentimos, los cupos para la categoría ${cat === '2t' ? '2 TIEMPOS' : cat === '4t' ? '4 TIEMPOS' : cat === 'alto' ? 'ALTO CILINDRAJE' : cat === 'bikelife' ? 'BIKELIFE' : 'OPEN'} se acaban de llenar.`, variant: "destructive" });
         setIsLoading(false);
         return;
       }
@@ -1376,117 +1378,149 @@ export default function InscripcionPage() {
                     </div>
                     {categorias.includes('alto') && <CheckCircle2 className="w-5 h-5 text-[#E60000] absolute top-2 right-2" />}
                   </div>
+
+                  <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('bikelife') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['bikelife'] || 0) >= 15 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { 
+                    if ((categoryCounts['bikelife'] || 0) >= 15) return;
+                    if (categorias.includes('open')) {
+                      toast({ title: "Categoría exclusiva", description: "La categoría OPEN no se puede combinar con otras.", variant: "default" });
+                      return;
+                    }
+                    if (categorias.includes('bikelife')) {
+                      const newCats = categorias.filter(c => c !== 'bikelife');
+                      setCategorias(newCats);
+                      saveCategoriasToDB(newCats);
+                    } else {
+                      const newCats = [...categorias, 'bikelife'];
+                      setCategorias(newCats);
+                      saveCategoriasToDB(newCats);
+                    }
+                  }}>
+                    <div className="w-10 h-10 rounded-full bg-[#1A1A1A] flex items-center justify-center mr-3 border border-[#2A2A2A]">
+                      <span className="text-xl">🚲</span>
+                    </div>
+                    <div className="flex-1">
+                      <Label className="font-bold text-white text-sm cursor-pointer">BIKELIFE</Label>
+                      <p className="text-[10px] text-[#B0B0B0] mt-0.5 font-medium">{Math.max(0, 15 - (categoryCounts['bikelife'] || 0))} CUPOS RESTANTES</p>
+                    </div>
+                    {categorias.includes('bikelife') && <CheckCircle2 className="w-5 h-5 text-[#E60000] absolute top-2 right-2" />}
+                  </div>
                 </div>
               </div>
               
               {/* Experiencia y Compromiso */}
-              <div className="space-y-3 pt-4 border-t border-zinc-800/50">
-                <Label className="text-white text-sm font-bold uppercase tracking-wider block">2. Experiencia y Compromiso</Label>
-                <p className="text-xs text-zinc-400 mb-2">¿Has participado en la Copa Stunt F2R en versiones anteriores?</p>
-                <RadioGroup value={participacionPrevia} onValueChange={(val) => { setParticipacionPrevia(val); saveParticipacionToDB(val); }} className="grid grid-cols-2 gap-3">
-                  <div className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all cursor-pointer ${participacionPrevia === 'si' ? 'border-red-600 bg-red-600/5' : 'border-zinc-800 bg-zinc-900/50'}`} onClick={() => setParticipacionPrevia('si')}>
-                    <RadioGroupItem value="si" id="part-si" className="sr-only" />
-                    <CheckCircle2 className={`w-6 h-6 mb-2 ${participacionPrevia === 'si' ? 'text-red-600' : 'text-zinc-600'}`} />
-                    <Label className="text-center font-bold text-white text-xs cursor-pointer">Sí, ya he participado</Label>
-                  </div>
-                  <div className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all cursor-pointer ${participacionPrevia === 'no' ? 'border-red-600 bg-red-600/5' : 'border-zinc-800 bg-zinc-900/50'}`} onClick={() => setParticipacionPrevia('no')}>
-                    <RadioGroupItem value="no" id="part-no" className="sr-only" />
-                    <div className="w-6 h-6 flex items-center justify-center mb-2">
-                       <span className={`text-xl ${participacionPrevia === 'no' ? 'text-yellow-500' : 'text-zinc-600 grayscale'}`}>⭐</span>
+              {selectedEvent !== 'nitrox' && (
+                <div className="space-y-3 pt-4 border-t border-zinc-800/50">
+                  <Label className="text-white text-sm font-bold uppercase tracking-wider block">2. Experiencia y Compromiso</Label>
+                  <p className="text-xs text-zinc-400 mb-2">¿Has participado en la Copa Stunt F2R en versiones anteriores?</p>
+                  <RadioGroup value={participacionPrevia} onValueChange={(val) => { setParticipacionPrevia(val); saveParticipacionToDB(val); }} className="grid grid-cols-2 gap-3">
+                    <div className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all cursor-pointer ${participacionPrevia === 'si' ? 'border-red-600 bg-red-600/5' : 'border-zinc-800 bg-zinc-900/50'}`} onClick={() => setParticipacionPrevia('si')}>
+                      <RadioGroupItem value="si" id="part-si" className="sr-only" />
+                      <CheckCircle2 className={`w-6 h-6 mb-2 ${participacionPrevia === 'si' ? 'text-red-600' : 'text-zinc-600'}`} />
+                      <Label className="text-center font-bold text-white text-xs cursor-pointer">Sí, ya he participado</Label>
                     </div>
-                    <Label className="text-center font-bold text-zinc-300 text-xs cursor-pointer leading-tight">No, pero lo disfrutaré como nunca.</Label>
-                  </div>
-                </RadioGroup>
-                
-                <div className="mt-3 bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden transition-all">
-                  <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-zinc-800/50 transition-colors" onClick={() => { if (!patrocinadores) setSponsorsModalOpen(true); else setPatrocinadores(false); }}>
-                    <div className="flex items-center gap-3">
-                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${patrocinadores ? 'border-[#E60000] bg-[#E60000]' : 'border-zinc-600'}`}>
-                        {patrocinadores && <CheckCircle className="w-4 h-4 text-black" />}
+                    <div className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all cursor-pointer ${participacionPrevia === 'no' ? 'border-red-600 bg-red-600/5' : 'border-zinc-800 bg-zinc-900/50'}`} onClick={() => setParticipacionPrevia('no')}>
+                      <RadioGroupItem value="no" id="part-no" className="sr-only" />
+                      <div className="w-6 h-6 flex items-center justify-center mb-2">
+                         <span className={`text-xl ${participacionPrevia === 'no' ? 'text-yellow-500' : 'text-zinc-600 grayscale'}`}>⭐</span>
                       </div>
-                      <Label className="text-xs text-zinc-300 font-medium cursor-pointer leading-tight">
-                        Confirmo que fui a Instagram a seguir a nuestros patrocinadores principales
-                      </Label>
+                      <Label className="text-center font-bold text-zinc-300 text-xs cursor-pointer leading-tight">No, pero lo disfrutaré como nunca.</Label>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-zinc-600" />
+                  </RadioGroup>
+                  
+                  <div className="mt-3 bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden transition-all">
+                    <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-zinc-800/50 transition-colors" onClick={() => { if (!patrocinadores) setSponsorsModalOpen(true); else setPatrocinadores(false); }}>
+                      <div className="flex items-center gap-3">
+                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${patrocinadores ? 'border-[#E60000] bg-[#E60000]' : 'border-zinc-600'}`}>
+                          {patrocinadores && <CheckCircle className="w-4 h-4 text-black" />}
+                        </div>
+                        <Label className="text-xs text-zinc-300 font-medium cursor-pointer leading-tight">
+                          Confirmo que fui a Instagram a seguir a nuestros patrocinadores principales
+                        </Label>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-zinc-600" />
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Datos Motocicleta */}
-              <div className="space-y-4 pt-6 border-t border-[#2A2A2A]">
-                <Label className="text-white text-sm font-bold uppercase tracking-wider block flex items-center gap-2 mb-2">
-                  <span className="text-[#E60000]">🏍️</span> 3. Datos de la Motocicleta
-                </Label>
-                
-                <div className="space-y-1">
-                  <Label className="text-[10px] text-[#B0B0B0] uppercase tracking-wider ml-1">Placa Motocicleta</Label>
-                  <Input value={placa} onChange={e => { setPlaca(e.target.value.toUpperCase()); }} onBlur={() => saveMotocicletaToDB('placa', placa)} placeholder="ABC123" className="bg-[#1A1A1A] border-[#2A2A2A] text-white h-12 uppercase rounded-xl px-4 focus:border-[#E60000] focus:ring-[#E60000]" maxLength={6} />
-                </div>
-                
-                <div className="space-y-1">
-                  <Label className="text-[10px] text-[#B0B0B0] uppercase tracking-wider ml-1">Marca de tu motocicleta</Label>
-                  <Select value={marca} onValueChange={(val) => { setMarca(val); saveMotocicletaToDB('marca', val); }}>
-                    <SelectTrigger className="bg-[#1A1A1A] border-[#2A2A2A] text-white h-12 rounded-xl px-4 focus:ring-[#E60000]">
-                      <SelectValue placeholder="Seleccione..." />
-                    </SelectTrigger>
-                    <SelectContent className="bg-[#121212] border-[#2A2A2A] text-white">
-                      {['YAMAHA','SUZUKI','HONDA','BAJAJ','AKT','TVS','VICTORY','BENELLI','KAWASAKI','FACTORY','YCF','HERO','KYMCO','KTM','KEEWAY','HUSQVARNA','DUCATI','JIALING MOTOS'].map(m => (
-                        <SelectItem key={m} value={m} className="hover:bg-[#1A1A1A] focus:bg-[#1A1A1A] cursor-pointer">{m}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              {selectedEvent !== 'nitrox' && (
+                <div className="space-y-4 pt-6 border-t border-[#2A2A2A]">
+                  <Label className="text-white text-sm font-bold uppercase tracking-wider block flex items-center gap-2 mb-2">
+                    <span className="text-[#E60000]">🏍️</span> 3. Datos de la Motocicleta
+                  </Label>
+                  
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-[#B0B0B0] uppercase tracking-wider ml-1">Placa Motocicleta</Label>
+                    <Input value={placa} onChange={e => { setPlaca(e.target.value.toUpperCase()); }} onBlur={() => saveMotocicletaToDB('placa', placa)} placeholder="ABC123" className="bg-[#1A1A1A] border-[#2A2A2A] text-white h-12 uppercase rounded-xl px-4 focus:border-[#E60000] focus:ring-[#E60000]" maxLength={6} />
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-[#B0B0B0] uppercase tracking-wider ml-1">Marca de tu motocicleta</Label>
+                    <Select value={marca} onValueChange={(val) => { setMarca(val); saveMotocicletaToDB('marca', val); }}>
+                      <SelectTrigger className="bg-[#1A1A1A] border-[#2A2A2A] text-white h-12 rounded-xl px-4 focus:ring-[#E60000]">
+                        <SelectValue placeholder="Seleccione..." />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#121212] border-[#2A2A2A] text-white">
+                        {['YAMAHA','SUZUKI','HONDA','BAJAJ','AKT','TVS','VICTORY','BENELLI','KAWASAKI','FACTORY','YCF','HERO','KYMCO','KTM','KEEWAY','HUSQVARNA','DUCATI','JIALING MOTOS'].map(m => (
+                          <SelectItem key={m} value={m} className="hover:bg-[#1A1A1A] focus:bg-[#1A1A1A] cursor-pointer">{m}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                <div className="space-y-1">
-                  <Label className="text-[10px] text-[#B0B0B0] uppercase tracking-wider ml-1">Referencia motocicleta</Label>
-                  <Input value={referencia} onChange={e => setReferencia(e.target.value)} onBlur={() => saveMotocicletaToDB('referencia', referencia)} placeholder="Ej. MT-09" className="bg-[#1A1A1A] border-[#2A2A2A] text-white h-12 rounded-xl px-4 focus:border-[#E60000] focus:ring-[#E60000]" />
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-[#B0B0B0] uppercase tracking-wider ml-1">Referencia motocicleta</Label>
+                    <Input value={referencia} onChange={e => setReferencia(e.target.value)} onBlur={() => saveMotocicletaToDB('referencia', referencia)} placeholder="Ej. MT-09" className="bg-[#1A1A1A] border-[#2A2A2A] text-white h-12 rounded-xl px-4 focus:border-[#E60000] focus:ring-[#E60000]" />
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Documentos Legales */}
-              <div className="space-y-3 pt-6 border-t border-[#2A2A2A] pb-6">
-                <div className="flex justify-between items-center mb-2">
-                  <Label className="text-white text-sm font-bold uppercase tracking-wider block flex items-center gap-2">
-                    <span className="text-[#E60000]">📄</span> 4. Archivos y Documentación Legal
-                  </Label>
-                </div>
-                <p className="text-[10px] text-[#B0B0B0] mb-4 leading-relaxed">
-                  Es indispensable subir estos documentos para asegurar el acceso a Plaza Mayor Medellín.
-                </p>
-
-                {[
-                  { key: 'id', state: idPdf, title: "Documento de identificación por ambos lados", desc: "Solo Foto (Frente y Reverso)" },
-                  { key: 'placa', state: fotoPlaca, title: "Foto de la placa (Tu motocicleta)", desc: "Obligatorio" },
-                  { key: 'propiedad', state: fotoPropiedad, title: "Foto/PDF Tarjeta de propiedad", desc: "Claro y legible" },
-                  { key: 'soat', state: fotoSoat, title: "Fotografía del SOAT vigente", desc: "Vigente para la fecha" },
-                  { key: 'deportista', state: fotoDeportista, title: "Foto tuya (Tipo Cédula o Carnet)", desc: "Fondo blanco o azul", isDeportista: true }
-                ].map((item: any) => (
-                  <div key={item.key} onClick={() => { if (!(item.isDeportista && isDetectingFace)) openOptions(item.key); }} className={`relative bg-[#1A1A1A] border ${item.state ? 'border-[#E60000] shadow-[0_0_15px_rgba(230, 0, 0,0.1)]' : 'border-[#2A2A2A]'} rounded-xl p-3 flex items-center gap-3 hover:border-[#424242] transition-all overflow-hidden ${item.isDeportista && isDetectingFace ? 'cursor-wait opacity-50' : 'cursor-pointer hover:bg-[#121212]'}`}>
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 border ${item.state ? 'bg-[#E60000]/10 border-[#E60000]/30' : 'bg-[#121212] border-[#2A2A2A]'}`}>
-                      <ImageIcon className={`w-5 h-5 ${item.state ? 'text-[#E60000]' : 'text-[#E60000]/50'}`} />
-                    </div>
-                    
-                    <div className="flex-1 min-w-0 pointer-events-none">
-                      <p className="text-xs text-white font-bold leading-tight truncate">{item.title}</p>
-                      <p className="text-[10px] text-zinc-500">{item.state ? item.state.name : item.desc}</p>
-                    </div>
-
-                    <div className="shrink-0 z-20 pointer-events-none">
-                      {item.state ? (
-                        <div className="flex items-center gap-1.5 bg-red-600/10 border border-red-600/30 px-2.5 py-1 rounded-md">
-                          <span className="text-red-600 text-[10px] font-bold uppercase">Subido</span>
-                          <CheckCircle2 className="w-3.5 h-3.5 text-red-600" />
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1.5 bg-zinc-800/50 border border-zinc-700 px-2.5 py-1 rounded-md opacity-50">
-                          <span className="text-zinc-400 text-[10px] font-bold uppercase">Pendiente</span>
-                        </div>
-                      )}
-                    </div>
+              {selectedEvent !== 'nitrox' && (
+                <div className="space-y-3 pt-6 border-t border-[#2A2A2A] pb-6">
+                  <div className="flex justify-between items-center mb-2">
+                    <Label className="text-white text-sm font-bold uppercase tracking-wider block flex items-center gap-2">
+                      <span className="text-[#E60000]">📄</span> 4. Archivos y Documentación Legal
+                    </Label>
                   </div>
-                ))}
-              </div>
+                  <p className="text-[10px] text-[#B0B0B0] mb-4 leading-relaxed">
+                    Es indispensable subir estos documentos para asegurar el acceso a Plaza Mayor Medellín.
+                  </p>
+
+                  {[
+                    { key: 'id', state: idPdf, title: "Documento de identificación por ambos lados", desc: "Solo Foto (Frente y Reverso)" },
+                    { key: 'placa', state: fotoPlaca, title: "Foto de la placa (Tu motocicleta)", desc: "Obligatorio" },
+                    { key: 'propiedad', state: fotoPropiedad, title: "Foto/PDF Tarjeta de propiedad", desc: "Claro y legible" },
+                    { key: 'soat', state: fotoSoat, title: "Fotografía del SOAT vigente", desc: "Vigente para la fecha" },
+                    { key: 'deportista', state: fotoDeportista, title: "Foto tuya (Tipo Cédula o Carnet)", desc: "Fondo blanco o azul", isDeportista: true }
+                  ].map((item: any) => (
+                    <div key={item.key} onClick={() => { if (!(item.isDeportista && isDetectingFace)) openOptions(item.key); }} className={`relative bg-[#1A1A1A] border ${item.state ? 'border-[#E60000] shadow-[0_0_15px_rgba(230, 0, 0,0.1)]' : 'border-[#2A2A2A]'} rounded-xl p-3 flex items-center gap-3 hover:border-[#424242] transition-all overflow-hidden ${item.isDeportista && isDetectingFace ? 'cursor-wait opacity-50' : 'cursor-pointer hover:bg-[#121212]'}`}>
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 border ${item.state ? 'bg-[#E60000]/10 border-[#E60000]/30' : 'bg-[#121212] border-[#2A2A2A]'}`}>
+                        <ImageIcon className={`w-5 h-5 ${item.state ? 'text-[#E60000]' : 'text-[#E60000]/50'}`} />
+                      </div>
+                      
+                      <div className="flex-1 min-w-0 pointer-events-none">
+                        <p className="text-xs text-white font-bold leading-tight truncate">{item.title}</p>
+                        <p className="text-[10px] text-zinc-500">{item.state ? item.state.name : item.desc}</p>
+                      </div>
+
+                      <div className="shrink-0 z-20 pointer-events-none">
+                        {item.state ? (
+                          <div className="flex items-center gap-1.5 bg-red-600/10 border border-red-600/30 px-2.5 py-1 rounded-md">
+                            <span className="text-red-600 text-[10px] font-bold uppercase">Subido</span>
+                            <CheckCircle2 className="w-3.5 h-3.5 text-red-600" />
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 bg-zinc-800/50 border border-zinc-700 px-2.5 py-1 rounded-md opacity-50">
+                            <span className="text-zinc-400 text-[10px] font-bold uppercase">Pendiente</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               </div>
 
@@ -1494,86 +1528,91 @@ export default function InscripcionPage() {
               <div className="space-y-6">
                 
                 {/* Alerta Importante */}
-                {/* Alerta Importante */}
-                <div className="bg-[#1A1A1A] border border-[#FF9800]/50 rounded-2xl p-5 flex flex-col items-center text-center shadow-[0_0_20px_rgba(255,152,0,0.15)] relative overflow-hidden">
-                  <div className="absolute top-0 w-full h-1 bg-gradient-to-r from-transparent via-[#FF9800] to-transparent opacity-50"></div>
-                  <div className="flex items-center justify-center gap-2 mb-3">
-                    <AlertTriangle className="w-5 h-5 text-[#FF9800]" />
-                    <span className="text-[#FF9800] font-black tracking-widest uppercase text-sm">Importante</span>
+                {selectedEvent !== 'nitrox' && (
+                  <div className="bg-[#1A1A1A] border border-[#FF9800]/50 rounded-2xl p-5 flex flex-col items-center text-center shadow-[0_0_20px_rgba(255,152,0,0.15)] relative overflow-hidden">
+                    <div className="absolute top-0 w-full h-1 bg-gradient-to-r from-transparent via-[#FF9800] to-transparent opacity-50"></div>
+                    <div className="flex items-center justify-center gap-2 mb-3">
+                      <AlertTriangle className="w-5 h-5 text-[#FF9800]" />
+                      <span className="text-[#FF9800] font-black tracking-widest uppercase text-sm">Importante</span>
+                    </div>
+                    <p className="text-[#B0B0B0] text-sm leading-relaxed">Tu cupo <strong className="text-white">NO</strong> está asegurado<br/>hasta completar el pago.</p>
                   </div>
-                  <p className="text-[#B0B0B0] text-sm leading-relaxed">Tu cupo <strong className="text-white">NO</strong> está asegurado<br/>hasta completar el pago.</p>
-                </div>
+                )}
 
                 {/* Comprobante de Pago */}
-                <div className="space-y-4 pt-4 lg:pt-0 pb-6">
-                <div className="flex justify-between items-center mb-2">
-                  <Label className="text-white text-sm font-bold uppercase tracking-wider block flex items-center gap-2">
-                    <span className="text-[#E60000]">💰</span> 5. Comprobante de Pago
-                  </Label>
-                </div>
-                
-                <div className="bg-[#1A1A1A] p-5 rounded-2xl border border-[#2A2A2A] shadow-[0_0_15px_rgba(0,0,0,0.5)]">
-                  <div className="flex flex-col gap-3 mb-5">
-                    <div className="flex justify-between items-baseline">
-                      <span className="text-xs text-[#B0B0B0] font-medium uppercase tracking-wider">Costo (11 May - 15 May)</span>
-                      <span className="text-xl text-[#E60000] font-black tracking-wider shadow-[#E60000]/20">$350.000</span>
+                {selectedEvent !== 'nitrox' && (
+                  <div className="space-y-4 pt-4 lg:pt-0 pb-6">
+                    <div className="flex justify-between items-center mb-2">
+                      <Label className="text-white text-sm font-bold uppercase tracking-wider block flex items-center gap-2">
+                        <span className="text-[#E60000]">💰</span> 5. Comprobante de Pago
+                      </Label>
                     </div>
-                  </div>
-
-                  <div className="space-y-3 mb-4">
-                    <div className="bg-[#121212] p-4 rounded-xl border border-[#2A2A2A] flex flex-col items-center gap-4 text-xs text-[#B0B0B0]">
-                      <div className="shrink-0 bg-white p-2.5 rounded-2xl shadow-[0_0_20px_rgba(230, 0, 0,0.15)]">
-                        <img src="/sponsors/QR BANCOLOMBIA.jpg" alt="QR Bancolombia" className="w-36 h-36 md:w-40 md:h-40 object-contain rounded-xl" />
+                    
+                    <div className="bg-[#1A1A1A] p-5 rounded-2xl border border-[#2A2A2A] shadow-[0_0_15px_rgba(0,0,0,0.5)]">
+                      <div className="flex flex-col gap-3 mb-5">
+                        <div className="flex justify-between items-baseline">
+                          <span className="text-xs text-[#B0B0B0] font-medium uppercase tracking-wider">Costo (11 May - 15 May)</span>
+                          <span className="text-xl text-[#E60000] font-black tracking-wider shadow-[#E60000]/20">$350.000</span>
+                        </div>
                       </div>
-                      <div className="flex-1 text-center w-full">
-                        <p className="font-black text-white mb-3 text-sm uppercase tracking-widest border-b border-[#2A2A2A] pb-3">Ahorros Bancolombia</p>
-                        <ul className="space-y-1.5 font-mono text-[#B0B0B0] pt-1">
-                          <li className="text-xl text-[#E60000] font-bold tracking-wider">316-376847-80</li>
-                          <li className="text-[10px] text-[#424242] uppercase font-sans tracking-wide mt-2">Titular: <span className="text-[#B0B0B0]">Daniela Rojas Valencia</span></li>
-                        </ul>
+
+                      <div className="space-y-3 mb-4">
+                        <div className="bg-[#121212] p-4 rounded-xl border border-[#2A2A2A] flex flex-col items-center gap-4 text-xs text-[#B0B0B0]">
+                          <div className="shrink-0 bg-white p-2.5 rounded-2xl shadow-[0_0_20px_rgba(230, 0, 0,0.15)]">
+                            <img src="/sponsors/QR BANCOLOMBIA.jpg" alt="QR Bancolombia" className="w-36 h-36 md:w-40 md:h-40 object-contain rounded-xl" />
+                          </div>
+                          <div className="flex-1 text-center w-full">
+                            <p className="font-black text-white mb-3 text-sm uppercase tracking-widest border-b border-[#2A2A2A] pb-3">Ahorros Bancolombia</p>
+                            <ul className="space-y-1.5 font-mono text-[#B0B0B0] pt-1">
+                              <li className="text-xl text-[#E60000] font-bold tracking-wider">316-376847-80</li>
+                              <li className="text-[10px] text-[#424242] uppercase font-sans tracking-wide mt-2">Titular: <span className="text-[#B0B0B0]">Daniela Rojas Valencia</span></li>
+                            </ul>
+                          </div>
+                        </div>
+                        <div className="bg-[#121212] p-4 rounded-xl border border-[#2A2A2A] text-center">
+                          <p className="font-bold text-[#424242] uppercase tracking-wide text-[10px] mb-1">Pago por LLAVE</p>
+                          <p className="text-lg font-mono text-[#B0B0B0] font-bold tracking-wider">1214720768</p>
+                        </div>
+                      </div>
+
+                      <Label className="text-white text-xs font-bold flex items-center gap-2 mb-3">
+                        <UploadCloud className="text-[#E60000] w-4 h-4" /> Sube tu Comprobante <span className="text-[#E60000]">*</span>
+                      </Label>
+                      
+                      <div onClick={() => openOptions('comprobante')} className={`border-2 border-dashed border-[#2A2A2A] bg-[#121212] py-6 rounded-xl text-center hover:border-[#E60000]/50 transition-all cursor-pointer hover:bg-[#1A1A1A] ${comprobantePago ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.1)]' : ''}`}>
+                        <div className="flex flex-col items-center px-4 pointer-events-none">
+                          {comprobantePago ? (
+                            <>
+                              <CheckCircle2 className="w-8 h-8 mb-2 text-[#E60000]" />
+                              <span className="text-sm font-bold text-[#E60000] truncate w-full px-2">{comprobantePago.name}</span>
+                              <span className="text-[10px] text-[#B0B0B0] mt-1 uppercase font-bold tracking-widest">Subido Exitosamente</span>
+                            </>
+                          ) : (
+                            <>
+                              <ImageIcon className="w-8 h-8 mb-2 text-[#424242]" />
+                              <span className="text-xs font-semibold text-[#B0B0B0]">Seleccionar imagen o PDF</span>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <div className="bg-[#121212] p-4 rounded-xl border border-[#2A2A2A] text-center">
-                      <p className="font-bold text-[#424242] uppercase tracking-wide text-[10px] mb-1">Pago por LLAVE</p>
-                      <p className="text-lg font-mono text-[#B0B0B0] font-bold tracking-wider">1214720768</p>
-                    </div>
                   </div>
-
-                  <Label className="text-white text-xs font-bold flex items-center gap-2 mb-3">
-                    <UploadCloud className="text-[#E60000] w-4 h-4" /> Sube tu Comprobante <span className="text-[#E60000]">*</span>
-                  </Label>
-                  
-                  <div onClick={() => openOptions('comprobante')} className={`border-2 border-dashed border-[#2A2A2A] bg-[#121212] py-6 rounded-xl text-center hover:border-[#E60000]/50 transition-all cursor-pointer hover:bg-[#1A1A1A] ${comprobantePago ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.1)]' : ''}`}>
-                    <div className="flex flex-col items-center px-4 pointer-events-none">
-                      {comprobantePago ? (
-                        <>
-                          <CheckCircle2 className="w-8 h-8 mb-2 text-[#E60000]" />
-                          <span className="text-sm font-bold text-[#E60000] truncate w-full px-2">{comprobantePago.name}</span>
-                          <span className="text-[10px] text-[#B0B0B0] mt-1 uppercase font-bold tracking-widest">Subido Exitosamente</span>
-                        </>
-                      ) : (
-                        <>
-                          <ImageIcon className="w-8 h-8 mb-2 text-[#424242]" />
-                          <span className="text-xs font-semibold text-[#B0B0B0]">Seleccionar imagen o PDF</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                </div>
+                )}
 
                 {/* Ayuda WhatsApp */}
-                <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl p-5 shadow-[0_0_15px_rgba(0,0,0,0.5)]">
-                  <p className="text-white font-bold mb-1 text-sm">¿Problemas con el pago?</p>
-                  <p className="text-[#B0B0B0] text-[10px] mb-4">Comunícate a nuestro canal oficial de WhatsApp</p>
-                  <a href="https://wa.me/573044347740" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between bg-[#121212] border border-[#E60000]/30 hover:bg-[#E60000]/10 transition-colors p-4 rounded-xl group cursor-pointer shadow-[0_0_10px_rgba(230, 0, 0,0.05)]">
-                    <div className="flex items-center gap-3">
-                      <Smartphone className="w-6 h-6 text-[#E60000] group-hover:scale-110 transition-transform" />
-                      <span className="text-[#E60000] font-bold text-lg tracking-wider">304 434 7740</span>
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-[#E60000]/50 group-hover:text-[#E60000] transition-colors" />
-                  </a>
-                </div>
+                {selectedEvent !== 'nitrox' && (
+                  <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-2xl p-5 shadow-[0_0_15px_rgba(0,0,0,0.5)]">
+                    <p className="text-white font-bold mb-1 text-sm">¿Problemas con el pago?</p>
+                    <p className="text-[#B0B0B0] text-[10px] mb-4">Comunícate a nuestro canal oficial de WhatsApp</p>
+                    <a href="https://wa.me/573044347740" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between bg-[#121212] border border-[#E60000]/30 hover:bg-[#E60000]/10 transition-colors p-4 rounded-xl group cursor-pointer shadow-[0_0_10px_rgba(230, 0, 0,0.05)]">
+                      <div className="flex items-center gap-3">
+                        <Smartphone className="w-6 h-6 text-[#E60000] group-hover:scale-110 transition-transform" />
+                        <span className="text-[#E60000] font-bold text-lg tracking-wider">304 434 7740</span>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-[#E60000]/50 group-hover:text-[#E60000] transition-colors" />
+                    </a>
+                  </div>
+                )}
 
                 {/* Graphic Footer */}
                 <div className="relative rounded-2xl overflow-hidden border border-[#2A2A2A] bg-[#121212] shadow-2xl mt-0">
@@ -1863,12 +1902,14 @@ export default function InscripcionPage() {
                   <Clock className="w-10 h-10 text-yellow-500 animate-pulse" />
                 </div>
                 <h2 className="text-3xl font-extrabold text-white mb-2 text-center">
-                  {estadoPago === 'revision_saldo' ? 'Saldo en Validación' : 'Pago en Validación'}
+                  {selectedEvent === 'nitrox' ? 'Inscripción Recibida' : (estadoPago === 'revision_saldo' ? 'Saldo en Validación' : 'Pago en Validación')}
                 </h2>
                 <p className="text-zinc-400 text-center mb-8">
-                  {estadoPago === 'revision_saldo' 
-                    ? "Hemos recibido el comprobante de tu saldo faltante. Nuestro equipo lo revisará en breve." 
-                    : "Hemos recibido tu comprobante de pago. Nuestro equipo lo revisará en breve."}
+                  {selectedEvent === 'nitrox' 
+                    ? "Hemos recibido tu inscripción para la Copa Stunt Nitrox. Nuestro equipo validará tu registro pronto."
+                    : (estadoPago === 'revision_saldo' 
+                      ? "Hemos recibido el comprobante de tu saldo faltante. Nuestro equipo lo revisará en breve." 
+                      : "Hemos recibido tu comprobante de pago. Nuestro equipo lo revisará en breve.")}
                   <br/><br/>
                   Vuelve a ingresar a esta sección más tarde para ver tu código QR de acceso oficial.
                 </p>
