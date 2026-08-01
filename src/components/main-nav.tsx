@@ -197,7 +197,11 @@ export function MainNav() {
         <div className="print:hidden" style={{position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 9999, backdropFilter: 'blur(5px)'}}>
           <div style={{width: '280px', height: '100%', backgroundColor: '#111', borderRight: '1px solid #E60000', padding: '20px', display: 'flex', flexDirection: 'column', overflowX: 'hidden'}}>
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px'}}>
-              <img src="/sponsors/PKS Blanco.png" alt="PKS" style={{ height: '30px' }} />
+              <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                <img src="/sponsors/PKS Blanco.png" alt="PKS" style={{ height: '24px', objectFit: 'contain' }} />
+                <span style={{color: '#3f3f46', fontSize: '0.9rem'}}>|</span>
+                <img src="/sponsors/Stunt Festival 9.png" alt="Stunt Festival" style={{ height: '26px', objectFit: 'contain' }} />
+              </div>
               <button onClick={() => setIsMobileMenuOpen(false)} style={{background:'none', border:'none', color:'white', fontSize:'1.5rem', cursor: 'pointer'}}>✕</button>
             </div>
             <div className="scrollbar-hide" style={{display: 'flex', flexDirection: 'column', gap: '20px', fontSize: '1.2rem', fontFamily: 'Orbitron', overflowY: 'auto', overflowX: 'hidden', paddingBottom: '20px'}}>
@@ -296,9 +300,12 @@ export function MainNav() {
             <button onClick={() => setIsMobileMenuOpen(true)} style={{ background: 'none', border: 'none', color: '#E60000', fontSize: '2.2rem', cursor: 'pointer', lineHeight: 1 }}>☰</button>
           </div>
           
-          <Link href="/profile" className="flex items-center shrink-0">
+          <Link href="/profile" className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/sponsors/PKS Blanco.png" alt="Paskines Stunt" className="h-6 md:h-8 w-auto object-contain" />
+            <span className="text-zinc-700 text-xs sm:text-sm select-none">|</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/sponsors/Stunt Festival 9.png" alt="Stunt Festival" className="h-7 md:h-9 w-auto object-contain" />
           </Link>
         </div>
 
