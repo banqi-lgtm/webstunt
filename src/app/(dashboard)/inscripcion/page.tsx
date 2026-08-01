@@ -32,7 +32,7 @@ interface EventCardProps {
   bgPosition?: string;
   status: string;
   statusIcon: React.ComponentType<any>;
-  statusColor: 'blue' | 'orange' | 'red' | 'emerald';
+  statusColor: 'blue' | 'orange' | 'red' | 'emerald' | 'gold';
   title: string;
   titleAccent: string;
   description: string;
@@ -62,6 +62,13 @@ function EventCard({
   renderStatusBadge
 }: EventCardProps) {
   const theme = {
+    gold: {
+      border: 'border-[#D49E35]/50 hover:border-[#D49E35] group-hover:shadow-[0_0_35px_rgba(212,158,53,0.25)]',
+      divider: 'bg-[#D49E35]',
+      badge: 'border-[#D49E35]/40 text-[#D49E35] bg-[#D49E35]/10',
+      titleAccent: 'text-[#D49E35]',
+      btn: 'bg-[#D49E35] hover:bg-[#C38D24] text-white shadow-[0_4px_20px_rgba(212,158,53,0.3)]',
+    },
     blue: {
       border: 'border-blue-600/50 hover:border-blue-500 group-hover:shadow-[0_0_35px_rgba(37,99,235,0.25)]',
       divider: 'bg-blue-600',
@@ -121,6 +128,7 @@ function EventCard({
 
       {/* Radial glow background in bottom right */}
       <div className={`absolute bottom-0 right-0 w-[180px] h-[180px] rounded-full blur-[80px] mix-blend-screen pointer-events-none opacity-[0.07] transition-opacity duration-500 group-hover:opacity-15 ${
+        statusColor === 'gold' ? 'bg-[#D49E35]' :
         statusColor === 'blue' ? 'bg-blue-500' :
         statusColor === 'orange' ? 'bg-orange-500' :
         statusColor === 'red' ? 'bg-red-600' :
@@ -141,10 +149,10 @@ function EventCard({
       <div className={`absolute top-0 bottom-0 left-[45%] w-[1.5px] ${theme.divider} hidden md:block z-30 transition-colors duration-500`} />
 
       {/* Content Column (55% on desktop) */}
-      <div className="w-full md:w-[55%] h-auto md:h-full p-6 md:p-8 flex flex-col justify-between items-start text-left z-10 relative">
-        {/* Top Row: Event Logo (left) & User status badge (right) */}
-        <div className="w-full flex items-center justify-between gap-4 mb-2 h-14 md:h-16 relative overflow-visible">
-          <div className="flex-1 flex justify-start items-center h-full">
+      <div className="w-full md:w-[55%] h-auto md:h-full p-6 md:p-8 flex flex-col justify-between items-center text-center z-10 relative">
+        {/* Top Row: Event Logo (centered) & User status badge (right absolute) */}
+        <div className="w-full flex items-center justify-center gap-4 mb-2 h-14 md:h-16 relative overflow-visible">
+          <div className="flex-1 flex justify-center items-center h-full">
             <img 
               src={logo} 
               alt={`${title} Logo`} 
@@ -153,14 +161,14 @@ function EventCard({
             />
           </div>
           {userStatus && (
-            <div className="shrink-0 z-20">
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 z-20">
               {renderStatusBadge(userStatus)}
             </div>
           )}
         </div>
 
         {/* Middle Section: Event Badge, Title, and Description */}
-        <div className="w-full flex-1 flex flex-col justify-center items-start gap-2.5 py-1">
+        <div className="w-full flex-1 flex flex-col justify-center items-center gap-2.5 py-1">
           {/* Event Status Badge */}
           <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border ${theme.badge} text-[9px] font-black tracking-widest uppercase w-fit shadow-[0_0_15px_rgba(0,0,0,0.4)]`}>
             <StatusIcon className="w-3.5 h-3.5" />
@@ -173,7 +181,7 @@ function EventCard({
           </h2>
 
           {/* Event Description */}
-          <p className="text-zinc-400 text-[11px] font-semibold leading-relaxed max-w-[280px] line-clamp-2">
+          <p className="text-zinc-400 text-[11px] font-semibold leading-relaxed max-w-[280px] line-clamp-2 mx-auto">
             {description}
           </p>
         </div>
@@ -1204,7 +1212,7 @@ export default function InscripcionPage() {
                     bgPosition={event.bgPosition}
                     status={event.statusText}
                     statusIcon={event.statusIcon}
-                    statusColor={event.id === 'nitrox' ? 'blue' : event.id === 'festival' ? 'orange' : event.id === 'stuntday' ? 'red' : 'emerald'}
+                    statusColor={event.id === 'nitrox' ? 'gold' : event.id === 'festival' ? 'orange' : event.id === 'stuntday' ? 'red' : 'emerald'}
                     title={event.title}
                     titleAccent={event.titleAccent}
                     description={event.subtitle}
