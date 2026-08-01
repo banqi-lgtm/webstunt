@@ -134,9 +134,9 @@ function EventCard({
       <div className={`absolute top-0 bottom-0 left-[45%] w-[1.5px] ${theme.divider} hidden md:block z-30 transition-colors duration-500`} />
 
       {/* Content Column (55% on desktop) */}
-      <div className="w-full md:w-[55%] h-auto md:h-full p-5 md:p-6 flex flex-col justify-center items-center text-center z-10 relative gap-3 md:gap-3.5">
+      <div className="w-full md:w-[55%] h-auto md:h-full p-6 md:p-7 flex flex-col justify-center items-center text-center z-10 relative gap-3.5">
         {/* Top Row: Event Logo (centered) & User status badge (right absolute) */}
-        <div className="w-full flex items-center justify-center h-10 md:h-12 relative overflow-visible shrink-0">
+        <div className="w-full flex items-center justify-center h-14 md:h-16 relative overflow-visible shrink-0">
           <img 
             src={logo} 
             alt={`${title} Logo`} 
@@ -144,36 +144,39 @@ function EventCard({
             loading="lazy"
           />
           {userStatus && (
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 z-20 scale-90 origin-right">
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 z-20 scale-95 origin-right">
               {renderStatusBadge(userStatus)}
             </div>
           )}
         </div>
 
-        {/* Event Status Badge */}
-        <div className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border ${theme.badge} text-[9px] font-black tracking-widest uppercase w-fit shadow-[0_0_15px_rgba(0,0,0,0.4)] shrink-0`}>
-          <StatusIcon className="w-3.5 h-3.5" />
-          <span>{status}</span>
+        {/* Centered clustered details with tighter gaps */}
+        <div className="flex flex-col items-center w-full gap-2 shrink-0">
+          {/* Event Status Badge */}
+          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border ${theme.badge} text-[9px] font-black tracking-widest uppercase w-fit shadow-[0_0_15px_rgba(0,0,0,0.4)]`}>
+            <StatusIcon className="w-3.5 h-3.5" />
+            <span>{status}</span>
+          </div>
+
+          {/* Event Title */}
+          <h2 className="text-xl md:text-[22px] font-black text-white uppercase tracking-tight leading-none mt-1">
+            {title} <span className={theme.titleAccent}>{titleAccent}</span>
+          </h2>
+
+          {/* Event Description */}
+          <p className="text-zinc-400 text-[11px] font-semibold leading-relaxed max-w-[280px] line-clamp-2 mx-auto">
+            {description}
+          </p>
         </div>
 
-        {/* Event Title */}
-        <h2 className="text-lg md:text-[20px] font-black text-white uppercase tracking-tight leading-tight shrink-0">
-          {title} <span className={theme.titleAccent}>{titleAccent}</span>
-        </h2>
-
-        {/* Event Description */}
-        <p className="text-zinc-400 text-[11px] font-medium leading-relaxed max-w-[280px] line-clamp-2 mx-auto shrink-0">
-          {description}
-        </p>
-
-        {/* Bottom Row: CTA Button */}
-        <div className="w-full max-w-[240px] shrink-0">
+        {/* Bottom Row: CTA Button (Original size, but centered) */}
+        <div className="w-full mt-1 shrink-0">
           <button 
             type="button"
-            className={`relative overflow-hidden w-full py-2.5 rounded-full text-white font-extrabold tracking-widest uppercase shadow-lg text-[9px] md:text-[10px] flex items-center justify-center gap-1.5 transition-all duration-300 border border-transparent ${theme.btn}`}
+            className={`relative overflow-hidden w-full py-3 rounded-full text-white font-extrabold tracking-widest uppercase shadow-lg text-[10px] flex items-center justify-center gap-2 transition-all duration-300 border border-transparent ${theme.btn}`}
           >
-            <span className="relative z-10 flex items-center justify-center gap-1.5">
-              {ctaText} <ChevronRight className="w-3.5 h-3.5 text-white/90 transition-transform duration-300 group-hover:translate-x-0.5" />
+            <span className="relative z-10 flex items-center justify-center gap-2">
+              {ctaText} <ChevronRight className="w-4 h-4 text-white/90 transition-transform duration-300 group-hover:translate-x-1" />
             </span>
             {ctaVariant === 'active' && (
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out pointer-events-none skew-x-12" />
