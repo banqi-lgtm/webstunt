@@ -300,12 +300,12 @@ export function MainNav() {
             <button onClick={() => setIsMobileMenuOpen(true)} style={{ background: 'none', border: 'none', color: '#E60000', fontSize: '2.2rem', cursor: 'pointer', lineHeight: 1 }}>☰</button>
           </div>
           
-          <Link href="/profile" className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <Link href="/profile" className="flex items-center gap-2 sm:gap-3.5 shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/sponsors/PKS Blanco.png" alt="Paskines Stunt" className="h-6 md:h-8 w-auto object-contain" />
-            <span className="text-zinc-700 text-xs sm:text-sm select-none">|</span>
+            <span className="text-zinc-600 text-sm md:text-lg select-none">|</span>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/sponsors/Stunt Festival 9.png" alt="Stunt Festival" className="h-7 md:h-9 w-auto object-contain" />
+            <img src="/sponsors/Stunt Festival 9.png" alt="Stunt Festival" className="h-9 md:h-[45px] w-auto object-contain" />
           </Link>
         </div>
 
