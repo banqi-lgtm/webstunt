@@ -34,6 +34,7 @@ interface PilotDetail {
     propiedadUrl: string;
     soatUrl: string;
     deportistaUrl: string;
+    videoUrl?: string;
   };
   registradoEl: string;
   estadoPago: string;
@@ -178,7 +179,7 @@ export default function PilotDetailPage() {
         patrocinadores: data.patrocinadores || false,
         inquietudes: data.inquietudes || 'Ninguna',
         motocicleta: data.motocicleta || { placa: 'N/A', marca: 'N/A', referencia: 'N/A' },
-        documentos: data.documentos || { idUrl: '', placaUrl: '', propiedadUrl: '', soatUrl: '', deportistaUrl: '' },
+        documentos: { idUrl: '', placaUrl: '', propiedadUrl: '', soatUrl: '', deportistaUrl: '', videoUrl: '', ...data.documentos },
         registradoEl: data.registradoEl || '',
         estadoPago: data.estadoPago || 'pendiente',
         comprobanteUrl: data.comprobanteUrl || '',
@@ -516,7 +517,12 @@ export default function PilotDetailPage() {
 
   if (!pilot) return null;
 
-  const isDocsComplete = pilot.documentos.idUrl && pilot.documentos.placaUrl && pilot.documentos.propiedadUrl && pilot.documentos.soatUrl && pilot.documentos.deportistaUrl;
+  const isSimplified = pilot.id.startsWith('festival_') || pilot.id.startsWith('nitrox_');
+  const isDocsComplete = isSimplified 
+    ? (pilot.id.startsWith('festival_')
+        ? !!(pilot.documentos.idUrl && pilot.documentos.deportistaUrl && pilot.documentos.videoUrl)
+        : !!(pilot.documentos.idUrl && pilot.documentos.deportistaUrl))
+    : !!(pilot.documentos.idUrl && pilot.documentos.placaUrl && pilot.documentos.propiedadUrl && pilot.documentos.soatUrl && pilot.documentos.deportistaUrl);
   const isPaymentApproved = pilot.estadoPago === 'aprobado' || pilot.estadoPago === 'pago_dia_evento';
   const isAllGreen = isDocsComplete && isPaymentApproved;
 
@@ -561,11 +567,15 @@ export default function PilotDetailPage() {
           </div>
         )}
         <div className={`relative h-32 flex-grow bg-zinc-900 border rounded-lg overflow-hidden flex items-center justify-center transition-colors group ${isRejected ? 'border-red-500' : 'border-zinc-700 hover:border-red-600'}`}>
-          <img src={url} alt={title} className="object-cover w-full h-full" onError={(e) => {
-            (e.target as HTMLImageElement).style.display = 'none';
-            (e.target as HTMLImageElement).parentElement?.classList.add('bg-zinc-800');
-            (e.target as HTMLImageElement).parentElement?.insertAdjacentHTML('beforeend', '<div class="text-zinc-500 flex flex-col items-center"><svg class="w-8 h-8 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg><span class="text-[10px] uppercase font-bold tracking-widest">PDF</span></div>');
-          }}/>
+          {docKey === 'video' ? (
+            <video src={url} className="object-cover w-full h-full" muted playsInline preload="metadata" />
+          ) : (
+            <img src={url} alt={title} className="object-cover w-full h-full" onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+              (e.target as HTMLImageElement).parentElement?.classList.add('bg-zinc-800');
+              (e.target as HTMLImageElement).parentElement?.insertAdjacentHTML('beforeend', '<div class="text-zinc-500 flex flex-col items-center"><svg class="w-8 h-8 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg><span class="text-[10px] uppercase font-bold tracking-widest">PDF</span></div>');
+            }}/>
+          )}
           
           {/* Overlay de acciones */}
           <div className="absolute inset-0 bg-black/60 transition-opacity z-10 flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100">
@@ -980,7 +990,9 @@ export default function PilotDetailPage() {
                 </div>
                 <div className="flex flex-row flex-wrap items-center justify-between lg:justify-end gap-4 sm:gap-6 w-full lg:w-auto">
                   <div className="flex flex-col items-start lg:items-end">
-                    <span className="text-[10px] sm:text-xs text-zinc-500 uppercase">Documentos (5/5)</span>
+                    <span className="text-[10px] sm:text-xs text-zinc-500 uppercase">
+                      Documentos ({pilot.id.startsWith('festival_') ? '3/3' : (pilot.id.startsWith('nitrox_') ? '2/2' : '5/5')})
+                    </span>
                     {isDocsComplete ? (
                       <span className="text-red-500 font-bold text-xs sm:text-sm flex items-center gap-1"><CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4"/> COMPLETOS</span>
                     ) : (
@@ -1012,10 +1024,21 @@ export default function PilotDetailPage() {
           <CardContent className="pt-4">
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
               <DocumentPreview title="1. Identidad" url={pilot.documentos.idUrl} docKey="id" />
-              <DocumentPreview title="2. Deportista" url={pilot.documentos.deportistaUrl} docKey="deportista" />
-              <DocumentPreview title="3. Placa" url={pilot.documentos.placaUrl} docKey="placa" />
-              <DocumentPreview title="4. Propiedad" url={pilot.documentos.propiedadUrl} docKey="propiedad" />
-              <DocumentPreview title="5. SOAT" url={pilot.documentos.soatUrl} docKey="soat" />
+              <DocumentPreview 
+                title={pilot.id.startsWith('festival_') ? "2. Deportista (Bici)" : "2. Deportista"} 
+                url={pilot.documentos.deportistaUrl} 
+                docKey="deportista" 
+              />
+              {pilot.id.startsWith('festival_') && (
+                <DocumentPreview title="3. Video Presentación" url={pilot.documentos.videoUrl} docKey="video" />
+              )}
+              {!isSimplified && (
+                <>
+                  <DocumentPreview title="3. Placa" url={pilot.documentos.placaUrl} docKey="placa" />
+                  <DocumentPreview title="4. Propiedad" url={pilot.documentos.propiedadUrl} docKey="propiedad" />
+                  <DocumentPreview title="5. SOAT" url={pilot.documentos.soatUrl} docKey="soat" />
+                </>
+              )}
             </div>
           </CardContent>
         </Card>

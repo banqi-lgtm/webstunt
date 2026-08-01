@@ -186,10 +186,10 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode, onBackToMenu, mode
 
   const handleRegister = async () => {
     let incomplete = false;
-    if (!nombres || !apellidos || !tipoDocumento || !numeroIdentificacion || !telefono || !ciudad || !direccion || !email || !password) {
+    if (!nombres || !apellidos || !tipoDocumento || !numeroIdentificacion || !telefono || !ciudad || !email || !password) {
       incomplete = true;
     }
-    if (mode === 'default' && (!seudonimo || !fechaNacimiento || !tallaCamisa)) {
+    if (mode === 'default' && (!seudonimo || !fechaNacimiento)) {
       incomplete = true;
     }
     if (tipoDocumento === 'NIT' && !dv) {
@@ -523,26 +523,7 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode, onBackToMenu, mode
                   <FloatingInput id="telefono" label="Teléfono" icon={Phone} type="tel" value={telefono} onChange={(e: any) => setTelefono(e.target.value)} required />
                   <FloatingInput id="ciudad" label="Ciudad" icon={MapPin} value={ciudad} onChange={(e: any) => setCiudad(e.target.value)} required />
 
-                  <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                    <FloatingInput id="direccion" label="Dirección" icon={MapPin} value={direccion} onChange={(e: any) => setDireccion(e.target.value)} required />
-                    {mode === 'default' && (
-                      <FloatingInput 
-                        id="tallaCamisa" 
-                        label="Talla de Camisa" 
-                        isSelect 
-                        value={tallaCamisa} 
-                        onChange={(e: any) => setTallaCamisa(e.target.value)} 
-                        required 
-                        options={[
-                          { value: "S", label: "S" },
-                          { value: "M", label: "M" },
-                          { value: "L", label: "L" },
-                          { value: "XL", label: "XL" },
-                          { value: "XXL", label: "XXL" }
-                        ]}
-                      />
-                    )}
-                  </div>
+
 
                   {mode === 'default' && (
                     <div className="md:col-span-2">
