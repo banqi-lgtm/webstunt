@@ -1306,7 +1306,9 @@ export default function InscripcionPage() {
                       <p className="text-[10px] text-[#B0B0B0] mt-0.5 font-medium">{Math.max(0, 30 - (categoryCounts['open'] || 0))} CUPOS RESTANTES</p>
                     </div>
                     {categorias.includes('open') && <CheckCircle2 className="w-5 h-5 text-[#E60000] absolute top-2 right-2" />}
-                     <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('2t') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['2t'] || 0) >= (selectedEvent === 'nitrox' ? 30 : 15) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { 
+                  </div>
+                  
+                  <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('2t') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['2t'] || 0) >= (selectedEvent === 'nitrox' ? 30 : 15) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { 
                     if ((categoryCounts['2t'] || 0) >= (selectedEvent === 'nitrox' ? 30 : 15)) return;
                     if (categorias.includes('open')) {
                       toast({ title: "Categoría exclusiva", description: "La categoría OPEN no se puede combinar con otras.", variant: "default" });
