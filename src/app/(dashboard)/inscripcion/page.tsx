@@ -1379,31 +1379,33 @@ export default function InscripcionPage() {
                     {categorias.includes('alto') && <CheckCircle2 className="w-5 h-5 text-[#E60000] absolute top-2 right-2" />}
                   </div>
 
-                  <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('bikelife') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['bikelife'] || 0) >= 15 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { 
-                    if ((categoryCounts['bikelife'] || 0) >= 15) return;
-                    if (categorias.includes('open')) {
-                      toast({ title: "Categoría exclusiva", description: "La categoría OPEN no se puede combinar con otras.", variant: "default" });
-                      return;
-                    }
-                    if (categorias.includes('bikelife')) {
-                      const newCats = categorias.filter(c => c !== 'bikelife');
-                      setCategorias(newCats);
-                      saveCategoriasToDB(newCats);
-                    } else {
-                      const newCats = [...categorias, 'bikelife'];
-                      setCategorias(newCats);
-                      saveCategoriasToDB(newCats);
-                    }
-                  }}>
-                    <div className="w-10 h-10 rounded-full bg-[#1A1A1A] flex items-center justify-center mr-3 border border-[#2A2A2A]">
-                      <span className="text-xl">🚲</span>
+                  {selectedEvent === 'nitrox' && (
+                    <div className={`relative flex items-center p-4 rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('bikelife') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['bikelife'] || 0) >= 15 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => { 
+                      if ((categoryCounts['bikelife'] || 0) >= 15) return;
+                      if (categorias.includes('open')) {
+                        toast({ title: "Categoría exclusiva", description: "La categoría OPEN no se puede combinar con otras.", variant: "default" });
+                        return;
+                      }
+                      if (categorias.includes('bikelife')) {
+                        const newCats = categorias.filter(c => c !== 'bikelife');
+                        setCategorias(newCats);
+                        saveCategoriasToDB(newCats);
+                      } else {
+                        const newCats = [...categorias, 'bikelife'];
+                        setCategorias(newCats);
+                        saveCategoriasToDB(newCats);
+                      }
+                    }}>
+                      <div className="w-10 h-10 rounded-full bg-[#1A1A1A] flex items-center justify-center mr-3 border border-[#2A2A2A]">
+                        <span className="text-xl">🚲</span>
+                      </div>
+                      <div className="flex-1">
+                        <Label className="font-bold text-white text-sm cursor-pointer">BIKELIFE</Label>
+                        <p className="text-[10px] text-[#B0B0B0] mt-0.5 font-medium">{Math.max(0, 15 - (categoryCounts['bikelife'] || 0))} CUPOS RESTANTES</p>
+                      </div>
+                      {categorias.includes('bikelife') && <CheckCircle2 className="w-5 h-5 text-[#E60000] absolute top-2 right-2" />}
                     </div>
-                    <div className="flex-1">
-                      <Label className="font-bold text-white text-sm cursor-pointer">BIKELIFE</Label>
-                      <p className="text-[10px] text-[#B0B0B0] mt-0.5 font-medium">{Math.max(0, 15 - (categoryCounts['bikelife'] || 0))} CUPOS RESTANTES</p>
-                    </div>
-                    {categorias.includes('bikelife') && <CheckCircle2 className="w-5 h-5 text-[#E60000] absolute top-2 right-2" />}
-                  </div>
+                  )}
                 </div>
               </div>
               
