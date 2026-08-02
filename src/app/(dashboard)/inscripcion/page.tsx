@@ -870,6 +870,8 @@ export default function InscripcionPage() {
       else if (catKey === '2t') maxCupos = 30;
       else if (catKey === '4t') maxCupos = 20;
       else if (catKey === 'alto') maxCupos = 15;
+    } else if (selectedEvent === 'nitrox') {
+      if (catKey === 'alto') maxCupos = 10;
     }
     if ((categoryCounts[catKey] || 0) >= maxCupos) return;
 
@@ -992,7 +994,7 @@ export default function InscripcionPage() {
       open: selectedEvent === 'festival' ? 30 : 30, 
       '2t': selectedEvent === 'festival' ? 30 : (isSimplified ? 30 : 15), 
       '4t': selectedEvent === 'festival' ? 20 : (isSimplified ? 30 : 15), 
-      alto: selectedEvent === 'festival' ? 15 : (isSimplified ? 30 : 15), 
+      alto: selectedEvent === 'festival' ? 15 : (selectedEvent === 'nitrox' ? 10 : (isSimplified ? 30 : 15)), 
       bikelife: 30 
     };
     for (const cat of categorias) {
@@ -1505,7 +1507,7 @@ export default function InscripcionPage() {
                       {categorias.includes('4t') && <CheckCircle2 className="w-5 h-5 text-[#E60000] absolute top-2 right-2" />}
                     </div>
 
-                    <div className={`relative flex items-center ${isSimplifiedEvent ? 'p-2.5 sm:p-3' : 'p-4'} rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('alto') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['alto'] || 0) >= (selectedEvent === 'festival' ? 15 : (isSimplifiedEvent ? 30 : 15)) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => handleCatClick('alto')}>
+                    <div className={`relative flex items-center ${isSimplifiedEvent ? 'p-2.5 sm:p-3' : 'p-4'} rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('alto') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['alto'] || 0) >= (selectedEvent === 'festival' ? 15 : (selectedEvent === 'nitrox' ? 10 : (isSimplifiedEvent ? 30 : 15))) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => handleCatClick('alto')}>
                       <div className={`shrink-0 ${isSimplifiedEvent ? 'w-8 h-8 mr-2' : 'w-10 h-10 mr-3'} rounded-full bg-[#1A1A1A] flex items-center justify-center border border-[#2A2A2A]`}>
                         <span className={isSimplifiedEvent ? 'text-lg' : 'text-xl'}>🔥</span>
                       </div>
@@ -1515,7 +1517,7 @@ export default function InscripcionPage() {
                         </Label>
                         {selectedEvent !== 'festival' && (
                           <p className={`${isSimplifiedEvent ? 'text-[9px]' : 'text-[10px]'} text-[#B0B0B0] mt-0.5 font-medium`}>
-                            {Math.max(0, (isSimplifiedEvent ? 30 : 15) - (categoryCounts['alto'] || 0))} CUPOS RESTANTES
+                            {Math.max(0, (selectedEvent === 'nitrox' ? 10 : (isSimplifiedEvent ? 30 : 15)) - (categoryCounts['alto'] || 0))} CUPOS RESTANTES
                           </p>
                         )}
                       </div>
