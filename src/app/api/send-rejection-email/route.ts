@@ -12,10 +12,18 @@ const transporter = nodemailer.createTransport({
 
 export async function POST(req: Request) {
   try {
-    const { email, nombre, estadoPago } = await req.json();
+    const { email, nombre, estadoPago, eventId } = await req.json();
 
     if (!email || !nombre) {
       return NextResponse.json({ error: 'Faltan datos requeridos' }, { status: 400 });
+    }
+
+    // Dynamic configuration based on eventId
+    let eventName = 'Copa Stunt F2R';
+    if (eventId === 'festival') {
+      eventName = 'Festival Stunt';
+    } else if (eventId === 'nitrox') {
+      eventName = 'Copa Stunt Nitrox';
     }
 
     const isSaldo = estadoPago === 'rechazado_saldo';
@@ -30,7 +38,7 @@ export async function POST(req: Request) {
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Aviso Importante - Copa Stunt F2R</title>
+      <title>Aviso Importante - ${eventName}</title>
     </head>
     <body style="margin: 0; padding: 0; font-family: 'Arial', sans-serif; background-color: #0d0d0d; color: #ffffff;">
       <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #0d0d0d; padding: 20px;">
@@ -41,7 +49,7 @@ export async function POST(req: Request) {
               <!-- Header -->
               <tr>
                 <td align="center" style="background-color: #000000; padding: 30px; border-bottom: 2px solid #ef4444;">
-                  <h1 style="color: #ef4444; margin: 0; font-size: 28px; text-transform: uppercase; letter-spacing: 2px;">Copa Stunt F2R</h1>
+                  <h1 style="color: #ef4444; margin: 0; font-size: 28px; text-transform: uppercase; letter-spacing: 2px;">${eventName}</h1>
                   <p style="color: #888; margin: 5px 0 0 0; font-size: 14px; letter-spacing: 1px;">AVISO DE REGISTRO</p>
                 </td>
               </tr>
@@ -57,7 +65,7 @@ export async function POST(req: Request) {
                   <p style="color: #cccccc; font-size: 16px; line-height: 1.6;">
                     ${problemText} Esto puede deberse a que la imagen está borrosa, el monto no coincide, o el comprobante no es válido.
                   </p>
-
+ 
                   <div style="background-color: #262626; border-left: 4px solid #ef4444; border-radius: 8px; padding: 20px; margin: 30px 0;">
                     <h3 style="color: #ef4444; margin-top: 0; font-size: 18px; text-transform: uppercase;">¿Qué debes hacer ahora?</h3>
                     <ul style="color: #cccccc; font-size: 15px; line-height: 1.6; padding-left: 20px;">
@@ -78,7 +86,7 @@ export async function POST(req: Request) {
               <tr>
                 <td align="center" style="background-color: #0a0a0a; padding: 20px; border-top: 1px solid #333;">
                   <p style="color: #666666; font-size: 12px; margin: 0;">
-                    Este es un mensaje automático generado por Copa Stunt F2R.<br>
+                    Este es un mensaje automático generado por ${eventName}.<br>
                     Por favor no respondas a este correo.
                   </p>
                 </td>
@@ -93,12 +101,14 @@ export async function POST(req: Request) {
     `;
 
     // Send mail
-    await transporter.sendMail({
-      from: '"Copa Stunt F2R" <copastuntfrnitrox@gmail.com>',
+    console.log(`[Email Rejection] Attempting to send email to: ${email}, Name: ${nombre}, Event: ${eventName}, EventId: ${eventId}`);
+    const info = await transporter.sendMail({
+      from: `"${eventName}" <copastuntfrnitrox@gmail.com>`,
       to: email,
-      subject: '⚠️ Atención requerida con tu registro - Copa Stunt F2R',
+      subject: `⚠️ Atención requerida con tu registro - ${eventName}`,
       html: htmlTemplate,
     });
+    console.log(`[Email Rejection] Email sent successfully. MessageId: ${info.messageId}`);
 
     return NextResponse.json({ success: true });
   } catch (error) {

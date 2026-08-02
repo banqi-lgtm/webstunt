@@ -2183,7 +2183,7 @@ export default function InscripcionPage() {
               </>
             )}
 
-            {(estadoPago === 'aprobado' || estadoPago === 'pago_dia_evento') && (
+            {selectedEvent === 'f2r' && (estadoPago === 'aprobado' || estadoPago === 'pago_dia_evento') && (
               <>
                 <div className="bg-[#121212] border border-[#2A2A2A] rounded-2xl overflow-hidden shadow-2xl mb-8 flex flex-col items-center" style={{ transform: 'scale(1.15)', transformOrigin: 'top center', margin: '20px auto 60px auto', maxWidth: '400px', width: '100%' }}>
                   <div className="panel-header font-display w-full" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px 10px', borderBottom: 'none' }}>
@@ -2199,7 +2199,7 @@ export default function InscripcionPage() {
                         PUNTAJE VÁLIDO {activeEventObj ? activeEventObj.title : ''} {(() => {
                           const getMappedCategory = (c: string) => {
                             let f = String(c).toUpperCase().trim();
-                            if (selectedEvent === 'festival') {
+                            if ((selectedEvent as string) === 'festival') {
                               if (f === 'OPEN') return 'NOVATOS';
                               if (f === '2T' || f === '2 TIEMPOS') return 'PREEXPERTOS';
                               if (f === '4T' || f === '4 TIEMPOS') return 'EXPERTOS';
@@ -2219,7 +2219,7 @@ export default function InscripcionPage() {
                           {categorias.map((cat, idx) => {
                             const getMappedCategory = (c: string) => {
                               let f = String(c).toUpperCase().trim();
-                              if (selectedEvent === 'festival') {
+                              if ((selectedEvent as string) === 'festival') {
                                 if (f === 'OPEN') return 'NOVATOS';
                                 if (f === '2T' || f === '2 TIEMPOS') return 'PREEXPERTOS';
                                 if (f === '4T' || f === '4 TIEMPOS') return 'EXPERTOS';
@@ -2360,11 +2360,72 @@ export default function InscripcionPage() {
                 </Dialog>
               </>
             )}
+
+            {selectedEvent !== 'f2r' && (estadoPago === 'aprobado' || estadoPago === 'pago_dia_evento') && (
+              <>
+                <div className="w-20 h-20 bg-[#39FF14]/10 rounded-full flex items-center justify-center mb-6 border border-[#39FF14]/30 shadow-[0_0_30px_rgba(57,255,20,0.35)]">
+                  <CheckCircle2 className="w-12 h-12 text-[#39FF14] animate-bounce" />
+                </div>
+                <h2 className="text-3xl font-extrabold text-white mb-2 text-center uppercase tracking-wider font-display">¡Inscripción Aprobada!</h2>
+                
+                {activeEventObj?.logo && (
+                  <div className="my-6 flex flex-col items-center justify-center gap-2">
+                    {activeEventObj.logo.includes(',') ? (
+                      activeEventObj.logo.split(',').map((src, index) => (
+                        <img 
+                          key={src}
+                          src={src} 
+                          alt={`${activeEventObj.title} Logo ${index + 1}`} 
+                          className="h-16 object-contain filter drop-shadow-[0_0_15px_rgba(57,255,20,0.4)]" 
+                        />
+                      ))
+                    ) : (
+                      <img 
+                        src={activeEventObj.logo} 
+                        alt={`${activeEventObj.title} Logo`} 
+                        className="h-28 object-contain filter drop-shadow-[0_0_15px_rgba(57,255,20,0.4)]" 
+                      />
+                    )}
+                  </div>
+                )}
+
+                <div className="text-zinc-400 text-center mb-8 space-y-4 text-sm leading-relaxed max-w-md">
+                  <p className="text-white font-semibold">
+                    ¡Felicitaciones, <span className="text-[#39FF14] font-bold">{nombres}</span>! Tu cupo para <span className="text-[#39FF14] font-bold">{activeEventObj?.title || 'el evento'}</span> está oficialmente aprobado.
+                  </p>
+                  
+                  <div className="bg-[#1A1A1A] border border-zinc-800 p-5 rounded-2xl text-left space-y-3 shadow-inner">
+                    <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-black border-b border-zinc-800 pb-2">Detalles de Registro:</p>
+                    <p className="text-sm text-zinc-300 flex items-center gap-2">
+                      <span className="text-[#39FF14]">📍</span> <strong>Ubicación:</strong> Pereira
+                    </p>
+                    <p className="text-sm text-zinc-300 flex items-center gap-2">
+                      <span className="text-[#39FF14]">🏁</span> <strong>Categoría:</strong> {categorias.join(', ')}
+                    </p>
+                    <p className="text-sm text-zinc-300 flex items-center gap-2">
+                      <span className="text-[#39FF14]">💰</span> <strong>Modalidad:</strong> {estadoPago === 'pago_dia_evento' ? 'Pago Presencial en Entrada' : 'Inscripción Confirmada'}
+                    </p>
+                  </div>
+                  
+                  <p className="text-xs text-zinc-500 italic pt-2">
+                    Te hemos enviado un correo de confirmación con las instrucciones finales. ¡Nos vemos en la pista!
+                  </p>
+                </div>
+
+                <div className="flex flex-col w-full gap-3">
+                  <Link href="/profile" className="w-full">
+                    <Button className="w-full bg-[#39FF14] text-black hover:bg-[#39FF14]/90 font-black h-12 uppercase tracking-wider rounded-xl shadow-[0_0_20px_rgba(57,255,20,0.45)]">
+                      Ir a mi perfil
+                    </Button>
+                  </Link>
+                </div>
+              </>
+            )}
             
           </div>
         )}
 
-        {step === 3 && (estadoPago === 'aprobado' || estadoPago === 'pago_dia_evento') && (
+        {step === 3 && selectedEvent === 'f2r' && (estadoPago === 'aprobado' || estadoPago === 'pago_dia_evento') && (
           <div className="mt-8 w-full max-w-5xl mx-auto">
             <SocialMediaCard 
               pilotId={`${selectedEvent}_${uid}`}

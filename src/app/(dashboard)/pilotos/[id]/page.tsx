@@ -134,7 +134,7 @@ export default function PilotDetailPage() {
       const isRegExists = regDoc.exists();
       const data = isRegExists ? regDoc.data() : {};
       
-      const extractedUid = data.uid || id.replace('f2r_', '');
+      const extractedUid = data.uid || id.replace(/^(f2r|festival|nitrox)_/, '');
 
       if (!extractedUid) {
         toast({ title: 'Error', description: 'Piloto no válido', variant: 'destructive'});
@@ -265,7 +265,8 @@ export default function PilotDetailPage() {
           body: JSON.stringify({
             email: pilot.email,
             nombre: pilot.nombres,
-            estadoPago: status
+            estadoPago: status,
+            eventId: pilot.id.split('_')[0]
           })
         }).catch(err => console.error('Error al enviar correo:', err));
         
@@ -281,7 +282,8 @@ export default function PilotDetailPage() {
           body: JSON.stringify({
             email: pilot.email,
             nombre: pilot.nombres,
-            estadoPago: status
+            estadoPago: status,
+            eventId: pilot.id.split('_')[0]
           })
         }).catch(err => console.error('Error al enviar correo de rechazo:', err));
 
@@ -405,7 +407,8 @@ export default function PilotDetailPage() {
           email: pilot.email,
           nombre: pilot.nombres,
           saldoAmount: saldoAmount,
-          motivo: finalMotivo
+          motivo: finalMotivo,
+          eventId: pilot.id.split('_')[0]
         })
       }).catch(err => console.error('Error al enviar correo de saldo:', err));
 
