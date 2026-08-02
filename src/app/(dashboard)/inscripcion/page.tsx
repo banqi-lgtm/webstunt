@@ -147,7 +147,7 @@ function EventCard({
       {/* Content Column (55% on desktop, 100% on mobile) */}
       <div className="w-full md:w-[55%] h-full p-6 md:p-7 flex flex-col justify-between items-center text-center z-10 relative">
         {/* Top Row: Event Logo (centered) */}
-        <div className="w-full flex items-center justify-center h-28 relative overflow-visible shrink-0 px-2 mb-2 sm:mb-3">
+        <div className={`w-full flex items-center justify-center relative overflow-visible shrink-0 px-2 mb-2 sm:mb-3 ${logo.includes(',') ? 'h-[140px] sm:h-[160px]' : 'h-28'}`}>
           {logo.includes(',') ? (
             <div className="flex flex-col items-center justify-center gap-1 w-full">
               {logo.split(',').map((src, index) => (
@@ -157,8 +157,8 @@ function EventCard({
                   alt={`${title} Logo ${index + 1}`} 
                   className={`w-auto object-contain filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)] opacity-95 group-hover:opacity-100 transition-all duration-500 ${
                     src.includes('Stunt Festival 9') 
-                      ? 'h-[54px] sm:h-[62px] md:h-[66px]' 
-                      : (src.includes('IMG_4313') ? 'h-[32px] sm:h-[36px] md:h-[40px]' : 'h-[50px] sm:h-[58px] md:h-[62px]')
+                      ? 'h-[74px] sm:h-[84px] md:h-[92px]' 
+                      : (src.includes('IMG_4313') ? 'h-[32px] sm:h-[36px] md:h-[40px]' : 'h-[70px] sm:h-[80px] md:h-[88px]')
                   }`}
                   loading="lazy"
                 />

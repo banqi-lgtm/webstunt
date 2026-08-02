@@ -200,7 +200,7 @@ export function MainNav() {
               <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
                 <img src="/sponsors/PKS Blanco.png" alt="PKS" style={{ height: '24px', objectFit: 'contain' }} />
                 <span style={{color: '#3f3f46', fontSize: '0.9rem'}}>|</span>
-                <img src="/sponsors/Mobil Blanco.png" alt="Mobil Super" style={{ height: '18px', objectFit: 'contain' }} />
+                <img src="/sponsors/Mobil Blanco.png" alt="Mobil Super" style={{ height: '36px', objectFit: 'contain' }} />
               </div>
               <button onClick={() => setIsMobileMenuOpen(false)} style={{background:'none', border:'none', color:'white', fontSize:'1.5rem', cursor: 'pointer'}}>✕</button>
             </div>
@@ -305,7 +305,7 @@ export function MainNav() {
             <img src="/sponsors/PKS Blanco.png" alt="Paskines Stunt" className="h-6 md:h-8 w-auto object-contain" />
             <span className="text-zinc-600 text-sm md:text-lg select-none">|</span>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/sponsors/Mobil Blanco.png" alt="Mobil Super" className="h-5 md:h-[24px] w-auto object-contain" />
+            <img src="/sponsors/Mobil Blanco.png" alt="Mobil Super" className="h-10 md:h-[44px] w-auto object-contain" />
           </Link>
         </div>
 
