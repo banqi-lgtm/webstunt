@@ -80,6 +80,32 @@ export default function PilotosPage() {
   const [scanningKitFor, setScanningKitFor] = useState<any | null>(null);
   const [kitScanVerified, setKitScanVerified] = useState(false);
 
+  // Load initial filter from URL
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const eventParam = params.get('event');
+      if (eventParam && ['todos', 'f2r', 'stuntday', 'nitrox', 'festival'].includes(eventParam)) {
+        setSelectedEventFilter(eventParam as any);
+      }
+    }
+  }, []);
+
+  // Update URL query param when event filter changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (selectedEventFilter === 'todos') {
+        params.delete('event');
+      } else {
+        params.set('event', selectedEventFilter);
+      }
+      const newSearch = params.toString();
+      const newUrl = `${window.location.pathname}${newSearch ? '?' + newSearch : ''}`;
+      window.history.replaceState(null, '', newUrl);
+    }
+  }, [selectedEventFilter]);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
@@ -145,6 +171,11 @@ export default function PilotosPage() {
           extractedUid = extractedUid || id;
         }
         
+        // Strip event prefixes if present in data.uid
+        if (extractedUid) {
+          extractedUid = extractedUid.replace(/^(f2r|stuntday|nitrox|festival)_/, '');
+        }
+        
         if (extractedUid) {
           const regObj = { id, ...data, eventKey };
           if (!userRegsMap.has(extractedUid)) {
@@ -171,8 +202,8 @@ export default function PilotosPage() {
               motocicleta: regData.motocicleta || { placa: 'N/A', marca: 'N/A', referencia: 'N/A' },
               registradoEl: regData.registradoEl || userData.createdAt || new Date().toISOString(),
               estadoPago: (regData.estadoPago === 'borrador' ? 'pendiente' : regData.estadoPago) || 'pendiente',
-              nombres: userData.nombres || 'Desconocido',
-              apellidos: userData.apellidos || '',
+              nombres: userData.nombres || regData.nombres || 'Desconocido',
+              apellidos: userData.apellidos || regData.apellidos || '',
               email: userData.email || 'N/A',
               numeroIdentificacion: userData.numeroIdentificacion || regData.numeroIdentificacion || 'N/A',
               telefono: userData.telefono || regData.telefono || 'N/A',
@@ -342,7 +373,7 @@ export default function PilotosPage() {
           <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto items-center">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button className="bg-[#E60000] hover:bg-[#CC0000] text-white gap-2 h-12 px-6 w-full sm:w-auto font-bold uppercase tracking-wider shadow-[0_0_20px_rgba(230,0,0,0.2)]">
+                <Button className="bg-zinc-900 hover:bg-zinc-800 text-zinc-100 border border-zinc-800 gap-2 h-10 px-4 w-full sm:w-auto text-xs font-bold uppercase tracking-wider shadow-sm">
                   <span>Filtrar: {
                     selectedEventFilter === 'todos' ? 'Todos los Eventos' :
                     selectedEventFilter === 'f2r' ? 'Copa Stunt F2R' :
@@ -372,84 +403,86 @@ export default function PilotosPage() {
               </DropdownMenuContent>
             </DropdownMenu>
             
-            <Button onClick={exportToExcel} className="bg-zinc-800 hover:bg-zinc-700 text-white gap-2 h-12 px-6 w-full sm:w-auto font-bold shadow-[0_0_20px_rgba(255,255,255,0.05)] border border-zinc-700">
-              <Download className="w-5 h-5" /> EXPORTAR EXCEL
-            </Button>
-            
-            <Dialog open={scannerOpen} onOpenChange={setScannerOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-red-600 hover:bg-red-600 text-white gap-2 h-12 px-6 w-full sm:w-auto font-bold shadow-[0_0_20px_rgba(34,197,94,0.3)]">
-                  <ScanLine className="w-5 h-5" /> ESCANEAR QR
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md bg-zinc-950 border-zinc-800">
-              <DialogHeader>
-                <DialogTitle className="text-white text-center">Escáner de Validación</DialogTitle>
-              </DialogHeader>
-              <div className="w-full aspect-square rounded-xl overflow-hidden bg-black flex items-center justify-center relative mt-4 border-2 border-zinc-800">
-                {scannerOpen && (
-                  <Scanner
-                    onScan={async (detectedCodes) => {
-                      if (detectedCodes && detectedCodes.length > 0) {
-                        const value = detectedCodes[0].rawValue;
-                        if (value) {
-                          const eventKeys = ['f2r', 'stuntday', 'nitrox', 'festival'];
-                          const isPilot = eventKeys.some(key => value.startsWith(`${key}_`));
-                          const isKit = eventKeys.some(key => value.startsWith(`kit_${key}_`));
-                          
-                          if (isPilot || isKit) {
-                            const docId = isKit ? value.replace('kit_', '') : value;
-                            setScannerOpen(false);
-                            setFetchingScan(true);
-                            setIsScannedDialogOpen(true);
-                            try {
-                               const regDoc = await getDoc(doc(db, 'event_registrations', docId));
-                             if (regDoc.exists()) {
-                               const data = regDoc.data();
-                               const extractedUid = data.uid || docId.replace('f2r_', '');
-                               const userDoc = await getDoc(doc(db, 'users', extractedUid));
-                               const userData = userDoc.exists() ? userDoc.data() : {};
-                               
-                               const qrDoc = await getDoc(doc(db, 'listas_QR', docId));
-                               const kitData = qrDoc.exists() ? qrDoc.data() : null;
+            <div className="flex gap-3 w-full sm:w-auto">
+              <Button onClick={exportToExcel} className="bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800 gap-2 h-10 px-4 flex-1 sm:flex-initial text-xs font-bold uppercase tracking-wider shadow-sm">
+                <Download className="w-4 h-4" /> EXPORTAR EXCEL
+              </Button>
+              
+              <Dialog open={scannerOpen} onOpenChange={setScannerOpen}>
+                <DialogTrigger asChild>
+                  <Button className="bg-red-700/90 hover:bg-red-600 text-white gap-2 h-10 px-4 flex-1 sm:flex-initial text-xs font-bold uppercase tracking-wider shadow-[0_2px_10px_rgba(220,38,38,0.15)]">
+                    <ScanLine className="w-4 h-4" /> ESCANEAR QR
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md bg-zinc-950 border-zinc-800">
+                <DialogHeader>
+                  <DialogTitle className="text-white text-center">Escáner de Validación</DialogTitle>
+                </DialogHeader>
+                <div className="w-full aspect-square rounded-xl overflow-hidden bg-black flex items-center justify-center relative mt-4 border-2 border-zinc-800">
+                  {scannerOpen && (
+                    <Scanner
+                      onScan={async (detectedCodes) => {
+                        if (detectedCodes && detectedCodes.length > 0) {
+                          const value = detectedCodes[0].rawValue;
+                          if (value) {
+                            const eventKeys = ['f2r', 'stuntday', 'nitrox', 'festival'];
+                            const isPilot = eventKeys.some(key => value.startsWith(`${key}_`));
+                            const isKit = eventKeys.some(key => value.startsWith(`kit_${key}_`));
+                            
+                            if (isPilot || isKit) {
+                              const docId = isKit ? value.replace('kit_', '') : value;
+                              setScannerOpen(false);
+                              setFetchingScan(true);
+                              setIsScannedDialogOpen(true);
+                              try {
+                                 const regDoc = await getDoc(doc(db, 'event_registrations', docId));
+                               if (regDoc.exists()) {
+                                 const data = regDoc.data();
+                                 const extractedUid = data.uid || docId.replace('f2r_', '');
+                                 const userDoc = await getDoc(doc(db, 'users', extractedUid));
+                                 const userData = userDoc.exists() ? userDoc.data() : {};
+                                 
+                                 const qrDoc = await getDoc(doc(db, 'listas_QR', docId));
+                                 const kitData = qrDoc.exists() ? qrDoc.data() : null;
 
-                               setScannedPilot({
-                                  ...data,
-                                  nombres: userData.nombres,
-                                  apellidos: userData.apellidos,
-                                  numeroIdentificacion: userData.numeroIdentificacion,
-                                  isKitScan: isKit,
-                                  kitNumber: kitData?.kitNumber,
-                                  kitEntregado: kitData?.kitEntregado,
-                                  docId: docId
-                               });
-                             } else {
+                                 setScannedPilot({
+                                    ...data,
+                                    nombres: userData.nombres,
+                                    apellidos: userData.apellidos,
+                                    numeroIdentificacion: userData.numeroIdentificacion,
+                                    isKitScan: isKit,
+                                    kitNumber: kitData?.kitNumber,
+                                    kitEntregado: kitData?.kitEntregado,
+                                    docId: docId
+                                 });
+                               } else {
+                                 setScannedPilot(null);
+                               }
+                            } catch (e) {
+                               console.error(e);
                                setScannedPilot(null);
-                             }
-                          } catch (e) {
-                             console.error(e);
-                             setScannedPilot(null);
-                          } finally {
-                             setFetchingScan(false);
+                            } finally {
+                               setFetchingScan(false);
+                            }
+                          } else {
+                            toast({ title: 'QR Inválido', description: 'Este código QR no pertenece al sistema de F2R.', variant: 'destructive' });
                           }
-                        } else {
-                          toast({ title: 'QR Inválido', description: 'Este código QR no pertenece al sistema de F2R.', variant: 'destructive' });
+                          }
                         }
-                        }
-                      }
-                    }}
-                    components={{
-                      finder: true,
-                    }}
-                  />
-                )}
-                <div className="absolute inset-0 border-4 border-red-600/30 m-8 rounded-2xl pointer-events-none"></div>
-              </div>
-              <p className="text-zinc-500 text-center text-sm mt-4">
-                Apunta la cámara al código QR en el celular del piloto.
-              </p>
-            </DialogContent>
-          </Dialog>
+                      }}
+                      components={{
+                        finder: true,
+                      }}
+                    />
+                  )}
+                  <div className="absolute inset-0 border-4 border-red-600/30 m-8 rounded-2xl pointer-events-none"></div>
+                </div>
+                <p className="text-zinc-500 text-center text-sm mt-4">
+                  Apunta la cámara al código QR en el celular del piloto.
+                </p>
+              </DialogContent>
+            </Dialog>
+            </div>
 
           <Dialog open={isScannedDialogOpen} onOpenChange={(open) => {
              setIsScannedDialogOpen(open);
@@ -760,6 +793,7 @@ export default function PilotosPage() {
                                 <DropdownMenuItem onClick={() => handleUpdateCategory(reg.id, '2t')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">2T</DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => handleUpdateCategory(reg.id, '4t')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">4T</DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => handleUpdateCategory(reg.id, 'alto')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">ALTO</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleUpdateCategory(reg.id, 'bikelife')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">BIKELIFE</DropdownMenuItem>
                               </>
                             )}
                           </DropdownMenuContent>

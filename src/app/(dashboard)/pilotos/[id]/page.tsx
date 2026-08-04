@@ -14,7 +14,34 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import SocialMediaCard from '@/components/social-media-card';
+
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+
+const formatCategoryName = (c: any, regId: string) => {
+  const isFestival = String(regId).startsWith('festival_');
+  const formatSingle = (cat: string) => {
+    const f = String(cat).toUpperCase().trim();
+    if (isFestival) {
+      if (f === 'OPEN') return 'NOVATOS';
+      if (f === '2T' || f === '2 TIEMPOS') return 'PREEXPERTOS';
+      if (f === '4T' || f === '4 TIEMPOS') return 'EXPERTOS';
+      if (f === 'ALTO' || f === 'ALTO CILINDRAJE' || f === 'NITROX') return 'ÉLITE';
+    } else {
+      if (f === '2T' || f === '2 TIEMPOS') return '2 TIEMPOS';
+      if (f === '4T' || f === '4 TIEMPOS') return '4 TIEMPOS';
+      if (f === 'ALTO' || f === 'ALTO CILINDRAJE') return 'ALTO CILINDRAJE';
+      if (f === 'OPEN') return 'OPEN';
+      if (f === 'BIKELIFE') return 'BIKELIFE';
+    }
+    return f;
+  };
+
+  if (Array.isArray(c)) {
+    return c.map(cat => formatSingle(cat)).join(' / ');
+  }
+  return formatSingle(String(c));
+};
+
 
 interface PilotDetail {
   id: string;
@@ -97,6 +124,15 @@ export default function PilotDetailPage() {
   const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
   const [newRole, setNewRole] = useState<'piloto' | 'staff' | 'juez'>('piloto');
   const [isAdmin, setIsAdmin] = useState(false);
+
+  const getEventFilterQuery = () => {
+    if (!pilot || !pilot.id) return '';
+    if (pilot.id.startsWith('festival_')) return '?event=festival';
+    if (pilot.id.startsWith('nitrox_')) return '?event=nitrox';
+    if (pilot.id.startsWith('stuntday_')) return '?event=stuntday';
+    if (pilot.id.startsWith('f2r_')) return '?event=f2r';
+    return '';
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -880,7 +916,7 @@ export default function PilotDetailPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
           <div className="flex flex-col gap-6 w-full">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center w-full gap-3">
-              <Link href="/pilotos">
+              <Link href={`/pilotos${getEventFilterQuery()}`}>
                 <Button variant="outline" className="w-fit gap-2 border-zinc-700 hover:bg-zinc-800 hover:text-white text-zinc-400 text-xs sm:text-sm">
                   <ArrowLeft className="w-4 h-4" />
                   Volver al Directorio
@@ -964,20 +1000,31 @@ export default function PilotDetailPage() {
                       <DropdownMenu>
                         <DropdownMenuTrigger className="focus:outline-none">
                           <span className="inline-block px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold bg-red-600/10 text-red-500 border border-red-600/20 uppercase tracking-wider cursor-pointer hover:bg-red-600/20 transition-colors">
-                            {Array.isArray(pilot.categoria) && pilot.categoria.length > 0 ? pilot.categoria.join(' / ') : (!pilot.categoria || pilot.categoria === 'N/A' || pilot.categoria.length === 0 ? 'N/A' : pilot.categoria)}
+                            {formatCategoryName(pilot.categoria, pilot.id) || 'N/A'}
                           </span>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent className="bg-zinc-900 border-zinc-800 text-zinc-300 min-w-[120px]">
-                          <DropdownMenuItem onClick={() => handleUpdateCategory('open')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">OPEN</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleUpdateCategory('2t')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">2T</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleUpdateCategory('4t')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">4T</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleUpdateCategory('alto')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">ALTO</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleUpdateCategory('novatos')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">NOVATOS</DropdownMenuItem>
+                          {pilot.id.startsWith('festival_') ? (
+                            <>
+                              <DropdownMenuItem onClick={() => handleUpdateCategory('open')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">NOVATOS</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleUpdateCategory('2t')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">PREEXPERTOS</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleUpdateCategory('4t')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">EXPERTOS</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleUpdateCategory('alto')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">ÉLITE</DropdownMenuItem>
+                            </>
+                          ) : (
+                            <>
+                              <DropdownMenuItem onClick={() => handleUpdateCategory('open')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">OPEN</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleUpdateCategory('2t')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">2T</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleUpdateCategory('4t')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">4T</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleUpdateCategory('alto')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">ALTO</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleUpdateCategory('bikelife')} className="hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer font-medium">BIKELIFE</DropdownMenuItem>
+                            </>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     ) : (
                       <span className="inline-block px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold bg-red-600/10 text-red-500 border border-red-600/20 uppercase tracking-wider">
-                        {Array.isArray(pilot.categoria) && pilot.categoria.length > 0 ? pilot.categoria.join(' / ') : (!pilot.categoria || pilot.categoria === 'N/A' || pilot.categoria.length === 0 ? 'N/A' : pilot.categoria)}
+                        {formatCategoryName(pilot.categoria, pilot.id) || 'N/A'}
                       </span>
                     )}
                     <span className="hidden sm:inline">•</span> {pilot.email}
@@ -1304,7 +1351,7 @@ export default function PilotDetailPage() {
                   </div>
                 )}
 
-                {(pilot.estadoPago === 'aprobado' || pilot.estadoPago === 'pago_dia_evento') && (
+                {(pilot.estadoPago === 'aprobado' || pilot.estadoPago === 'pago_dia_evento' || pilot.estadoPago === 'rechazado' || pilot.estadoPago === 'rechazado_saldo') && (
                   <Button 
                     onClick={() => updatePaymentStatus('en_revision')} 
                     disabled={updating}

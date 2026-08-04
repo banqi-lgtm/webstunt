@@ -24,6 +24,47 @@ import dynamic from 'next/dynamic';
 import SocialMediaCard from '@/components/social-media-card';
 const Confetti = dynamic(() => import('react-confetti'), { ssr: false });
 
+const getEventDeadlineStatus = (targetDateStr: string) => {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  
+  const targetParts = targetDateStr.split('-');
+  const target = new Date(
+    parseInt(targetParts[0]),
+    parseInt(targetParts[1]) - 1,
+    parseInt(targetParts[2])
+  );
+  
+  const diffTime = target.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays < 0) {
+    return {
+      statusText: 'EVENTO CERRADO',
+      isClosed: true,
+      icon: Lock
+    };
+  } else if (diffDays === 0) {
+    return {
+      statusText: 'CIERRA HOY',
+      isClosed: false,
+      icon: Clock
+    };
+  } else if (diffDays === 1) {
+    return {
+      statusText: 'FALTA 1 DÍA PARA EL CIERRE',
+      isClosed: false,
+      icon: Clock
+    };
+  } else {
+    return {
+      statusText: `FALTAN ${diffDays} DÍAS PARA EL CIERRE`,
+      isClosed: false,
+      icon: Calendar
+    };
+  }
+};
+
 interface EventCardProps {
   id: string;
   image: string;
@@ -864,6 +905,14 @@ export default function InscripcionPage() {
   };
 
   const handleCatClick = (catKey: string) => {
+    if (selectedEvent === 'festival' && catKey === 'open') {
+      toast({
+        title: "Categoría Deshabilitada",
+        description: "La categoría Novatos ha cerrado sus inscripciones debido a límite de cupos en revisión.",
+        variant: "destructive"
+      });
+      return;
+    }
     let maxCupos = isSimplifiedEvent ? 30 : (catKey === 'open' ? 30 : 15);
     if (selectedEvent === 'festival') {
       if (catKey === 'open') maxCupos = 30;
@@ -1179,6 +1228,9 @@ export default function InscripcionPage() {
       </div>
     );
   }
+  const festivalDeadline = getEventDeadlineStatus('2026-08-06');
+  const nitroxDeadline = getEventDeadlineStatus('2026-08-20');
+
   // Array definition and handler for premium event cards selection view
   const eventsData = [
     {
@@ -1197,11 +1249,11 @@ export default function InscripcionPage() {
         titleAccentColor: 'text-blue-400',
         btnGradient: 'bg-blue-600 hover:bg-blue-500 text-white border-none shadow-blue-950/40',
       },
-      statusText: '30 DÍAS PARA EL CIERRE',
-      statusIcon: Calendar,
+      statusText: nitroxDeadline.statusText,
+      statusIcon: nitroxDeadline.icon,
       userStatus: nitroxStatus,
       ctaText: nitroxStatus === 'no_inscrito' || !nitroxStatus ? 'REGISTRARSE AHORA' : 'CONSULTAR ESTADO',
-      isClosed: false,
+      isClosed: nitroxDeadline.isClosed,
     },
     {
       id: 'festival' as const,
@@ -1219,11 +1271,11 @@ export default function InscripcionPage() {
         titleAccentColor: 'text-orange-400',
         btnGradient: 'bg-orange-600 hover:bg-orange-500 text-white border-none shadow-orange-950/40',
       },
-      statusText: '30 DÍAS PARA EL CIERRE',
-      statusIcon: Calendar,
+      statusText: festivalDeadline.statusText,
+      statusIcon: festivalDeadline.icon,
       userStatus: festivalStatus,
       ctaText: festivalStatus === 'no_inscrito' || !festivalStatus ? 'REGISTRARSE AHORA' : 'CONSULTAR ESTADO',
-      isClosed: false,
+      isClosed: festivalDeadline.isClosed,
     },
     {
       id: 'stuntday' as const,
@@ -1275,18 +1327,10 @@ export default function InscripcionPage() {
   const activeEventObj = eventsData.find(e => e.id === selectedEvent) || eventsData[0];
 
   const handleCardClick = (event: typeof eventsData[0]) => {
-    if (event.id === 'f2r' && f2rStatus === 'no_inscrito') {
+    if (event.isClosed && event.userStatus === 'no_inscrito') {
       toast({
         title: "Inscripciones Cerradas",
-        description: "El periodo de registro para la Copa Stunt F2R 2026 ha finalizado.",
-        variant: "destructive"
-      });
-      return;
-    }
-    if (event.id === 'stuntday' && stuntdayStatus === 'no_inscrito') {
-      toast({
-        title: "Inscripciones Cerradas",
-        description: "El periodo de registro para Stunt Day 2026 ha finalizado.",
+        description: `El periodo de registro para ${event.title} ${event.id === 'nitrox' ? 'Nitrox' : ''} ha finalizado.`,
         variant: "destructive"
       });
       return;
@@ -1456,7 +1500,7 @@ export default function InscripcionPage() {
                     1. Categoría <span className="text-[#FF9800] text-[10px] bg-[#FF9800]/10 px-2 py-0.5 rounded border border-[#FF9800]/20 flex items-center gap-1"><AlertTriangle className="w-3 h-3"/> Cupos limitados</span>
                   </Label>
                   <div className={`grid grid-cols-1 md:grid-cols-2 ${isSimplifiedEvent ? 'gap-2' : 'gap-3'}`}>
-                    <div className={`relative flex items-center ${isSimplifiedEvent ? 'p-2.5 sm:p-3' : 'p-4'} rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('open') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(categoryCounts['open'] || 0) >= (selectedEvent === 'festival' ? 30 : 30) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => handleCatClick('open')}>
+                    <div className={`relative flex items-center ${isSimplifiedEvent ? 'p-2.5 sm:p-3' : 'p-4'} rounded-xl border transition-all shadow-[0_0_15px_rgba(0,0,0,0.5)] ${categorias.includes('open') ? 'border-[#E60000] bg-[#E60000]/5 shadow-[0_0_15px_rgba(230, 0, 0,0.15)]' : 'border-[#2A2A2A] bg-[#121212]'} ${(selectedEvent === 'festival' || (categoryCounts['open'] || 0) >= 30) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[#424242]'}`} onClick={() => handleCatClick('open')}>
                       <div className={`shrink-0 ${isSimplifiedEvent ? 'w-8 h-8 mr-2' : 'w-10 h-10 mr-3'} rounded-full bg-[#1A1A1A] flex items-center justify-center border border-[#2A2A2A]`}>
                         <span className={isSimplifiedEvent ? 'text-lg' : 'text-xl'}>🟢</span>
                       </div>
@@ -1464,7 +1508,11 @@ export default function InscripcionPage() {
                         <Label className={`font-bold text-white ${isSimplifiedEvent ? 'text-xs' : 'text-sm'} cursor-pointer notranslate`} translate="no">
                           {selectedEvent === 'festival' ? 'NOVATOS' : 'OPEN'}
                         </Label>
-                        {selectedEvent !== 'festival' && (
+                        {selectedEvent === 'festival' ? (
+                          <p className={`${isSimplifiedEvent ? 'text-[9px]' : 'text-[10px]'} text-red-500 mt-0.5 font-bold uppercase`}>
+                            Inscripciones Cerradas
+                          </p>
+                        ) : (
                           <p className={`${isSimplifiedEvent ? 'text-[9px]' : 'text-[10px]'} text-[#B0B0B0] mt-0.5 font-medium`}>
                             {Math.max(0, 30 - (categoryCounts['open'] || 0))} CUPOS RESTANTES
                           </p>

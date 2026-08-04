@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { collection, getDocs, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { ClipboardList, Search, Play, ShieldAlert, User, Phone, Mail, MapPin, Instagram, Info, Flame, Gamepad2, Star, AlertTriangle, Edit2, Trophy, Download, FileText, Maximize } from 'lucide-react';
+import { ClipboardList, Search, Play, ShieldAlert, User, Phone, Mail, MapPin, Instagram, Info, Flame, Gamepad2, Star, AlertTriangle, Edit2, Trophy, Download, FileText, Maximize, ChevronRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -422,12 +422,49 @@ export default function JuecesPage() {
   const [currentUid, setCurrentUid] = useState<string | null>(null);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
-  
+  const [selectedEvent, setSelectedEvent] = useState<'f2r' | 'nitrox' | 'festival' | 'stuntday'>('f2r');
+
+  const getEventHeaderInfo = () => {
+    switch (selectedEvent) {
+      case 'nitrox':
+        return {
+          title: 'Copa Stunt Nitrox',
+          logo: '/sponsors/Copa Stunt Nitrox Blanco.png',
+        };
+      case 'festival':
+        return {
+          title: 'Festival Stunt',
+          logo: '/sponsors/4T.jpeg',
+        };
+      case 'stuntday':
+        return {
+          title: 'Stunt Day 2026',
+          logo: '/sponsors/stuntday3.png',
+        };
+      case 'f2r':
+      default:
+        return {
+          title: 'Copa Stunt F2R',
+          logo: '/sponsors/copa stunt nitrox f2r.png',
+        };
+    }
+  };
+
+  const eventInfo = getEventHeaderInfo();
+
   // Master Table State
   const [judgeNames, setJudgeNames] = useState<Record<string, string>>({});
   const [allJudgeUids, setAllJudgeUids] = useState<string[]>([]);
   const [judgeProfiles, setJudgeProfiles] = useState<any[]>([]);
   const [masterCategory, setMasterCategory] = useState<string>('OPEN');
+
+  useEffect(() => {
+    if (selectedEvent === 'festival') {
+      setMasterCategory('NOVATOS');
+    } else {
+      setMasterCategory('OPEN');
+    }
+  }, [selectedEvent]);
   const [isDirectoryOpen, setIsDirectoryOpen] = useState(false);
   const [isRulesOpen, setIsRulesOpen] = useState(false);
   const [maximizedCategory, setMaximizedCategory] = useState<string | null>(null);
@@ -474,7 +511,6 @@ export default function JuecesPage() {
         
         if (isSuperAdmin || interfaces.includes('jueces')) {
           setHasAccess(true);
-          fetchRegistrations();
         } else {
           setHasAccess(false);
           router.push('/profile');
@@ -486,6 +522,12 @@ export default function JuecesPage() {
     });
     return () => unsubscribe();
   }, [router]);
+
+  useEffect(() => {
+    if (hasAccess) {
+      fetchRegistrations();
+    }
+  }, [selectedEvent, hasAccess]);
 
   const fetchRegistrations = async () => {
     try {
@@ -521,25 +563,36 @@ export default function JuecesPage() {
       const regSnap = await getDocs(collection(db, 'event_registrations'));
       const fetched: Registration[] = [];
       
+      const getEventIdFromRegId = (regId: string) => {
+        if (regId.startsWith('festival_')) return 'festival';
+        if (regId.startsWith('nitrox_')) return 'nitrox';
+        if (regId.startsWith('stuntday_')) return 'stuntday';
+        return 'f2r';
+      };
+
       regSnap.forEach(docSnap => {
         const data = docSnap.data();
         if (data.uid && (data.estadoPago === 'aprobado' || data.estadoPago === 'pago_dia_evento')) {
-          const userData = usersMap.get(data.uid) || {};
-          fetched.push({
-            id: docSnap.id,
-            uid: data.uid,
-            categoria: data.categoria || 'N/A',
-            motocicleta: data.motocicleta || { placa: 'N/A', marca: 'N/A', referencia: 'N/A' },
-            registradoEl: data.registradoEl || new Date().toISOString(),
-            estadoPago: data.estadoPago,
-            nombres: userData.nombres || 'Desconocido',
-            apellidos: userData.apellidos || '',
-            numeroIdentificacion: userData.numeroIdentificacion || 'N/A',
-            seudonimo: userData.seudonimo || data.seudonimo || '',
-            instagram: userData.instagram || data.instagram || '',
-            documentos: data.documentos || {},
-            calificaciones: califMap.get(docSnap.id) || {}
-          });
+          const regEvent = getEventIdFromRegId(docSnap.id);
+          if (regEvent === selectedEvent) {
+            const cleanUid = data.uid.replace(/^(f2r|stuntday|nitrox|festival)_/, '');
+            const userData = usersMap.get(cleanUid) || {};
+            fetched.push({
+              id: docSnap.id,
+              uid: cleanUid,
+              categoria: data.categoria || 'N/A',
+              motocicleta: data.motocicleta || { placa: 'N/A', marca: 'N/A', referencia: 'N/A' },
+              registradoEl: data.registradoEl || new Date().toISOString(),
+              estadoPago: data.estadoPago,
+              nombres: userData.nombres || data.nombres || 'Desconocido',
+              apellidos: userData.apellidos || data.apellidos || '',
+              numeroIdentificacion: userData.numeroIdentificacion || data.numeroIdentificacion || 'N/A',
+              seudonimo: userData.seudonimo || data.seudonimo || '',
+              instagram: userData.instagram || data.instagram || '',
+              documentos: data.documentos || {},
+              calificaciones: califMap.get(docSnap.id) || {}
+            });
+          }
         }
       });
       
@@ -556,8 +609,8 @@ export default function JuecesPage() {
         return c.toUpperCase().includes('ALTO CILINDRAJE') || c.toUpperCase().includes('NITROX');
       }).length;
       
-      if (openCount === 0) fetched.push(...dummyOpen);
-      if (nitroxCount === 0) fetched.push(...dummyNitrox);
+      if (openCount === 0 && selectedEvent === 'f2r') fetched.push(...dummyOpen);
+      if (nitroxCount === 0 && selectedEvent === 'f2r') fetched.push(...dummyNitrox);
 
       setRegistrations(fetched);
     } catch (e) {
@@ -579,9 +632,16 @@ export default function JuecesPage() {
 
     cats.forEach(cat => {
       let finalCat = cat;
-      if (finalCat.includes('ALTO') || finalCat === 'CATEGORIA NITROX' || finalCat === 'NITROX') finalCat = 'NITROX';
-      if (finalCat === '2T') finalCat = '2 TIEMPOS';
-      if (finalCat === '4T') finalCat = '4 TIEMPOS';
+      if (selectedEvent === 'festival') {
+        if (finalCat === 'OPEN' || finalCat === 'NOVATOS') finalCat = 'NOVATOS';
+        else if (finalCat === '2T' || finalCat === '2 TIEMPOS' || finalCat === 'PREEXPERTOS') finalCat = 'PREEXPERTOS';
+        else if (finalCat === '4T' || finalCat === '4 TIEMPOS' || finalCat === 'EXPERTOS') finalCat = 'EXPERTOS';
+        else if (finalCat === 'ALTO' || finalCat === 'ALTO CILINDRAJE' || finalCat === 'NITROX' || finalCat === 'ÉLITE') finalCat = 'ÉLITE';
+      } else {
+        if (finalCat.includes('ALTO') || finalCat === 'CATEGORIA NITROX' || finalCat === 'NITROX') finalCat = 'NITROX';
+        if (finalCat === '2T') finalCat = '2 TIEMPOS';
+        if (finalCat === '4T') finalCat = '4 TIEMPOS';
+      }
 
       if (!acc[finalCat]) acc[finalCat] = [];
       if (!acc[finalCat].find(p => p.id === reg.id)) {
@@ -593,7 +653,9 @@ export default function JuecesPage() {
   }, {} as Record<string, Registration[]>);
 
   // Forzar las 4 categorías principales siempre
-  const displayCategories = ['OPEN', '2 TIEMPOS', '4 TIEMPOS', 'NITROX'];
+  const displayCategories = selectedEvent === 'festival'
+    ? ['NOVATOS', 'PREEXPERTOS', 'EXPERTOS', 'ÉLITE']
+    : ['OPEN', '2 TIEMPOS', '4 TIEMPOS', 'NITROX'];
 
   const handleStartSequential = (cat: string) => {
     if (!isOfficialJudge) {
@@ -772,7 +834,8 @@ export default function JuecesPage() {
       let startY = 14;
 
       try {
-        const allLogos = [MAIN_LOGO, ...SPONSOR_LOGOS];
+        const dynamicMainLogo = { src: eventInfo.logo, alt: eventInfo.title, className: MAIN_LOGO.className };
+        const allLogos = [dynamicMainLogo, ...SPONSOR_LOGOS];
         const loadedImages = await Promise.all(allLogos.map(async (logo) => {
           const img = new Image();
           img.src = logo.src;
@@ -942,6 +1005,35 @@ export default function JuecesPage() {
             PANEL DE JUECES
           </h1>
           <div className="flex gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="border-[#00cfff]/50 text-[#00cfff] bg-[#00cfff]/5 hover:bg-[#00cfff]/20 hover:text-[#00cfff] font-bold uppercase tracking-widest h-9 px-4 text-xs shadow-[0_0_10px_rgba(0,207,255,0.2)]">
+                  <span>Evento: {
+                    selectedEvent === 'f2r' ? 'F2R' :
+                    selectedEvent === 'nitrox' ? 'Nitrox' :
+                    selectedEvent === 'festival' ? 'Festival' :
+                    selectedEvent === 'stuntday' ? 'Stunt Day' :
+                    'F2R'
+                  }</span>
+                  <ChevronRight className="w-4 h-4 rotate-90 ml-1.5 shrink-0" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="bg-zinc-950 border-zinc-800 text-white font-bold font-sans">
+                <DropdownMenuItem onClick={() => setSelectedEvent('f2r')} className="hover:bg-zinc-900 focus:bg-zinc-900 cursor-pointer text-xs uppercase tracking-wider">
+                  Copa Stunt F2R
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSelectedEvent('nitrox')} className="hover:bg-zinc-900 focus:bg-zinc-900 cursor-pointer text-xs uppercase tracking-wider">
+                  Copa Stunt Nitrox
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSelectedEvent('festival')} className="hover:bg-zinc-900 focus:bg-zinc-900 cursor-pointer text-xs uppercase tracking-wider">
+                  Festival Stunt
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSelectedEvent('stuntday')} className="hover:bg-zinc-900 focus:bg-zinc-900 cursor-pointer text-xs uppercase tracking-wider">
+                  Stunt Day 2026
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <Dialog open={isRulesOpen} onOpenChange={setIsRulesOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" className="border-[#00cfff]/50 text-[#00cfff] bg-[#00cfff]/5 hover:bg-[#00cfff]/20 hover:text-[#00cfff] font-bold uppercase tracking-widest h-9 px-4 text-xs shadow-[0_0_10px_rgba(0,207,255,0.2)]">
@@ -1601,7 +1693,7 @@ export default function JuecesPage() {
               <div className="relative w-full z-20 flex justify-center shrink-0">
               <div className={`flex flex-col items-center justify-center gap-2 transition-all duration-500 ${isPodiumFullScreen ? 'scale-110 sm:scale-125 mt-4' : ''} relative`}>
                 <div className="absolute inset-0 bg-cyan-400/40 blur-[50px] rounded-full scale-150 -z-10 animate-pulse mix-blend-screen pointer-events-none"></div>
-                <img src={MAIN_LOGO.src} alt={MAIN_LOGO.alt} className={MAIN_LOGO.className} />
+                <img src={eventInfo.logo} alt={eventInfo.title} className={MAIN_LOGO.className} />
               </div>
               
               {/* Category Absolute Top Right (Below sponsors visually, fixed position) */}
@@ -1796,7 +1888,7 @@ export default function JuecesPage() {
               <div className="relative w-full z-20 flex justify-center shrink-0">
               <div className={`flex flex-col items-center justify-center gap-2 transition-all duration-500 ${isPodio2FullScreen ? 'scale-110 sm:scale-125 mt-4' : ''} relative`}>
                 <div className="absolute inset-0 bg-cyan-400/40 blur-[50px] rounded-full scale-150 -z-10 animate-pulse mix-blend-screen pointer-events-none"></div>
-                <img src={MAIN_LOGO.src} alt={MAIN_LOGO.alt} className={MAIN_LOGO.className} />
+                <img src={eventInfo.logo} alt={eventInfo.title} className={MAIN_LOGO.className} />
               </div>
               
               {/* Category Absolute Top Right (Below sponsors visually, fixed position) */}
@@ -1959,7 +2051,7 @@ export default function JuecesPage() {
       <div className="hidden print:block w-full bg-white text-black font-sans">
         {/* ENCABEZADO OSCURO CON LOGOS */}
         <div className="flex flex-wrap items-center justify-center gap-6 bg-black p-6 border-b-4 border-gray-400" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
-          {[MAIN_LOGO, ...SPONSOR_LOGOS].map((logo, idx) => (
+          {[{ src: eventInfo.logo, alt: eventInfo.title }, ...SPONSOR_LOGOS].map((logo, idx) => (
             <img 
               key={`print-logo-${idx}`} 
               src={logo.src} 
