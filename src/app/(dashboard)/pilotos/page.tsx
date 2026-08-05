@@ -79,6 +79,7 @@ export default function PilotosPage() {
   const [fetchingScan, setFetchingScan] = useState(false);
   const [scanningKitFor, setScanningKitFor] = useState<any | null>(null);
   const [kitScanVerified, setKitScanVerified] = useState(false);
+  const [isRepairing, setIsRepairing] = useState(false);
 
   // Load initial filter from URL
   useEffect(() => {
@@ -296,6 +297,70 @@ export default function PilotosPage() {
     }
   };
 
+  const handleRepairOrphans = async () => {
+    const orphans = registrations.filter(r => r.nombres === 'Desconocido');
+    if (orphans.length === 0) {
+      toast({
+        title: "Sin registros huérfanos",
+        description: "No se encontraron inscripciones con nombres Desconocido.",
+      });
+      return;
+    }
+
+    setIsRepairing(true);
+    let count = 0;
+
+    try {
+      const { doc, setDoc } = await import('firebase/firestore');
+      
+      for (const orphan of orphans) {
+        const userRef = doc(db, 'users', orphan.uid);
+        const regRef = doc(db, 'event_registrations', orphan.id);
+
+        // 1. Create the user profile doc
+        await setDoc(userRef, {
+          nombres: 'Desconocido',
+          apellidos: 'N/A',
+          numeroIdentificacion: 'N/A',
+          telefono: 'N/A',
+          ciudad: 'N/A',
+          email: 'N/A',
+          rol: 'piloto',
+          role: 'piloto',
+          createdAt: new Date().toISOString()
+        }, { merge: true });
+
+        // 2. Cache it in the registration document
+        await setDoc(regRef, {
+          nombres: 'Desconocido',
+          apellidos: 'N/A',
+          numeroIdentificacion: 'N/A',
+          telefono: 'N/A',
+          ciudad: 'N/A',
+          email: 'N/A'
+        }, { merge: true });
+
+        count++;
+      }
+
+      toast({
+        title: "Reparación completada",
+        description: `Se han reparado ${count} registros huérfanos. Ahora puedes editarlos normalmente.`,
+      });
+
+      fetchRegistrations();
+    } catch (err: any) {
+      console.error("Error repairing orphans:", err);
+      toast({
+        title: "Error al reparar",
+        description: err.message || "Ocurrió un error al reparar los registros.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsRepairing(false);
+    }
+  };
+
   if (hasAccess === null) return null;
 
   const filteredRegistrations = registrations.filter(r => {
@@ -404,6 +469,16 @@ export default function PilotosPage() {
             </DropdownMenu>
             
             <div className="flex gap-3 w-full sm:w-auto">
+              {registrations.some(r => r.nombres === 'Desconocido') && (
+                <Button 
+                  onClick={handleRepairOrphans} 
+                  disabled={isRepairing}
+                  className="bg-amber-600/95 hover:bg-amber-600 text-white gap-2 h-10 px-4 flex-1 sm:flex-initial text-xs font-bold uppercase tracking-wider shadow-sm"
+                >
+                  <AlertCircle className="w-4 h-4 animate-pulse" /> {isRepairing ? 'REPARANDO...' : 'REPARAR HUÉRFANOS'}
+                </Button>
+              )}
+
               <Button onClick={exportToExcel} className="bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800 gap-2 h-10 px-4 flex-1 sm:flex-initial text-xs font-bold uppercase tracking-wider shadow-sm">
                 <Download className="w-4 h-4" /> EXPORTAR EXCEL
               </Button>

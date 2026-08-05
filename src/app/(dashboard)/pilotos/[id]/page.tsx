@@ -6,11 +6,11 @@ import { collection, doc, getDoc, updateDoc, deleteDoc, arrayUnion, arrayRemove,
 import { ref, listAll, getDownloadURL } from 'firebase/storage';
 import { auth, db, storage } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { ArrowLeft, CheckCircle2, FileText, User, Camera, ShieldAlert, Settings, MapPin, XCircle, ChevronRight, AlertCircle, Phone, Download, Map, LayoutList, Fingerprint, Info, HeartPulse, Stethoscope, AlertTriangle, Syringe, Clock, Link as LinkIcon, Instagram, Star, Plus, ScanLine, Edit2, RefreshCw, Eye, FileCheck2, Bike, CreditCard } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, FileText, User, Camera, ShieldAlert, Settings, MapPin, XCircle, ChevronRight, AlertCircle, Phone, Download, Map, LayoutList, Fingerprint, Info, HeartPulse, Stethoscope, AlertTriangle, Syringe, Clock, Link as LinkIcon, Instagram, Star, Plus, ScanLine, Edit2, RefreshCw, Eye, FileCheck2, Bike, CreditCard, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import SocialMediaCard from '@/components/social-media-card';
@@ -96,6 +96,7 @@ interface PilotDetail {
   codigosGenerados?: any[];
   rutUrl?: string;
   certUrl?: string;
+  tallaCamisa?: string;
 }
 
 export default function PilotDetailPage() {
@@ -124,6 +125,20 @@ export default function PilotDetailPage() {
   const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
   const [newRole, setNewRole] = useState<'piloto' | 'staff' | 'juez'>('piloto');
   const [isAdmin, setIsAdmin] = useState(false);
+
+  // States for pilot profile editing/repair
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [profileNombres, setProfileNombres] = useState('');
+  const [profileApellidos, setProfileApellidos] = useState('');
+  const [profileSeudonimo, setProfileSeudonimo] = useState('');
+  const [profileTipoDocumento, setProfileTipoDocumento] = useState('CC');
+  const [profileNumeroIdentificacion, setProfileNumeroIdentificacion] = useState('');
+  const [profileTelefono, setProfileTelefono] = useState('');
+  const [profileCiudad, setProfileCiudad] = useState('');
+  const [profileDireccion, setProfileDireccion] = useState('');
+  const [profileTallaCamisa, setProfileTallaCamisa] = useState('');
+  const [profileFechaNacimiento, setProfileFechaNacimiento] = useState('');
+  const [profileEmail, setProfileEmail] = useState('');
 
   const getEventFilterQuery = () => {
     if (!pilot || !pilot.id) return '';
@@ -223,18 +238,19 @@ export default function PilotDetailPage() {
         saldoFaltante: data.saldoFaltante || '',
         motivoSaldoFaltante: data.motivoSaldoFaltante || '',
         historialSaldos: data.historialSaldos || [],
-        nombres: userData.nombres || 'Desconocido',
-        apellidos: userData.apellidos || '',
-        email: userData.email || 'N/A',
-        numeroIdentificacion: userData.numeroIdentificacion || 'N/A',
-        telefono: userData.telefono || 'N/A',
-        ciudad: userData.ciudad || 'N/A',
-        direccion: userData.direccion || 'N/A',
-        fechaNacimiento: userData.fechaNacimiento || 'N/A',
-        instagram: userData.instagram || 'N/A',
-        redesSociales: userData.redesSociales || 'N/A',
-        seudonimo: userData.seudonimo || 'N/A',
-        tipoDocumento: userData.tipoDocumento || 'CC',
+        nombres: userData.nombres || data.nombres || 'Desconocido',
+        apellidos: userData.apellidos || data.apellidos || '',
+        email: userData.email || data.email || 'N/A',
+        numeroIdentificacion: userData.numeroIdentificacion || data.numeroIdentificacion || 'N/A',
+        telefono: userData.telefono || data.telefono || 'N/A',
+        ciudad: userData.ciudad || data.ciudad || 'N/A',
+        direccion: userData.direccion || data.direccion || 'N/A',
+        fechaNacimiento: userData.fechaNacimiento || data.fechaNacimiento || 'N/A',
+        instagram: userData.instagram || data.instagram || 'N/A',
+        redesSociales: userData.redesSociales || data.redesSociales || 'N/A',
+        seudonimo: userData.seudonimo || data.seudonimo || 'N/A',
+        tipoDocumento: userData.tipoDocumento || data.tipoDocumento || 'CC',
+        tallaCamisa: userData.tallaCamisa || data.tallaCamisa || 'N/A',
         nombreTutor: userData.nombreTutor || '',
         cedulaTutor: userData.cedulaTutor || '',
         telefonoTutor: userData.telefonoTutor || '',
@@ -256,6 +272,73 @@ export default function PilotDetailPage() {
       toast({ title: 'Error', description: 'No se pudo cargar la información del piloto', variant: 'destructive'});
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleOpenEditProfile = () => {
+    if (!pilot) return;
+    setProfileNombres(pilot.nombres === 'Desconocido' ? '' : pilot.nombres);
+    setProfileApellidos(pilot.apellidos || '');
+    setProfileSeudonimo(pilot.seudonimo === 'N/A' ? '' : (pilot.seudonimo || ''));
+    setProfileTipoDocumento(pilot.tipoDocumento || 'CC');
+    setProfileNumeroIdentificacion(pilot.numeroIdentificacion === 'N/A' ? '' : (pilot.numeroIdentificacion || ''));
+    setProfileTelefono(pilot.telefono === 'N/A' ? '' : (pilot.telefono || ''));
+    setProfileCiudad(pilot.ciudad === 'N/A' ? '' : (pilot.ciudad || ''));
+    setProfileDireccion(pilot.direccion === 'N/A' ? '' : (pilot.direccion || ''));
+    setProfileTallaCamisa(pilot.tallaCamisa === 'N/A' ? '' : (pilot.tallaCamisa || ''));
+    setProfileFechaNacimiento(pilot.fechaNacimiento === 'N/A' ? '' : (pilot.fechaNacimiento || ''));
+    setProfileEmail(pilot.email === 'N/A' ? '' : (pilot.email || ''));
+    setIsEditProfileOpen(true);
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pilot || !pilot.uid) return;
+    
+    setUpdating(true);
+    try {
+      // 1. Update the 'users' document
+      await setDoc(doc(db, 'users', pilot.uid), {
+        nombres: profileNombres,
+        apellidos: profileApellidos,
+        seudonimo: profileSeudonimo || null,
+        tipoDocumento: profileTipoDocumento,
+        numeroIdentificacion: profileNumeroIdentificacion,
+        telefono: profileTelefono,
+        ciudad: profileCiudad,
+        direccion: profileDireccion,
+        tallaCamisa: profileTallaCamisa,
+        fechaNacimiento: profileFechaNacimiento,
+        email: profileEmail,
+        rol: pilot.rol || 'piloto',
+        role: pilot.rol || 'piloto'
+      }, { merge: true });
+
+      // 2. Also update the specific registration document to cache it!
+      await setDoc(doc(db, 'event_registrations', pilot.id), {
+        nombres: profileNombres,
+        apellidos: profileApellidos,
+        seudonimo: profileSeudonimo || null,
+        tipoDocumento: profileTipoDocumento,
+        numeroIdentificacion: profileNumeroIdentificacion,
+        telefono: profileTelefono,
+        ciudad: profileCiudad,
+        direccion: profileDireccion,
+        tallaCamisa: profileTallaCamisa,
+        fechaNacimiento: profileFechaNacimiento,
+        email: profileEmail
+      }, { merge: true });
+
+      toast({ title: 'Éxito', description: 'Perfil de piloto actualizado y reparado exitosamente' });
+      setIsEditProfileOpen(false);
+      
+      // Refresh local page state
+      fetchPilotData();
+    } catch (err: any) {
+      console.error("Error updating profile:", err);
+      toast({ title: 'Error', description: err.message || 'No se pudo guardar la información', variant: 'destructive' });
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -783,7 +866,7 @@ export default function PilotDetailPage() {
                   <Button variant="outline" className="w-full bg-[#151515] border-[#1F1F1F] text-zinc-300 hover:bg-[#1A1A1A] hover:text-white h-11 transition-all justify-start">
                     <FileText className="w-4 h-4 mr-3 text-[#64748B]" /> Cargar Documentos
                   </Button>
-                  <Button variant="outline" className="w-full bg-[#151515] border-[#1F1F1F] text-zinc-300 hover:bg-[#1A1A1A] hover:text-white h-11 transition-all justify-start">
+                  <Button onClick={handleOpenEditProfile} variant="outline" className="w-full bg-[#151515] border-[#1F1F1F] text-zinc-300 hover:bg-[#1A1A1A] hover:text-white h-11 transition-all justify-start">
                     <Edit2 className="w-4 h-4 mr-3 text-[#64748B]" /> Editar Perfil
                   </Button>
                   
@@ -1559,6 +1642,218 @@ export default function PilotDetailPage() {
                 <Button onClick={() => setShowCodigoDetallesModal(false)} variant="ghost" className="col-span-2 text-zinc-400 w-full">Cerrar</Button>
               )}
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Edit Profile Dialog Modal */}
+      {isEditProfileOpen && (
+        <Dialog open={isEditProfileOpen} onOpenChange={setIsEditProfileOpen}>
+          <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto bg-zinc-950 border-2 border-red-600/30 p-5 rounded-2xl shadow-[0_0_50px_rgba(239,68,68,0.15)] text-zinc-100 z-[120]">
+            <DialogHeader className="border-b border-zinc-800 pb-3 mb-4">
+              <DialogTitle className="text-lg sm:text-xl font-headline font-black text-white uppercase tracking-wider flex items-center gap-2">
+                <Edit2 className="w-5 h-5 text-red-600 animate-pulse" />
+                Editar Datos Personales de Piloto
+              </DialogTitle>
+              <DialogDescription className="text-zinc-400 text-xs mt-1">
+                Utiliza este formulario para reparar datos ausentes (como piloto &quot;Desconocido&quot;) o desactualizados.
+              </DialogDescription>
+            </DialogHeader>
+
+            <form onSubmit={handleSaveProfile} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Nombres */}
+                <div>
+                  <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 pl-1">
+                    Nombres <span className="text-red-500">*</span>
+                  </label>
+                  <input 
+                    type="text" 
+                    value={profileNombres} 
+                    onChange={(e) => setProfileNombres(e.target.value)} 
+                    required
+                    className="block w-full h-10 text-xs text-zinc-200 bg-[#111] border border-zinc-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600 focus:border-red-600 transition-all pl-3"
+                    placeholder="Nombres del piloto"
+                  />
+                </div>
+
+                {/* Apellidos */}
+                <div>
+                  <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 pl-1">
+                    Apellidos <span className="text-red-500">*</span>
+                  </label>
+                  <input 
+                    type="text" 
+                    value={profileApellidos} 
+                    onChange={(e) => setProfileApellidos(e.target.value)} 
+                    required
+                    className="block w-full h-10 text-xs text-zinc-200 bg-[#111] border border-zinc-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600 focus:border-red-600 transition-all pl-3"
+                    placeholder="Apellidos del piloto"
+                  />
+                </div>
+
+                {/* Seudonimo */}
+                <div>
+                  <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 pl-1">
+                    Seudónimo (Apodo)
+                  </label>
+                  <input 
+                    type="text" 
+                    value={profileSeudonimo} 
+                    onChange={(e) => setProfileSeudonimo(e.target.value)} 
+                    className="block w-full h-10 text-xs text-zinc-200 bg-[#111] border border-zinc-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600 focus:border-red-600 transition-all pl-3"
+                    placeholder="Apodo Stunt"
+                  />
+                </div>
+
+                {/* Email */}
+                <div>
+                  <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 pl-1">
+                    Correo Electrónico
+                  </label>
+                  <input 
+                    type="email" 
+                    value={profileEmail} 
+                    onChange={(e) => setProfileEmail(e.target.value)} 
+                    className="block w-full h-10 text-xs text-zinc-200 bg-[#111] border border-zinc-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600 focus:border-red-600 transition-all pl-3"
+                    placeholder="correo@ejemplo.com"
+                  />
+                </div>
+
+                {/* Tipo Documento */}
+                <div>
+                  <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 pl-1">
+                    Tipo Documento <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={profileTipoDocumento}
+                    onChange={(e) => setProfileTipoDocumento(e.target.value)}
+                    required
+                    className="block w-full h-10 text-xs text-zinc-200 bg-[#111] border border-zinc-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600 focus:border-red-600 transition-all px-3"
+                  >
+                    <option value="CC">Cédula de Ciudadanía (CC)</option>
+                    <option value="TI">Tarjeta de Identidad (TI)</option>
+                    <option value="CE">Cédula de Extranjería (CE)</option>
+                    <option value="PPT">Permiso por Protección Temporal (PPT)</option>
+                    <option value="NIT">NIT</option>
+                  </select>
+                </div>
+
+                {/* Numero Identificacion */}
+                <div>
+                  <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 pl-1">
+                    Número de Documento <span className="text-red-500">*</span>
+                  </label>
+                  <input 
+                    type="text" 
+                    value={profileNumeroIdentificacion} 
+                    onChange={(e) => setProfileNumeroIdentificacion(e.target.value)} 
+                    required
+                    className="block w-full h-10 text-xs text-zinc-200 bg-[#111] border border-zinc-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600 focus:border-red-600 transition-all pl-3"
+                    placeholder="Número de Cédula/TI"
+                  />
+                </div>
+
+                {/* Telefono */}
+                <div>
+                  <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 pl-1">
+                    Teléfono / WhatsApp <span className="text-red-500">*</span>
+                  </label>
+                  <input 
+                    type="text" 
+                    value={profileTelefono} 
+                    onChange={(e) => setProfileTelefono(e.target.value)} 
+                    required
+                    className="block w-full h-10 text-xs text-zinc-200 bg-[#111] border border-zinc-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600 focus:border-red-600 transition-all pl-3"
+                    placeholder="Ej. 312..."
+                  />
+                </div>
+
+                {/* Ciudad */}
+                <div>
+                  <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 pl-1">
+                    Ciudad de Origen <span className="text-red-500">*</span>
+                  </label>
+                  <input 
+                    type="text" 
+                    value={profileCiudad} 
+                    onChange={(e) => setProfileCiudad(e.target.value)} 
+                    required
+                    className="block w-full h-10 text-xs text-zinc-200 bg-[#111] border border-zinc-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600 focus:border-red-600 transition-all pl-3"
+                    placeholder="Ciudad de origen"
+                  />
+                </div>
+
+                {/* Direccion */}
+                <div>
+                  <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 pl-1">
+                    Dirección de Residencia <span className="text-red-500">*</span>
+                  </label>
+                  <input 
+                    type="text" 
+                    value={profileDireccion} 
+                    onChange={(e) => setProfileDireccion(e.target.value)} 
+                    required
+                    className="block w-full h-10 text-xs text-zinc-200 bg-[#111] border border-zinc-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600 focus:border-red-600 transition-all pl-3"
+                    placeholder="Dirección de residencia"
+                  />
+                </div>
+
+                {/* Talla Camisa */}
+                <div>
+                  <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 pl-1">
+                    Talla de Camisa <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={profileTallaCamisa}
+                    onChange={(e) => setProfileTallaCamisa(e.target.value)}
+                    required
+                    className="block w-full h-10 text-xs text-zinc-200 bg-[#111] border border-zinc-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600 focus:border-red-600 transition-all px-3"
+                  >
+                    <option value="" disabled hidden></option>
+                    <option value="XS">XS</option>
+                    <option value="S">S</option>
+                    <option value="M">M</option>
+                    <option value="L">L</option>
+                    <option value="XL">XL</option>
+                    <option value="XXL">XXL</option>
+                  </select>
+                </div>
+
+                {/* Fecha Nacimiento */}
+                <div>
+                  <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 pl-1">
+                    Fecha de Nacimiento <span className="text-red-500">*</span>
+                  </label>
+                  <input 
+                    type="date" 
+                    value={profileFechaNacimiento} 
+                    onChange={(e) => setProfileFechaNacimiento(e.target.value)} 
+                    required
+                    className="block w-full h-10 text-xs text-zinc-200 bg-[#111] border border-zinc-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600 focus:border-red-600 transition-all [color-scheme:dark] px-3"
+                  />
+                </div>
+              </div>
+
+              <DialogFooter className="pt-3 border-t border-zinc-800 mt-5">
+                <Button 
+                  type="button" 
+                  onClick={() => setIsEditProfileOpen(false)}
+                  variant="ghost" 
+                  className="text-zinc-400 hover:text-white"
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={updating}
+                  className="bg-red-600 hover:bg-red-700 text-white font-bold px-6 flex items-center gap-2"
+                >
+                  {updating && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Guardar Perfil
+                </Button>
+              </DialogFooter>
+            </form>
           </DialogContent>
         </Dialog>
       )}
