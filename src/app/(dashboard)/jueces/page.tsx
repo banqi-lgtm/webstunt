@@ -467,7 +467,6 @@ export default function JuecesPage() {
   }, [selectedEvent]);
   const [isDirectoryOpen, setIsDirectoryOpen] = useState(false);
   const [isRulesOpen, setIsRulesOpen] = useState(false);
-  const [isPresentationOpen, setIsPresentationOpen] = useState(false);
   const [maximizedCategory, setMaximizedCategory] = useState<string | null>(null);
   const [nitroxSearchQuery, setNitroxSearchQuery] = useState('');
 
@@ -1132,7 +1131,7 @@ export default function JuecesPage() {
             </Dialog>
 
             <Button 
-              onClick={() => setIsPresentationOpen(true)}
+              onClick={() => window.open(`/presentacion?event=${selectedEvent}&category=${masterCategory}`, '_blank')}
               className="border-[#22c55e]/50 text-[#22c55e] bg-[#22c55e]/5 hover:bg-[#22c55e]/20 hover:text-[#22c55e] font-bold uppercase tracking-wide h-9 px-2 sm:px-3 text-[10px] sm:text-xs shadow-[0_0_10px_rgba(34,197,94,0.2)] gap-1"
             >
               <Play className="w-3.5 h-3.5 fill-current shrink-0" /> Empezar
@@ -2067,165 +2066,7 @@ export default function JuecesPage() {
       </Dialog>
     </div>
 
-    {/* MODAL / PÁGINA EMERGENTE DE EMPEZAR (PRESENTACIÓN DE TURNOS) */}
-    <Dialog open={isPresentationOpen} onOpenChange={setIsPresentationOpen}>
-      <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] bg-black border-[#22c55e] border-2 shadow-[0_0_50px_rgba(34,197,94,0.3)] text-white flex flex-col p-6 overflow-hidden font-sans">
-        <DialogTitle className="sr-only">Presentación de Pilotos en Pista</DialogTitle>
-        
-        {/* HEADER */}
-        <div className="flex-none flex items-center justify-between border-b border-zinc-800 pb-4 mb-4">
-          <div className="flex items-center gap-3">
-            <span className="w-3.5 h-3.5 rounded-full bg-[#22c55e] animate-pulse"></span>
-            <h2 className="text-xl sm:text-2xl font-black tracking-wider uppercase text-white">
-              Pilotos en Pista
-            </h2>
-            <span className="text-xs font-semibold bg-[#22c55e]/10 border border-[#22c55e]/30 px-2 py-0.5 rounded text-[#22c55e] uppercase tracking-widest font-mono">
-              {selectedEvent === 'festival' ? 'Festival Stunt' : selectedEvent === 'nitrox' ? 'Copa Stunt Nitrox' : 'Copa Stunt F2R'} - {masterCategory}
-            </span>
-          </div>
-          
-          {/* Banner Patrocinadores Principal */}
-          <div className="hidden lg:flex items-center max-w-[400px]">
-            <img src="/sponsors/patro.png" alt="Patrocinadores" className="h-10 object-contain" />
-          </div>
-        </div>
 
-        {/* BODY */}
-        {(() => {
-          const presentationPilots = groupedByCategory[masterCategory] || [];
-          const firstPilot = presentationPilots[0];
-          return (
-            <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-6">
-              
-              {/* COLUMNA IZQUIERDA: LISTA DE PILOTOS */}
-              <div className="lg:col-span-7 flex flex-col min-h-0 bg-zinc-950/60 rounded-2xl border border-zinc-900 p-4">
-                <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-400 mb-3 flex items-center gap-2">
-                  <span>Orden de Salida / Turnos</span>
-                  <span className="text-[10px] bg-zinc-800 text-zinc-300 px-1.5 py-0.5 rounded font-mono">
-                    {presentationPilots.length} pilotos
-                  </span>
-                </h3>
-                
-                <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1">
-                  {presentationPilots.length === 0 ? (
-                    <div className="h-full flex items-center justify-center text-zinc-600 font-mono text-sm py-12">
-                      No hay pilotos registrados en esta categoría.
-                    </div>
-                  ) : (
-                    presentationPilots.map((pilot: any, idx: number) => {
-                      const isFirst = idx === 0;
-                      return (
-                        <div 
-                          key={`pres-${pilot.id}`} 
-                          className={`flex items-center justify-between p-3.5 rounded-xl border transition-all ${
-                            isFirst 
-                              ? 'border-[#22c55e] bg-[#22c55e]/5 shadow-[0_0_15px_rgba(34,197,94,0.15)]' 
-                              : 'border-zinc-900 bg-zinc-900/30'
-                          }`}
-                        >
-                          <div className="flex items-center gap-3.5 min-w-0">
-                            <span className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold font-mono text-sm ${
-                              isFirst 
-                                ? 'bg-[#22c55e] text-black shadow-[0_0_10px_rgba(34,197,94,0.4)]' 
-                                : 'bg-zinc-900 text-zinc-400'
-                            }`}>
-                              #{idx + 1}
-                            </span>
-                            
-                            <div className="min-w-0">
-                              <p className="font-bold text-white uppercase text-sm sm:text-base truncate">
-                                {pilot.nombres} {pilot.apellidos}
-                              </p>
-                              <p className="text-xs text-zinc-500 font-medium">
-                                Seudónimo: <span className="text-zinc-300 capitalize">{pilot.seudonimo || 'N/A'}</span>
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-3">
-                            <span className="text-[10px] bg-zinc-900 border border-zinc-800 text-zinc-400 px-2 py-0.5 rounded font-mono">
-                              ID: {pilot.numeroIdentificacion?.slice(-4) || 'N/A'}
-                            </span>
-                            {isFirst && (
-                              <span className="text-[10px] bg-[#22c55e]/10 border border-[#22c55e]/30 text-[#22c55e] font-bold px-2 py-0.5 rounded animate-pulse uppercase tracking-wider">
-                                En Pista
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-
-              {/* COLUMNA DERECHA: PILOTO LIDER / FOTO & SPONSORS */}
-              <div className="lg:col-span-5 flex flex-col justify-between min-h-0 bg-zinc-950/60 rounded-2xl border border-zinc-900 p-5 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-48 h-48 bg-[#22c55e]/5 blur-3xl rounded-full pointer-events-none"></div>
-                
-                {/* Info del que va de primeras */}
-                <div className="flex-1 flex flex-col justify-center items-center text-center gap-4 py-2">
-                  <span className="text-xs font-bold uppercase tracking-widest text-[#22c55e] bg-[#22c55e]/10 border border-[#22c55e]/20 px-3 py-1 rounded-full">
-                    🏍️ Siguiente en Pista
-                  </span>
-                  
-                  {/* Frame de la Foto */}
-                  <div className="relative w-44 h-44 sm:w-52 sm:h-52 rounded-2xl overflow-hidden border-2 border-[#22c55e] shadow-[0_0_25px_rgba(34,197,94,0.3)] bg-zinc-900 flex items-center justify-center group shrink-0">
-                    {firstPilot?.documentos?.deportistaUrl ? (
-                      <img 
-                        src={firstPilot.documentos.deportistaUrl} 
-                        alt={firstPilot.nombres}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
-                      />
-                    ) : (
-                      <div className="flex flex-col items-center justify-center text-zinc-600 gap-2">
-                        <User className="w-16 h-16 text-zinc-700" />
-                        <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500">Sin foto de piloto</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-1">
-                    <h4 className="text-xl sm:text-2xl font-black tracking-wide uppercase text-white max-w-[340px] leading-tight truncate">
-                      {firstPilot ? `${firstPilot.nombres} ${firstPilot.apellidos}` : 'Sin pilotos'}
-                    </h4>
-                    {firstPilot?.seudonimo && (
-                      <p className="text-sm font-bold text-zinc-400 capitalize drop-shadow">
-                        "{firstPilot.seudonimo}"
-                      </p>
-                    )}
-                    {firstPilot?.motocicleta && (
-                      <p className="text-xs text-zinc-500 font-mono">
-                        Moto: {firstPilot.motocicleta.marca || 'N/A'} {firstPilot.motocicleta.referencia || ''} | Placa: {firstPilot.motocicleta.placa || 'N/A'}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Sponsors Section (Footer de la columna derecha) */}
-                <div className="flex-none border-t border-[#1F1F1F] pt-4 mt-2">
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 text-center mb-3">
-                    Sponsors Oficiales
-                  </p>
-                  <div className="flex flex-wrap items-center justify-center gap-4 bg-zinc-900/40 p-2.5 rounded-xl border border-zinc-800/60">
-                    {SPONSOR_LOGOS.map((logo, idx) => (
-                      <img 
-                        key={`pres-logo-${idx}`} 
-                        src={logo.src} 
-                        alt={logo.alt} 
-                        className="h-6 sm:h-8 object-contain opacity-70 hover:opacity-100 transition-opacity duration-300" 
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          );
-        })()}
-
-      </DialogContent>
-    </Dialog>
 
       {/* RENDERIZADO PARA IMPRESIÓN (PDF) */}
       <div className="hidden print:block w-full bg-white text-black font-sans">
