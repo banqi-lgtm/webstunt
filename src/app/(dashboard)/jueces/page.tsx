@@ -638,7 +638,11 @@ export default function JuecesPage() {
         else if (finalCat === '4T' || finalCat === '4 TIEMPOS' || finalCat === 'EXPERTOS') finalCat = 'EXPERTOS';
         else if (finalCat === 'ALTO' || finalCat === 'ALTO CILINDRAJE' || finalCat === 'NITROX' || finalCat === 'ÉLITE') finalCat = 'ÉLITE';
       } else {
-        if (finalCat.includes('ALTO') || finalCat === 'CATEGORIA NITROX' || finalCat === 'NITROX') finalCat = 'NITROX';
+        if (selectedEvent === 'nitrox') {
+          if (finalCat.includes('ALTO') || finalCat === 'CATEGORIA NITROX' || finalCat === 'NITROX') finalCat = 'ALTO CILINDRAJE';
+        } else {
+          if (finalCat.includes('ALTO') || finalCat === 'CATEGORIA NITROX' || finalCat === 'NITROX') finalCat = 'NITROX';
+        }
         if (finalCat === '2T') finalCat = '2 TIEMPOS';
         if (finalCat === '4T') finalCat = '4 TIEMPOS';
       }
@@ -657,7 +661,7 @@ export default function JuecesPage() {
     if (selectedEvent === 'festival') {
       return ['NOVATOS', 'PREEXPERTOS', 'EXPERTOS', 'ÉLITE'];
     } else if (selectedEvent === 'nitrox') {
-      return ['OPEN', '2 TIEMPOS', '4 TIEMPOS', 'NITROX', 'BIKELIFE'];
+      return ['OPEN', '2 TIEMPOS', '4 TIEMPOS', 'ALTO CILINDRAJE', 'BIKELIFE'];
     } else {
       return ['OPEN', '2 TIEMPOS', '4 TIEMPOS', 'NITROX'];
     }
@@ -971,28 +975,28 @@ export default function JuecesPage() {
   const getCatColor = (cat: string) => {
     if (cat.includes('OPEN')) return 'border-[#E60000] text-[#E60000] shadow-[0_0_15px_rgba(230, 0, 0,0.2)]';
     if (cat.includes('TIEMPOS')) return 'border-[#ff6b00] text-[#ff6b00] shadow-[0_0_15px_rgba(255,107,0,0.2)]';
-    if (cat.includes('NITROX')) return 'border-[#ffd700] text-[#ffd700] shadow-[0_0_15px_rgba(255,215,0,0.2)]';
+    if (cat.includes('NITROX') || cat.includes('ALTO CILINDRAJE')) return 'border-[#ffd700] text-[#ffd700] shadow-[0_0_15px_rgba(255,215,0,0.2)]';
     return 'border-[#00cfff] text-[#00cfff]';
   };
 
   const getCatGlow = (cat: string) => {
     if (cat.includes('OPEN')) return 'shadow-[0_0_15px_rgba(230, 0, 0,0.2)] shadow-[inset_0_0_15px_rgba(230, 0, 0,0.05)] border-[#E60000]';
     if (cat.includes('TIEMPOS')) return 'shadow-[0_0_15px_rgba(255,107,0,0.2)] shadow-[inset_0_0_15px_rgba(255,107,0,0.05)] border-[#ff6b00]';
-    if (cat.includes('NITROX')) return 'shadow-[0_0_15px_rgba(255,215,0,0.2)] shadow-[inset_0_0_15px_rgba(255,215,0,0.05)] border-[#ffd700]';
+    if (cat.includes('NITROX') || cat.includes('ALTO CILINDRAJE')) return 'shadow-[0_0_15px_rgba(255,215,0,0.2)] shadow-[inset_0_0_15px_rgba(255,215,0,0.05)] border-[#ffd700]';
     return 'border-[#00cfff]';
   };
 
   const getCatTextGlow = (cat: string) => {
     if (cat.includes('OPEN')) return 'text-[#E60000] drop-shadow-[0_0_8px_rgba(230, 0, 0,0.8)]';
     if (cat.includes('TIEMPOS')) return 'text-[#ff6b00] drop-shadow-[0_0_8px_rgba(255,107,0,0.8)]';
-    if (cat.includes('NITROX')) return 'text-[#ffd700] drop-shadow-[0_0_8px_rgba(255,215,0,0.8)]';
+    if (cat.includes('NITROX') || cat.includes('ALTO CILINDRAJE')) return 'text-[#ffd700] drop-shadow-[0_0_8px_rgba(255,215,0,0.8)]';
     return 'text-[#00cfff]';
   };
 
   const getCatTextColor = (cat: string) => {
     if (cat.includes('OPEN')) return 'text-[#E60000]';
     if (cat.includes('TIEMPOS')) return 'text-[#ff6b00]';
-    if (cat.includes('NITROX')) return 'text-[#ffd700]';
+    if (cat.includes('NITROX') || cat.includes('ALTO CILINDRAJE')) return 'text-[#ffd700]';
     return 'text-[#00cfff]';
   };
 
