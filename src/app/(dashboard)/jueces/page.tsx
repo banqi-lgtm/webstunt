@@ -1017,10 +1017,10 @@ export default function JuecesPage() {
           <h1 className="text-lg md:text-xl font-black tracking-widest leading-none drop-shadow-[0_0_5px_rgba(255,255,255,0.5)] text-center">
             PANEL DE JUECES
           </h1>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-1.5 justify-center">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="border-[#00cfff]/50 text-[#00cfff] bg-[#00cfff]/5 hover:bg-[#00cfff]/20 hover:text-[#00cfff] font-bold uppercase tracking-widest h-9 px-4 text-xs shadow-[0_0_10px_rgba(0,207,255,0.2)]">
+                <Button variant="outline" className="border-[#00cfff]/50 text-[#00cfff] bg-[#00cfff]/5 hover:bg-[#00cfff]/20 hover:text-[#00cfff] font-bold uppercase tracking-wide h-9 px-2 sm:px-3 text-[10px] sm:text-xs shadow-[0_0_10px_rgba(0,207,255,0.2)]">
                   <span>Evento: {
                     selectedEvent === 'f2r' ? 'F2R' :
                     selectedEvent === 'nitrox' ? 'Nitrox' :
@@ -1049,8 +1049,8 @@ export default function JuecesPage() {
 
             <Dialog open={isRulesOpen} onOpenChange={setIsRulesOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" className="border-[#00cfff]/50 text-[#00cfff] bg-[#00cfff]/5 hover:bg-[#00cfff]/20 hover:text-[#00cfff] font-bold uppercase tracking-widest h-9 px-4 text-xs shadow-[0_0_10px_rgba(0,207,255,0.2)]">
-                  <Info className="w-4 h-4 mr-2" /> Instructivo
+                <Button variant="outline" className="border-[#00cfff]/50 text-[#00cfff] bg-[#00cfff]/5 hover:bg-[#00cfff]/20 hover:text-[#00cfff] font-bold uppercase tracking-wide h-9 px-2 sm:px-3 text-[10px] sm:text-xs shadow-[0_0_10px_rgba(0,207,255,0.2)]">
+                  <Info className="w-3.5 h-3.5 mr-1" /> Instructivo
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-xl bg-[#0a1628] border-[#00cfff] text-[#E8E8E8] shadow-[0_0_30px_rgba(0,207,255,0.3)]">
@@ -1079,8 +1079,8 @@ export default function JuecesPage() {
 
             <Dialog open={isDirectoryOpen} onOpenChange={setIsDirectoryOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" className="border-[#E60000]/50 text-[#E60000] bg-[#E60000]/5 hover:bg-[#E60000]/20 hover:text-[#E60000] font-bold uppercase tracking-widest h-9 px-4 text-xs shadow-[0_0_10px_rgba(230, 0, 0,0.2)]">
-                  <ShieldAlert className="w-4 h-4 mr-2" /> Directorio
+                <Button variant="outline" className="border-[#E60000]/50 text-[#E60000] bg-[#E60000]/5 hover:bg-[#E60000]/20 hover:text-[#E60000] font-bold uppercase tracking-wide h-9 px-2 sm:px-3 text-[10px] sm:text-xs shadow-[0_0_10px_rgba(230, 0, 0,0.2)]">
+                  <ShieldAlert className="w-3.5 h-3.5 mr-1" /> Directorio
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-3xl bg-[#0a1628] border-[#E60000] max-h-[85vh] overflow-y-auto custom-scrollbar shadow-[0_0_30px_rgba(230, 0, 0,0.2)]">
@@ -1133,7 +1133,7 @@ export default function JuecesPage() {
 
             <Button 
               onClick={() => setIsPresentationOpen(true)}
-              className="border-[#22c55e]/50 text-[#22c55e] bg-[#22c55e]/5 hover:bg-[#22c55e]/20 hover:text-[#22c55e] font-bold uppercase tracking-widest h-9 px-4 text-xs shadow-[0_0_10px_rgba(34,197,94,0.2)] gap-1.5"
+              className="border-[#22c55e]/50 text-[#22c55e] bg-[#22c55e]/5 hover:bg-[#22c55e]/20 hover:text-[#22c55e] font-bold uppercase tracking-wide h-9 px-2 sm:px-3 text-[10px] sm:text-xs shadow-[0_0_10px_rgba(34,197,94,0.2)] gap-1"
             >
               <Play className="w-3.5 h-3.5 fill-current shrink-0" /> Empezar
             </Button>
