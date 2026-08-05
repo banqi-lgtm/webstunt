@@ -26,31 +26,49 @@ export async function POST(req: Request) {
     let docsReminder = '<li style="margin-bottom: 10px;">Si te falta cargar alguno de estos documentos, súbelo cuanto antes en la plataforma.</li>';
     let sponsorText = '<p style="color: #888; margin: 5px 0 0 0; font-size: 14px; letter-spacing: 1px;">REPUESTOS NITROX</p>';
     
+    // Determine the text based on the payment status
+    const isDiaEvento = estadoPago === 'pago_dia_evento';
+    
+    let statusText = isDiaEvento 
+      ? 'Tu solicitud ha sido revisada y has sido <strong>APROBADO</strong> bajo la modalidad de <strong>Pago Día del Evento</strong>.'
+      : 'Tu cupo está <strong>OFICIALMENTE CONFIRMADO</strong>.';
+
+    let paymentReminder = isDiaEvento
+      ? '<p style="color: #ffcc00; font-weight: bold; background-color: #333; padding: 10px; border-left: 4px solid #ffcc00;">⚠️ IMPORTANTE: Recuerda que debes realizar el pago en la entrada el día del evento para poder acceder a la pista.</p>'
+      : '';
+
+    let subject = `¡Tu inscripción ha sido APROBADA! - ${eventName}`;
+    let emailTitle = `¡Hola, ${nombre}! 🏍️🔥`;
+    let emailBody = `<p style="color: #cccccc; font-size: 16px; line-height: 1.6;">Tenemos excelentes noticias. ${statusText}</p>`;
+    
     if (eventId === 'festival') {
       eventName = 'Festival Stunt';
-      locationText = 'Pereira';
-      prepVehicleText = '<li style="margin-bottom: 10px;">Lleva tu bicicleta lista y preparada.</li>';
+      locationText = 'Plaza Cívica Ciudad Victoria, en Pereira';
+      subject = '🏆 ¡Felicitaciones! Has sido aprobado para el Campeonato Nacional de Stunt Bike';
+      emailTitle = `¡Felicitaciones, ${nombre}! 🏆`;
+      emailBody = `
+        <p style="color: #cccccc; font-size: 16px; line-height: 1.6; margin-bottom: 18px;">
+          Después de revisar tu información, confirmamos que <strong>has sido aprobado</strong> y eres apto para participar en el <strong>Campeonato Nacional de Stunt Bike</strong>.
+        </p>
+        <p style="color: #cccccc; font-size: 16px; line-height: 1.6;">
+          Te esperamos el <strong>30 de agosto de 2026</strong> en la <strong>Plaza Cívica Ciudad Victoria, en Pereira</strong>, con la mejor energía para vivir una gran jornada y demostrar todo tu talento. ¡Nos vemos en la competencia!
+        </p>
+      `;
+      prepVehicleText = '<li style="margin-bottom: 10px;">Lleva tu motocicleta lista y preparada.</li>';
       docsText = '';
-      docsReminder = '<li style="margin-bottom: 10px;">Si te falta cargar tu identificación, foto con bicicleta o video de presentación, súbelos cuanto antes en la plataforma.</li>';
+      docsReminder = '<li style="margin-bottom: 10px;">Asegúrate de llevar tu <strong>Documento de Identidad Original</strong>.</li>';
       sponsorText = '';
+      paymentReminder = '';
     } else if (eventId === 'nitrox') {
       eventName = 'Copa Stunt Nitrox';
       locationText = 'Pereira';
       prepVehicleText = '<li style="margin-bottom: 10px;">Lleva tu motocicleta lista y preparada.</li>';
       docsText = '';
       docsReminder = '<li style="margin-bottom: 10px;">Si te falta cargar tu identificación o foto de deportista, súbelos cuanto antes en la plataforma.</li>';
+      subject = `¡Tu inscripción ha sido APROBADA! - ${eventName}`;
+      emailTitle = `¡Hola, ${nombre}! 🏍️🔥`;
+      emailBody = `<p style="color: #cccccc; font-size: 16px; line-height: 1.6;">Tenemos excelentes noticias. ${statusText}</p>`;
     }
-
-    // Determine the text based on the payment status
-    const isDiaEvento = estadoPago === 'pago_dia_evento';
-    
-    const statusText = isDiaEvento 
-      ? 'Tu solicitud ha sido revisada y has sido <strong>APROBADO</strong> bajo la modalidad de <strong>Pago Día del Evento</strong>.'
-      : 'Tu cupo está <strong>OFICIALMENTE CONFIRMADO</strong>.';
-
-    const paymentReminder = isDiaEvento
-      ? '<p style="color: #ffcc00; font-weight: bold; background-color: #333; padding: 10px; border-left: 4px solid #ffcc00;">⚠️ IMPORTANTE: Recuerda que debes realizar el pago en la entrada el día del evento para poder acceder a la pista.</p>'
-      : '';
 
     const htmlTemplate = `
     <!DOCTYPE html>
@@ -58,7 +76,7 @@ export async function POST(req: Request) {
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Confirmación ${eventName}</title>
+      <title>Confirmación - ${eventName}</title>
     </head>
     <body style="margin: 0; padding: 0; font-family: 'Arial', sans-serif; background-color: #0d0d0d; color: #ffffff;">
       <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #0d0d0d; padding: 20px;">
@@ -77,10 +95,8 @@ export async function POST(req: Request) {
               <!-- Content -->
               <tr>
                 <td style="padding: 40px 30px;">
-                  <h2 style="color: #ffffff; font-size: 22px; margin-top: 0;">¡Hola, ${nombre}! 🏍️🔥</h2>
-                  <p style="color: #cccccc; font-size: 16px; line-height: 1.6;">
-                    Tenemos excelentes noticias. ${statusText}
-                  </p>
+                  <h2 style="color: #ffffff; font-size: 22px; margin-top: 0;">${emailTitle}</h2>
+                  ${emailBody}
  
                   ${paymentReminder}
 
@@ -88,7 +104,7 @@ export async function POST(req: Request) {
                     <h3 style="color: #10B981; margin-top: 0; font-size: 18px; text-transform: uppercase;">Pasos Finales:</h3>
                     <ul style="color: #cccccc; font-size: 15px; line-height: 1.6; padding-left: 20px;">
                       ${prepVehicleText}
-                      <li style="margin-bottom: 10px;">Asegúrate de llevar tu <strong>Documento de Identidad Original</strong>${docsText ? ' y ' + docsText : ''}.</li>
+                      ${docsText ? `<li style="margin-bottom: 10px;">Asegúrate de llevar tu <strong>Documento de Identidad Original</strong> y ${docsText}.</li>` : ''}
                       ${docsReminder}
                       <li style="margin-bottom: 10px;">Ingresa a <a href="https://paskinesstunt.com" target="_blank" style="color: #10B981; text-decoration: none; font-weight: bold;">paskinesstunt.com</a> y verifica que todos tus documentos estén aprobados.</li>
                     </ul>
@@ -123,7 +139,7 @@ export async function POST(req: Request) {
     const info = await transporter.sendMail({
       from: `"${eventName}" <copastuntfrnitrox@gmail.com>`,
       to: email,
-      subject: `¡Tu inscripción ha sido APROBADA! - ${eventName}`,
+      subject: subject,
       html: htmlTemplate,
     });
     console.log(`[Email Approval] Email sent successfully. MessageId: ${info.messageId}`);
