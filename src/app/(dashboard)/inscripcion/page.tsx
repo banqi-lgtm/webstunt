@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { UploadCloud, AlertTriangle, CheckCircle2, ChevronRight, ChevronDown, User, Gift, Trophy, Star, ShieldAlert, CreditCard, Clock, Image as ImageIcon, XCircle, ArrowLeft, CheckCircle, Smartphone, Phone, Lock, Camera, Instagram, AlertCircle, Calendar, Video } from 'lucide-react';
+import { UploadCloud, AlertTriangle, CheckCircle2, ChevronRight, ChevronDown, User, Gift, Trophy, Star, ShieldAlert, CreditCard, Clock, Image as ImageIcon, XCircle, ArrowLeft, CheckCircle, Smartphone, Phone, Lock, Camera, Instagram, AlertCircle, Calendar, Video, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { CameraModal } from '@/components/camera-modal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -288,6 +288,14 @@ export default function InscripcionPage() {
   const [apellidos, setApellidos] = useState('');
   const [seudonimo, setSeudonimo] = useState('');
   const [ciudad, setCiudad] = useState('');
+  const [numeroIdentificacion, setNumeroIdentificacion] = useState('');
+  const [tipoDocumento, setTipoDocumento] = useState('CC');
+  const [telefono, setTelefono] = useState('');
+  const [direccion, setDireccion] = useState('');
+  const [tallaCamisa, setTallaCamisa] = useState('');
+  const [fechaNacimiento, setFechaNacimiento] = useState('');
+  const [email, setEmail] = useState('');
+  const [isProfileIncomplete, setIsProfileIncomplete] = useState(false);
   const [templateConfig, setTemplateConfig] = useState<any>(null);
   const isSimplifiedEvent = selectedEvent === 'nitrox' || selectedEvent === 'festival';
 
@@ -397,6 +405,55 @@ export default function InscripcionPage() {
       console.error("Error validando el registro del evento:", e);
     } finally {
       setIsCheckingStatus(false);
+    }
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!uid) return;
+    if (!nombres || !apellidos || !numeroIdentificacion || !telefono || !ciudad || !direccion || !tallaCamisa || !fechaNacimiento) {
+      toast({
+        title: "Campos incompletos",
+        description: "Por favor completa todos los campos obligatorios (*).",
+        variant: "destructive"
+      });
+      return;
+    }
+    setIsLoading(true);
+    try {
+      await setDoc(doc(db, 'users', uid), {
+        email: email || '',
+        nombres,
+        apellidos,
+        seudonimo: seudonimo || null,
+        tipoDocumento,
+        numeroIdentificacion,
+        telefono,
+        ciudad,
+        direccion,
+        tallaCamisa,
+        fechaNacimiento,
+        rol: 'pilot',
+        role: 'pilot',
+        habeasDataAccepted: true,
+        habeasDataAcceptedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString()
+      }, { merge: true });
+
+      toast({
+        title: "Perfil Completado",
+        description: "Tu perfil ha sido guardado exitosamente. Ahora puedes continuar.",
+      });
+      setIsProfileIncomplete(false);
+    } catch (err: any) {
+      console.error("Error updating user profile:", err);
+      toast({
+        title: "Error al guardar",
+        description: err.message || "No se pudo guardar la información del perfil.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -779,14 +836,28 @@ export default function InscripcionPage() {
           const userDocSnap = await getDoc(userDocRef);
           if (userDocSnap.exists()) {
             const userData = userDocSnap.data();
+            const hasRequiredFields = userData.nombres && userData.apellidos && userData.numeroIdentificacion && userData.telefono && userData.ciudad;
+            if (!hasRequiredFields) {
+              setIsProfileIncomplete(true);
+            }
             setNombres(userData.nombres || '');
             setApellidos(userData.apellidos || '');
             setSeudonimo(userData.seudonimo || '');
             setCiudad(userData.ciudad || '');
+            setNumeroIdentificacion(userData.numeroIdentificacion || '');
+            setTipoDocumento(userData.tipoDocumento || 'CC');
+            setTelefono(userData.telefono || '');
+            setDireccion(userData.direccion || '');
+            setTallaCamisa(userData.tallaCamisa || '');
+            setFechaNacimiento(userData.fechaNacimiento || '');
+            setEmail(userData.email || user.email || '');
             setStaffNombre(`${userData.nombres || ''} ${userData.apellidos || ''}`.trim());
             setStaffCedula(userData.numeroIdentificacion || '');
             setStaffCargo(userData.cargo || '');
             setStaffTelefono(userData.telefono || '');
+          } else {
+            setIsProfileIncomplete(true);
+            setEmail(user.email || '');
           }
           await fetchEventStatuses(user.uid);
         } catch (e) {
@@ -1093,7 +1164,16 @@ export default function InscripcionPage() {
         comprobanteUrl: urls[5],
         inquietudes,
         registradoEl: new Date().toISOString(),
-        estadoPago: 'en_revision'
+        estadoPago: 'en_revision',
+        // Cache user profile details directly in registration
+        nombres,
+        apellidos,
+        seudonimo,
+        email,
+        numeroIdentificacion,
+        telefono,
+        ciudad,
+        tallaCamisa
       };
 
       await setDoc(doc(db, 'event_registrations', `${selectedEvent}_${uid}`), formData);
@@ -2706,6 +2786,193 @@ export default function InscripcionPage() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Profile Completion Modal */}
+      <Dialog open={isProfileIncomplete} onOpenChange={() => {}}>
+        <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto bg-zinc-950 border-2 border-[#E60000]/60 p-5 rounded-2xl shadow-[0_0_50px_rgba(230,0,0,0.25)] text-zinc-100 z-[150]">
+          <DialogHeader className="border-b border-[#2A2A2A] pb-3 mb-4">
+            <DialogTitle className="text-xl font-headline font-black text-[#E60000] uppercase tracking-wider text-center flex items-center justify-center gap-2">
+              ⚠️ Completar Perfil de Piloto
+            </DialogTitle>
+            <DialogDescription className="text-center text-zinc-400 text-xs mt-1">
+              Hola, para continuar con tu inscripción oficial, por favor completa los siguientes datos de tu perfil de piloto.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSaveProfile} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Nombres */}
+              <div>
+                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 pl-1">
+                  Nombres <span className="text-[#E60000]">*</span>
+                </label>
+                <input 
+                  type="text" 
+                  value={nombres} 
+                  onChange={(e) => setNombres(e.target.value)} 
+                  required
+                  className="block w-full h-10 text-xs text-zinc-200 bg-[#111] border border-zinc-800 rounded-xl appearance-none focus:outline-none focus:ring-1 focus:ring-[#E60000] focus:border-[#E60000] transition-all placeholder:text-zinc-600 pl-3"
+                  placeholder="Ej. Juan"
+                />
+              </div>
+
+              {/* Apellidos */}
+              <div>
+                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 pl-1">
+                  Apellidos <span className="text-[#E60000]">*</span>
+                </label>
+                <input 
+                  type="text" 
+                  value={apellidos} 
+                  onChange={(e) => setApellidos(e.target.value)} 
+                  required
+                  className="block w-full h-10 text-xs text-zinc-200 bg-[#111] border border-zinc-800 rounded-xl appearance-none focus:outline-none focus:ring-1 focus:ring-[#E60000] focus:border-[#E60000] transition-all placeholder:text-zinc-600 pl-3"
+                  placeholder="Ej. Pérez"
+                />
+              </div>
+
+              {/* Seudonimo */}
+              <div>
+                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 pl-1">
+                  Seudónimo (Apodo Stunt)
+                </label>
+                <input 
+                  type="text" 
+                  value={seudonimo} 
+                  onChange={(e) => setSeudonimo(e.target.value)}
+                  className="block w-full h-10 text-xs text-zinc-200 bg-[#111] border border-zinc-800 rounded-xl appearance-none focus:outline-none focus:ring-1 focus:ring-[#E60000] focus:border-[#E60000] transition-all placeholder:text-zinc-600 pl-3"
+                  placeholder="Ej. PerezStunt"
+                />
+              </div>
+
+              {/* Tipo Documento */}
+              <div>
+                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 pl-1">
+                  Tipo de Documento <span className="text-[#E60000]">*</span>
+                </label>
+                <select
+                  value={tipoDocumento}
+                  onChange={(e) => setTipoDocumento(e.target.value)}
+                  required
+                  className="block w-full h-10 text-xs text-zinc-200 bg-[#111] border border-zinc-800 rounded-xl appearance-none focus:outline-none focus:ring-1 focus:ring-[#E60000] focus:border-[#E60000] transition-all px-3"
+                >
+                  <option value="CC">Cédula de Ciudadanía (CC)</option>
+                  <option value="TI">Tarjeta de Identidad (TI)</option>
+                  <option value="CE">Cédula de Extranjería (CE)</option>
+                  <option value="PPT">Permiso por Protección Temporal (PPT)</option>
+                  <option value="NIT">NIT</option>
+                </select>
+              </div>
+
+              {/* Numero Identificacion */}
+              <div>
+                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 pl-1">
+                  Número de Identificación <span className="text-[#E60000]">*</span>
+                </label>
+                <input 
+                  type="text" 
+                  value={numeroIdentificacion} 
+                  onChange={(e) => setNumeroIdentificacion(e.target.value)} 
+                  required
+                  className="block w-full h-10 text-xs text-zinc-200 bg-[#111] border border-zinc-800 rounded-xl appearance-none focus:outline-none focus:ring-1 focus:ring-[#E60000] focus:border-[#E60000] transition-all placeholder:text-zinc-600 pl-3"
+                  placeholder="Ej. 1040..."
+                />
+              </div>
+
+              {/* Telefono */}
+              <div>
+                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 pl-1">
+                  Teléfono / WhatsApp <span className="text-[#E60000]">*</span>
+                </label>
+                <input 
+                  type="text" 
+                  value={telefono} 
+                  onChange={(e) => setTelefono(e.target.value)} 
+                  required
+                  className="block w-full h-10 text-xs text-zinc-200 bg-[#111] border border-zinc-800 rounded-xl appearance-none focus:outline-none focus:ring-1 focus:ring-[#E60000] focus:border-[#E60000] transition-all placeholder:text-zinc-600 pl-3"
+                  placeholder="Ej. 312..."
+                />
+              </div>
+
+              {/* Ciudad */}
+              <div>
+                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 pl-1">
+                  Ciudad de Origen <span className="text-[#E60000]">*</span>
+                </label>
+                <input 
+                  type="text" 
+                  value={ciudad} 
+                  onChange={(e) => setCiudad(e.target.value)} 
+                  required
+                  className="block w-full h-10 text-xs text-zinc-200 bg-[#111] border border-zinc-800 rounded-xl appearance-none focus:outline-none focus:ring-1 focus:ring-[#E60000] focus:border-[#E60000] transition-all placeholder:text-zinc-600 pl-3"
+                  placeholder="Ej. Medellín"
+                />
+              </div>
+
+              {/* Direccion */}
+              <div>
+                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 pl-1">
+                  Dirección de Residencia <span className="text-[#E60000]">*</span>
+                </label>
+                <input 
+                  type="text" 
+                  value={direccion} 
+                  onChange={(e) => setDireccion(e.target.value)} 
+                  required
+                  className="block w-full h-10 text-xs text-zinc-200 bg-[#111] border border-zinc-800 rounded-xl appearance-none focus:outline-none focus:ring-1 focus:ring-[#E60000] focus:border-[#E60000] transition-all placeholder:text-zinc-600 pl-3"
+                  placeholder="Ej. Calle 10..."
+                />
+              </div>
+
+              {/* Talla Camisa */}
+              <div>
+                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 pl-1">
+                  Talla de Camisa <span className="text-[#E60000]">*</span>
+                </label>
+                <select
+                  value={tallaCamisa}
+                  onChange={(e) => setTallaCamisa(e.target.value)}
+                  required
+                  className="block w-full h-10 text-xs text-zinc-200 bg-[#111] border border-zinc-800 rounded-xl appearance-none focus:outline-none focus:ring-1 focus:ring-[#E60000] focus:border-[#E60000] transition-all px-3"
+                >
+                  <option value="" disabled hidden></option>
+                  <option value="XS">XS</option>
+                  <option value="S">S</option>
+                  <option value="M">M</option>
+                  <option value="L">L</option>
+                  <option value="XL">XL</option>
+                  <option value="XXL">XXL</option>
+                </select>
+              </div>
+
+              {/* Fecha Nacimiento */}
+              <div>
+                <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 pl-1">
+                  Fecha de Nacimiento <span className="text-[#E60000]">*</span>
+                </label>
+                <input 
+                  type="date" 
+                  value={fechaNacimiento} 
+                  onChange={(e) => setFechaNacimiento(e.target.value)} 
+                  required
+                  className="block w-full h-10 text-xs text-zinc-200 bg-[#111] border border-zinc-800 rounded-xl appearance-none focus:outline-none focus:ring-1 focus:ring-[#E60000] focus:border-[#E60000] transition-all [color-scheme:dark] px-3"
+                />
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-[#2A2A2A]/50 mt-5">
+              <Button 
+                type="submit" 
+                disabled={isLoading}
+                className="w-full bg-[#E60000] hover:bg-red-700 text-white font-black uppercase tracking-wider h-11 rounded-xl shadow-[0_0_15px_rgba(230,0,0,0.2)] flex items-center justify-center gap-2"
+              >
+                {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                Guardar Perfil y Continuar
+              </Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
