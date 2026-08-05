@@ -150,15 +150,15 @@ export default function PresentacionPage() {
   const firstPilot = presentationPilots[0];
 
   return (
-    <div className="min-h-screen w-full bg-[#030303] text-white flex flex-col p-4 sm:p-6 font-sans overflow-hidden justify-between relative">
+    <div className="h-screen w-screen bg-[#030303] text-white flex flex-col p-4 font-sans overflow-hidden justify-between relative select-none">
       {/* Background tech grid effect */}
       <div className="absolute inset-0 z-0 pointer-events-none opacity-20 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:30px_30px]"></div>
       
       {/* HEADER: TITLE & ALL SPONSORS (TODOS LOS PATROCINADORES ARRIBA) */}
-      <header className="z-10 flex-none flex flex-col md:flex-row justify-between items-center border-b border-zinc-900 pb-3 mb-4 gap-4">
+      <header className="z-10 flex-none flex flex-col md:flex-row justify-between items-center border-b border-zinc-900 pb-2 mb-3 gap-4">
         <div className="flex items-center gap-3">
-          <span className="w-3 h-3 rounded-full bg-[#22c55e] animate-pulse"></span>
-          <h1 className="text-lg sm:text-2xl font-black tracking-widest uppercase text-white">
+          <span className="w-2.5 h-2.5 rounded-full bg-[#22c55e] animate-pulse"></span>
+          <h1 className="text-lg sm:text-2xl font-black tracking-widest uppercase text-white leading-none">
             Pilotos en Pista
           </h1>
           <span className="text-[10px] sm:text-xs font-bold bg-[#22c55e]/15 border border-[#22c55e]/30 px-2.5 py-0.5 rounded text-[#22c55e] uppercase tracking-widest font-mono">
@@ -168,13 +168,13 @@ export default function PresentacionPage() {
         
         {/* SPONSOR LOGOS AT THE TOP */}
         <div className="flex items-center gap-4 sm:gap-6 bg-zinc-900/30 px-4 py-1.5 rounded-full border border-zinc-900/60 max-w-full overflow-x-auto custom-scrollbar">
-          <img src="/sponsors/patro.png" alt="Sponsors" className="h-6 sm:h-8 object-contain shrink-0 pr-2 border-r border-zinc-800" />
+          <img src="/sponsors/patro.png" alt="Sponsors" className="h-6 sm:h-7 object-contain shrink-0 pr-2 border-r border-zinc-800" />
           {SPONSOR_LOGOS.map((logo, idx) => (
             <img 
               key={`top-logo-${idx}`} 
               src={logo.src} 
               alt={logo.alt} 
-              className="h-5 sm:h-7 object-contain opacity-80 hover:opacity-100 transition-opacity shrink-0" 
+              className="h-5 sm:h-6 object-contain opacity-80 hover:opacity-100 transition-opacity shrink-0" 
             />
           ))}
         </div>
@@ -182,20 +182,20 @@ export default function PresentacionPage() {
 
       {loading ? (
         <div className="flex-1 flex items-center justify-center z-10">
-          <div className="w-10 h-10 border-3 border-[#22c55e] border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-8 h-8 border-3 border-[#22c55e] border-t-transparent rounded-full animate-spin"></div>
         </div>
       ) : (
         /* TWO COLUMN GRID LAYOUT: LEFT (PILOTS), RIGHT (PHOTO & INFO) */
-        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch z-10 mb-2">
+        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch z-10 mb-1">
           
           {/* LEFT COLUMN: TURN QUEUE LIST (FIRST 10 PILOTS, NO SCROLL) */}
-          <div className="lg:col-span-7 flex flex-col justify-between bg-zinc-950/80 rounded-2xl border border-zinc-900 p-4 shadow-xl">
-            <div className="flex justify-between items-center text-zinc-500 uppercase tracking-widest text-[9px] font-bold border-b border-zinc-900 pb-1.5 mb-2">
+          <div className="lg:col-span-7 flex flex-col bg-zinc-950/80 rounded-2xl border border-zinc-900 p-3 shadow-xl min-h-0 overflow-hidden">
+            <div className="flex justify-between items-center text-zinc-500 uppercase tracking-widest text-[9px] font-bold border-b border-zinc-900 pb-1 mb-1.5 flex-none">
               <span>PILOTO / TURNO</span>
               <span>CATEGORÍA / ID</span>
             </div>
 
-            <div className="flex-1 flex flex-col justify-between gap-1.5 min-h-0">
+            <div className="flex-1 flex flex-col justify-between gap-1 min-h-0">
               {presentationPilots.slice(0, 10).map((pilot, idx) => {
                 const isFirst = idx === 0;
                 if (isFirst) {
@@ -203,7 +203,7 @@ export default function PresentacionPage() {
                   return (
                     <div 
                       key={`pres-list-${pilot.id}`}
-                      className="flex items-center justify-between p-3 rounded-xl border border-[#22c55e] bg-[#22c55e]/5 shadow-[0_0_15px_rgba(34,197,94,0.15)] flex-1 min-h-[50px] items-center"
+                      className="flex items-center justify-between px-3 py-2 rounded-xl border border-[#22c55e] bg-[#22c55e]/5 shadow-[0_0_12px_rgba(34,197,94,0.15)] flex-1 min-h-0 overflow-hidden"
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         <span className="w-7 h-7 rounded-lg bg-[#22c55e] text-black font-black font-mono text-xs flex items-center justify-center shadow-[0_0_8px_rgba(34,197,94,0.4)] shrink-0">
@@ -236,18 +236,18 @@ export default function PresentacionPage() {
                   return (
                     <div 
                       key={`pres-list-${pilot.id}`}
-                      className="flex items-center justify-between py-1.5 px-3 rounded-lg border border-zinc-900/60 bg-zinc-950/20 flex-1 min-h-[36px] items-center"
+                      className="flex items-center justify-between px-3 py-1 rounded-lg border border-zinc-900/60 bg-zinc-950/20 flex-1 min-h-0 overflow-hidden"
                     >
-                      <div className="flex items-center gap-3.5 min-w-0">
-                        <span className="w-5 h-5 rounded bg-zinc-900 text-zinc-400 font-bold font-mono text-[10px] flex items-center justify-center border border-zinc-800 shrink-0">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="w-5 h-5 rounded bg-zinc-900 text-zinc-400 font-bold font-mono text-[9px] flex items-center justify-center border border-zinc-800 shrink-0">
                           #{idx + 1}
                         </span>
                         <div className="flex items-center gap-2 min-w-0">
-                          <p className="font-bold text-zinc-300 uppercase text-xs truncate">
+                          <p className="font-bold text-zinc-300 uppercase text-xs truncate leading-none">
                             {pilot.nombres} {pilot.apellidos}
                           </p>
                           {pilot.seudonimo && (
-                            <p className="text-[9px] text-zinc-500 font-semibold capitalize hidden sm:inline">
+                            <p className="text-[9px] text-zinc-500 font-semibold capitalize hidden sm:inline leading-none">
                               ({pilot.seudonimo})
                             </p>
                           )}
@@ -255,7 +255,7 @@ export default function PresentacionPage() {
                       </div>
 
                       <div className="flex items-center gap-3 shrink-0">
-                        <span className="text-[9px] bg-zinc-950/60 border border-zinc-900 text-zinc-500 px-1.5 py-0.5 rounded font-mono">
+                        <span className="text-[9px] bg-zinc-950/60 border border-zinc-900 text-zinc-500 px-1.5 py-0.5 rounded font-mono leading-none">
                           ID: {pilot.numeroIdentificacion?.slice(-4) || 'N/A'}
                         </span>
                       </div>
@@ -273,16 +273,16 @@ export default function PresentacionPage() {
           </div>
 
           {/* RIGHT COLUMN: ACTIVE PILOT'S PHOTO & INFO (DONDE ESTA LA X) */}
-          <div className="lg:col-span-5 flex flex-col justify-center items-center bg-zinc-950/80 rounded-2xl border border-zinc-900 p-6 shadow-xl relative overflow-hidden text-center">
+          <div className="lg:col-span-5 flex flex-col justify-center items-center bg-zinc-950/80 rounded-2xl border border-zinc-900 p-4 shadow-xl relative overflow-hidden text-center min-h-0">
             <div className="absolute top-0 right-0 w-64 h-64 bg-[#22c55e]/5 blur-[100px] rounded-full pointer-events-none"></div>
             
-            <div className="flex flex-col justify-center items-center gap-5 w-full">
-              <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-[#22c55e] bg-[#22c55e]/10 border border-[#22c55e]/20 px-3.5 py-1 rounded-full">
+            <div className="flex flex-col justify-center items-center gap-4 w-full min-h-0">
+              <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-[#22c55e] bg-[#22c55e]/10 border border-[#22c55e]/20 px-3.5 py-1 rounded-full shrink-0">
                 🏍️ Siguiente en Pista
               </span>
               
               {/* Glowing Photo frame */}
-              <div className="relative w-44 h-44 sm:w-60 sm:h-60 rounded-full overflow-hidden border-4 border-[#22c55e] shadow-[0_0_35px_rgba(34,197,94,0.4)] bg-zinc-900 flex items-center justify-center shrink-0">
+              <div className="relative w-40 h-40 sm:w-52 sm:h-52 rounded-full overflow-hidden border-4 border-[#22c55e] shadow-[0_0_25px_rgba(34,197,94,0.35)] bg-zinc-900 flex items-center justify-center shrink-0">
                 {firstPilot?.documentos?.deportistaUrl ? (
                   <img 
                     src={firstPilot.documentos.deportistaUrl} 
@@ -291,7 +291,7 @@ export default function PresentacionPage() {
                   />
                 ) : (
                   <div className="flex flex-col items-center justify-center text-zinc-700 gap-2">
-                    <User className="w-16 h-16 text-zinc-800" />
+                    <User className="w-14 h-14 text-zinc-800" />
                   </div>
                 )}
                 <div className="absolute bottom-2 bg-[#22c55e] text-black font-black uppercase text-[9px] tracking-widest px-2.5 py-0.5 rounded-full shadow-lg">
@@ -299,8 +299,8 @@ export default function PresentacionPage() {
                 </div>
               </div>
 
-              <div className="space-y-1 w-full px-2">
-                <h2 className="text-xl sm:text-3xl font-black uppercase text-white tracking-wide leading-tight truncate">
+              <div className="space-y-1 w-full px-2 shrink-0">
+                <h2 className="text-xl sm:text-2xl font-black uppercase text-white tracking-wide leading-tight truncate">
                   {firstPilot ? `${firstPilot.nombres} ${firstPilot.apellidos}` : 'Sin pilotos en pista'}
                 </h2>
                 {firstPilot?.seudonimo && (
