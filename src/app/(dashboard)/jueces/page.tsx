@@ -652,10 +652,18 @@ export default function JuecesPage() {
     return acc;
   }, {} as Record<string, Registration[]>);
 
-  // Forzar las 4 categorías principales siempre
-  const displayCategories = selectedEvent === 'festival'
-    ? ['NOVATOS', 'PREEXPERTOS', 'EXPERTOS', 'ÉLITE']
-    : ['OPEN', '2 TIEMPOS', '4 TIEMPOS', 'NITROX'];
+  // Forzar las categorías principales siempre por evento
+  const getDisplayCategories = () => {
+    if (selectedEvent === 'festival') {
+      return ['NOVATOS', 'PREEXPERTOS', 'EXPERTOS', 'ÉLITE'];
+    } else if (selectedEvent === 'nitrox') {
+      return ['OPEN', '2 TIEMPOS', '4 TIEMPOS', 'NITROX', 'BIKELIFE'];
+    } else {
+      return ['OPEN', '2 TIEMPOS', '4 TIEMPOS', 'NITROX'];
+    }
+  };
+
+  const displayCategories = getDisplayCategories();
 
   const handleStartSequential = (cat: string) => {
     if (!isOfficialJudge) {
