@@ -54,7 +54,7 @@ export async function POST(req: Request) {
           Te esperamos el <strong>30 de agosto de 2026</strong> en la <strong>Plaza Cívica Ciudad Victoria, en Pereira</strong>, con la mejor energía para vivir una gran jornada y demostrar todo tu talento. ¡Nos vemos en la competencia!
         </p>
       `;
-      prepVehicleText = '<li style="margin-bottom: 10px;">Lleva tu motocicleta lista y preparada.</li>';
+      prepVehicleText = '<li style="margin-bottom: 10px;">Lleva tu bicicleta lista y preparada.</li>';
       docsText = '';
       docsReminder = '<li style="margin-bottom: 10px;">Asegúrate de llevar tu <strong>Documento de Identidad Original</strong>.</li>';
       sponsorText = '';
