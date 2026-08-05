@@ -1130,6 +1130,13 @@ export default function JuecesPage() {
                 </div>
               </DialogContent>
             </Dialog>
+
+            <Button 
+              onClick={() => setIsPresentationOpen(true)}
+              className="border-[#22c55e]/50 text-[#22c55e] bg-[#22c55e]/5 hover:bg-[#22c55e]/20 hover:text-[#22c55e] font-bold uppercase tracking-widest h-9 px-4 text-xs shadow-[0_0_10px_rgba(34,197,94,0.2)] gap-1.5"
+            >
+              <Play className="w-3.5 h-3.5 fill-current shrink-0" /> Empezar
+            </Button>
           </div>
 
 
