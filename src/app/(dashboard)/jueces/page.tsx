@@ -2070,6 +2070,7 @@ export default function JuecesPage() {
     {/* MODAL / PÁGINA EMERGENTE DE EMPEZAR (PRESENTACIÓN DE TURNOS) */}
     <Dialog open={isPresentationOpen} onOpenChange={setIsPresentationOpen}>
       <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] bg-black border-[#22c55e] border-2 shadow-[0_0_50px_rgba(34,197,94,0.3)] text-white flex flex-col p-6 overflow-hidden font-sans">
+        <DialogTitle className="sr-only">Presentación de Pilotos en Pista</DialogTitle>
         
         {/* HEADER */}
         <div className="flex-none flex items-center justify-between border-b border-zinc-800 pb-4 mb-4">
