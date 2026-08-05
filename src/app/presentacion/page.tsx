@@ -150,171 +150,175 @@ export default function PresentacionPage() {
   const firstPilot = presentationPilots[0];
 
   return (
-    <div className="min-h-screen w-full bg-[#030303] text-white flex flex-col p-4 sm:p-8 font-sans overflow-y-auto relative justify-between">
+    <div className="min-h-screen w-full bg-[#030303] text-white flex flex-col p-4 sm:p-6 font-sans overflow-hidden justify-between relative">
       {/* Background tech grid effect */}
       <div className="absolute inset-0 z-0 pointer-events-none opacity-20 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:30px_30px]"></div>
       
-      {/* TOP: EVENT HEADER & ACTIVE PILOT */}
-      <div className="z-10 flex flex-col items-center gap-6">
+      {/* HEADER: TITLE & ALL SPONSORS (TODOS LOS PATROCINADORES ARRIBA) */}
+      <header className="z-10 flex-none flex flex-col md:flex-row justify-between items-center border-b border-zinc-900 pb-3 mb-4 gap-4">
+        <div className="flex items-center gap-3">
+          <span className="w-3 h-3 rounded-full bg-[#22c55e] animate-pulse"></span>
+          <h1 className="text-lg sm:text-2xl font-black tracking-widest uppercase text-white">
+            Pilotos en Pista
+          </h1>
+          <span className="text-[10px] sm:text-xs font-bold bg-[#22c55e]/15 border border-[#22c55e]/30 px-2.5 py-0.5 rounded text-[#22c55e] uppercase tracking-widest font-mono">
+            {selectedEvent === 'festival' ? 'Festival Stunt' : selectedEvent === 'nitrox' ? 'Copa Stunt Nitrox' : 'Copa Stunt F2R'} - {selectedCategory}
+          </span>
+        </div>
         
-        {/* EVENT TITLE & SPONSOR HEADER BANNER */}
-        <div className="w-full flex flex-col md:flex-row justify-between items-center border-b border-zinc-900 pb-4 gap-4">
-          <div className="flex items-center gap-3">
-            <span className="w-3.5 h-3.5 rounded-full bg-[#22c55e] animate-pulse"></span>
-            <h1 className="text-xl sm:text-3xl font-black tracking-widest uppercase text-white">
-              Pilotos en Pista
-            </h1>
-            <span className="text-xs sm:text-sm font-bold bg-[#22c55e]/15 border border-[#22c55e]/30 px-3 py-1 rounded text-[#22c55e] uppercase tracking-widest font-mono">
-              {selectedEvent === 'festival' ? 'Festival Stunt' : selectedEvent === 'nitrox' ? 'Copa Stunt Nitrox' : 'Copa Stunt F2R'} - {selectedCategory}
-            </span>
-          </div>
-          
-          <div className="max-w-[320px] sm:max-w-[400px]">
-            <img src="/sponsors/patro.png" alt="Sponsors" className="h-10 sm:h-12 object-contain" />
-          </div>
-        </div>
-
-        {/* ACTIVE PILOT SHOWCASE ("LA FOTO DEBE APARECER ARRIBA") */}
-        <div className="w-full flex flex-col items-center gap-4 text-center mt-2">
-          
-          {/* Glowing frame for pilot photo */}
-          <div className="relative w-40 h-40 sm:w-56 sm:h-56 rounded-full overflow-hidden border-4 border-[#22c55e] shadow-[0_0_35px_rgba(34,197,94,0.4)] bg-zinc-900 flex items-center justify-center shrink-0">
-            {firstPilot?.documentos?.deportistaUrl ? (
-              <img 
-                src={firstPilot.documentos.deportistaUrl} 
-                alt={firstPilot.nombres}
-                className="w-full h-full object-cover" 
-              />
-            ) : (
-              <div className="flex flex-col items-center justify-center text-zinc-600 gap-2">
-                <User className="w-20 h-20 text-zinc-800" />
-              </div>
-            )}
-            <div className="absolute bottom-2 bg-[#22c55e] text-black font-black uppercase text-[10px] tracking-widest px-3 py-0.5 rounded-full shadow-lg">
-              En Pista
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <h2 className="text-2xl sm:text-4xl font-black uppercase text-white tracking-wide">
-              {firstPilot ? `${firstPilot.nombres} ${firstPilot.apellidos}` : 'Sin pilotos en pista'}
-            </h2>
-            {firstPilot?.seudonimo && (
-              <p className="text-lg font-extrabold text-[#22c55e] capitalize">
-                "{firstPilot.seudonimo}"
-              </p>
-            )}
-            {firstPilot?.motocicleta && (
-              <p className="text-xs sm:text-sm text-zinc-400 font-mono">
-                Moto: {firstPilot.motocicleta.marca || 'N/A'} {firstPilot.motocicleta.referencia || ''} | Placa: {firstPilot.motocicleta.placa || 'N/A'}
-              </p>
-            )}
-          </div>
-        </div>
-
-      </div>
-
-      {/* MIDDLE: TURN QUEUE LIST (1 TO 10) */}
-      <div className="z-10 w-full max-w-4xl mx-auto flex flex-col gap-2 mt-6 mb-8">
-        <div className="flex justify-between items-center text-zinc-500 uppercase tracking-widest text-[10px] font-bold border-b border-zinc-900 pb-1 mb-2">
-          <span>Piloto / Turno</span>
-          <span>Categoría / ID</span>
-        </div>
-
-        <div className="space-y-2">
-          {presentationPilots.slice(0, 10).map((pilot, idx) => {
-            const isFirst = idx === 0;
-            if (isFirst) {
-              // Linea Grande (Active Pilot)
-              return (
-                <div 
-                  key={`pres-list-${pilot.id}`}
-                  className="flex items-center justify-between p-4 rounded-2xl border border-[#22c55e] bg-[#22c55e]/5 shadow-[0_0_15px_rgba(34,197,94,0.15)]"
-                >
-                  <div className="flex items-center gap-4 min-w-0">
-                    <span className="w-8 h-8 rounded-lg bg-[#22c55e] text-black font-black font-mono text-sm flex items-center justify-center shadow-[0_0_10px_rgba(34,197,94,0.4)]">
-                      #1
-                    </span>
-                    <div className="min-w-0">
-                      <p className="font-black text-white uppercase text-base sm:text-xl truncate">
-                        {pilot.nombres} {pilot.apellidos}
-                      </p>
-                      {pilot.seudonimo && (
-                        <p className="text-xs text-zinc-400 font-bold capitalize">
-                          "{pilot.seudonimo}"
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-4">
-                    <span className="text-xs bg-zinc-950 border border-zinc-900 text-zinc-400 px-3 py-1 rounded-lg font-mono">
-                      ID: {pilot.numeroIdentificacion?.slice(-4) || 'N/A'}
-                    </span>
-                    <span className="text-xs bg-[#22c55e]/15 border border-[#22c55e]/40 text-[#22c55e] font-black px-3 py-1 rounded-lg animate-pulse uppercase tracking-widest">
-                      En Pista
-                    </span>
-                  </div>
-                </div>
-              );
-            } else {
-              // Linea Delgadita (Positions 2 to 10)
-              return (
-                <div 
-                  key={`pres-list-${pilot.id}`}
-                  className="flex items-center justify-between py-2 px-4 rounded-xl border border-zinc-900/60 bg-zinc-950/20"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span className="w-6 h-6 rounded bg-zinc-900 text-zinc-400 font-bold font-mono text-xs flex items-center justify-center border border-zinc-800">
-                      #{idx + 1}
-                    </span>
-                    <div className="flex items-center gap-2 min-w-0">
-                      <p className="font-bold text-zinc-300 uppercase text-xs sm:text-sm truncate">
-                        {pilot.nombres} {pilot.apellidos}
-                      </p>
-                      {pilot.seudonimo && (
-                        <p className="text-[10px] text-zinc-500 font-semibold capitalize hidden sm:inline">
-                          ({pilot.seudonimo})
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <span className="text-[10px] bg-zinc-950/60 border border-zinc-900 text-zinc-500 px-2 py-0.5 rounded font-mono">
-                      ID: {pilot.numeroIdentificacion?.slice(-4) || 'N/A'}
-                    </span>
-                  </div>
-                </div>
-              );
-            }
-          })}
-          
-          {presentationPilots.length === 0 && (
-            <div className="text-center py-12 text-zinc-600 font-mono text-sm">
-              No hay pilotos registrados en esta categoría.
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* BOTTOM: SPONSORS LOGOS FOOTER */}
-      <div className="z-10 flex-none border-t border-zinc-900 pt-5 mt-2">
-        <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 text-center mb-3">
-          Sponsors Oficiales
-        </p>
-        <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10 bg-zinc-950/40 p-4 rounded-3xl border border-zinc-900/60 max-w-4xl mx-auto">
+        {/* SPONSOR LOGOS AT THE TOP */}
+        <div className="flex items-center gap-4 sm:gap-6 bg-zinc-900/30 px-4 py-1.5 rounded-full border border-zinc-900/60 max-w-full overflow-x-auto custom-scrollbar">
+          <img src="/sponsors/patro.png" alt="Sponsors" className="h-6 sm:h-8 object-contain shrink-0 pr-2 border-r border-zinc-800" />
           {SPONSOR_LOGOS.map((logo, idx) => (
             <img 
-              key={`pres-logo-${idx}`} 
+              key={`top-logo-${idx}`} 
               src={logo.src} 
               alt={logo.alt} 
-              className="h-6 sm:h-9 object-contain opacity-75 hover:opacity-100 transition-opacity duration-300" 
+              className="h-5 sm:h-7 object-contain opacity-80 hover:opacity-100 transition-opacity shrink-0" 
             />
           ))}
         </div>
-      </div>
+      </header>
 
+      {loading ? (
+        <div className="flex-1 flex items-center justify-center z-10">
+          <div className="w-10 h-10 border-3 border-[#22c55e] border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      ) : (
+        /* TWO COLUMN GRID LAYOUT: LEFT (PILOTS), RIGHT (PHOTO & INFO) */
+        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch z-10 mb-2">
+          
+          {/* LEFT COLUMN: TURN QUEUE LIST (FIRST 10 PILOTS, NO SCROLL) */}
+          <div className="lg:col-span-7 flex flex-col justify-between bg-zinc-950/80 rounded-2xl border border-zinc-900 p-4 shadow-xl">
+            <div className="flex justify-between items-center text-zinc-500 uppercase tracking-widest text-[9px] font-bold border-b border-zinc-900 pb-1.5 mb-2">
+              <span>PILOTO / TURNO</span>
+              <span>CATEGORÍA / ID</span>
+            </div>
+
+            <div className="flex-1 flex flex-col justify-between gap-1.5 min-h-0">
+              {presentationPilots.slice(0, 10).map((pilot, idx) => {
+                const isFirst = idx === 0;
+                if (isFirst) {
+                  // Linea Grande (Active Pilot)
+                  return (
+                    <div 
+                      key={`pres-list-${pilot.id}`}
+                      className="flex items-center justify-between p-3 rounded-xl border border-[#22c55e] bg-[#22c55e]/5 shadow-[0_0_15px_rgba(34,197,94,0.15)] flex-1 min-h-[50px] items-center"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="w-7 h-7 rounded-lg bg-[#22c55e] text-black font-black font-mono text-xs flex items-center justify-center shadow-[0_0_8px_rgba(34,197,94,0.4)] shrink-0">
+                          #1
+                        </span>
+                        <div className="min-w-0">
+                          <p className="font-black text-white uppercase text-sm sm:text-base truncate leading-tight">
+                            {pilot.nombres} {pilot.apellidos}
+                          </p>
+                          {pilot.seudonimo && (
+                            <p className="text-[10px] text-zinc-400 font-bold capitalize leading-none mt-0.5">
+                              "{pilot.seudonimo}"
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className="text-[10px] bg-zinc-950 border border-zinc-900 text-zinc-400 px-2 py-0.5 rounded font-mono">
+                          ID: {pilot.numeroIdentificacion?.slice(-4) || 'N/A'}
+                        </span>
+                        <span className="text-[10px] bg-[#22c55e]/15 border border-[#22c55e]/40 text-[#22c55e] font-black px-2 py-0.5 rounded animate-pulse uppercase tracking-widest">
+                          En Pista
+                        </span>
+                      </div>
+                    </div>
+                  );
+                } else {
+                  // Linea Delgadita (Positions 2 to 10)
+                  return (
+                    <div 
+                      key={`pres-list-${pilot.id}`}
+                      className="flex items-center justify-between py-1.5 px-3 rounded-lg border border-zinc-900/60 bg-zinc-950/20 flex-1 min-h-[36px] items-center"
+                    >
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        <span className="w-5 h-5 rounded bg-zinc-900 text-zinc-400 font-bold font-mono text-[10px] flex items-center justify-center border border-zinc-800 shrink-0">
+                          #{idx + 1}
+                        </span>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <p className="font-bold text-zinc-300 uppercase text-xs truncate">
+                            {pilot.nombres} {pilot.apellidos}
+                          </p>
+                          {pilot.seudonimo && (
+                            <p className="text-[9px] text-zinc-500 font-semibold capitalize hidden sm:inline">
+                              ({pilot.seudonimo})
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className="text-[9px] bg-zinc-950/60 border border-zinc-900 text-zinc-500 px-1.5 py-0.5 rounded font-mono">
+                          ID: {pilot.numeroIdentificacion?.slice(-4) || 'N/A'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                }
+              })}
+              
+              {presentationPilots.length === 0 && (
+                <div className="flex-1 flex items-center justify-center text-zinc-600 font-mono text-sm py-12">
+                  No hay pilotos registrados en esta categoría.
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* RIGHT COLUMN: ACTIVE PILOT'S PHOTO & INFO (DONDE ESTA LA X) */}
+          <div className="lg:col-span-5 flex flex-col justify-center items-center bg-zinc-950/80 rounded-2xl border border-zinc-900 p-6 shadow-xl relative overflow-hidden text-center">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-[#22c55e]/5 blur-[100px] rounded-full pointer-events-none"></div>
+            
+            <div className="flex flex-col justify-center items-center gap-5 w-full">
+              <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-[#22c55e] bg-[#22c55e]/10 border border-[#22c55e]/20 px-3.5 py-1 rounded-full">
+                🏍️ Siguiente en Pista
+              </span>
+              
+              {/* Glowing Photo frame */}
+              <div className="relative w-44 h-44 sm:w-60 sm:h-60 rounded-full overflow-hidden border-4 border-[#22c55e] shadow-[0_0_35px_rgba(34,197,94,0.4)] bg-zinc-900 flex items-center justify-center shrink-0">
+                {firstPilot?.documentos?.deportistaUrl ? (
+                  <img 
+                    src={firstPilot.documentos.deportistaUrl} 
+                    alt={firstPilot.nombres}
+                    className="w-full h-full object-cover" 
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-zinc-700 gap-2">
+                    <User className="w-16 h-16 text-zinc-800" />
+                  </div>
+                )}
+                <div className="absolute bottom-2 bg-[#22c55e] text-black font-black uppercase text-[9px] tracking-widest px-2.5 py-0.5 rounded-full shadow-lg">
+                  En Pista
+                </div>
+              </div>
+
+              <div className="space-y-1 w-full px-2">
+                <h2 className="text-xl sm:text-3xl font-black uppercase text-white tracking-wide leading-tight truncate">
+                  {firstPilot ? `${firstPilot.nombres} ${firstPilot.apellidos}` : 'Sin pilotos en pista'}
+                </h2>
+                {firstPilot?.seudonimo && (
+                  <p className="text-base sm:text-lg font-black text-[#22c55e] capitalize">
+                    "{firstPilot.seudonimo}"
+                  </p>
+                )}
+                {firstPilot?.motocicleta && (
+                  <p className="text-[11px] sm:text-xs text-zinc-400 font-mono">
+                    Moto: {firstPilot.motocicleta.marca || 'N/A'} {firstPilot.motocicleta.referencia || ''} | Placa: {firstPilot.motocicleta.placa || 'N/A'}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+        </div>
+      )}
     </div>
   );
 }
