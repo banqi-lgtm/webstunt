@@ -86,7 +86,10 @@ export default function SocialMediaCard({
           '/sponsors/CHICKENBL.png',
           '/sponsors/CHARMIBL.png',
           '/sponsors/COCECHABL.png',
-          '/sponsors/FOXBL.png'
+          '/sponsors/FOXBL.png',
+          '/sponsors/EPICBL.png',
+          '/sponsors/IMGBL.PNG',
+          '/sponsors/MAXXISBL.png'
         ]
       : [
           '/sponsors/Nitrox Blanco.png',
@@ -292,20 +295,42 @@ export default function SocialMediaCard({
 
       if (!bottomLogos.length) { ctx.restore(); return; }
 
-      const sH = customH || 50;
-      const sp = 15; // nice closer spacing
-      const slotW = sH;
-      const slotH = sH;
-      const totalUsedWidth = (bottomLogos.length * slotW) + ((bottomLogos.length - 1) * sp);
+      let sH = isFestival ? 85 : (customH || 50);
+      let sp = isFestival ? 20 : 15;
+
+      // Calculate proportional sizes for all bottom logos
+      const logosData = bottomLogos.map(img => {
+        const aspect = img.width / img.height;
+        // Clamp aspect ratio to avoid excessively wide logos dominating the space
+        const clampedAspect = Math.min(aspect, 2.5);
+        const w = sH * clampedAspect;
+        return { img, w, h: sH };
+      });
+
+      // Calculate total width needed
+      let totalUsedWidth = logosData.reduce((sum, item) => sum + item.w, 0) + ((bottomLogos.length - 1) * sp);
+      const maxWidthAllowed = cw - 60; // 30px padding on each side
+
+      // If it overflows, scale down all logos to fit perfectly within the margins
+      if (totalUsedWidth > maxWidthAllowed) {
+        const scaleFactor = maxWidthAllowed / totalUsedWidth;
+        logosData.forEach(item => {
+          item.w *= scaleFactor;
+          item.h *= scaleFactor;
+        });
+        sp *= scaleFactor;
+        totalUsedWidth = maxWidthAllowed;
+      }
+
       let currentX = (cw - totalUsedWidth) / 2;
       const yOff = isFestival ? 880 : (ch - 80 - (sH - 50));
 
       // Draw a very subtle, soft golden horizontal glow band across the entire sponsors row
       if (isFestival) {
-        const glowY = yOff + slotH / 2;
+        const glowY = yOff + sH / 2;
         const horizontalGlow = ctx.createLinearGradient(0, glowY - 70, 0, glowY + 70);
         horizontalGlow.addColorStop(0, 'rgba(255, 184, 0, 0.0)');
-        horizontalGlow.addColorStop(0.5, 'rgba(255, 184, 0, 0.12)'); // Very subtle gold glow
+        horizontalGlow.addColorStop(0.5, 'rgba(255, 184, 0, 0.15)'); // Very subtle gold glow
         horizontalGlow.addColorStop(1, 'rgba(255, 184, 0, 0.0)');
         ctx.save();
         ctx.fillStyle = horizontalGlow;
@@ -313,24 +338,15 @@ export default function SocialMediaCard({
         ctx.restore();
       }
 
-      bottomLogos.forEach((img) => {
-        const aspect = img.width / img.height;
-        let drawW = slotW;
-        let drawH = slotH;
-        if (aspect > 1) {
-          drawH = slotW / aspect;
-        } else {
-          drawW = slotH * aspect;
-        }
-        
+      logosData.forEach((item) => {
         ctx.shadowColor = glowColor; ctx.shadowBlur = 15; ctx.globalAlpha = 0.02;
-        ctx.fillRect(currentX + (slotW - drawW) / 2, yOff + (slotH - drawH) / 2, drawW, drawH);
+        ctx.fillRect(currentX, yOff + (sH - item.h) / 2, item.w, item.h);
         ctx.globalAlpha = 1; ctx.shadowBlur = 0;
         
         // Draw the processed image with transparent background
-        const processed = getProcessedImage(img);
-        ctx.drawImage(processed, currentX + (slotW - drawW) / 2, yOff + (slotH - drawH) / 2, drawW, drawH);
-        currentX += slotW + sp;
+        const processed = getProcessedImage(item.img);
+        ctx.drawImage(processed, currentX, yOff + (sH - item.h) / 2, item.w, item.h);
+        currentX += item.w + sp;
       });
       ctx.restore();
     };
