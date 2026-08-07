@@ -295,59 +295,95 @@ export default function SocialMediaCard({
 
       if (!bottomLogos.length) { ctx.restore(); return; }
 
-      let sH = isFestival ? 85 : (customH || 50);
-      let sp = isFestival ? 20 : 15;
-
-      // Calculate proportional sizes for all bottom logos
-      const logosData = bottomLogos.map(img => {
-        const aspect = img.width / img.height;
-        // Clamp aspect ratio to avoid excessively wide logos dominating the space
-        const clampedAspect = Math.min(aspect, 2.5);
-        const w = sH * clampedAspect;
-        return { img, w, h: sH };
-      });
-
-      // Calculate total width needed
-      let totalUsedWidth = logosData.reduce((sum, item) => sum + item.w, 0) + ((bottomLogos.length - 1) * sp);
-      const maxWidthAllowed = cw - 60; // 30px padding on each side
-
-      // If it overflows, scale down all logos to fit perfectly within the margins
-      if (totalUsedWidth > maxWidthAllowed) {
-        const scaleFactor = maxWidthAllowed / totalUsedWidth;
-        logosData.forEach(item => {
-          item.w *= scaleFactor;
-          item.h *= scaleFactor;
-        });
-        sp *= scaleFactor;
-        totalUsedWidth = maxWidthAllowed;
-      }
-
-      let currentX = (cw - totalUsedWidth) / 2;
-      const yOff = isFestival ? 880 : (ch - 80 - (sH - 50));
-
-      // Draw a very subtle, soft golden horizontal glow band across the entire sponsors row
       if (isFestival) {
-        const glowY = yOff + sH / 2;
-        const horizontalGlow = ctx.createLinearGradient(0, glowY - 70, 0, glowY + 70);
+        // Rediseño a dos filas para el festival
+        const sH = 80;
+        const sW = 120; // Caja del mismo tamaño para todos
+        const spH = 25; // Espaciado horizontal
+        const spV = 16; // Espaciado vertical entre filas
+        
+        // Dividir logos en 2 filas
+        const midPoint = Math.ceil(bottomLogos.length / 2);
+        const row1 = bottomLogos.slice(0, midPoint);
+        const row2 = bottomLogos.slice(midPoint);
+        const rows = [row1, row2];
+
+        const startY = 855; // Posición base de inicio vertical
+
+        // Dibujar banda de luz sutil detrás de las dos filas
+        const glowY = startY + sH;
+        const horizontalGlow = ctx.createLinearGradient(0, glowY - 100, 0, glowY + 100);
         horizontalGlow.addColorStop(0, 'rgba(255, 184, 0, 0.0)');
-        horizontalGlow.addColorStop(0.5, 'rgba(255, 184, 0, 0.15)'); // Very subtle gold glow
+        horizontalGlow.addColorStop(0.5, 'rgba(255, 184, 0, 0.16)'); // Brillo dorado sutil
         horizontalGlow.addColorStop(1, 'rgba(255, 184, 0, 0.0)');
         ctx.save();
         ctx.fillStyle = horizontalGlow;
-        ctx.fillRect(0, glowY - 70, cw, 140);
+        ctx.fillRect(0, glowY - 100, cw, 200);
         ctx.restore();
-      }
 
-      logosData.forEach((item) => {
-        ctx.shadowColor = glowColor; ctx.shadowBlur = 15; ctx.globalAlpha = 0.02;
-        ctx.fillRect(currentX, yOff + (sH - item.h) / 2, item.w, item.h);
-        ctx.globalAlpha = 1; ctx.shadowBlur = 0;
-        
-        // Draw the processed image with transparent background
-        const processed = getProcessedImage(item.img);
-        ctx.drawImage(processed, currentX, yOff + (sH - item.h) / 2, item.w, item.h);
-        currentX += item.w + sp;
-      });
+        rows.forEach((rowLogos, rowIndex) => {
+          if (rowLogos.length === 0) return;
+          
+          const rowWidth = (rowLogos.length * sW) + ((rowLogos.length - 1) * spH);
+          let currentX = (cw - rowWidth) / 2;
+          const currentY = startY + rowIndex * (sH + spV);
+
+          rowLogos.forEach((img) => {
+            const aspect = img.width / img.height;
+            let drawW = sW;
+            let drawH = sH;
+            
+            // Ajustar el tamaño para que quepa en la caja unificada de (sW, sH) sin deformarse
+            if (aspect > sW / sH) {
+              drawW = sW;
+              drawH = sW / aspect;
+            } else {
+              drawH = sH;
+              drawW = sH * aspect;
+            }
+
+            const x = currentX + (sW - drawW) / 2;
+            const y = currentY + (sH - drawH) / 2;
+
+            ctx.shadowColor = glowColor; ctx.shadowBlur = 15; ctx.globalAlpha = 0.02;
+            ctx.fillRect(x, y, drawW, drawH);
+            ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+
+            const processed = getProcessedImage(img);
+            ctx.drawImage(processed, x, y, drawW, drawH);
+            
+            currentX += sW + spH;
+          });
+        });
+      } else {
+        // Modo clásico de una sola fila
+        const sH = customH || 50;
+        const sp = 15;
+        const slotW = sH;
+        const slotH = sH;
+        const totalUsedWidth = (bottomLogos.length * slotW) + ((bottomLogos.length - 1) * sp);
+        let currentX = (cw - totalUsedWidth) / 2;
+        const yOff = ch - 80 - (sH - 50);
+
+        bottomLogos.forEach((img) => {
+          const aspect = img.width / img.height;
+          let drawW = slotW;
+          let drawH = slotH;
+          if (aspect > 1) {
+            drawH = slotW / aspect;
+          } else {
+            drawW = slotH * aspect;
+          }
+          
+          ctx.shadowColor = glowColor; ctx.shadowBlur = 15; ctx.globalAlpha = 0.02;
+          ctx.fillRect(currentX + (slotW - drawW) / 2, yOff + (slotH - drawH) / 2, drawW, drawH);
+          ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+          
+          const processed = getProcessedImage(img);
+          ctx.drawImage(processed, currentX + (slotW - drawW) / 2, yOff + (slotH - drawH) / 2, drawW, drawH);
+          currentX += slotW + sp;
+        });
+      }
       ctx.restore();
     };
     // === HELPER: IG handle ===
