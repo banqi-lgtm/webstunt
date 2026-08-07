@@ -469,9 +469,7 @@ export default function SocialMediaCard({
       ctx.shadowBlur = 0; ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.stroke();
       ctx.restore();
 
-      // IG Handle and Festival logo top-right (instead of "PILOTO CONFIRMADO")
-      drawIG('#1A0E00', S);
-      // Draw Festival Stunt logo in top-right corner
+      // Draw Festival Stunt logo in top-right corner (IG handle removed)
       const festLogo = sponsorsRefs.current.find(img => {
         if (!img) return false;
         const src = img.src.toLowerCase();
@@ -487,15 +485,15 @@ export default function SocialMediaCard({
         ctx.restore();
       }
       
-      // City: PEREIRA moved directly under the Instagram pill (Left Aligned)
+      // City: PEREIRA moved directly under where the Instagram pill used to be (Left Aligned)
       if (pilotCity && pilotCity !== 'N/A') {
         ctx.save(); ctx.font = 'bold 22px "Orbitron", sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
         ctx.fillStyle = '#FFFFFF'; ctx.shadowColor = P; ctx.shadowBlur = 12;
         const ct = pilotCity.toUpperCase(); 
-        ctx.fillText(ct, 40, 105);
+        ctx.fillText(ct, 40, 54);
         const cityW = ctx.measureText(ct).width;
         ctx.strokeStyle = S; ctx.lineWidth = 2.5; ctx.shadowBlur = 0;
-        ctx.beginPath(); ctx.moveTo(40, 134); ctx.lineTo(40 + cityW, 134); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(40, 83); ctx.lineTo(40 + cityW, 83); ctx.stroke();
         ctx.restore();
       }
 
@@ -505,8 +503,8 @@ export default function SocialMediaCard({
       // Draw Name (Lowered right above photo frame)
       drawName(fy - 30);
 
-      // Draw Pseudonym (Apodo: Lowered right below photo frame)
-      drawPseudo(fy + fh + 40, '#FFFFFF');
+      // Draw Pseudonym (Apodo: Lowered further right below photo frame to avoid overlap)
+      drawPseudo(fy + fh + 70, '#FFFFFF');
 
 
 
