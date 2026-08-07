@@ -202,7 +202,7 @@ export default function SocialMediaCard({
       }
     };
 
-    // Helper to dynamically remove solid backgrounds (shared by sponsors and photo logos)
+    // Helper to dynamically remove solid backgrounds AND auto-crop transparent padding
     const getProcessedImage = (img: HTMLImageElement): HTMLCanvasElement | HTMLImageElement => {
       const offCanvas = document.createElement('canvas');
       offCanvas.width = img.width;
@@ -214,7 +214,7 @@ export default function SocialMediaCard({
       const imgData = offCtx.getImageData(0, 0, img.width, img.height);
       const data = imgData.data;
       
-      // Check top-left corner pixel to auto-detect background type
+      // 1. Remove solid black/white backgrounds if present
       const cr = data[0], cg = data[1], cb = data[2];
       const isBlackBg = cr < 60 && cg < 60 && cb < 60;
       const isWhiteBg = cr > 195 && cg > 195 && cb > 195;
@@ -227,7 +227,6 @@ export default function SocialMediaCard({
           }
         }
       } else if (isWhiteBg) {
-        // If it is the RM logo, use a higher threshold to preserve the off-white letters
         const threshold = isRmLogo ? 252 : 215;
         for (let i = 0; i < data.length; i += 4) {
           if (data[i] > threshold && data[i+1] > threshold && data[i+2] > threshold) {
@@ -237,7 +236,51 @@ export default function SocialMediaCard({
       }
       
       offCtx.putImageData(imgData, 0, 0);
-      return offCanvas;
+
+      // 2. Auto-crop transparent boundaries to maximize sponsor visibility
+      let minX = img.width, minY = img.height, maxX = 0, maxY = 0;
+      let hasAlphaData = false;
+
+      // Scan image to find bounding box of non-transparent pixels
+      for (let y = 0; y < img.height; y += 4) { // Scan every 4th pixel row for speed
+        for (let x = 0; x < img.width; x += 4) {
+          const idx = (y * img.width + x) * 4;
+          const alpha = data[idx + 3];
+          if (alpha > 8) { // found visible pixel
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+            hasAlphaData = true;
+          }
+        }
+      }
+
+      if (!hasAlphaData || maxX < minX || maxY < minY) {
+        return offCanvas; // return processed but uncropped
+      }
+
+      // Add a safety padding of 3% around the content
+      const padX = Math.round((maxX - minX) * 0.03);
+      const padY = Math.round((maxY - minY) * 0.03);
+      
+      minX = Math.max(0, minX - padX);
+      minY = Math.max(0, minY - padY);
+      maxX = Math.min(img.width - 1, maxX + padX);
+      maxY = Math.min(img.height - 1, maxY + padY);
+      
+      const cropW = maxX - minX + 1;
+      const cropH = maxY - minY + 1;
+
+      // Create cropped canvas
+      const croppedCanvas = document.createElement('canvas');
+      croppedCanvas.width = cropW;
+      croppedCanvas.height = cropH;
+      const croppedCtx = croppedCanvas.getContext('2d');
+      if (!croppedCtx) return offCanvas;
+
+      croppedCtx.drawImage(offCanvas, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
+      return croppedCanvas;
     };
 
     // Helper to draw a logo inside the photo frame
@@ -296,10 +339,10 @@ export default function SocialMediaCard({
       if (!bottomLogos.length) { ctx.restore(); return; }
 
       if (isFestival) {
-        // Rediseño a dos filas para el festival
-        const sH = 80;
-        const sW = 120; // Caja del mismo tamaño para todos
-        const spH = 25; // Espaciado horizontal
+        // Rediseño a dos filas de gran tamaño para el festival
+        const sH = 100;
+        const sW = 180; // Caja mucho más grande para todos
+        const spH = 35; // Espaciado horizontal generoso
         const spV = 16; // Espaciado vertical entre filas
         
         // Dividir logos en 2 filas
@@ -308,18 +351,7 @@ export default function SocialMediaCard({
         const row2 = bottomLogos.slice(midPoint);
         const rows = [row1, row2];
 
-        const startY = 855; // Posición base de inicio vertical
-
-        // Dibujar banda de luz sutil detrás de las dos filas
-        const glowY = startY + sH;
-        const horizontalGlow = ctx.createLinearGradient(0, glowY - 100, 0, glowY + 100);
-        horizontalGlow.addColorStop(0, 'rgba(255, 184, 0, 0.0)');
-        horizontalGlow.addColorStop(0.5, 'rgba(255, 184, 0, 0.16)'); // Brillo dorado sutil
-        horizontalGlow.addColorStop(1, 'rgba(255, 184, 0, 0.0)');
-        ctx.save();
-        ctx.fillStyle = horizontalGlow;
-        ctx.fillRect(0, glowY - 100, cw, 200);
-        ctx.restore();
+        const startY = 825; // Subimos la posición vertical para aprovechar el espacio
 
         rows.forEach((rowLogos, rowIndex) => {
           if (rowLogos.length === 0) return;
@@ -333,7 +365,7 @@ export default function SocialMediaCard({
             let drawW = sW;
             let drawH = sH;
             
-            // Ajustar el tamaño para que quepa en la caja unificada de (sW, sH) sin deformarse
+            // Ajustar el tamaño sin deformar dentro de la caja unificada de (sW, sH)
             if (aspect > sW / sH) {
               drawW = sW;
               drawH = sW / aspect;
@@ -345,10 +377,7 @@ export default function SocialMediaCard({
             const x = currentX + (sW - drawW) / 2;
             const y = currentY + (sH - drawH) / 2;
 
-            ctx.shadowColor = glowColor; ctx.shadowBlur = 15; ctx.globalAlpha = 0.02;
-            ctx.fillRect(x, y, drawW, drawH);
-            ctx.globalAlpha = 1; ctx.shadowBlur = 0;
-
+            // Renderizado súper nítido sin sombras ni auras
             const processed = getProcessedImage(img);
             ctx.drawImage(processed, x, y, drawW, drawH);
             
@@ -709,6 +738,12 @@ export default function SocialMediaCard({
   };
 
 
+  const isFestival = pilotId.startsWith('festival_');
+  const isNitrox = pilotId.startsWith('nitrox_');
+  
+  const themeColor = isFestival ? '#FFB800' : (isNitrox ? '#00FF66' : '#E60000');
+  const themeText = isFestival ? 'Festival Stunt' : (isNitrox ? 'Copa Stunt' : 'F2R 2026');
+
   const handleDownload = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -716,7 +751,9 @@ export default function SocialMediaCard({
     try {
       const dataUrl = canvas.toDataURL('image/png');
       const link = document.createElement('a');
-      const filename = `F2R_2026_Piloto_${pilotPseudonym && pilotPseudonym !== 'N/A' ? pilotPseudonym.replace(/\s+/g, '_') : pilotName.replace(/\s+/g, '_')}.png`;
+      const eventPrefix = isFestival ? 'Festival_Stunt' : (isNitrox ? 'Copa_Stunt' : 'F2R_2026');
+      const pName = pilotPseudonym && pilotPseudonym !== 'N/A' ? pilotPseudonym.replace(/\s+/g, '_') : pilotName.replace(/\s+/g, '_');
+      const filename = `${eventPrefix}_Piloto_${pName}.png`;
       link.download = filename;
       link.href = dataUrl;
       link.click();
@@ -736,22 +773,26 @@ export default function SocialMediaCard({
   };
 
   return (
-    <Card className="bg-zinc-950 border-zinc-800 overflow-hidden w-full max-w-3xl mx-auto border-t-2 border-t-[#E60000]">
+    <Card 
+      className="bg-zinc-950 border-zinc-800 overflow-hidden w-full max-w-3xl mx-auto border-t-2"
+      style={{ borderTopColor: themeColor }}
+    >
       <CardHeader className="border-b border-zinc-900 pb-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <CardTitle className="text-2xl font-black text-white uppercase tracking-tight flex items-center gap-2">
-              <Sparkles className="w-6 h-6 text-[#E60000] animate-pulse" />
-              Póster Oficial F2R
+              <Sparkles className="w-6 h-6 animate-pulse" style={{ color: themeColor }} />
+              Póster Oficial {themeText}
             </CardTitle>
             <CardDescription className="text-zinc-400">
-              Generador automático del póster de redes sociales.
+              Usa el mouse o el dedo sobre la foto para acomodarla/centrarla antes de descargar.
             </CardDescription>
           </div>
           <Button
             onClick={handleDownload}
             size="sm"
-            className="bg-[#E60000] hover:bg-[#32E210] text-black font-black uppercase tracking-wider gap-1.5"
+            className="text-black font-black uppercase tracking-wider gap-1.5 hover:bg-opacity-90"
+            style={{ backgroundColor: themeColor }}
           >
             <Download className="w-4 h-4" /> Descargar PNG
           </Button>

@@ -2553,7 +2553,7 @@ export default function InscripcionPage() {
           </div>
         )}
 
-        {step === 3 && selectedEvent === 'f2r' && (estadoPago === 'aprobado' || estadoPago === 'pago_dia_evento') && (
+        {step === 3 && (selectedEvent === 'f2r' || selectedEvent === 'festival') && (estadoPago === 'aprobado' || estadoPago === 'pago_dia_evento') && (
           <div className="mt-8 w-full max-w-5xl mx-auto">
             <SocialMediaCard 
               pilotId={`${selectedEvent}_${uid}`}
@@ -2563,17 +2563,19 @@ export default function InscripcionPage() {
               pilotCity={ciudad}
               pilotPhotoUrl={fotoDeportista?.url || ''}
               initialConfig={templateConfig}
-              isAdmin={true}
+              isAdmin={selectedEvent === 'f2r'}
               onSaveSuccess={refetchRegistrationData}
             />
-            <div className="flex justify-center mt-6">
-              <Button 
-                onClick={() => openOptions('deportista')}
-                className="bg-zinc-800 text-white hover:bg-zinc-700 font-bold px-8 h-12"
-              >
-                Editar Foto
-              </Button>
-            </div>
+            {selectedEvent === 'f2r' && (
+              <div className="flex justify-center mt-6">
+                <Button 
+                  onClick={() => openOptions('deportista')}
+                  className="bg-zinc-800 text-white hover:bg-zinc-700 font-bold px-8 h-12"
+                >
+                  Editar Foto
+                </Button>
+              </div>
+            )}
           </div>
         )}
         </>
