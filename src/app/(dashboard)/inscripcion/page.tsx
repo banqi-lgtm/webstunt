@@ -1308,7 +1308,7 @@ export default function InscripcionPage() {
       </div>
     );
   }
-  const festivalDeadline = getEventDeadlineStatus('2026-08-06');
+  const festivalDeadline = getEventDeadlineStatus('2026-08-30');
   const nitroxDeadline = getEventDeadlineStatus('2026-08-20');
 
   // Array definition and handler for premium event cards selection view

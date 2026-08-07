@@ -701,9 +701,28 @@ export default function PilotDetailPage() {
           
           {/* Overlay de acciones */}
           <div className="absolute inset-0 bg-black/60 transition-opacity z-10 flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100">
-            <a href={url} target="_blank" rel="noopener noreferrer" className="bg-zinc-800 hover:bg-zinc-700 p-2.5 rounded-full transition-transform hover:scale-110 shadow-lg text-white" title="Ver documento">
-              <Eye className="w-5 h-5" />
-            </a>
+            {docKey === 'video' ? (
+              <button onClick={(e) => {
+                e.preventDefault();
+                const videoTab = window.open('', '_blank');
+                if (videoTab) {
+                  videoTab.document.write(`
+                    <!DOCTYPE html>
+                    <html><head><title>Video - ${title}</title>
+                    <style>body{margin:0;background:#000;display:flex;align-items:center;justify-content:center;height:100vh;}
+                    video{max-width:100%;max-height:100vh;}</style></head>
+                    <body><video src="${url}" controls autoplay style="width:100%;height:100vh;object-fit:contain;"></video></body></html>
+                  `);
+                  videoTab.document.close();
+                }
+              }} className="bg-zinc-800 hover:bg-zinc-700 p-2.5 rounded-full transition-transform hover:scale-110 shadow-lg text-white" title="Ver video">
+                <Eye className="w-5 h-5" />
+              </button>
+            ) : (
+              <a href={url} target="_blank" rel="noopener noreferrer" className="bg-zinc-800 hover:bg-zinc-700 p-2.5 rounded-full transition-transform hover:scale-110 shadow-lg text-white" title="Ver documento">
+                <Eye className="w-5 h-5" />
+              </a>
+            )}
             <button onClick={handleDownloadImage} className="bg-blue-600 hover:bg-blue-500 p-2.5 rounded-full transition-transform hover:scale-110 shadow-lg text-white" title="Descargar documento">
               <Download className="w-5 h-5" />
             </button>
