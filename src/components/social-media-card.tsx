@@ -82,7 +82,11 @@ export default function SocialMediaCard({
           '/sponsors/PKS Blanco.png',
           '/sponsors/img65.jpeg',
           '/sponsors/maxi.jpeg',
-          '/sponsors/Stunt Festival 9.png'
+          '/sponsors/Stunt Festival 9.png',
+          '/sponsors/CHICKENBL.png',
+          '/sponsors/CHARMIBL.png',
+          '/sponsors/COCECHABL.png',
+          '/sponsors/FOXBL.png'
         ]
       : [
           '/sponsors/Nitrox Blanco.png',
@@ -281,7 +285,9 @@ export default function SocialMediaCard({
       // Filter out Fox, Maxxis, and Stunt Festival from the bottom row
       const bottomLogos = valid.filter(img => {
         const src = img.src.toLowerCase();
-        return !src.includes('img65.jpeg') && !src.includes('maxi.jpeg') && !src.includes('stunt festival');
+        const isFoxOrMaxxisInsidePhoto = src.includes('img65.jpeg') || src.includes('maxi.jpeg');
+        const isFestivalLogo = src.includes('stunt%20festival') || src.includes('stunt festival') || src.includes('festival 9') || src.includes('festival%209');
+        return !isFoxOrMaxxisInsidePhoto && !isFestivalLogo;
       });
 
       if (!bottomLogos.length) { ctx.restore(); return; }
@@ -466,7 +472,11 @@ export default function SocialMediaCard({
       // IG Handle and Festival logo top-right (instead of "PILOTO CONFIRMADO")
       drawIG('#1A0E00', S);
       // Draw Festival Stunt logo in top-right corner
-      const festLogo = sponsorsRefs.current.find(img => img && img.src.toLowerCase().includes('stunt festival 9'));
+      const festLogo = sponsorsRefs.current.find(img => {
+        if (!img) return false;
+        const src = img.src.toLowerCase();
+        return src.includes('stunt%20festival') || src.includes('stunt festival') || src.includes('festival 9') || src.includes('festival%209');
+      });
       if (festLogo) {
         const flH = 95, flW = festLogo.width / festLogo.height * flH;
         const flX = cw - flW - 20, flY = 10;
