@@ -361,7 +361,8 @@ export default function SocialMediaCard({
           const currentY = startY + rowIndex * (sH + spV);
 
           rowLogos.forEach((img) => {
-            const aspect = img.width / img.height;
+            const processed = getProcessedImage(img);
+            const aspect = processed.width / processed.height;
             let drawW = sW;
             let drawH = sH;
             
@@ -377,8 +378,7 @@ export default function SocialMediaCard({
             const x = currentX + (sW - drawW) / 2;
             const y = currentY + (sH - drawH) / 2;
 
-            // Renderizado súper nítido sin sombras ni auras
-            const processed = getProcessedImage(img);
+            // Renderizado súper nítido con el canvas recortado
             ctx.drawImage(processed, x, y, drawW, drawH);
             
             currentX += sW + spH;
@@ -395,7 +395,8 @@ export default function SocialMediaCard({
         const yOff = ch - 80 - (sH - 50);
 
         bottomLogos.forEach((img) => {
-          const aspect = img.width / img.height;
+          const processed = getProcessedImage(img);
+          const aspect = processed.width / processed.height;
           let drawW = slotW;
           let drawH = slotH;
           if (aspect > 1) {
@@ -408,7 +409,6 @@ export default function SocialMediaCard({
           ctx.fillRect(currentX + (slotW - drawW) / 2, yOff + (slotH - drawH) / 2, drawW, drawH);
           ctx.globalAlpha = 1; ctx.shadowBlur = 0;
           
-          const processed = getProcessedImage(img);
           ctx.drawImage(processed, currentX + (slotW - drawW) / 2, yOff + (slotH - drawH) / 2, drawW, drawH);
           currentX += slotW + sp;
         });
