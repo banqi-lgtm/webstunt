@@ -79,10 +79,18 @@ export default function SocialMediaCard({
     const isFestival = pilotId.startsWith('festival_');
     const sponsorPaths = isFestival 
       ? [
-          '/sponsors/LogosBL.png',
+          '/sponsors/PKS Blanco.png',
           '/sponsors/img65.jpeg',
           '/sponsors/maxi.jpeg',
-          '/sponsors/Stunt Festival 9.png'
+          '/sponsors/Stunt Festival 9.png',
+          '/sponsors/CHICKENBL.png',
+          '/sponsors/CHARMIBL.png',
+          '/sponsors/COCECHABL.png',
+          '/sponsors/FOXBL.png',
+          '/sponsors/EPICBL.png',
+          '/sponsors/IMGBL.PNG',
+          '/sponsors/MAXXISBL.png',
+          '/sponsors/NOCUABL.png'
         ]
       : [
           '/sponsors/Nitrox Blanco.png',
@@ -332,72 +340,51 @@ export default function SocialMediaCard({
       if (!bottomLogos.length) { ctx.restore(); return; }
 
       if (isFestival) {
-        if (bottomLogos.length === 1) {
-          // Si es un único logo compuesto (LogosBL.png), dibujarlo centrado y muy grande
-          const singleImg = bottomLogos[0];
-          const processed = getProcessedImage(singleImg);
-          const aspect = processed.width / processed.height;
-          
-          let drawH = 210; // Altura máxima grande para que se lea perfecto
-          let drawW = drawH * aspect;
-          const maxWidth = cw - 80;
-          
-          if (drawW > maxWidth) {
-            drawW = maxWidth;
-            drawH = maxWidth / aspect;
-          }
-          
-          const x = (cw - drawW) / 2;
-          const yOff = 825 + (210 - drawH) / 2; // Centrado en la zona inferior
-          
-          ctx.drawImage(processed, x, yOff, drawW, drawH);
-        } else {
-          // Rediseño a dos filas de gran tamaño para el festival
-          const sH = 100;
-          const sW = 180; // Caja mucho más grande para todos
-          const spH = 35; // Espaciado horizontal generoso
-          const spV = 16; // Espaciado vertical entre filas
-          
-          // Dividir logos en 2 filas
-          const midPoint = Math.ceil(bottomLogos.length / 2);
-          const row1 = bottomLogos.slice(0, midPoint);
-          const row2 = bottomLogos.slice(midPoint);
-          const rows = [row1, row2];
+        // Rediseño a dos filas de gran tamaño para el festival (9 patrocinadores en total)
+        const sH = 80;
+        const sW = 145; // Caja del mismo tamaño exacto para todos
+        const spH = 24; // Espaciado horizontal
+        const spV = 15; // Espaciado vertical entre filas
+        
+        // Dividir logos en 2 filas (5 arriba, 4 abajo)
+        const midPoint = Math.ceil(bottomLogos.length / 2);
+        const row1 = bottomLogos.slice(0, midPoint);
+        const row2 = bottomLogos.slice(midPoint);
+        const rows = [row1, row2];
 
-          const startY = 825; // Subimos la posición vertical para aprovechar el espacio
+        const startY = 880; // Bajamos un poco para dar espacio a la ciudad debajo del apodo
 
-          rows.forEach((rowLogos, rowIndex) => {
-            if (rowLogos.length === 0) return;
+        rows.forEach((rowLogos, rowIndex) => {
+          if (rowLogos.length === 0) return;
+          
+          const rowWidth = (rowLogos.length * sW) + ((rowLogos.length - 1) * spH);
+          let currentX = (cw - rowWidth) / 2;
+          const currentY = startY + rowIndex * (sH + spV);
+
+          rowLogos.forEach((img) => {
+            const processed = getProcessedImage(img);
+            const aspect = processed.width / processed.height;
+            let drawW = sW;
+            let drawH = sH;
             
-            const rowWidth = (rowLogos.length * sW) + ((rowLogos.length - 1) * spH);
-            let currentX = (cw - rowWidth) / 2;
-            const currentY = startY + rowIndex * (sH + spV);
+            // Ajustar el tamaño sin deformar dentro de la caja unificada de (sW, sH)
+            if (aspect > sW / sH) {
+              drawW = sW;
+              drawH = sW / aspect;
+            } else {
+              drawH = sH;
+              drawW = sH * aspect;
+            }
 
-            rowLogos.forEach((img) => {
-              const processed = getProcessedImage(img);
-              const aspect = processed.width / processed.height;
-              let drawW = sW;
-              let drawH = sH;
-              
-              // Ajustar el tamaño sin deformar dentro de la caja unificada de (sW, sH)
-              if (aspect > sW / sH) {
-                drawW = sW;
-                drawH = sW / aspect;
-              } else {
-                drawH = sH;
-                drawW = sH * aspect;
-              }
+            const x = currentX + (sW - drawW) / 2;
+            const y = currentY + (sH - drawH) / 2;
 
-              const x = currentX + (sW - drawW) / 2;
-              const y = currentY + (sH - drawH) / 2;
-
-              // Renderizado súper nítido con el canvas recortado
-              ctx.drawImage(processed, x, y, drawW, drawH);
-              
-              currentX += sW + spH;
-            });
+            // Renderizado súper nítido con el canvas recortado
+            ctx.drawImage(processed, x, y, drawW, drawH);
+            
+            currentX += sW + spH;
           });
-        }
+        });
       } else {
         // Modo clásico de una sola fila
         const sH = customH || 50;
@@ -580,26 +567,38 @@ export default function SocialMediaCard({
         ctx.restore();
       }
       
-      // City: PEREIRA moved directly under where the Instagram pill used to be (Left Aligned)
-      if (pilotCity && pilotCity !== 'N/A') {
-        ctx.save(); ctx.font = 'bold 22px "Orbitron", sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-        ctx.fillStyle = '#FFFFFF'; ctx.shadowColor = P; ctx.shadowBlur = 12;
-        const ct = pilotCity.toUpperCase(); 
-        ctx.fillText(ct, 40, 54);
-        const cityW = ctx.measureText(ct).width;
-        ctx.strokeStyle = S; ctx.lineWidth = 2.5; ctx.shadowBlur = 0;
-        ctx.beginPath(); ctx.moveTo(40, 83); ctx.lineTo(40 + cityW, 83); ctx.stroke();
-        ctx.restore();
-      }
-
       // Draw Main Logo (Giant size, high up)
       drawLogo(fy - 390, 440, P);
-      
+
       // Draw Name (Lowered right above photo frame)
       drawName(fy - 30);
 
-      // Draw Pseudonym (Apodo: Lowered further right below photo frame to avoid overlap)
-      drawPseudo(fy + fh + 70, '#FFFFFF');
+      // Draw Pseudonym (Apodo: Center lowered below photo frame)
+      drawPseudo(fy + fh + 50, '#FFFFFF');
+
+      // City: Centered below the pseudonym
+      if (pilotCity && pilotCity !== 'N/A') {
+        ctx.save();
+        ctx.font = 'bold 24px "Orbitron", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.shadowColor = P;
+        ctx.shadowBlur = 12;
+        const ct = pilotCity.toUpperCase();
+        ctx.fillText(ct, cw / 2, fy + fh + 98);
+        
+        // Underline effect
+        const cityW = ctx.measureText(ct).width;
+        ctx.strokeStyle = S;
+        ctx.lineWidth = 2.5;
+        ctx.shadowBlur = 0;
+        ctx.beginPath();
+        ctx.moveTo(cw / 2 - cityW / 2, fy + fh + 116);
+        ctx.lineTo(cw / 2 + cityW / 2, fy + fh + 116);
+        ctx.stroke();
+        ctx.restore();
+      }
 
 
 
