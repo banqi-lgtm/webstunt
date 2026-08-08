@@ -338,7 +338,7 @@ export default function SocialMediaCard({
           const processed = getProcessedImage(singleImg);
           const aspect = processed.width / processed.height;
           
-          let drawH = 95; // Altura generosa para que se lea perfecto
+          let drawH = 210; // Altura máxima grande para que se lea perfecto
           let drawW = drawH * aspect;
           const maxWidth = cw - 80;
           
@@ -348,7 +348,7 @@ export default function SocialMediaCard({
           }
           
           const x = (cw - drawW) / 2;
-          const yOff = 880 + (95 - drawH) / 2; // Centrado vertical en la zona
+          const yOff = 825 + (210 - drawH) / 2; // Centrado en la zona inferior
           
           ctx.drawImage(processed, x, yOff, drawW, drawH);
         } else {
