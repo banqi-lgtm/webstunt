@@ -628,78 +628,105 @@ export default function SocialMediaCard({
     //   circuit-board pattern, angular badges, techy green/gold
     // ================================================================
     } else if (isNitrox) {
-      const P = '#00FF66', S = '#FFD700';
-      // Background: military dark green diagonal gradient
+      const P = '#00FF66', S = '#FFD700'; // Green + Gold
+
+      // Background: dark with warm green tint
       const bg = ctx.createLinearGradient(0, 0, cw, ch);
-      bg.addColorStop(0, '#050D05'); bg.addColorStop(0.5, '#0a0a0a'); bg.addColorStop(1, '#051208');
+      bg.addColorStop(0, '#020A04'); bg.addColorStop(0.5, '#0a0a0a'); bg.addColorStop(1, '#020C05');
       ctx.fillStyle = bg; ctx.fillRect(0, 0, cw, ch);
 
-      // Diagonal circuit-board lines
-      ctx.save(); ctx.strokeStyle = P; ctx.globalAlpha = 0.08; ctx.lineWidth = 1;
-      for (let i = -ch; i < cw + ch; i += 80) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i + ch, ch); ctx.stroke(); }
-      ctx.globalAlpha = 1; ctx.restore();
+      // Slashes: Green slashes (same layout as Festival but green)
+      ctx.save();
+      // === TOP-RIGHT massive slashes ===
+      ctx.strokeStyle = P;
+      ctx.lineWidth = 18; ctx.globalAlpha = 0.35;
+      ctx.beginPath(); ctx.moveTo(cw * 0.6, 0); ctx.lineTo(cw, ch * 0.45); ctx.stroke();
+      ctx.lineWidth = 8; ctx.globalAlpha = 0.5;
+      ctx.beginPath(); ctx.moveTo(cw * 0.72, 0); ctx.lineTo(cw, ch * 0.32); ctx.stroke();
+      ctx.lineWidth = 4; ctx.globalAlpha = 0.6;
+      ctx.beginPath(); ctx.moveTo(cw * 0.78, 0); ctx.lineTo(cw, ch * 0.25); ctx.stroke();
 
-      // Bold diagonal slashes
-      ctx.save(); ctx.strokeStyle = P; ctx.globalAlpha = 0.25;
-      ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(cw * 0.7, 0); ctx.lineTo(cw, ch * 0.35); ctx.stroke();
-      ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cw * 0.75, 0); ctx.lineTo(cw, ch * 0.3); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(0, ch * 0.65); ctx.lineTo(cw * 0.3, ch); ctx.stroke();
-      ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(0, ch * 0.7); ctx.lineTo(cw * 0.35, ch); ctx.stroke();
-      ctx.globalAlpha = 1; ctx.restore();
+      // === BOTTOM-LEFT massive slashes ===
+      ctx.lineWidth = 18; ctx.globalAlpha = 0.35;
+      ctx.beginPath(); ctx.moveTo(0, ch * 0.55); ctx.lineTo(cw * 0.45, ch); ctx.stroke();
+      ctx.lineWidth = 8; ctx.globalAlpha = 0.5;
+      ctx.beginPath(); ctx.moveTo(0, ch * 0.68); ctx.lineTo(cw * 0.32, ch); ctx.stroke();
+      ctx.lineWidth = 4; ctx.globalAlpha = 0.6;
+      ctx.beginPath(); ctx.moveTo(0, ch * 0.75); ctx.lineTo(cw * 0.25, ch); ctx.stroke();
+      ctx.restore();
 
-      // HEXAGONAL CLIPPED-CORNER photo frame
-      const fw = cw * 0.72, fh = ch * 0.45, fx = (cw - fw) / 2, fy = ch * 0.23, cc = 40;
-      const hexF = () => {
-        ctx.beginPath();
-        ctx.moveTo(fx + cc, fy); ctx.lineTo(fx + fw - cc, fy); ctx.lineTo(fx + fw, fy + cc);
-        ctx.lineTo(fx + fw, fy + fh - cc); ctx.lineTo(fx + fw - cc, fy + fh); ctx.lineTo(fx + cc, fy + fh);
-        ctx.lineTo(fx, fy + fh - cc); ctx.lineTo(fx, fy + cc); ctx.closePath();
-      };
-      ctx.save(); hexF(); ctx.clip(); ctx.fillStyle = '#0a0a0a'; ctx.fill(); drawPhotoInClip(fx, fy, fw, fh); ctx.restore();
-      ctx.save(); hexF(); ctx.lineWidth = 5; ctx.strokeStyle = P; ctx.shadowColor = P; ctx.shadowBlur = 25; ctx.stroke(); ctx.restore();
+      // Corner brackets — green, thicker, more prominent
+      ctx.save(); ctx.strokeStyle = P; ctx.lineWidth = 5; ctx.globalAlpha = 0.5;
+      ctx.shadowColor = P; ctx.shadowBlur = 10;
+      ctx.beginPath(); ctx.moveTo(20, 140); ctx.lineTo(20, 20); ctx.lineTo(140, 20); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cw - 20, ch - 140); ctx.lineTo(cw - 20, ch - 20); ctx.lineTo(cw - 140, ch - 20); ctx.stroke();
+      // Additional corner accents (top-right, bottom-left)
+      ctx.lineWidth = 3; ctx.globalAlpha = 0.3;
+      ctx.beginPath(); ctx.moveTo(cw - 20, 100); ctx.lineTo(cw - 20, 20); ctx.lineTo(cw - 100, 20); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(20, ch - 100); ctx.lineTo(20, ch - 20); ctx.lineTo(100, ch - 20); ctx.stroke();
+      ctx.globalAlpha = 1; ctx.shadowBlur = 0; ctx.restore();
 
-      // Corner tick marks
-      ctx.save(); ctx.strokeStyle = S; ctx.lineWidth = 2; ctx.globalAlpha = 0.6; const tk = 15;
-      ctx.beginPath(); ctx.moveTo(fx + cc - tk, fy - 8); ctx.lineTo(fx + cc + tk, fy - 8); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(fx - 8, fy + cc - tk); ctx.lineTo(fx - 8, fy + cc + tk); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(fx + fw - cc - tk, fy - 8); ctx.lineTo(fx + fw - cc + tk, fy - 8); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(fx + fw + 8, fy + cc - tk); ctx.lineTo(fx + fw + 8, fy + cc + tk); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(fx + cc - tk, fy + fh + 8); ctx.lineTo(fx + cc + tk, fy + fh + 8); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(fx + fw - cc - tk, fy + fh + 8); ctx.lineTo(fx + fw - cc + tk, fy + fh + 8); ctx.stroke();
-      ctx.globalAlpha = 1; ctx.restore();
+      // ROUNDED RECTANGLE photo frame with DOUBLE green border (y = 330)
+      const fw = cw * 0.68, fh = 400, fx = (cw - fw) / 2, fy = 330, r = 20;
+      ctx.save(); ctx.beginPath(); ctx.roundRect(fx, fy, fw, fh, r); ctx.clip();
+      ctx.fillStyle = '#111'; ctx.fill(); drawPhotoInClip(fx, fy, fw, fh);
+      ctx.restore();
 
-      drawIG('#051508', S); drawPC(P); drawLogo(fy - 190); drawName(fy - 25);
-      drawPseudo(fy + fh + 65, P);
+      // Outer thick green glow
+      ctx.save(); ctx.beginPath(); ctx.roundRect(fx, fy, fw, fh, r);
+      ctx.shadowColor = P; ctx.shadowBlur = 35; ctx.lineWidth = 5; ctx.strokeStyle = P; ctx.stroke();
+      // Inner white accent border
+      ctx.shadowBlur = 0; ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.stroke();
+      ctx.restore();
 
-      // City: angular cut-corner badge
-      let nY = fy + fh + 105;
+      // Draw Instagram (top-left) and PILOTO CONFIRMADO (top-right)
+      drawIG('#020C05', P);
+      drawPC(P);
+
+      // Draw Main Logo (Centered, high up)
+      drawLogo(fy - 190, 110, P);
+
+      // Draw Name (Right above photo frame)
+      drawName(fy - 30);
+
+      // Draw Pseudonym (Apodo: Center lowered below photo frame)
+      drawPseudo(fy + fh + 50, P);
+
+      // City: Centered and underlined
       if (pilotCity && pilotCity !== 'N/A') {
-        ctx.save(); ctx.font = 'bold 22px "Orbitron", sans-serif';
-        const ct = pilotCity.toUpperCase(), cW = Math.max(ctx.measureText(ct).width + 40, 160), cH = 40;
-        const cx3 = (cw - cW) / 2, cy3 = nY, c2 = 10;
+        ctx.save();
+        ctx.font = 'bold 24px "Orbitron", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.shadowColor = P;
+        ctx.shadowBlur = 12;
+        const ct = pilotCity.toUpperCase();
+        ctx.fillText(ct, cw / 2, fy + fh + 98);
+        
+        // Underline effect
+        const cityW = ctx.measureText(ct).width;
+        ctx.strokeStyle = S;
+        ctx.lineWidth = 2.5;
+        ctx.shadowBlur = 0;
         ctx.beginPath();
-        ctx.moveTo(cx3 + c2, cy3); ctx.lineTo(cx3 + cW - c2, cy3); ctx.lineTo(cx3 + cW, cy3 + c2);
-        ctx.lineTo(cx3 + cW, cy3 + cH - c2); ctx.lineTo(cx3 + cW - c2, cy3 + cH); ctx.lineTo(cx3 + c2, cy3 + cH);
-        ctx.lineTo(cx3, cy3 + cH - c2); ctx.lineTo(cx3, cy3 + c2); ctx.closePath();
-        ctx.fillStyle = 'rgba(0,255,102,0.08)'; ctx.shadowColor = P; ctx.shadowBlur = 12;
-        ctx.strokeStyle = P; ctx.lineWidth = 2; ctx.fill(); ctx.stroke();
-        ctx.fillStyle = '#FFF'; ctx.shadowBlur = 0; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(ct, cx3 + cW / 2, cy3 + cH / 2); ctx.restore(); nY += cH + 15;
+        ctx.moveTo(cw / 2 - cityW / 2, fy + fh + 116);
+        ctx.lineTo(cw / 2 + cityW / 2, fy + fh + 116);
+        ctx.stroke();
+        ctx.restore();
       }
-      // Category: angular cut-corner pill
+
+      // Category: rounded green pill
       const ct = Array.isArray(pilotCategory) ? pilotCategory.join(' / ') : pilotCategory;
       const dct = ct.toUpperCase();
       ctx.save(); ctx.font = 'bold 35px "Orbitron", sans-serif';
-      const cm = ctx.measureText(dct), pw2 = Math.max(cm.width + 80, 250), ph3 = 60, px2 = (cw - pw2) / 2, py2 = nY, c3 = 18;
-      ctx.beginPath();
-      ctx.moveTo(px2 + c3, py2); ctx.lineTo(px2 + pw2 - c3, py2); ctx.lineTo(px2 + pw2, py2 + c3);
-      ctx.lineTo(px2 + pw2, py2 + ph3 - c3); ctx.lineTo(px2 + pw2 - c3, py2 + ph3); ctx.lineTo(px2 + c3, py2 + ph3);
-      ctx.lineTo(px2, py2 + ph3 - c3); ctx.lineTo(px2, py2 + c3); ctx.closePath();
-      ctx.fillStyle = '#051508'; ctx.shadowColor = P; ctx.shadowBlur = 15; ctx.strokeStyle = P; ctx.lineWidth = 3;
-      ctx.fill(); ctx.stroke();
+      const cm = ctx.measureText(dct), pw2 = Math.max(cm.width + 80, 250), ph3 = 60, px2 = (cw - pw2) / 2, py2 = fy + fh + 140;
+      ctx.shadowColor = P; ctx.shadowBlur = 15; ctx.fillStyle = '#020C05'; ctx.strokeStyle = P; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.roundRect(px2, py2, pw2, ph3, 30); ctx.fill(); ctx.stroke();
       ctx.fillStyle = '#FFF'; ctx.shadowBlur = 0; ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
       ctx.fillText(dct, cw / 2, py2 + ph3 / 2); ctx.restore();
 
+      // Sponsors row
       drawSponsors(P);
 
     // ================================================================
