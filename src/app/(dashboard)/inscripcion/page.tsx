@@ -2039,7 +2039,7 @@ export default function InscripcionPage() {
               </div>
             )}
 
-            {estadoPago === 'rechazado' && selectedEvent === 'festival' ? (
+            {estadoPago === 'rechazado' && isSimplifiedEvent ? (
               <>
                 <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mb-6 border border-red-500/30 shadow-[0_0_30px_rgba(239,68,68,0.25)]">
                   <XCircle className="w-12 h-12 text-red-500" />
@@ -2047,10 +2047,10 @@ export default function InscripcionPage() {
                 <h2 className="text-3xl font-extrabold text-white mb-4 text-center uppercase tracking-wider font-display">Inscripción No Aprobada</h2>
                 <div className="text-zinc-300 text-center mb-4 space-y-4 max-w-lg mx-auto text-sm sm:text-base leading-relaxed">
                   <p>
-                    Gracias por inscribirte al <strong className="text-white">Campeonato Nacional de Stunt Bike</strong>. Después de revisar todas las postulaciones, en esta ocasión no has sido seleccionado para participar.
+                    Gracias por inscribirte a la <strong className="text-white">{activeEventObj ? `${activeEventObj.title} ${activeEventObj.titleAccent || ''}` : 'competencia'}</strong>. Después de revisar todas las postulaciones, en esta ocasión no has sido seleccionado para participar.
                   </p>
                   <p className="text-zinc-400 text-xs sm:text-sm">
-                    Agradecemos tu interés y el tiempo que dedicaste al proceso. Esperamos verte en la próxima edición del campeonato. ¡Muchos éxitos y gracias por hacer parte de esta comunidad!
+                    Agradecemos tu interés y el tiempo que dedicaste al proceso. Esperamos verte en la próxima edición. ¡Muchos éxitos y gracias por hacer parte de esta comunidad!
                   </p>
                 </div>
               </>
