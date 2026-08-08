@@ -79,17 +79,10 @@ export default function SocialMediaCard({
     const isFestival = pilotId.startsWith('festival_');
     const sponsorPaths = isFestival 
       ? [
-          '/sponsors/PKS Blanco.png',
+          '/sponsors/LogosBL.png',
           '/sponsors/img65.jpeg',
           '/sponsors/maxi.jpeg',
-          '/sponsors/Stunt Festival 9.png',
-          '/sponsors/CHICKENBL.png',
-          '/sponsors/CHARMIBL.png',
-          '/sponsors/COCECHABL.png',
-          '/sponsors/FOXBL.png',
-          '/sponsors/EPICBL.png',
-          '/sponsors/IMGBL.PNG',
-          '/sponsors/MAXXISBL.png'
+          '/sponsors/Stunt Festival 9.png'
         ]
       : [
           '/sponsors/Nitrox Blanco.png',
@@ -339,51 +332,72 @@ export default function SocialMediaCard({
       if (!bottomLogos.length) { ctx.restore(); return; }
 
       if (isFestival) {
-        // Rediseño a dos filas de gran tamaño para el festival
-        const sH = 100;
-        const sW = 180; // Caja mucho más grande para todos
-        const spH = 35; // Espaciado horizontal generoso
-        const spV = 16; // Espaciado vertical entre filas
-        
-        // Dividir logos en 2 filas
-        const midPoint = Math.ceil(bottomLogos.length / 2);
-        const row1 = bottomLogos.slice(0, midPoint);
-        const row2 = bottomLogos.slice(midPoint);
-        const rows = [row1, row2];
-
-        const startY = 825; // Subimos la posición vertical para aprovechar el espacio
-
-        rows.forEach((rowLogos, rowIndex) => {
-          if (rowLogos.length === 0) return;
+        if (bottomLogos.length === 1) {
+          // Si es un único logo compuesto (LogosBL.png), dibujarlo centrado y muy grande
+          const singleImg = bottomLogos[0];
+          const processed = getProcessedImage(singleImg);
+          const aspect = processed.width / processed.height;
           
-          const rowWidth = (rowLogos.length * sW) + ((rowLogos.length - 1) * spH);
-          let currentX = (cw - rowWidth) / 2;
-          const currentY = startY + rowIndex * (sH + spV);
+          let drawH = 95; // Altura generosa para que se lea perfecto
+          let drawW = drawH * aspect;
+          const maxWidth = cw - 80;
+          
+          if (drawW > maxWidth) {
+            drawW = maxWidth;
+            drawH = maxWidth / aspect;
+          }
+          
+          const x = (cw - drawW) / 2;
+          const yOff = 880 + (95 - drawH) / 2; // Centrado vertical en la zona
+          
+          ctx.drawImage(processed, x, yOff, drawW, drawH);
+        } else {
+          // Rediseño a dos filas de gran tamaño para el festival
+          const sH = 100;
+          const sW = 180; // Caja mucho más grande para todos
+          const spH = 35; // Espaciado horizontal generoso
+          const spV = 16; // Espaciado vertical entre filas
+          
+          // Dividir logos en 2 filas
+          const midPoint = Math.ceil(bottomLogos.length / 2);
+          const row1 = bottomLogos.slice(0, midPoint);
+          const row2 = bottomLogos.slice(midPoint);
+          const rows = [row1, row2];
 
-          rowLogos.forEach((img) => {
-            const processed = getProcessedImage(img);
-            const aspect = processed.width / processed.height;
-            let drawW = sW;
-            let drawH = sH;
+          const startY = 825; // Subimos la posición vertical para aprovechar el espacio
+
+          rows.forEach((rowLogos, rowIndex) => {
+            if (rowLogos.length === 0) return;
             
-            // Ajustar el tamaño sin deformar dentro de la caja unificada de (sW, sH)
-            if (aspect > sW / sH) {
-              drawW = sW;
-              drawH = sW / aspect;
-            } else {
-              drawH = sH;
-              drawW = sH * aspect;
-            }
+            const rowWidth = (rowLogos.length * sW) + ((rowLogos.length - 1) * spH);
+            let currentX = (cw - rowWidth) / 2;
+            const currentY = startY + rowIndex * (sH + spV);
 
-            const x = currentX + (sW - drawW) / 2;
-            const y = currentY + (sH - drawH) / 2;
+            rowLogos.forEach((img) => {
+              const processed = getProcessedImage(img);
+              const aspect = processed.width / processed.height;
+              let drawW = sW;
+              let drawH = sH;
+              
+              // Ajustar el tamaño sin deformar dentro de la caja unificada de (sW, sH)
+              if (aspect > sW / sH) {
+                drawW = sW;
+                drawH = sW / aspect;
+              } else {
+                drawH = sH;
+                drawW = sH * aspect;
+              }
 
-            // Renderizado súper nítido con el canvas recortado
-            ctx.drawImage(processed, x, y, drawW, drawH);
-            
-            currentX += sW + spH;
+              const x = currentX + (sW - drawW) / 2;
+              const y = currentY + (sH - drawH) / 2;
+
+              // Renderizado súper nítido con el canvas recortado
+              ctx.drawImage(processed, x, y, drawW, drawH);
+              
+              currentX += sW + spH;
+            });
           });
-        });
+        }
       } else {
         // Modo clásico de una sola fila
         const sH = customH || 50;
