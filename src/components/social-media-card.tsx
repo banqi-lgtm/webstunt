@@ -90,7 +90,8 @@ export default function SocialMediaCard({
           '/sponsors/EPICBL.png',
           '/sponsors/IMGBL.PNG',
           '/sponsors/MAXXISBL.png',
-          '/sponsors/NOCUABL.png'
+          '/sponsors/NOCUABL.png',
+          '/sponsors/alcaldiapereira.png'
         ]
       : [
           '/sponsors/Nitrox Blanco.png',
@@ -329,12 +330,13 @@ export default function SocialMediaCard({
       const valid = sponsorsRefs.current.filter(i => i);
       if (!valid.length) { ctx.restore(); return; }
 
-      // Filter out Fox, Maxxis, and Stunt Festival from the bottom row
+      // Filter out Fox, Maxxis, Stunt Festival, and Alcaldia Pereira from the bottom row
       const bottomLogos = valid.filter(img => {
         const src = img.src.toLowerCase();
         const isFoxOrMaxxisInsidePhoto = src.includes('img65.jpeg') || src.includes('maxi.jpeg');
         const isFestivalLogo = src.includes('stunt%20festival') || src.includes('stunt festival') || src.includes('festival 9') || src.includes('festival%209');
-        return !isFoxOrMaxxisInsidePhoto && !isFestivalLogo;
+        const isAlcaldia = src.includes('alcaldiapereira');
+        return !isFoxOrMaxxisInsidePhoto && !isFestivalLogo && !isAlcaldia;
       });
 
       if (!bottomLogos.length) { ctx.restore(); return; }
@@ -551,19 +553,34 @@ export default function SocialMediaCard({
       ctx.shadowBlur = 0; ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.stroke();
       ctx.restore();
 
-      // Draw Festival Stunt logo in top-right corner (IG handle removed)
+      // Draw Festival Stunt logo and Alcaldia Pereira logo in top-right corner
       const festLogo = sponsorsRefs.current.find(img => {
         if (!img) return false;
         const src = img.src.toLowerCase();
         return src.includes('stunt%20festival') || src.includes('stunt festival') || src.includes('festival 9') || src.includes('festival%209');
       });
+      const alcaldiaLogo = sponsorsRefs.current.find(img => img && img.src.toLowerCase().includes('alcaldiapereira'));
+
+      let rightOffset = 20;
+
       if (festLogo) {
         const flH = 95, flW = festLogo.width / festLogo.height * flH;
-        const flX = cw - flW - 20, flY = 10;
+        const flX = cw - flW - rightOffset, flY = 10;
         ctx.save();
         ctx.shadowColor = P; ctx.shadowBlur = 20;
         const festProcessed = getProcessedImage(festLogo);
         ctx.drawImage(festProcessed, flX, flY, flW, flH);
+        ctx.restore();
+        rightOffset += flW + 20; // Espaciado para el siguiente logo a la izquierda
+      }
+
+      if (alcaldiaLogo) {
+        const alH = 75, alW = (alcaldiaLogo.width / alcaldiaLogo.height) * alH;
+        const alX = cw - alW - rightOffset, alY = 20; // Centrado verticalmente con la altura 95 del festival
+        ctx.save();
+        ctx.shadowColor = P; ctx.shadowBlur = 20;
+        const alProcessed = getProcessedImage(alcaldiaLogo);
+        ctx.drawImage(alProcessed, alX, alY, alW, alH);
         ctx.restore();
       }
       
