@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     // Dynamic configuration based on eventId
     let eventName = 'Copa Stunt F2R';
     if (eventId === 'festival') {
-      eventName = 'Festival Stunt';
+      eventName = 'Festival Stunt Bike';
     } else if (eventId === 'nitrox') {
       eventName = 'Copa Stunt Nitrox';
     }

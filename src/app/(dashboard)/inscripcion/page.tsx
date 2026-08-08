@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth, db, storage } from '@/lib/firebase';
 import { doc, setDoc, getDoc, updateDoc, getDocs, collection, arrayUnion } from 'firebase/firestore';
@@ -298,6 +298,7 @@ export default function InscripcionPage() {
   const [isProfileIncomplete, setIsProfileIncomplete] = useState(false);
   const [templateConfig, setTemplateConfig] = useState<any>(null);
   const isSimplifiedEvent = selectedEvent === 'nitrox' || selectedEvent === 'festival';
+  const posterRef = useRef<HTMLDivElement>(null);
 
   const fetchEventStatuses = async (userId: string) => {
     try {
@@ -392,7 +393,7 @@ export default function InscripcionPage() {
         
         const isSimplified = eventKey === 'nitrox' || eventKey === 'festival';
         const hasFinishedStatus = data.estadoPago === 'aprobado' || data.estadoPago === 'pago_dia_evento' || data.estadoPago === 'en_revision' || data.estadoPago === 'revision_saldo' || data.estadoPago === 'saldo_pendiente' || data.estadoPago === 'rechazado_saldo';
-        const shouldGoToStep3 = hasFinishedStatus || (data.estadoPago === 'rechazado' && !isSimplified);
+        const shouldGoToStep3 = hasFinishedStatus || data.estadoPago === 'rechazado';
 
         if (shouldGoToStep3) {
            setStep(3);
@@ -517,6 +518,14 @@ export default function InscripcionPage() {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isCheckingStatus, setIsCheckingStatus] = useState(true);
   const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    if (!isCheckingStatus && step === 3 && (estadoPago === 'aprobado' || estadoPago === 'pago_dia_evento')) {
+      setTimeout(() => {
+        posterRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 700);
+    }
+  }, [step, estadoPago, isCheckingStatus]);
   const [isAdminBypass, setIsAdminBypass] = useState(false);
   const [staffNombre, setStaffNombre] = useState('');
   const [staffCedula, setStaffCedula] = useState('');
@@ -2030,7 +2039,22 @@ export default function InscripcionPage() {
               </div>
             )}
 
-            {estadoPago === 'rechazado' && (
+            {estadoPago === 'rechazado' && isSimplifiedEvent ? (
+              <>
+                <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mb-6 border border-red-500/30 shadow-[0_0_30px_rgba(239,68,68,0.25)]">
+                  <XCircle className="w-12 h-12 text-red-500" />
+                </div>
+                <h2 className="text-3xl font-extrabold text-white mb-4 text-center uppercase tracking-wider font-display">Inscripción Rechazada</h2>
+                <div className="text-zinc-300 text-center mb-4 space-y-4 max-w-lg mx-auto text-sm sm:text-base leading-relaxed">
+                  <p>
+                    Gracias por inscribirte al <strong className="text-white">Campeonato Nacional de Stunt Bike</strong>. Después de revisar todas las postulaciones, en esta ocasión no has sido seleccionado para participar.
+                  </p>
+                  <p className="text-zinc-400 text-xs sm:text-sm">
+                    Agradecemos tu interés y el tiempo que dedicaste al proceso. Esperamos verte en la próxima edición del campeonato. ¡Muchos éxitos y gracias por hacer parte de esta comunidad!
+                  </p>
+                </div>
+              </>
+            ) : estadoPago === 'rechazado' && (
               <>
                 <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mb-6 border border-red-500/30 shadow-[0_0_30px_rgba(239,68,68,0.2)]">
                   <XCircle className="w-12 h-12 text-red-500" />
@@ -2528,7 +2552,7 @@ export default function InscripcionPage() {
                       <span className="text-[#39FF14]">📍</span> <strong>Ubicación:</strong> Pereira
                     </p>
                     <p className="text-sm text-zinc-300 flex items-center gap-2">
-                      <span className="text-[#39FF14]">🏁</span> <strong>Categoría:</strong> {categorias.join(', ')}
+                      <span className="text-[#39FF14]">🏁</span> <strong>Categoría:</strong> {categoriaStr}
                     </p>
                     <p className="text-sm text-zinc-300 flex items-center gap-2">
                       <span className="text-[#39FF14]">💰</span> <strong>Modalidad:</strong> {estadoPago === 'pago_dia_evento' ? 'Pago Presencial en Entrada' : 'Inscripción Confirmada'}
@@ -2554,7 +2578,7 @@ export default function InscripcionPage() {
         )}
 
         {step === 3 && (selectedEvent === 'f2r' || selectedEvent === 'festival') && (estadoPago === 'aprobado' || estadoPago === 'pago_dia_evento') && (
-          <div className="mt-8 w-full max-w-5xl mx-auto">
+          <div ref={posterRef} className="mt-8 w-full max-w-5xl mx-auto scroll-mt-24">
             <SocialMediaCard 
               pilotId={`${selectedEvent}_${uid}`}
               pilotName={`${nombres} ${apellidos}`}

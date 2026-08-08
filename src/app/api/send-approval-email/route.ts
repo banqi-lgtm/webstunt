@@ -42,7 +42,7 @@ export async function POST(req: Request) {
     let emailBody = `<p style="color: #cccccc; font-size: 16px; line-height: 1.6;">Tenemos excelentes noticias. ${statusText}</p>`;
     
     if (eventId === 'festival') {
-      eventName = 'Festival Stunt';
+      eventName = 'Festival Stunt Bike';
       locationText = 'Plaza Cívica Ciudad Victoria, en Pereira';
       subject = '🏆 ¡Felicitaciones! Has sido aprobado para el Campeonato Nacional de Stunt Bike';
       emailTitle = `¡Felicitaciones, ${nombre}! 🏆`;

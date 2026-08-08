@@ -57,7 +57,7 @@ export async function POST(req: Request) {
     `;
 
     if (eventId === 'festival') {
-      eventName = 'Festival Stunt';
+      eventName = 'Festival Stunt Bike';
       subject = `Resultado de tu postulación - Campeonato Nacional de Stunt Bike`;
       emailTitle = `¡Hola, ${nombre}! 👋`;
       emailBody = `

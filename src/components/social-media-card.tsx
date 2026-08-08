@@ -91,7 +91,8 @@ export default function SocialMediaCard({
           '/sponsors/IMGBL.PNG',
           '/sponsors/MAXXISBL.png',
           '/sponsors/NOCUABL.png',
-          '/sponsors/alcaldiapereira.png'
+          '/sponsors/ERBL.PNG',
+          '/sponsors/LOGOPEREIRABL.jpeg'
         ]
       : [
           '/sponsors/Nitrox Blanco.png',
@@ -335,7 +336,7 @@ export default function SocialMediaCard({
         const src = img.src.toLowerCase();
         const isFoxOrMaxxisInsidePhoto = src.includes('img65.jpeg') || src.includes('maxi.jpeg');
         const isFestivalLogo = src.includes('stunt%20festival') || src.includes('stunt festival') || src.includes('festival 9') || src.includes('festival%209');
-        const isAlcaldia = src.includes('alcaldiapereira');
+        const isAlcaldia = src.includes('logopereira') || src.includes('alcaldia') || src.includes('pereira');
         return !isFoxOrMaxxisInsidePhoto && !isFestivalLogo && !isAlcaldia;
       });
 
@@ -553,32 +554,32 @@ export default function SocialMediaCard({
       ctx.shadowBlur = 0; ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.stroke();
       ctx.restore();
 
-      // Draw Festival Stunt logo and Alcaldia Pereira logo in top-right corner
+      // Draw Festival Stunt logo (top-right) and Alcaldia Pereira logo (top-left)
       const festLogo = sponsorsRefs.current.find(img => {
         if (!img) return false;
         const src = img.src.toLowerCase();
         return src.includes('stunt%20festival') || src.includes('stunt festival') || src.includes('festival 9') || src.includes('festival%209');
       });
-      const alcaldiaLogo = sponsorsRefs.current.find(img => img && img.src.toLowerCase().includes('alcaldiapereira'));
-
-      let rightOffset = 20;
+      const alcaldiaLogo = sponsorsRefs.current.find(img => {
+        if (!img) return false;
+        const src = img.src.toLowerCase();
+        return src.includes('logopereira') || src.includes('alcaldia') || src.includes('pereira');
+      });
 
       if (festLogo) {
         const flH = 95, flW = festLogo.width / festLogo.height * flH;
-        const flX = cw - flW - rightOffset, flY = 10;
+        const flX = cw - flW - 20, flY = 10;
         ctx.save();
         ctx.shadowColor = P; ctx.shadowBlur = 20;
         const festProcessed = getProcessedImage(festLogo);
         ctx.drawImage(festProcessed, flX, flY, flW, flH);
         ctx.restore();
-        rightOffset += flW + 20; // Espaciado para el siguiente logo a la izquierda
       }
 
       if (alcaldiaLogo) {
-        const alH = 75, alW = (alcaldiaLogo.width / alcaldiaLogo.height) * alH;
-        const alX = cw - alW - rightOffset, alY = 20; // Centrado verticalmente con la altura 95 del festival
+        const alH = 92, alW = (alcaldiaLogo.width / alcaldiaLogo.height) * alH;
+        const alX = 40, alY = 28; // Bajado un poco para no chocar con el recuadro
         ctx.save();
-        ctx.shadowColor = P; ctx.shadowBlur = 20;
         const alProcessed = getProcessedImage(alcaldiaLogo);
         ctx.drawImage(alProcessed, alX, alY, alW, alH);
         ctx.restore();
