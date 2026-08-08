@@ -679,10 +679,6 @@ export default function SocialMediaCard({
       ctx.shadowBlur = 0; ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.stroke();
       ctx.restore();
 
-      // Draw Instagram (top-left) and PILOTO CONFIRMADO (top-right)
-      drawIG('#020C05', P);
-      drawPC(P);
-
       // Draw Main Logo (Centered, high up)
       drawLogo(fy - 190, 110, P);
 
@@ -715,16 +711,6 @@ export default function SocialMediaCard({
         ctx.stroke();
         ctx.restore();
       }
-
-      // Category: rounded green pill
-      const ct = Array.isArray(pilotCategory) ? pilotCategory.join(' / ') : pilotCategory;
-      const dct = ct.toUpperCase();
-      ctx.save(); ctx.font = 'bold 35px "Orbitron", sans-serif';
-      const cm = ctx.measureText(dct), pw2 = Math.max(cm.width + 80, 250), ph3 = 60, px2 = (cw - pw2) / 2, py2 = fy + fh + 140;
-      ctx.shadowColor = P; ctx.shadowBlur = 15; ctx.fillStyle = '#020C05'; ctx.strokeStyle = P; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.roundRect(px2, py2, pw2, ph3, 30); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#FFF'; ctx.shadowBlur = 0; ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
-      ctx.fillText(dct, cw / 2, py2 + ph3 / 2); ctx.restore();
 
       // Sponsors row
       drawSponsors(P);
