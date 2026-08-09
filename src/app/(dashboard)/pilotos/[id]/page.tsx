@@ -125,6 +125,14 @@ export default function PilotDetailPage() {
   const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
   const [newRole, setNewRole] = useState<'piloto' | 'staff' | 'juez'>('piloto');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [viewMode, setViewMode] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      setViewMode(params.get('view'));
+    }
+  }, []);
 
   // States for pilot profile editing/repair
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
@@ -742,7 +750,7 @@ export default function PilotDetailPage() {
     );
   };
 
-  if (pilot.rol === 'staff') {
+  if (viewMode === 'staff' || (pilot.rol === 'staff' && !viewMode && !pilot.id.startsWith('festival_') && !pilot.id.startsWith('nitrox_') && !pilot.id.startsWith('stuntday_') && !pilot.id.startsWith('f2r_'))) {
     return (
       <div className="min-h-screen bg-[#050816] font-sans pb-12">
         {/* Navigation & Utilities */}

@@ -102,7 +102,9 @@ export default function SocialMediaCard({
           '/sponsors/Trakku.png',
           '/sponsors/IRC Blanco.png',
           '/sponsors/Fedemoto.png',
-          '/sponsors/Victory Blanco.png'
+          '/sponsors/Victory Blanco.png',
+          '/sponsors/Stunt Festival 9.png',
+          '/sponsors/LOGOPEREIRABL.jpeg'
         ];
 
     let loadedCount = 0;
@@ -183,6 +185,8 @@ export default function SocialMediaCard({
     canvas.height = ch;
     const isFestival = pilotId.startsWith('festival_');
     const isNitrox = pilotId.startsWith('nitrox_');
+    const categoryStrNormal = (Array.isArray(pilotCategory) ? pilotCategory.join(' ') : (pilotCategory || '')).toUpperCase();
+    const isSpecialNitrox = isNitrox && (categoryStrNormal.includes('BIKELIFE') || categoryStrNormal.includes('ALTO CILINDRAJE') || categoryStrNormal.includes('ALTO'));
 
     // === HELPER: Draw photo inside current clip ===
     const drawPhotoInClip = (fx: number, fy: number, fw: number, fh: number) => {
@@ -331,31 +335,36 @@ export default function SocialMediaCard({
       const valid = sponsorsRefs.current.filter(i => i);
       if (!valid.length) { ctx.restore(); return; }
 
-      // Filter out Fox, Maxxis, Stunt Festival, and Alcaldia Pereira from the bottom row
-      const bottomLogos = valid.filter(img => {
+      // Filter out Fox, Maxxis, Stunt Festival, Alcaldia Pereira, and Copa Stunt from the bottom row
+      let bottomLogos = valid.filter(img => {
         const src = img.src.toLowerCase();
         const isFoxOrMaxxisInsidePhoto = src.includes('img65.jpeg') || src.includes('maxi.jpeg');
         const isFestivalLogo = src.includes('stunt%20festival') || src.includes('stunt festival') || src.includes('festival 9') || src.includes('festival%209');
         const isAlcaldia = src.includes('logopereira') || src.includes('alcaldia') || src.includes('pereira');
-        return !isFoxOrMaxxisInsidePhoto && !isFestivalLogo && !isAlcaldia;
+        const isCopaStunt = src.includes('copa stunt') || src.includes('copa%20stunt') || src.includes('f2r');
+        return !isFoxOrMaxxisInsidePhoto && !isFestivalLogo && !isAlcaldia && !isCopaStunt;
       });
+
+      if (isSpecialNitrox && mainLogoRef.current && mainLogoLoaded) {
+        bottomLogos.push(mainLogoRef.current);
+      }
 
       if (!bottomLogos.length) { ctx.restore(); return; }
 
-      if (isFestival) {
-        // Rediseño a dos filas de gran tamaño para el festival (9 patrocinadores en total)
-        const sH = 80;
-        const sW = 145; // Caja del mismo tamaño exacto para todos
+      if (isFestival || isNitrox) {
+        // Rediseño a dos filas de gran tamaño para el festival/nitrox
+        const sH = 95;
+        const sW = 170; // Caja del mismo tamaño exacto para todos
         const spH = 24; // Espaciado horizontal
         const spV = 15; // Espaciado vertical entre filas
         
-        // Dividir logos en 2 filas (5 arriba, 4 abajo)
+        // Dividir logos en 2 filas
         const midPoint = Math.ceil(bottomLogos.length / 2);
         const row1 = bottomLogos.slice(0, midPoint);
         const row2 = bottomLogos.slice(midPoint);
         const rows = [row1, row2];
 
-        const startY = 880; // Bajamos un poco para dar espacio a la ciudad debajo del apodo
+        const startY = 860; // Ajustado para dar el máximo tamaño a dos filas sin pisar la ciudad
 
         rows.forEach((rowLogos, rowIndex) => {
           if (rowLogos.length === 0) return;
@@ -679,8 +688,51 @@ export default function SocialMediaCard({
       ctx.shadowBlur = 0; ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.stroke();
       ctx.restore();
 
-      // Draw Main Logo (Centered, high up)
-      drawLogo(fy - 190, 110, P);
+      // Draw Festival Stunt logo (top-right) and Alcaldia Pereira logo (top-left)
+      const festLogo = sponsorsRefs.current.find(img => {
+        if (!img) return false;
+        const src = img.src.toLowerCase();
+        return src.includes('stunt%20festival') || src.includes('stunt festival') || src.includes('festival 9') || src.includes('festival%209');
+      });
+      const alcaldiaLogo = sponsorsRefs.current.find(img => {
+        if (!img) return false;
+        const src = img.src.toLowerCase();
+        return src.includes('logopereira') || src.includes('alcaldia') || src.includes('pereira');
+      });
+
+      if (festLogo && !isSpecialNitrox) {
+        const flH = 95, flW = festLogo.width / festLogo.height * flH;
+        const flX = cw - flW - 20, flY = 10;
+        ctx.save();
+        ctx.shadowColor = P; ctx.shadowBlur = 20;
+        const festProcessed = getProcessedImage(festLogo);
+        ctx.drawImage(festProcessed, flX, flY, flW, flH);
+        ctx.restore();
+      }
+
+      if (alcaldiaLogo) {
+        const alH = 92, alW = (alcaldiaLogo.width / alcaldiaLogo.height) * alH;
+        const alX = 40, alY = 28; // Ubicado en la esquina superior izquierda
+        ctx.save();
+        const alProcessed = getProcessedImage(alcaldiaLogo);
+        ctx.drawImage(alProcessed, alX, alY, alW, alH);
+        ctx.restore();
+      }
+
+      if (isSpecialNitrox) {
+        // Draw Stunt Festival 9 centered at the top (main, matched to Copa Stunt Nitrox size)
+        if (festLogo) {
+          const lh = 145, lw = (festLogo.width / festLogo.height) * lh;
+          ctx.save();
+          ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 20; ctx.shadowOffsetY = 10;
+          const festProcessed = getProcessedImage(festLogo);
+          ctx.drawImage(festProcessed, (cw - lw) / 2, fy - 240, lw, lh);
+          ctx.restore();
+        }
+      } else {
+        // Draw Copa Stunt Nitrox centered at the top (main)
+        drawLogo(fy - 240, 145);
+      }
 
       // Draw Name (Right above photo frame)
       drawName(fy - 30);
@@ -712,7 +764,7 @@ export default function SocialMediaCard({
         ctx.restore();
       }
 
-      // Sponsors row
+      // Sponsors row (Enlarged to 2 rows)
       drawSponsors(P);
 
     // ================================================================

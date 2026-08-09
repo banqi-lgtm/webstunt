@@ -196,7 +196,7 @@ export default function StaffPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <Link href={`/pilotos/${member.id}`}>
+                        <Link href={`/pilotos/${member.id}?view=staff`}>
                           <button className="inline-flex items-center justify-center p-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white transition-colors" title="Ver Perfil Completo">
                             <UserCheck className="w-4 h-4 mr-1 hidden sm:block" />
                             <ChevronRight className="w-4 h-4 sm:hidden" />
