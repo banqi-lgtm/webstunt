@@ -55,7 +55,8 @@ export function CuentaDeCobro({
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   
   // Format date to: BELLO, ANTIOQUIA. 29 de mayo de 2026
-  const dateObj = new Date(fecha);
+  const normalizedFecha = fecha ? (fecha.includes('T') ? fecha : `${fecha}T12:00:00`) : new Date().toISOString();
+  const dateObj = new Date(normalizedFecha);
   const formattedDate = dateObj.toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
 
   // Format ID for PDF: Extract consecutive from PKS-[Initials][Num] and prepend CC-

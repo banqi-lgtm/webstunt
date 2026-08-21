@@ -65,7 +65,32 @@ Responde SOLO con un objeto JSON válido con la siguiente estructura exacta, sin
 
     return NextResponse.json(extractedData);
   } catch (error: any) {
-    console.error('AI Retencion Error:', error);
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    console.warn('AI Retencion falling back to rule-based parser:', error?.message);
+    
+    // Heuristic fallback based on Colombian DIAN withholding rules
+    const { descripcion } = await req.json().catch(() => ({ descripcion: '' }));
+    const text = (descripcion || '').toLowerCase();
+    
+    let motivo = 'Servicios Generales';
+    let porcentaje = 4;
+
+    if (text.includes('honorario') || text.includes('asesor') || text.includes('consultor') || text.includes('abogado') || text.includes('contador') || text.includes('diseñ')) {
+      motivo = 'Honorarios y Comisiones';
+      porcentaje = 10;
+    } else if (text.includes('compra') || text.includes('insumo') || text.includes('material') || text.includes('equipo')) {
+      motivo = 'Compras';
+      porcentaje = 2.5;
+    } else if (text.includes('arrend') || text.includes('alquiler')) {
+      motivo = 'Arrendamientos';
+      porcentaje = 3.5;
+    } else if (text.includes('transporte') || text.includes('flete') || text.includes('acarreo')) {
+      motivo = 'Transporte';
+      porcentaje = 1;
+    } else if (text.includes('logistica') || text.includes('staff') || text.includes('apoyo') || text.includes('mantenimiento') || text.includes('operativ')) {
+      motivo = 'Servicios Generales';
+      porcentaje = 4;
+    }
+
+    return NextResponse.json({ motivo, porcentaje });
   }
 }
