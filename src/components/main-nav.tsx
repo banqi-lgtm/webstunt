@@ -134,10 +134,27 @@ export function MainNav() {
 
   const filteredProfileLinks = (userRol === 'staff' || userRol === 'admin')
     ? profileLinks
-    : profileLinks.filter(link => link.href !== '/profile?tab=cuentas');
+    : [
+        { href: '/profile?tab=inicio', label: 'Inicio', icon: LayoutDashboard },
+        { href: '/inscripcion', label: 'Mi información', icon: User },
+      ];
 
-  const finalBaseLinks = (userRol === 'staff' || userRol === 'admin') ? [] : baseLinks;
+  const finalBaseLinks = (userRol === 'staff' || userRol === 'admin') ? [] : [];
   const allLinks = [...filteredProfileLinks, ...finalBaseLinks, ...adminLinks];
+
+  const isLinkActive = (href: string) => {
+    if (href.startsWith('/inscripcion')) {
+      return pathname === '/inscripcion';
+    }
+    if (href.startsWith('/profile')) {
+      if (pathname !== '/profile') return false;
+      const urlParams = new URLSearchParams(href.includes('?') ? href.split('?')[1] : '');
+      const tabParam = urlParams.get('tab');
+      const currentTab = searchParams?.get('tab') || 'inicio';
+      return tabParam ? currentTab === tabParam : true;
+    }
+    return pathname === href;
+  };
 
   const NavButton = ({ link, isActive }: { link: any, isActive: boolean }) => {
     const isPilotos = link.href === '/pilotos';
@@ -225,9 +242,7 @@ export function MainNav() {
                 {isProfileExpanded && (
                   <div style={{display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '15px', paddingLeft: '30px', fontSize: '1.1rem'}}>
                     {filteredProfileLinks.map(link => {
-                      const urlParams = new URLSearchParams(link.href.split('?')[1]);
-                      const tabParam = urlParams.get('tab');
-                      const isActive = pathname === '/profile' && searchParams?.get('tab') === tabParam;
+                      const isActive = isLinkActive(link.href);
                       return (
                         <Link key={link.href} href={link.href} style={{color: isActive ? '#E60000' : 'white', display: 'flex', alignItems: 'center', gap: '10px', transition: 'color 0.2s'}} onClick={() => setIsMobileMenuOpen(false)}>
                           <link.icon style={{ width: '18px', height: '18px' }} />
@@ -240,8 +255,8 @@ export function MainNav() {
               </div>
 
               {/* Seccion Base Links */}
-              {baseLinks.map(link => {
-                const isActive = pathname === link.href;
+              {finalBaseLinks.map(link => {
+                const isActive = isLinkActive(link.href);
                 return (
                   <Link key={link.href} href={link.href} style={{color: isActive ? '#E60000' : 'white', display: 'flex', alignItems: 'center', gap: '10px'}} onClick={() => setIsMobileMenuOpen(false)}>
                     <link.icon style={{ width: '20px', height: '20px' }} />
