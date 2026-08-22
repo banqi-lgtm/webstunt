@@ -75,10 +75,9 @@ export default function CodigosAdminPage() {
   const [newAsignadoAUid, setNewAsignadoAUid] = useState('');
   const [isCreating, setIsCreating] = useState(false);
 
-  // AI Retention State
+  // Retention State (Manual)
   const [retencionMotivo, setRetencionMotivo] = useState<string>('');
   const [retencionPorcentaje, setRetencionPorcentaje] = useState<string>('');
-  const [isCalculatingRetencion, setIsCalculatingRetencion] = useState(false);
 
   // Individual Staff Cuenta de Cobro Modal State
   const [showStaffCobroModal, setShowStaffCobroModal] = useState(false);
@@ -91,7 +90,6 @@ export default function CodigosAdminPage() {
   const [staffCentroCosto, setStaffCentroCosto] = useState('STAFF');
   const [staffRetencionMotivo, setStaffRetencionMotivo] = useState('');
   const [staffRetencionPorcentaje, setStaffRetencionPorcentaje] = useState('');
-  const [isCalculatingStaffRetencion, setIsCalculatingStaffRetencion] = useState(false);
   const [isSavingStaffCobro, setIsSavingStaffCobro] = useState(false);
   const [staffSearchQuery, setStaffSearchQuery] = useState('');
 
@@ -265,40 +263,6 @@ export default function CodigosAdminPage() {
     return () => unsubscribe();
   }, [router]);
 
-  // Debounce AI logic for retention calculation
-  useEffect(() => {
-    if (!newDescripcion.trim() || !newValor || Number(newValor) <= 0) {
-      setRetencionMotivo('');
-      setRetencionPorcentaje('');
-      return;
-    }
-
-    const timer = setTimeout(async () => {
-      setIsCalculatingRetencion(true);
-      try {
-        const res = await fetch('/api/retencion', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ descripcion: newDescripcion, valor: Number(newValor) })
-        });
-        
-        if (res.ok) {
-          const data = await res.json();
-          if (data.motivo && data.porcentaje !== undefined) {
-            setRetencionMotivo(data.motivo);
-            setRetencionPorcentaje(data.porcentaje.toString());
-          }
-        }
-      } catch (err) {
-        console.error("Error calculando retencion:", err);
-      } finally {
-        setIsCalculatingRetencion(false);
-      }
-    }, 1200); // Wait 1.2s after typing stops
-
-    return () => clearTimeout(timer);
-  }, [newDescripcion, newValor]);
-
   // Helper for initials
   const getInitials = (name: string) => {
     const parts = name.trim().split(' ').filter(Boolean);
@@ -327,39 +291,6 @@ export default function CodigosAdminPage() {
     const nextNum = maxNum + 1;
     return `${prefix}${nextNum.toString().padStart(3, '0')}`;
   };
-
-  // Staff Retention AI debounce
-  useEffect(() => {
-    if (!showStaffCobroModal) return;
-    if (!staffDescripcion.trim() || !staffValor || Number(staffValor) <= 0) {
-      return;
-    }
-
-    const timer = setTimeout(async () => {
-      setIsCalculatingStaffRetencion(true);
-      try {
-        const res = await fetch('/api/retencion', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ descripcion: staffDescripcion, valor: Number(staffValor) })
-        });
-        
-        if (res.ok) {
-          const data = await res.json();
-          if (data.motivo && data.porcentaje !== undefined) {
-            setStaffRetencionMotivo(data.motivo);
-            setStaffRetencionPorcentaje(data.porcentaje.toString());
-          }
-        }
-      } catch (err) {
-        console.error("Error calculando retencion staff:", err);
-      } finally {
-        setIsCalculatingStaffRetencion(false);
-      }
-    }, 1200);
-
-    return () => clearTimeout(timer);
-  }, [staffDescripcion, staffValor, showStaffCobroModal]);
 
   const handleSelectStaff = (uid: string) => {
     setSelectedStaffUid(uid);
@@ -484,8 +415,8 @@ export default function CodigosAdminPage() {
         cuentaCobroNum: generatedCodigoId,
         asignadoAUid: selectedStaff.uid,
         asignadoANombre: selectedStaff.nombre,
-        retencionMotivo: staffRetencionMotivo || 'Servicios Generales',
-        retencionPorcentaje: staffRetencionPorcentaje ? Number(staffRetencionPorcentaje) : 4,
+        retencionMotivo: staffRetencionMotivo.trim() || null,
+        retencionPorcentaje: staffRetencionPorcentaje ? Number(staffRetencionPorcentaje) : null,
         firmaGenerada: selectedStaff.nombre
       };
 
@@ -704,8 +635,8 @@ export default function CodigosAdminPage() {
         cuentaCobroNum: generatedCodigoId,
         asignadoAUid: newAsignadoAUid,
         asignadoANombre: usuarioAsignado.nombre,
-        retencionMotivo: retencionMotivo || 'Servicios Generales',
-        retencionPorcentaje: retencionPorcentaje ? Number(retencionPorcentaje) : 4,
+        retencionMotivo: retencionMotivo.trim() || null,
+        retencionPorcentaje: retencionPorcentaje ? Number(retencionPorcentaje) : null,
         firmaGenerada: usuarioAsignado.nombre
       };
 
@@ -984,56 +915,39 @@ export default function CodigosAdminPage() {
                       onChange={(e) => setNewDescripcion(e.target.value)}
                       className="w-full bg-[#0A0A0F] border border-[#1C1C28] text-[#F5F5F7] rounded-md h-12 px-4 focus:outline-none focus:border-zinc-500 transition-all group-hover:border-zinc-600"
                     />
+                  </div>
 
-                    {/* AI Retention Output */}
-                    <AnimatePresence>
-                      {(isCalculatingRetencion || retencionMotivo) && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                          animate={{ opacity: 1, height: 'auto', marginTop: 8 }}
-                          exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                          className="overflow-hidden"
+                  {/* Retención (Opcional) */}
+                  <div className="space-y-2 group">
+                    <label className="text-xs font-bold text-[#8A8A9A] font-inter uppercase tracking-wider">Retención en la Fuente (Opcional)</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="col-span-2 relative">
+                        <select
+                          value={retencionMotivo}
+                          onChange={(e) => setRetencionMotivo(e.target.value)}
+                          className="w-full bg-[#0A0A0F] border border-[#1C1C28] text-[#F5F5F7] rounded-md h-12 px-3 text-xs focus:outline-none focus:border-[#C8102E] appearance-none cursor-pointer"
                         >
-                          <div className="flex flex-col gap-2 p-3 rounded-md bg-[#E60000]/5 border border-[#E60000]/20">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Sparkles className={`w-4 h-4 text-[#E60000] ${isCalculatingRetencion ? 'animate-pulse' : ''}`} />
-                              <span className="text-[10px] font-bold text-[#E60000] uppercase tracking-wider">
-                                {isCalculatingRetencion ? 'Calculando con IA...' : 'Retención Sugerida (Editable)'}
-                              </span>
-                            </div>
-                            
-                            <div className="grid grid-cols-3 gap-2">
-                              <div className="col-span-2 relative">
-                                <select
-                                  value={retencionMotivo}
-                                  onChange={(e) => setRetencionMotivo(e.target.value)}
-                                  className="w-full bg-[#0A0A0F] border border-[#E60000]/30 text-[#F5F5F7] rounded-md h-9 px-3 text-xs focus:outline-none focus:border-[#E60000] appearance-none"
-                                >
-                                  <option value="">[ SELECCIONAR MOTIVO ]</option>
-                                  <option value="Servicios Generales">Servicios Generales</option>
-                                  <option value="Honorarios y Comisiones">Honorarios y Comisiones</option>
-                                  <option value="Compras">Compras</option>
-                                  <option value="Arrendamientos">Arrendamientos</option>
-                                  <option value="Transporte">Transporte</option>
-                                  <option value="Ninguna">Ninguna</option>
-                                </select>
-                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#E60000]/50 text-[10px]">▼</div>
-                              </div>
-                              <div className="col-span-1 relative">
-                                <input
-                                  type="number"
-                                  value={retencionPorcentaje}
-                                  onChange={(e) => setRetencionPorcentaje(e.target.value)}
-                                  className="w-full bg-[#0A0A0F] border border-[#E60000]/30 text-[#F5F5F7] rounded-md h-9 pl-3 pr-6 text-xs focus:outline-none focus:border-[#E60000]"
-                                  placeholder="%"
-                                />
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#E60000]/50 text-xs font-mono">%</span>
-                              </div>
-                            </div>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                          <option value="">[ SIN RETENCIÓN ]</option>
+                          <option value="Servicios Generales">Servicios Generales</option>
+                          <option value="Honorarios y Comisiones">Honorarios y Comisiones</option>
+                          <option value="Compras">Compras</option>
+                          <option value="Arrendamientos">Arrendamientos</option>
+                          <option value="Transporte">Transporte</option>
+                        </select>
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500 text-[10px]">▼</div>
+                      </div>
+                      <div className="col-span-1 relative">
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={retencionPorcentaje}
+                          onChange={(e) => setRetencionPorcentaje(e.target.value)}
+                          className="w-full bg-[#0A0A0F] border border-[#1C1C28] text-[#F5F5F7] rounded-md h-12 pl-3 pr-6 text-xs font-mono focus:outline-none focus:border-[#C8102E]"
+                          placeholder="%"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 text-xs font-mono">%</span>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Centro de Costo */}
@@ -1579,16 +1493,9 @@ export default function CodigosAdminPage() {
 
                     {/* Descripción */}
                     <div>
-                      <div className="flex justify-between items-center mb-1.5">
-                        <label className="text-[10px] text-zinc-300 font-bold uppercase tracking-wider flex items-center gap-1">
-                          <FileText className="w-3.5 h-3.5 text-blue-400" /> Descripción / Concepto del Cobro <span className="text-red-500">*</span>
-                        </label>
-                        {isCalculatingStaffRetencion && (
-                          <span className="text-[10px] text-purple-400 flex items-center gap-1 font-inter animate-pulse">
-                            <Sparkles className="w-3 h-3" /> Analizando retención...
-                          </span>
-                        )}
-                      </div>
+                      <label className="text-[10px] text-zinc-300 font-bold uppercase tracking-wider block mb-1.5 flex items-center gap-1">
+                        <FileText className="w-3.5 h-3.5 text-blue-400" /> Descripción / Concepto del Cobro <span className="text-red-500">*</span>
+                      </label>
                       <textarea 
                         rows={2}
                         placeholder="Ej. Prestación de servicios de apoyo logístico y operativo staff en evento..."

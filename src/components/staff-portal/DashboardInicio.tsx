@@ -166,32 +166,6 @@ const [localUserDocument, setLocalUserDocument] = useState(userDocument);
   
   const [localCertUrl, setLocalCertUrl] = useState(certUrl);
   useEffect(() => setLocalCertUrl(certUrl), [certUrl]);
-  
-  const [retencionMotivo, setRetencionMotivo] = useState('');
-  const [retencionPorcentaje, setRetencionPorcentaje] = useState<number | null>(null);
-  const [isCalculatingRetencion, setIsCalculatingRetencion] = useState(false);
-
-  const calcularRetencion = async () => {
-    if (!concepto || !valorTotal) return;
-    setIsCalculatingRetencion(true);
-    try {
-      const numericValue = valorTotal.replace(/\D/g, '');
-      const response = await fetch('/api/retencion', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ descripcion: concepto, valor: numericValue })
-      });
-      const data = await response.json();
-      if (data.motivo && data.porcentaje !== undefined) {
-        setRetencionMotivo(data.motivo);
-        setRetencionPorcentaje(data.porcentaje);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsCalculatingRetencion(false);
-    }
-  };
 
 
 const handleCobrar = async (item: any) => {
@@ -324,8 +298,8 @@ const handleCobrar = async (item: any) => {
           item: 1,
           descripcion: concepto,
           valor: numericValue,
-          retencionMotivo: retencionMotivo || null,
-          retencionPorcentaje: retencionPorcentaje || null
+          retencionMotivo: null,
+          retencionPorcentaje: null
         }],
         banco: userData.banco || 'No registrado',
         tipoCuenta: userData.tipoCuenta || 'No registrado',
@@ -354,8 +328,8 @@ const handleCobrar = async (item: any) => {
         concepto: concepto,
         descripcion: concepto,
         valor: numericValue,
-        retencionMotivo: retencionMotivo || null,
-        retencionPorcentaje: retencionPorcentaje || null,
+        retencionMotivo: null,
+        retencionPorcentaje: null,
         estado: 'cobrado', // Ya fue firmada por el usuario
         estadoAprobacion: 'pendiente',
         firmaGenerada: firma,
@@ -494,25 +468,11 @@ const handleCobrar = async (item: any) => {
             </div>
             <div className="space-y-2">
               <label className="text-[11px] font-medium text-zinc-400">Concepto de la cuenta de cobro</label>
-              <input type="text" onFocus={checkDocsBeforeTyping} value={concepto} onChange={(e) => setConcepto(e.target.value)} onBlur={calcularRetencion} placeholder="Ej. Servicios de producción evento Copa Stunt" className="w-full bg-[#0A0A0A] border border-[#333333] rounded-md px-4 py-3 text-white text-sm hover:border-zinc-500 focus:border-[#E60000] focus:ring-1 focus:ring-[#E60000] outline-none transition-all placeholder:text-zinc-600" />
+              <input type="text" onFocus={checkDocsBeforeTyping} value={concepto} onChange={(e) => setConcepto(e.target.value)} placeholder="Ej. Servicios de producción evento Copa Stunt" className="w-full bg-[#0A0A0A] border border-[#333333] rounded-md px-4 py-3 text-white text-sm hover:border-zinc-500 focus:border-[#E60000] focus:ring-1 focus:ring-[#E60000] outline-none transition-all placeholder:text-zinc-600" />
             </div>
-            <div className="space-y-2 relative">
-              <div className="flex justify-between items-center">
-                <label className="text-[11px] font-medium text-zinc-400">Valor total</label>
-                {retencionMotivo && (
-                  <div className="flex items-center gap-1 text-[10px] text-[#00ff00]">
-                    <Sparkles className="w-3 h-3" />
-                    <span>IA: {retencionMotivo} ({retencionPorcentaje}%)</span>
-                  </div>
-                )}
-                {isCalculatingRetencion && (
-                  <div className="flex items-center gap-1 text-[10px] text-zinc-400">
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                    <span>Calculando...</span>
-                  </div>
-                )}
-              </div>
-              <input type="text" onFocus={checkDocsBeforeTyping} value={valorTotal} onChange={(e) => setValorTotal(e.target.value)} onBlur={calcularRetencion} placeholder="$ 2.500.000" className="w-full bg-[#0A0A0A] border border-[#333333] rounded-md px-4 py-3 text-white text-sm hover:border-zinc-500 focus:border-[#E60000] focus:ring-1 focus:ring-[#E60000] outline-none transition-all placeholder:text-zinc-600 font-mono" />
+            <div className="space-y-2">
+              <label className="text-[11px] font-medium text-zinc-400">Valor total</label>
+              <input type="text" onFocus={checkDocsBeforeTyping} value={valorTotal} onChange={(e) => setValorTotal(e.target.value)} placeholder="$ 2.500.000" className="w-full bg-[#0A0A0A] border border-[#333333] rounded-md px-4 py-3 text-white text-sm hover:border-zinc-500 focus:border-[#E60000] focus:ring-1 focus:ring-[#E60000] outline-none transition-all placeholder:text-zinc-600 font-mono" />
             </div>
             <div className="space-y-2">
               <label className="text-[11px] font-medium text-zinc-400">Fecha de emisión</label>
