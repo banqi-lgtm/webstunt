@@ -139,7 +139,7 @@ export function MainNav() {
         { href: '/inscripcion', label: 'Mi información', icon: User },
       ];
 
-  const finalBaseLinks = (userRol === 'staff' || userRol === 'admin') ? [] : [];
+  const finalBaseLinks: Array<{ href: string; label: string; icon: any }> = [];
   const allLinks = [...filteredProfileLinks, ...finalBaseLinks, ...adminLinks];
 
   const isLinkActive = (href: string) => {
