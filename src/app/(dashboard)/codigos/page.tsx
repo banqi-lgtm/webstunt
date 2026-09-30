@@ -1,18 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useMemo } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, getDocs, doc, getDoc, setDoc, deleteDoc, query, where, updateDoc, orderBy } from 'firebase/firestore';
 import { 
   FileText, Plus, Trash2, CheckCircle, XCircle, Search, Sparkles, Eye, 
   FileSpreadsheet, Users, CheckSquare, Square, Calendar, DollarSign, 
-  Percent, ShieldCheck, Layers, Loader2, Building2, UserCheck, RefreshCw 
+  Percent, ShieldCheck, Layers, Loader2, Building2, UserCheck, RefreshCw, UserX,
+  Download, UploadCloud, FileUp, AlertTriangle, Printer, ArrowRight, Filter
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CuentaDeCobro } from '../profile/CuentaDeCobro';
+import * as XLSX from 'xlsx';
 
 interface Codigo {
   id: string;
@@ -33,6 +35,10 @@ interface Codigo {
   firma?: string;
   firmaGenerada?: string;
   fecha?: string;
+  documentoIdentificacion?: string;
+  ciudad?: string;
+  tipoDocumento?: string;
+  esNoRegistrado?: boolean;
 }
 
 interface Usuario {
@@ -56,14 +62,49 @@ interface StaffUser {
   rol?: string;
 }
 
+interface ArchivoPlanoRow {
+  index: number;
+  consecutivo: string;
+  nombre: string;
+  numeroId: string;
+  ciudad: string;
+  fecha: string;
+  valor: number;
+  descripcion: string;
+  retencion: number;
+  codigoProyectado: string;
+  errors: string[];
+  isValid: boolean;
+}
+
 export default function CodigosAdminPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
   const [codigos, setCodigos] = useState<Codigo[]>([]);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Sub-interfaces: 'codigos' (Generación de Códigos) vs 'cuentas' (Cuentas de Cobro)
+  const [activeSubTab, setActiveSubTab] = useState<'codigos' | 'cuentas'>('codigos');
+  const [cuentasFilter, setCuentasFilter] = useState<'todas' | 'ap' | 'staff' | 'no_registrados'>('todas');
+  const [cuentasSearchQuery, setCuentasSearchQuery] = useState('');
+
+  useEffect(() => {
+    const tabParam = searchParams?.get('tab');
+    if (tabParam === 'cuentas') {
+      setActiveSubTab('cuentas');
+    } else if (tabParam === 'codigos') {
+      setActiveSubTab('codigos');
+    }
+  }, [searchParams]);
+
+  const handleSwitchSubTab = (tab: 'codigos' | 'cuentas') => {
+    setActiveSubTab(tab);
+    router.replace(`/codigos?tab=${tab}`, { scroll: false });
+  };
 
   // Form states
   const [newValor, setNewValor] = useState('');
@@ -92,6 +133,19 @@ export default function CodigosAdminPage() {
   const [staffRetencionPorcentaje, setStaffRetencionPorcentaje] = useState('');
   const [isSavingStaffCobro, setIsSavingStaffCobro] = useState(false);
   const [staffSearchQuery, setStaffSearchQuery] = useState('');
+
+  // Unregistered worker states
+  const [isUnregisteredMode, setIsUnregisteredMode] = useState<boolean>(false);
+  const [unregisteredNombre, setUnregisteredNombre] = useState<string>('');
+  const [unregisteredTipoDoc, setUnregisteredTipoDoc] = useState<string>('CC');
+  const [unregisteredDocumento, setUnregisteredDocumento] = useState<string>('');
+  const [unregisteredCiudad, setUnregisteredCiudad] = useState<string>('Bello, Antioquia');
+
+  // Archivo Plano (AP) States
+  const [showArchivoPlanoModal, setShowArchivoPlanoModal] = useState<boolean>(false);
+  const [archivoPlanoRows, setArchivoPlanoRows] = useState<ArchivoPlanoRow[]>([]);
+  const [archivoPlanoFileName, setArchivoPlanoFileName] = useState<string>('');
+  const [isProcessingArchivoPlano, setIsProcessingArchivoPlano] = useState<boolean>(false);
 
   // Invoice view state
   const [showInvoice, setShowInvoice] = useState(false);
@@ -292,6 +346,122 @@ export default function CodigosAdminPage() {
     return `${prefix}${nextNum.toString().padStart(3, '0')}`;
   };
 
+  const parseSafeDate = (input: any): { ymd: string; iso: string } => {
+    const fallback = () => {
+      const now = new Date();
+      const ymd = now.toISOString().split('T')[0];
+      return { ymd, iso: now.toISOString() };
+    };
+
+    if (!input) return fallback();
+
+    if (input instanceof Date && !isNaN(input.getTime())) {
+      const ymd = input.toISOString().split('T')[0];
+      return { ymd, iso: input.toISOString() };
+    }
+
+    const num = Number(input);
+    if (!isNaN(num) && num > 30000 && num < 80000) {
+      try {
+        const date = new Date(Math.round((num - 25569) * 86400 * 1000));
+        if (!isNaN(date.getTime())) {
+          const ymd = date.toISOString().split('T')[0];
+          return { ymd, iso: date.toISOString() };
+        }
+      } catch (e) {}
+    }
+
+    const str = String(input).trim();
+    if (!str) return fallback();
+
+    const dmyMatch = str.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);
+    if (dmyMatch) {
+      let day = parseInt(dmyMatch[1], 10);
+      let month = parseInt(dmyMatch[2], 10);
+      let year = parseInt(dmyMatch[3], 10);
+      if (year < 100) year += 2000;
+      if (month > 12 && day <= 12) {
+        const temp = day;
+        day = month;
+        month = temp;
+      }
+      const yStr = String(year);
+      const mStr = String(month).padStart(2, '0');
+      const dStr = String(day).padStart(2, '0');
+      const ymd = `${yStr}-${mStr}-${dStr}`;
+      const d = new Date(`${ymd}T12:00:00Z`);
+      if (!isNaN(d.getTime())) {
+        return { ymd, iso: d.toISOString() };
+      }
+    }
+
+    const ymdMatch = str.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/);
+    if (ymdMatch) {
+      const yStr = ymdMatch[1];
+      const mStr = ymdMatch[2].padStart(2, '0');
+      const dStr = ymdMatch[3].padStart(2, '0');
+      const ymd = `${yStr}-${mStr}-${dStr}`;
+      const d = new Date(`${ymd}T12:00:00Z`);
+      if (!isNaN(d.getTime())) {
+        return { ymd, iso: d.toISOString() };
+      }
+    }
+
+    try {
+      const direct = new Date(str);
+      if (!isNaN(direct.getTime())) {
+        const ymd = direct.toISOString().split('T')[0];
+        return { ymd, iso: direct.toISOString() };
+      }
+    } catch (e) {}
+
+    return fallback();
+  };
+
+  const parseSafeValor = (valRaw: any): number => {
+    if (typeof valRaw === 'number') return isNaN(valRaw) ? 0 : valRaw;
+    let str = String(valRaw || '').trim().replace(/[$COP\s]/gi, '');
+    if (!str) return 0;
+    
+    if (str.includes('.') && str.includes(',')) {
+      const lastDot = str.lastIndexOf('.');
+      const lastComma = str.lastIndexOf(',');
+      if (lastDot > lastComma) {
+        str = str.replace(/,/g, '');
+      } else {
+        str = str.replace(/\./g, '').replace(',', '.');
+      }
+      return parseFloat(str) || 0;
+    }
+    
+    if ((str.match(/\./g) || []).length > 1) {
+      str = str.replace(/\./g, '');
+      return parseFloat(str) || 0;
+    }
+
+    if ((str.match(/,/g) || []).length > 1) {
+      str = str.replace(/,/g, '');
+      return parseFloat(str) || 0;
+    }
+
+    if (/^\d+\.\d{3}$/.test(str)) {
+      str = str.replace('.', '');
+      return parseFloat(str) || 0;
+    }
+
+    if (/^\d+,\d{3}$/.test(str)) {
+      str = str.replace(',', '');
+      return parseFloat(str) || 0;
+    }
+
+    if (str.includes(',')) {
+      str = str.replace(',', '.');
+    }
+
+    const clean = str.replace(/[^0-9.]/g, '');
+    return parseFloat(clean) || 0;
+  };
+
   const handleSelectStaff = (uid: string) => {
     setSelectedStaffUid(uid);
     if (!uid) {
@@ -305,8 +475,24 @@ export default function CodigosAdminPage() {
     }
   };
 
+  const handleUnregisteredNombreChange = (name: string) => {
+    setUnregisteredNombre(name);
+    if (!name.trim()) {
+      setAutoGeneratedCodigoId('');
+      return;
+    }
+    const syntheticUid = `unreg_${unregisteredTipoDoc}_${unregisteredDocumento.trim().replace(/\s+/g, '')}`;
+    const nextId = calculateNextCodigoForUser(name, syntheticUid, codigos);
+    setAutoGeneratedCodigoId(nextId);
+  };
+
   const openStaffCobroModal = async () => {
     setShowStaffCobroModal(true);
+    setIsUnregisteredMode(false);
+    setUnregisteredNombre('');
+    setUnregisteredTipoDoc('CC');
+    setUnregisteredDocumento('');
+    setUnregisteredCiudad('Bello, Antioquia');
     setSelectedStaffUid('');
     setAutoGeneratedCodigoId('');
     setStaffDescripcion('');
@@ -351,10 +537,26 @@ export default function CodigosAdminPage() {
 
   const handleCreateIndividualStaffCobro = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedStaffUid) {
-      toast({ title: 'Atención', description: 'Debes seleccionar un colaborador del Staff.', variant: 'destructive' });
-      return;
+    if (isUnregisteredMode) {
+      if (!unregisteredNombre.trim()) {
+        toast({ title: 'Atención', description: 'Ingresa el nombre de la persona.', variant: 'destructive' });
+        return;
+      }
+      if (!unregisteredDocumento.trim()) {
+        toast({ title: 'Atención', description: 'Ingresa el número de documento de la persona.', variant: 'destructive' });
+        return;
+      }
+      if (!unregisteredCiudad.trim()) {
+        toast({ title: 'Atención', description: 'Ingresa la ciudad.', variant: 'destructive' });
+        return;
+      }
+    } else {
+      if (!selectedStaffUid) {
+        toast({ title: 'Atención', description: 'Debes seleccionar un colaborador del Staff o pulsar "No registrado".', variant: 'destructive' });
+        return;
+      }
     }
+
     if (!staffValor || Number(staffValor) <= 0) {
       toast({ title: 'Atención', description: 'Ingresa un valor válido para la cuenta de cobro.', variant: 'destructive' });
       return;
@@ -366,14 +568,32 @@ export default function CodigosAdminPage() {
 
     setIsSavingStaffCobro(true);
     try {
-      const selectedStaff = staffUsersList.find(s => s.uid === selectedStaffUid);
-      if (!selectedStaff) throw new Error("Colaborador no encontrado");
+      let targetNombre = '';
+      let targetUid = '';
+      let targetDocumento = '';
+      let targetCiudad = '';
+      let targetTipoDoc = 'CC';
+
+      if (isUnregisteredMode) {
+        targetNombre = unregisteredNombre.trim();
+        targetTipoDoc = unregisteredTipoDoc;
+        targetDocumento = `${targetTipoDoc} ${unregisteredDocumento.trim()}`;
+        targetCiudad = unregisteredCiudad.trim();
+        targetUid = `unreg_${targetTipoDoc}_${unregisteredDocumento.trim().replace(/\s+/g, '')}`;
+      } else {
+        const selectedStaff = staffUsersList.find(s => s.uid === selectedStaffUid);
+        if (!selectedStaff) throw new Error("Colaborador no encontrado");
+        targetNombre = selectedStaff.nombre;
+        targetUid = selectedStaff.uid;
+        targetDocumento = selectedStaff.documento;
+        targetCiudad = selectedStaff.ciudad || 'BELLO, ANTIOQUIA';
+      }
 
       // Verify and generate latest consecutive ID to guarantee uniqueness
-      const initials = getInitials(selectedStaff.nombre);
+      const initials = getInitials(targetNombre);
       const prefix = `PKS-${initials}`;
       
-      const q = query(collection(db, 'codigos'), where('asignadoAUid', '==', selectedStaff.uid));
+      const q = query(collection(db, 'codigos'), where('asignadoAUid', '==', targetUid));
       const userCodigosSnap = await getDocs(q);
       
       let maxNum = 0;
@@ -381,6 +601,16 @@ export default function CodigosAdminPage() {
         const id = docSnap.id;
         if (id.startsWith(prefix)) {
           const numStr = id.replace(prefix, '');
+          const num = parseInt(numStr, 10);
+          if (!isNaN(num) && num > maxNum) {
+            maxNum = num;
+          }
+        }
+      });
+
+      codigos.forEach(c => {
+        if (c.id.startsWith(prefix)) {
+          const numStr = c.id.replace(prefix, '');
           const num = parseInt(numStr, 10);
           if (!isNaN(num) && num > maxNum) {
             maxNum = num;
@@ -400,31 +630,36 @@ export default function CodigosAdminPage() {
         codigoSnap = await getDoc(codigoRef);
       }
 
-      const timestamp = new Date(`${staffFecha}T12:00:00`).toISOString();
+      const safeStaffDate = parseSafeDate(staffFecha);
+      const timestamp = safeStaffDate.iso;
       const newCodigoData = {
-        valor: Number(staffValor),
+        valor: parseSafeValor(staffValor),
         descripcion: staffDescripcion.trim(),
         centroCosto: (staffCentroCosto.trim() || 'STAFF').toUpperCase(),
         estado: 'cobrado',
         estadoAprobacion: 'aprobado',
         creadoEl: timestamp,
-        fecha: staffFecha,
+        fecha: safeStaffDate.ymd,
         cobradoEl: timestamp,
-        cobradoPor: selectedStaff.nombre,
-        cobradoPorUid: selectedStaff.uid,
+        cobradoPor: targetNombre,
+        cobradoPorUid: targetUid,
         cuentaCobroNum: generatedCodigoId,
-        asignadoAUid: selectedStaff.uid,
-        asignadoANombre: selectedStaff.nombre,
+        asignadoAUid: targetUid,
+        asignadoANombre: targetNombre,
         retencionMotivo: staffRetencionMotivo.trim() || null,
         retencionPorcentaje: staffRetencionPorcentaje ? Number(staffRetencionPorcentaje) : null,
-        firmaGenerada: selectedStaff.nombre
+        firmaGenerada: targetNombre,
+        documentoIdentificacion: targetDocumento,
+        ciudad: targetCiudad,
+        tipoDocumento: targetTipoDoc,
+        esNoRegistrado: isUnregisteredMode
       };
 
       await setDoc(codigoRef, newCodigoData);
 
       toast({ 
         title: '¡Cuenta de cobro creada!', 
-        description: `Código [${generatedCodigoId}] asignado a ${selectedStaff.nombre}.` 
+        description: `Código [${generatedCodigoId}] asignado a ${targetNombre}.` 
       });
       
       setShowStaffCobroModal(false);
@@ -434,6 +669,284 @@ export default function CodigosAdminPage() {
       toast({ title: 'Error', description: 'No se pudo crear la cuenta de cobro.', variant: 'destructive' });
     } finally {
       setIsSavingStaffCobro(false);
+    }
+  };
+
+  const handleDownloadTemplateExcel = () => {
+    const today = new Date().toISOString().split('T')[0];
+    const templateData = [
+      {
+        CONSECUTIVO: 1,
+        NOMBRE: 'JUAN CAMILO PEREZ',
+        NUMERO_ID: '1037654321',
+        CIUDAD: 'MEDELLIN',
+        FECHA: today,
+        VALOR: 500000,
+        DESCRIPCION: 'SERVICIOS DE LOGISTICA Y APOYO EN PISTA',
+        RETENCION: 0
+      },
+      {
+        CONSECUTIVO: 2,
+        NOMBRE: 'MARIA ALEJANDRA GOMEZ',
+        NUMERO_ID: '1020304050',
+        CIUDAD: 'BELLO',
+        FECHA: today,
+        VALOR: 750000,
+        DESCRIPCION: 'COORDINACION Y SEGURIDAD EVENTO',
+        RETENCION: 4
+      },
+      {
+        CONSECUTIVO: 3,
+        NOMBRE: 'CARLOS ANDRES ZAPATA',
+        NUMERO_ID: '71987654',
+        CIUDAD: 'ENVIGADO',
+        FECHA: today,
+        VALOR: 600000,
+        DESCRIPCION: 'MONTAJE TECNICO Y ESTRUCTURAS',
+        RETENCION: 0
+      }
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    ws['!cols'] = [
+      { wch: 14 },
+      { wch: 28 },
+      { wch: 18 },
+      { wch: 18 },
+      { wch: 14 },
+      { wch: 14 },
+      { wch: 42 },
+      { wch: 14 }
+    ];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'PLANTILLA_AP');
+    XLSX.writeFile(wb, 'plantilla_cuentas_cobro_AP.xlsx');
+  };
+
+  const handleDownloadTemplateCSV = () => {
+    const today = new Date().toISOString().split('T')[0];
+    const csvContent = 
+      "CONSECUTIVO;NOMBRE;NUMERO_ID;CIUDAD;FECHA;VALOR;DESCRIPCION;RETENCION\n" +
+      `1;JUAN CAMILO PEREZ;1037654321;MEDELLIN;${today};500000;SERVICIOS DE LOGISTICA Y APOYO EN PISTA;0\n` +
+      `2;MARIA ALEJANDRA GOMEZ;1020304050;BELLO;${today};750000;COORDINACION Y SEGURIDAD EVENTO;4\n` +
+      `3;CARLOS ANDRES ZAPATA;71987654;ENVIGADO;${today};600000;MONTAJE TECNICO Y ESTRUCTURAS;0\n`;
+
+    const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'plantilla_cuentas_cobro_AP.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setArchivoPlanoFileName(file.name);
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const wb = XLSX.read(bstr, { type: 'binary', cellDates: true });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const rawData: any[] = XLSX.utils.sheet_to_json(ws, { defval: '', raw: false });
+
+        if (!rawData || rawData.length === 0) {
+          toast({ title: 'Archivo vacío', description: 'El archivo no contiene filas con datos.', variant: 'destructive' });
+          setArchivoPlanoRows([]);
+          return;
+        }
+
+        const findVal = (row: any, candidates: string[]) => {
+          const keys = Object.keys(row);
+          for (const candidate of candidates) {
+            const key = keys.find(k => k.trim().toLowerCase().replace(/[\s_\.\-]+/g, '') === candidate.toLowerCase().replace(/[\s_\.\-]+/g, ''));
+            if (key && row[key] !== undefined && row[key] !== null) {
+              return String(row[key]).trim();
+            }
+          }
+          return '';
+        };
+
+        const runningMaxMap: Record<string, number> = {};
+
+        const parsedRows: ArchivoPlanoRow[] = rawData.map((row, index) => {
+          const nombre = findVal(row, ['nombre', 'nombredelapersona', 'colaborador', 'trabajador', 'persona']);
+          const numeroId = findVal(row, ['numerodeid', 'numeroid', 'cedula', 'identificacion', 'documento', 'nit', 'id', 'numid']);
+          const ciudad = findVal(row, ['ciudad', 'municipio', 'city']) || 'BELLO, ANTIOQUIA';
+          let fechaRaw = findVal(row, ['fecha', 'fechadeemision', 'fechaemision', 'date', 'emision']);
+          const valorRaw = findVal(row, ['valor', 'valorbruto', 'total', 'precio', 'monto', 'subtotal']);
+          const descripcion = findVal(row, ['descripcion', 'concepto', 'servicio', 'detalle', 'motivo']);
+          const retencionRaw = findVal(row, ['retencion', 'retenciones', 'retefuente', 'porcentaje', 'ret']);
+          const consecutivoRaw = findVal(row, ['consecutivo', 'numero', 'nro', 'orden', 'item', 'consec']);
+
+          // Parse and format fecha safely
+          const safeDate = parseSafeDate(fechaRaw);
+          const fecha = safeDate.ymd;
+
+          // Parse valor safely
+          const valor = parseSafeValor(valorRaw);
+
+          // Parse retencion - si no tiene, se deja como 0
+          const cleanRetStr = retencionRaw ? String(retencionRaw).replace(/[^0-9.]/g, '') : '';
+          const retencion = cleanRetStr ? parseFloat(cleanRetStr) : 0;
+
+          // Validation
+          const errors: string[] = [];
+          if (!nombre) errors.push('Falta Nombre');
+          if (!numeroId) errors.push('Falta Cédula/ID');
+          if (!ciudad) errors.push('Falta Ciudad');
+          if (!fechaRaw && !fecha) errors.push('Falta Fecha');
+          if (!valor || valor <= 0) errors.push('Falta Valor válido');
+          if (!descripcion) errors.push('Falta Descripción');
+
+          // Projected code
+          const initials = getInitials(nombre || 'XX');
+          const prefix = `PKS-${initials}`;
+
+          if (runningMaxMap[prefix] === undefined) {
+            let maxNum = 0;
+            codigos.forEach(c => {
+              if (c.id.startsWith(prefix)) {
+                const numStr = c.id.replace(prefix, '');
+                const n = parseInt(numStr, 10);
+                if (!isNaN(n) && n > maxNum) {
+                  maxNum = n;
+                }
+              }
+            });
+            runningMaxMap[prefix] = maxNum;
+          }
+
+          runningMaxMap[prefix]++;
+          const codigoProyectado = `${prefix}${runningMaxMap[prefix].toString().padStart(3, '0')}`;
+
+          return {
+            index: index + 1,
+            consecutivo: consecutivoRaw || String(index + 1),
+            nombre,
+            numeroId,
+            ciudad,
+            fecha,
+            valor,
+            descripcion,
+            retencion,
+            codigoProyectado,
+            errors,
+            isValid: errors.length === 0
+          };
+        });
+
+        setArchivoPlanoRows(parsedRows);
+        toast({
+          title: 'Archivo cargado',
+          description: `Se leyeron ${parsedRows.length} filas del archivo.`
+        });
+      } catch (err) {
+        console.error("Error al leer archivo plano:", err);
+        toast({ title: 'Error', description: 'No se pudo leer el archivo. Verifica el formato (.xlsx o .csv).', variant: 'destructive' });
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  const handleSaveArchivoPlanoCobros = async () => {
+    const validRows = archivoPlanoRows.filter(r => r.isValid);
+    if (validRows.length === 0) {
+      toast({ title: 'Atención', description: 'No hay filas válidas para procesar.', variant: 'destructive' });
+      return;
+    }
+
+    setIsProcessingArchivoPlano(true);
+    try {
+      const existingSnap = await getDocs(collection(db, 'codigos'));
+      const existingIds = new Set(existingSnap.docs.map(d => d.id));
+
+      const runningMax: Record<string, number> = {};
+      existingIds.forEach(id => {
+        const match = id.match(/^(PKS-[A-Z]+)(\d+)$/i);
+        if (match) {
+          const pref = match[1].toUpperCase();
+          const n = parseInt(match[2], 10);
+          if (!runningMax[pref] || n > runningMax[pref]) {
+            runningMax[pref] = n;
+          }
+        }
+      });
+
+      let createdCount = 0;
+
+      for (const row of validRows) {
+        const initials = getInitials(row.nombre);
+        const prefix = `PKS-${initials}`;
+        if (!runningMax[prefix]) runningMax[prefix] = 0;
+        
+        let nextN = runningMax[prefix] + 1;
+        let generatedId = `${prefix}${nextN.toString().padStart(3, '0')}`;
+        while (existingIds.has(generatedId)) {
+          nextN++;
+          generatedId = `${prefix}${nextN.toString().padStart(3, '0')}`;
+        }
+        runningMax[prefix] = nextN;
+        existingIds.add(generatedId);
+
+        const safeDate = parseSafeDate(row.fecha);
+        const timestamp = safeDate.iso;
+        const cleanId = String(row.numeroId || '').replace(/\s+/g, '');
+        const syntheticUid = `unreg_CC_${cleanId}`;
+
+        const newCodigoData = {
+          valor: row.valor,
+          descripcion: row.descripcion,
+          centroCosto: 'AP - ARCHIVO PLANO',
+          estado: 'cobrado',
+          estadoAprobacion: 'aprobado',
+          creadoEl: timestamp,
+          fecha: safeDate.ymd,
+          cobradoEl: timestamp,
+          cobradoPor: row.nombre,
+          cobradoPorUid: syntheticUid,
+          cuentaCobroNum: generatedId,
+          asignadoAUid: syntheticUid,
+          asignadoANombre: row.nombre,
+          retencionMotivo: row.retencion > 0 ? `Retención (${row.retencion}%)` : null,
+          retencionPorcentaje: row.retencion > 0 ? row.retencion : null,
+          firmaGenerada: row.nombre,
+          documentoIdentificacion: `CC ${row.numeroId}`,
+          ciudad: row.ciudad,
+          tipoDocumento: 'CC',
+          esNoRegistrado: true,
+          origen: 'AP - ARCHIVO PLANO',
+          consecutivoArchivo: row.consecutivo
+        };
+
+        await setDoc(doc(db, 'codigos', generatedId), newCodigoData);
+        createdCount++;
+      }
+
+      try {
+        await setDoc(doc(db, 'centrosCosto', 'AP - ARCHIVO PLANO'), { nombre: 'AP - ARCHIVO PLANO' }, { merge: true });
+      } catch (e) {}
+
+      toast({
+        title: '¡Cuentas de cobro creadas con éxito!',
+        description: `Se crearon ${createdCount} cuentas de cobro como AP - ARCHIVO PLANO.`
+      });
+
+      setShowArchivoPlanoModal(false);
+      setArchivoPlanoRows([]);
+      setArchivoPlanoFileName('');
+      await fetchData();
+    } catch (err) {
+      console.error("Error al procesar archivo plano:", err);
+      toast({ title: 'Error', description: 'Ocurrió un error al procesar el archivo plano.', variant: 'destructive' });
+    } finally {
+      setIsProcessingArchivoPlano(false);
     }
   };
 
@@ -520,7 +1033,7 @@ export default function CodigosAdminPage() {
     // Find the user who claimed it or was assigned to it
     const userId = codigo.cobradoPorUid || codigo.asignadoAUid;
     let userData: any = {};
-    if (userId) {
+    if (userId && !codigo.esNoRegistrado && !userId.startsWith('unreg_')) {
       try {
         const userDoc = await getDoc(doc(db, 'users', userId));
         if (userDoc.exists()) {
@@ -531,17 +1044,20 @@ export default function CodigosAdminPage() {
       }
     }
 
-    const cobradorName = userData.nombreCompleto || 
+    const cobradorName = codigo.cobradoPor || 
+      codigo.asignadoANombre || 
+      userData.nombreCompleto || 
       `${userData.nombres || ''} ${userData.apellidos || ''}`.trim() || 
       userData.nombre || 
-      codigo.cobradoPor || 
-      codigo.asignadoANombre || 
-      'Colaborador Staff';
+      'Colaborador';
 
-    const cobradorDoc = userData.numeroIdentificacion || 
+    const cobradorDoc = codigo.documentoIdentificacion || 
+      userData.numeroIdentificacion || 
       userData.documentoIdentidad || 
       userData.cedula || 
       'No registrado';
+
+    const cobradorCiudad = codigo.ciudad || userData.ciudad || 'BELLO, ANTIOQUIA';
 
     setInvoiceData({
       numero: codigo.id,
@@ -559,7 +1075,7 @@ export default function CodigosAdminPage() {
       banco: userData.banco || 'No registrado',
       tipoCuenta: userData.tipoCuenta || 'No registrado',
       numeroCuenta: userData.numeroCuenta || 'No registrado',
-      ciudad: userData.ciudad || 'BELLO, ANTIOQUIA',
+      ciudad: cobradorCiudad,
       firmaPrevia: codigo.firmaGenerada || codigo.firma || cobradorName,
       isHistorical: true
     });
@@ -567,7 +1083,37 @@ export default function CodigosAdminPage() {
     setShowDetallesModal(false);
   };
 
-  if (hasAccess === null) return <div className="min-h-screen bg-[#050816] flex items-center justify-center text-white font-inter text-xl uppercase tracking-widest animate-pulse">VERIFICANDO_ACCESO...</div>;
+  const handleExportCuentasExcel = () => {
+    const exportData = filteredCuentasDeCobro.map((c, i) => {
+      const valorBruto = Number(c.valor) || 0;
+      const retPorc = c.retencionPorcentaje || 0;
+      const retValor = valorBruto * (retPorc / 100);
+      const neto = valorBruto - retValor;
+      return {
+        'ITEM': i + 1,
+        'CÓDIGO / ID': c.id,
+        'CONSECUTIVO ARCHIVO': c.consecutivoArchivo || 'N/A',
+        'TITULAR / COLABORADOR': c.cobradoPor || c.asignadoANombre,
+        'TIPO': c.esNoRegistrado ? 'NO REGISTRADO' : 'STAFF',
+        'DOCUMENTO': c.documentoIdentificacion || 'N/A',
+        'CIUDAD': c.ciudad || 'BELLO, ANTIOQUIA',
+        'FECHA': c.fecha || (c.cobradoEl ? c.cobradoEl.substring(0, 10) : ''),
+        'CONCEPTO': c.descripcion,
+        'CENTRO DE COSTO': c.centroCosto || 'N/A',
+        'VALOR BRUTO': valorBruto,
+        'RETENCIÓN %': retPorc > 0 ? `${retPorc}%` : '0%',
+        'VALOR RETENCIÓN': retValor,
+        'TOTAL NETO A PAGAR': neto,
+        'ESTADO': (c.estadoAprobacion || 'aprobado').toUpperCase()
+      };
+    });
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Cuentas_de_Cobro');
+    XLSX.writeFile(wb, `cuentas_de_cobro_${new Date().toISOString().split('T')[0]}.xlsx`);
+    toast({ title: 'Exportación lista', description: `Se exportaron ${exportData.length} registros a Excel.` });
+  };
 
   const handleCreateCodigo = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -798,13 +1344,82 @@ export default function CodigosAdminPage() {
     }
   };
 
-  if (hasAccess === null) return null;
+  // 1. Regular Codigos (para la sub-interfaz "CÓDIGOS", excluye AP y no registrados)
+  const regularCodigos = useMemo(() => {
+    return codigos.filter(c => 
+      c.centroCosto !== 'AP - ARCHIVO PLANO' && 
+      c.origen !== 'AP - ARCHIVO PLANO' && 
+      !c.esNoRegistrado &&
+      !c.consecutivoArchivo
+    );
+  }, [codigos]);
 
-  const filteredCodigos = codigos.filter(c => 
-    c.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    c.asignadoANombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.descripcion.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredRegularCodigos = useMemo(() => {
+    if (!searchQuery.trim()) return regularCodigos;
+    const q = searchQuery.toLowerCase();
+    return regularCodigos.filter(c => 
+      c.id.toLowerCase().includes(q) || 
+      (c.asignadoANombre || '').toLowerCase().includes(q) ||
+      (c.descripcion || '').toLowerCase().includes(q) ||
+      (c.centroCosto || '').toLowerCase().includes(q)
+    );
+  }, [regularCodigos, searchQuery]);
+
+  // 2. Cuentas de Cobro (para la sub-interfaz "CUENTAS DE COBRO")
+  const cuentasDeCobroList = useMemo(() => {
+    return codigos.filter(c => 
+      c.centroCosto === 'AP - ARCHIVO PLANO' ||
+      c.origen === 'AP - ARCHIVO PLANO' ||
+      c.esNoRegistrado === true ||
+      Boolean(c.consecutivoArchivo) ||
+      Boolean(c.cuentaCobroNum) ||
+      c.estado === 'cobrado'
+    );
+  }, [codigos]);
+
+  const filteredCuentasDeCobro = useMemo(() => {
+    return cuentasDeCobroList.filter(c => {
+      const isAP = c.centroCosto === 'AP - ARCHIVO PLANO' || c.origen === 'AP - ARCHIVO PLANO' || Boolean(c.consecutivoArchivo);
+      if (cuentasFilter === 'ap' && !isAP) return false;
+      if (cuentasFilter === 'staff' && (c.esNoRegistrado || isAP)) return false;
+      if (cuentasFilter === 'no_registrados' && !c.esNoRegistrado) return false;
+
+      if (!cuentasSearchQuery.trim()) return true;
+      const q = cuentasSearchQuery.toLowerCase();
+      const nombre = (c.cobradoPor || c.asignadoANombre || '').toLowerCase();
+      const id = (c.id || '').toLowerCase();
+      const desc = (c.descripcion || '').toLowerCase();
+      const docId = (c.documentoIdentificacion || '').toLowerCase();
+      const ciudad = (c.ciudad || '').toLowerCase();
+      const consec = String(c.consecutivoArchivo || '');
+      const cc = (c.centroCosto || '').toLowerCase();
+      
+      return nombre.includes(q) || id.includes(q) || desc.includes(q) || docId.includes(q) || ciudad.includes(q) || consec.includes(q) || cc.includes(q);
+    });
+  }, [cuentasDeCobroList, cuentasFilter, cuentasSearchQuery]);
+
+  // KPIs de Cuentas de Cobro
+  const kpisCuentas = useMemo(() => {
+    const totalBruto = cuentasDeCobroList.reduce((sum, c) => sum + (Number(c.valor) || 0), 0);
+    const totalRetenciones = cuentasDeCobroList.reduce((sum, c) => {
+      const val = Number(c.valor) || 0;
+      const ret = c.retencionPorcentaje || 0;
+      return sum + (val * (ret / 100));
+    }, 0);
+    const totalNeto = totalBruto - totalRetenciones;
+    const totalAP = cuentasDeCobroList.filter(c => c.centroCosto === 'AP - ARCHIVO PLANO' || c.origen === 'AP - ARCHIVO PLANO' || Boolean(c.consecutivoArchivo)).length;
+    const totalNoReg = cuentasDeCobroList.filter(c => c.esNoRegistrado).length;
+
+    return { totalBruto, totalRetenciones, totalNeto, totalAP, totalNoReg };
+  }, [cuentasDeCobroList]);
+
+  if (hasAccess === null) {
+    return (
+      <div className="min-h-screen bg-[#050816] flex items-center justify-center text-white font-inter text-xl uppercase tracking-widest animate-pulse">
+        VERIFICANDO_ACCESO...
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-4 lg:p-10 relative bg-[#0A0A0F] font-inter text-[#F5F5F7] overflow-hidden print:p-0 print:bg-transparent print:overflow-visible">
@@ -814,54 +1429,54 @@ export default function CodigosAdminPage() {
       
       <div className="max-w-7xl mx-auto w-full relative z-10 space-y-8 print:hidden">
         
-        {/* Header */}
+        {/* Header with Sub-Interface Switcher */}
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
-          className="flex items-center gap-5 mb-10"
+          className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 mb-8"
         >
-          <div className="relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-[#ff007f] to-[#00e5ff] rounded-lg blur opacity-40 group-hover:opacity-75 transition duration-500"></div>
-            <div className="relative p-4 bg-[#12121A] rounded-lg border border-[#1C1C28]">
-              <Sparkles className="w-8 h-8 text-white" />
+          <div className="flex items-center gap-4 sm:gap-5">
+            <div className="relative group">
+              <div className="absolute -inset-1 bg-gradient-to-r from-[#ff007f] to-[#00e5ff] rounded-lg blur opacity-40 group-hover:opacity-75 transition duration-500"></div>
+              <div className="relative p-3.5 sm:p-4 bg-[#12121A] rounded-lg border border-[#1C1C28]">
+                <Sparkles className="w-7 h-7 sm:w-8 sm:h-8 text-cyan-400" />
+              </div>
+            </div>
+            <div>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-200 to-zinc-400 tracking-tight">
+                CÓDIGOS
+              </h1>
+              <p className="text-zinc-400 font-inter tracking-wider text-xs sm:text-sm mt-1 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full animate-pulse bg-cyan-400"></span>
+                SISTEMA DE ASIGNACIÓN Y GESTIÓN DE CÓDIGOS
+              </p>
             </div>
           </div>
-          <div>
-            <h1 className="text-3xl lg:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-zinc-500 tracking-tight">
-              CÓDIGOS
-            </h1>
-            <p className="text-white font-inter tracking-widest text-sm mt-2 opacity-80 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#1C1C28] animate-pulse"></span>
-              SISTEMA DE ASIGNACIÓN Y COBRO
-            </p>
-          </div>
-          <div className="ml-auto flex flex-wrap items-center gap-3">
+
+          {/* Action Button */}
+          <div className="flex items-center gap-3">
             <button 
-              onClick={openStaffCobroModal}
-              className="bg-gradient-to-r from-[#C8102E]/20 to-purple-900/30 text-white hover:from-[#C8102E]/40 hover:to-purple-800/50 border border-[#C8102E]/40 px-5 py-3 rounded-xl font-bold font-inter text-xs md:text-sm flex items-center gap-2 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-red-950/20"
+              onClick={() => {
+                const input = document.getElementById('nuevo-valor-input');
+                if (input) input.focus();
+              }}
+              className="bg-[#12121A] text-white hover:bg-[#1C1C28] border border-[#1C1C28] px-5 py-2.5 rounded-xl font-bold font-inter text-xs md:text-sm flex items-center gap-2 transition-all hover:scale-105 active:scale-95 ml-auto"
             >
-              <FileSpreadsheet className="w-5 h-5 text-[#C8102E]" />
-              CREAR CUENTA DE COBRO
-            </button>
-            <button 
-              onClick={() => setIsCreating(true)}
-              className="bg-[#12121A] text-white hover:bg-[#1C1C28]/20 border border-[#1C1C28]/30 px-6 py-3 rounded-xl font-bold font-inter text-xs md:text-sm flex items-center gap-2 transition-all hover:scale-105 active:scale-95"
-            >
-              <Plus className="w-5 h-5" />
+              <Plus className="w-4 h-4 text-cyan-400" />
               NUEVO CÓDIGO
             </button>
           </div>
         </motion.div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+        <div className="max-w-2xl mx-auto w-full">
           
-          {/* Left Panel: Form */}
+          {/* Form */}
           <motion.div 
-            initial={{ opacity: 0, x: -30 }}
-            animate={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="xl:col-span-4"
+            className="w-full"
           >
             <div className="relative bg-[#12121A] backdrop-blur-2xl border border-[#1C1C28] rounded-xl overflow-hidden shadow-none before:absolute before:inset-0 before:bg-gradient-to-br before:from-[#ff007f]/5 before:to-transparent before:pointer-events-none">
               {/* Top Accent Line */}
@@ -898,6 +1513,7 @@ export default function CodigosAdminPage() {
                   <div className="space-y-2 group">
                     <label className="text-xs font-bold text-white font-inter uppercase tracking-wider">Valor del Crédito</label>
                     <input 
+                      id="nuevo-valor-input"
                       type="number"
                       placeholder="0.00" 
                       value={newValor}
@@ -1015,153 +1631,299 @@ export default function CodigosAdminPage() {
             </div>
           </motion.div>
 
-          {/* Right Panel: Table */}
-          <motion.div 
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="xl:col-span-8 flex flex-col h-full"
-          >
-            <div className="bg-[#12121A] backdrop-blur-2xl border border-[#1C1C28] rounded-xl overflow-hidden shadow-none flex-1 flex flex-col">
-              
-              {/* Toolbar */}
-              <div className="p-5 border-b border-[#1C1C28] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-[#0A0A0F]/50">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-xl font-inter font-bold text-white uppercase tracking-widest drop-shadow-none">Códigos Activos</h2>
-                  <span className="bg-[#12121A] text-white text-xs font-mono px-2 py-0.5 rounded border border-[#1C1C28]/30">{codigos.length}</span>
-                </div>
-                
-                {/* Search */}
-                <div className="relative w-full sm:w-72">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/60" />
-                  <input 
-                    type="text" 
-                    placeholder="Buscar consulta..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-[#0A0A0F] border border-[#1C1C28]/30 text-white rounded-full h-10 pl-10 pr-4 text-sm focus:outline-none focus:border-[#1C1C28] focus:ring-1 focus:ring-[#00e5ff] transition-all font-mono"
-                  />
-                </div>
-              </div>
-
-              {/* Table Container */}
-              <div className="flex-1 overflow-x-auto">
-                {loading ? (
-                  <div className="flex items-center justify-center h-64">
-                    <div className="w-12 h-12 border-4 border-[#C8102E]/20 border-t-[#ff007f] rounded-full animate-spin"></div>
-                  </div>
-                ) : (
-                  <table className="w-full text-left text-sm whitespace-nowrap">
-                    <thead className="bg-[#0A0A0F]/80 text-[#8A8A9A] font-inter text-xs uppercase tracking-widest border-b border-[#1C1C28]">
-                      <tr>
-                        <th className="px-6 py-4 font-semibold">ID del Código</th>
-                        <th className="px-6 py-4 font-semibold">Entidad</th>
-                        <th className="px-6 py-4 font-semibold">Datos de Crédito</th>
-                        <th className="px-6 py-4 font-semibold">Estado</th>
-                        <th className="px-6 py-4 font-semibold text-right">Acciones</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-zinc-800/40">
-                      <AnimatePresence>
-                        {filteredCodigos.map((c, idx) => (
-                          <motion.tr 
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            transition={{ duration: 0.2, delay: idx * 0.03 }}
-                            key={c.id} 
-                            className="group hover:bg-[#1C1C28]/[0.02] transition-colors duration-300"
-                          >
-                            {/* Token ID */}
-                            <td className="px-6 py-4">
-                              <span className="text-white font-bold font-mono text-base tracking-widest group-hover:text-white transition-colors drop-shadow-none group-hover:drop-shadow-none">
-                                {c.id}
-                              </span>
-                            </td>
-                            
-                            {/* Entity */}
-                            <td className="px-6 py-4">
-                              <span className="text-[#F5F5F7] font-inter font-semibold text-base">{c.asignadoANombre}</span>
-                            </td>
-                            
-                            {/* Value / Desc */}
-                            <td className="px-6 py-4">
-                              <div className="flex flex-col">
-                                <span className="text-white font-mono font-bold tracking-wider">${Number(c.valor).toLocaleString()}</span>
-                                <span className="text-xs text-[#8A8A9A] font-inter truncate max-w-[150px]">{c.descripcion}</span>
-                                {c.centroCosto && <span className="text-[10px] text-zinc-600 font-mono mt-1">CC: {c.centroCosto}</span>}
-                              </div>
-                            </td>
-                            
-                            {/* Status */}
-                            <td className="px-6 py-4">
-                              {c.estadoAprobacion === 'aprobado' ? (
-                                <div className="flex items-center gap-2">
-                                  <div className="relative flex h-2.5 w-2.5">
-                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]"></span>
-                                  </div>
-                                  <span className="text-emerald-400 font-inter text-[10px] font-bold uppercase tracking-widest drop-shadow-[0_0_5px_rgba(52,211,153,0.5)]">
-                                    APROBADO
-                                  </span>
-                                </div>
-                              ) : c.estadoAprobacion === 'rechazado' ? (
-                                <div className="flex items-center gap-2">
-                                  <div className="relative flex h-2.5 w-2.5">
-                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.8)]"></span>
-                                  </div>
-                                  <span className="text-rose-400 font-inter text-[10px] font-bold uppercase tracking-widest drop-shadow-[0_0_5px_rgba(251,113,133,0.5)]">
-                                    RECHAZADO
-                                  </span>
-                                </div>
-                              ) : (
-                                <div className="flex items-center gap-2">
-                                  <div className="relative flex h-2.5 w-2.5">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.8)]"></span>
-                                  </div>
-                                  <span className="text-yellow-400 font-inter text-[10px] font-bold uppercase tracking-widest drop-shadow-[0_0_5px_rgba(250,204,21,0.5)]">
-                                    PENDIENTE APROBACIÓN
-                                  </span>
-                                </div>
-                              )}
-                              {c.cobradoEl && <span className="text-[9px] font-mono text-zinc-600 uppercase ml-4 block mt-0.5">Por: {c.cobradoPor || c.asignadoANombre}</span>}
-                            </td>
-                            
-                            {/* Actions */}
-                            <td className="px-6 py-4 text-right">
-                              <motion.button 
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => openDetalles(c)}
-                                className="inline-flex items-center gap-2 px-3 py-1.5 rounded bg-zinc-900 border border-[#1C1C28] text-white hover:border-[#1C1C28]/50 hover:bg-[#12121A] transition-all font-mono text-[10px] tracking-widest uppercase"
-                              >
-                                Detalles
-                              </motion.button>
-                            </td>
-                          </motion.tr>
-                        ))}
-                      </AnimatePresence>
-                      {filteredCodigos.length === 0 && (
-                        <tr>
-                          <td colSpan={5} className="px-6 py-20 text-center">
-                            <div className="inline-flex flex-col items-center justify-center text-zinc-600">
-                              <div className="w-16 h-16 border border-[#1C1C28] rounded-full flex items-center justify-center mb-4">
-                                <Search className="w-6 h-6 opacity-50" />
-                              </div>
-                              <span className="font-inter tracking-widest uppercase text-sm">No se encontraron códigos</span>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            </div>
-          </motion.div>
           
         </div>
       </div>
+
+      {false && (
+        <div>
+          /* --- SUB-INTERFAZ: CUENTAS DE COBRO --- */
+          <motion.div 
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="space-y-6"
+          >
+            {/* KPI Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-[#12121A] border border-[#1C1C28] p-5 rounded-xl flex items-center justify-between">
+                <div>
+                  <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Total Cuentas</p>
+                  <p className="text-2xl font-black font-mono text-white mt-1">{cuentasDeCobroList.length}</p>
+                  <p className="text-[10px] text-zinc-500 mt-0.5">En base de datos</p>
+                </div>
+                <div className="p-3 bg-purple-950/40 border border-purple-500/20 rounded-xl text-purple-400">
+                  <FileSpreadsheet className="w-6 h-6" />
+                </div>
+              </div>
+
+              <div className="bg-[#12121A] border border-[#1C1C28] p-5 rounded-xl flex items-center justify-between">
+                <div>
+                  <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Total Facturado</p>
+                  <p className="text-2xl font-black font-mono text-emerald-400 mt-1">
+                    ${kpisCuentas.totalBruto.toLocaleString('es-CO')}
+                  </p>
+                  <p className="text-[10px] text-zinc-500 mt-0.5">Valor bruto acumulado</p>
+                </div>
+                <div className="p-3 bg-emerald-950/40 border border-emerald-500/20 rounded-xl text-emerald-400">
+                  <DollarSign className="w-6 h-6" />
+                </div>
+              </div>
+
+              <div className="bg-[#12121A] border border-[#1C1C28] p-5 rounded-xl flex items-center justify-between">
+                <div>
+                  <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Archivo Plano (AP)</p>
+                  <p className="text-2xl font-black font-mono text-cyan-400 mt-1">
+                    {kpisCuentas.totalAP}
+                  </p>
+                  <p className="text-[10px] text-cyan-500/80 mt-0.5">Cuentas generadas vía AP</p>
+                </div>
+                <div className="p-3 bg-cyan-950/40 border border-cyan-500/20 rounded-xl text-cyan-400">
+                  <UploadCloud className="w-6 h-6" />
+                </div>
+              </div>
+
+              <div className="bg-[#12121A] border border-[#1C1C28] p-5 rounded-xl flex items-center justify-between">
+                <div>
+                  <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">No Registrados</p>
+                  <p className="text-2xl font-black font-mono text-amber-400 mt-1">
+                    {kpisCuentas.totalNoReg}
+                  </p>
+                  <p className="text-[10px] text-amber-500/80 mt-0.5">Personal sin cuenta previa</p>
+                </div>
+                <div className="p-3 bg-amber-950/40 border border-amber-500/20 rounded-xl text-amber-400">
+                  <UserX className="w-6 h-6" />
+                </div>
+              </div>
+            </div>
+
+            {/* Toolbar */}
+            <div className="bg-[#12121A] border border-[#1C1C28] p-4 rounded-xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+              {/* Filter Pills */}
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCuentasFilter('todas')}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold font-inter transition-all ${
+                    cuentasFilter === 'todas'
+                      ? 'bg-zinc-200 text-black shadow'
+                      : 'bg-zinc-900 text-zinc-400 hover:text-white border border-[#1C1C28]'
+                  }`}
+                >
+                  Todas ({cuentasDeCobroList.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCuentasFilter('ap')}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold font-inter transition-all flex items-center gap-1.5 ${
+                    cuentasFilter === 'ap'
+                      ? 'bg-cyan-500 text-black shadow'
+                      : 'bg-zinc-900 text-cyan-400 hover:bg-cyan-950/40 border border-cyan-500/20'
+                  }`}
+                >
+                  <UploadCloud className="w-3.5 h-3.5" />
+                  AP - Archivo Plano ({kpisCuentas.totalAP})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCuentasFilter('staff')}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold font-inter transition-all flex items-center gap-1.5 ${
+                    cuentasFilter === 'staff'
+                      ? 'bg-purple-600 text-white shadow'
+                      : 'bg-zinc-900 text-purple-400 hover:bg-purple-950/40 border border-purple-500/20'
+                  }`}
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  Staff ({cuentasDeCobroList.length - kpisCuentas.totalNoReg - kpisCuentas.totalAP > 0 ? cuentasDeCobroList.length - kpisCuentas.totalNoReg - kpisCuentas.totalAP : 0})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCuentasFilter('no_registrados')}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold font-inter transition-all flex items-center gap-1.5 ${
+                    cuentasFilter === 'no_registrados'
+                      ? 'bg-amber-500 text-black shadow'
+                      : 'bg-zinc-900 text-amber-400 hover:bg-amber-950/40 border border-amber-500/20'
+                  }`}
+                >
+                  <UserX className="w-3.5 h-3.5" />
+                  No Registrados ({kpisCuentas.totalNoReg})
+                </button>
+              </div>
+
+              {/* Search */}
+              <div className="flex items-center gap-3">
+                <div className="relative flex-1 sm:w-80">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                  <input
+                    type="text"
+                    placeholder="Buscar por titular, documento, código..."
+                    value={cuentasSearchQuery}
+                    onChange={(e) => setCuentasSearchQuery(e.target.value)}
+                    className="w-full bg-[#0A0A0F] border border-[#1C1C28] text-white rounded-xl h-10 pl-9 pr-4 text-xs font-inter focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Cuentas de Cobro Table */}
+            <div className="border border-[#1C1C28] rounded-xl overflow-hidden bg-[#12121A]/70 backdrop-blur-md">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs font-inter border-collapse whitespace-nowrap">
+                  <thead className="bg-[#0A0A0F] text-zinc-400 uppercase text-[10px] tracking-wider border-b border-[#1C1C28]">
+                    <tr>
+                      <th className="py-3 px-4">Cód / Consecutivo</th>
+                      <th className="py-3 px-4">Colaborador / Titular</th>
+                      <th className="py-3 px-4">Documento / Ciudad</th>
+                      <th className="py-3 px-4">Fecha Emisión</th>
+                      <th className="py-3 px-4">Concepto & Centro de Costo</th>
+                      <th className="py-3 px-4 text-right">Valor Bruto</th>
+                      <th className="py-3 px-4">Retención</th>
+                      <th className="py-3 px-4 text-right">Total a Pagar</th>
+                      <th className="py-3 px-4">Estado</th>
+                      <th className="py-3 px-4 text-right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#1C1C28]/60">
+                    {filteredCuentasDeCobro.map((c) => {
+                      const valorBruto = Number(c.valor) || 0;
+                      const retPorc = c.retencionPorcentaje || 0;
+                      const retValor = valorBruto * (retPorc / 100);
+                      const totalNeto = valorBruto - retValor;
+                      const isAP = c.centroCosto === 'AP - ARCHIVO PLANO' || c.origen === 'AP - ARCHIVO PLANO' || Boolean(c.consecutivoArchivo);
+                      const titular = c.cobradoPor || c.asignadoANombre || 'Colaborador';
+
+                      return (
+                        <tr key={c.id} className="hover:bg-zinc-800/30 transition-colors">
+                          {/* Código & Consecutivo */}
+                          <td className="py-3.5 px-4 font-mono">
+                            <span className="font-bold text-white tracking-wider block text-sm">{c.id}</span>
+                            {c.consecutivoArchivo && (
+                              <span className="text-[10px] text-cyan-400 bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-500/20 inline-block mt-0.5">
+                                Consecutivo #{c.consecutivoArchivo}
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Colaborador */}
+                          <td className="py-3.5 px-4">
+                            <span className="font-bold text-white text-sm block">{titular}</span>
+                            {c.esNoRegistrado ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-950/50 px-2 py-0.5 rounded-full border border-amber-500/30 mt-1">
+                                <UserX className="w-2.5 h-2.5" /> No registrado
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-purple-400 bg-purple-950/50 px-2 py-0.5 rounded-full border border-purple-500/30 mt-1">
+                                <Users className="w-2.5 h-2.5" /> Staff
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Documento & Ciudad */}
+                          <td className="py-3.5 px-4 text-zinc-300">
+                            <span className="font-mono text-xs block text-white">{c.documentoIdentificacion || 'CC N/A'}</span>
+                            <span className="text-[11px] text-zinc-400 block mt-0.5 uppercase">{c.ciudad || 'BELLO, ANTIOQUIA'}</span>
+                          </td>
+
+                          {/* Fecha */}
+                          <td className="py-3.5 px-4 text-zinc-300 font-mono text-xs">
+                            {c.fecha || (c.cobradoEl ? c.cobradoEl.substring(0, 10) : '—')}
+                          </td>
+
+                          {/* Concepto & Centro de Costo */}
+                          <td className="py-3.5 px-4 max-w-[220px]">
+                            <p className="text-white text-xs truncate" title={c.descripcion}>{c.descripcion}</p>
+                            <span className={`inline-block mt-1 text-[10px] font-mono px-2 py-0.5 rounded border ${
+                              isAP 
+                                ? 'bg-cyan-950/60 text-cyan-300 border-cyan-500/30 font-bold' 
+                                : 'bg-zinc-800 text-zinc-300 border-zinc-700'
+                            }`}>
+                              CC: {c.centroCosto || (isAP ? 'AP - ARCHIVO PLANO' : 'STAFF')}
+                            </span>
+                          </td>
+
+                          {/* Valor Bruto */}
+                          <td className="py-3.5 px-4 text-right font-mono font-bold text-white text-sm">
+                            ${valorBruto.toLocaleString('es-CO')}
+                          </td>
+
+                          {/* Retención */}
+                          <td className="py-3.5 px-4">
+                            {retPorc > 0 ? (
+                              <div className="flex flex-col">
+                                <span className="text-amber-400 font-bold text-xs">{retPorc}%</span>
+                                <span className="text-[10px] text-amber-500/90 font-mono">-${retValor.toLocaleString('es-CO')}</span>
+                              </div>
+                            ) : (
+                              <span className="text-zinc-500 font-mono text-xs">0%</span>
+                            )}
+                          </td>
+
+                          {/* Total a Pagar */}
+                          <td className="py-3.5 px-4 text-right font-mono font-extrabold text-emerald-400 text-sm">
+                            ${totalNeto.toLocaleString('es-CO')}
+                          </td>
+
+                          {/* Estado */}
+                          <td className="py-3.5 px-4">
+                            {c.estadoAprobacion === 'aprobado' ? (
+                              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase text-emerald-400 bg-emerald-950/50 px-2.5 py-1 rounded-full border border-emerald-500/30">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Aprobado
+                              </span>
+                            ) : c.estadoAprobacion === 'rechazado' ? (
+                              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase text-rose-400 bg-rose-950/50 px-2.5 py-1 rounded-full border border-rose-500/30">
+                                <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span> Rechazado
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase text-amber-400 bg-amber-950/50 px-2.5 py-1 rounded-full border border-amber-500/30">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span> Pendiente
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Acciones */}
+                          <td className="py-3.5 px-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => handleViewInvoice(c)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-900/60 hover:text-white transition-all text-xs font-bold shadow-sm"
+                                title="Ver e Imprimir Cuenta de Cobro"
+                              >
+                                <Printer className="w-3.5 h-3.5" />
+                                <span>Imprimir</span>
+                              </button>
+                              <button
+                                onClick={() => openDetalles(c)}
+                                className="px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-800 transition-all text-xs font-bold"
+                                title="Editar detalles"
+                              >
+                                Detalles
+                              </button>
+                              <button
+                                onClick={() => handleDeleteCodigo(c.id)}
+                                className="p-1.5 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-950/30 transition-all"
+                                title="Eliminar registro"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {filteredCuentasDeCobro.length === 0 && (
+                <div className="py-16 text-center text-zinc-500">
+                  <FileSpreadsheet className="w-10 h-10 mx-auto mb-2 opacity-40" />
+                  <p className="text-sm font-bold uppercase tracking-wider">No hay cuentas de cobro para mostrar</p>
+                  <p className="text-xs text-zinc-600 mt-1">Usa los botones superiores para cargar un archivo plano o crear una cuenta de cobro.</p>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       {/* --- DETALLES MODAL --- */}
       <AnimatePresence>
@@ -1363,75 +2125,203 @@ export default function CodigosAdminPage() {
                   
                   {/* 1. SELECCIÓN DEL TRABAJADOR / STAFF & CÓDIGO */}
                   <div className="bg-[#12121A] border border-[#1C1C28] rounded-xl p-4 sm:p-5 space-y-4">
-                    <div className="flex items-center justify-between border-b border-[#1C1C28] pb-2.5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#1C1C28] pb-3 gap-2.5">
                       <span className="text-xs font-bold text-[#C8102E] font-inter uppercase tracking-widest flex items-center gap-1.5">
                         <Users className="w-4 h-4" /> 1. Colaborador y Código Consecutivo
                       </span>
-                      {autoGeneratedCodigoId && (
-                        <span className="text-xs font-mono font-bold text-purple-400 bg-purple-950/50 border border-purple-500/30 px-2.5 py-0.5 rounded-full flex items-center gap-1 animate-pulse">
-                          <Sparkles className="w-3 h-3" /> CÓDIGO: {autoGeneratedCodigoId}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-start">
-                      {/* Select Trabajador */}
-                      <div className="sm:col-span-8 space-y-1.5">
-                        <label className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider block">
-                          Nombre del Colaborador (Staff) <span className="text-red-500">*</span>
-                        </label>
-                        <select
-                          value={selectedStaffUid}
-                          onChange={(e) => handleSelectStaff(e.target.value)}
-                          className="w-full bg-[#0A0A0F] border border-[#1C1C28] text-white rounded-lg h-11 px-3 text-xs sm:text-sm font-inter focus:outline-none focus:border-[#C8102E] focus:ring-1 focus:ring-[#C8102E] transition-all cursor-pointer"
-                          required
+                      
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsUnregisteredMode(false);
+                            if (selectedStaffUid) {
+                              const staff = staffUsersList.find(s => s.uid === selectedStaffUid);
+                              setAutoGeneratedCodigoId(staff ? calculateNextCodigoForUser(staff.nombre, staff.uid, codigos) : '');
+                            } else {
+                              setAutoGeneratedCodigoId('');
+                            }
+                          }}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold font-inter transition-all ${
+                            !isUnregisteredMode 
+                              ? 'bg-[#C8102E] text-white shadow-md' 
+                              : 'bg-[#0A0A0F] text-zinc-400 hover:text-white border border-[#1C1C28]'
+                          }`}
                         >
-                          <option value="">[ SELECCIONAR COLABORADOR DEL STAFF ]</option>
-                          {staffUsersList.map(s => (
-                            <option key={s.uid} value={s.uid}>
-                              {s.nombre} {s.documento !== 'N/A' ? `(CC: ${s.documento})` : ''}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {/* Código Preview Box */}
-                      <div className="sm:col-span-4 space-y-1.5">
-                        <label className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider block">
-                          Código Automático
-                        </label>
-                        <div className="h-11 bg-[#0A0A0F] border border-[#1C1C28] rounded-lg px-3 flex items-center justify-center font-mono font-bold text-sm text-purple-300">
-                          {autoGeneratedCodigoId || '---'}
-                        </div>
+                          Staff Registrado
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsUnregisteredMode(true);
+                            setSelectedStaffUid('');
+                            if (unregisteredNombre.trim()) {
+                              const syntheticUid = `unreg_${unregisteredTipoDoc}_${unregisteredDocumento.trim().replace(/\s+/g, '')}`;
+                              setAutoGeneratedCodigoId(calculateNextCodigoForUser(unregisteredNombre, syntheticUid, codigos));
+                            } else {
+                              setAutoGeneratedCodigoId('');
+                            }
+                          }}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold font-inter transition-all flex items-center gap-1.5 ${
+                            isUnregisteredMode 
+                              ? 'bg-amber-600 text-white shadow-md' 
+                              : 'bg-[#0A0A0F] text-zinc-400 hover:text-white border border-[#1C1C28]'
+                          }`}
+                        >
+                          <UserX className="w-3.5 h-3.5" /> No registrado
+                        </button>
                       </div>
                     </div>
 
-                    {/* Ficha rápida informativa del colaborador seleccionado */}
-                    {(() => {
-                      const selectedStaff = staffUsersList.find(s => s.uid === selectedStaffUid);
-                      if (!selectedStaff) return null;
+                    {isUnregisteredMode ? (
+                      /* MODO: COLABORADOR / PERSONA NO REGISTRADA */
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-start">
+                          {/* Nombre */}
+                          <div className="sm:col-span-8 space-y-1.5">
+                            <label className="text-[11px] font-bold text-amber-400 uppercase tracking-wider block">
+                              Nombre Completo de la Persona <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={unregisteredNombre}
+                              onChange={(e) => handleUnregisteredNombreChange(e.target.value)}
+                              placeholder="Ej: Walter Gonzalez"
+                              className="w-full bg-[#0A0A0F] border border-[#1C1C28] text-white rounded-lg h-11 px-3 text-xs sm:text-sm font-inter focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all placeholder:text-zinc-600"
+                              required
+                            />
+                          </div>
 
-                      return (
-                        <div className="bg-[#0A0A0F] border border-[#1C1C28]/80 rounded-lg p-3 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-inter">
-                          <div>
-                            <span className="text-[10px] text-zinc-500 uppercase block font-bold">Identificación</span>
-                            <span className="text-zinc-200 font-mono">{selectedStaff.documento}</span>
-                          </div>
-                          <div>
-                            <span className="text-[10px] text-zinc-500 uppercase block font-bold">Banco</span>
-                            <span className="text-zinc-200 truncate block">{selectedStaff.banco || 'No registrado'}</span>
-                          </div>
-                          <div>
-                            <span className="text-[10px] text-zinc-500 uppercase block font-bold">Cuenta ({selectedStaff.tipoCuenta || 'N/A'})</span>
-                            <span className="text-zinc-200 font-mono truncate block">{selectedStaff.numeroCuenta || 'No registrada'}</span>
-                          </div>
-                          <div>
-                            <span className="text-[10px] text-zinc-500 uppercase block font-bold">Ciudad</span>
-                            <span className="text-zinc-200 truncate block">{selectedStaff.ciudad || 'Bello, Antioquia'}</span>
+                          {/* Código Automático */}
+                          <div className="sm:col-span-4 space-y-1.5">
+                            <label className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider block">
+                              Código Automático
+                            </label>
+                            <div className="h-11 bg-[#0A0A0F] border border-[#1C1C28] rounded-lg px-3 flex items-center justify-center font-mono font-bold text-sm text-purple-300">
+                              {autoGeneratedCodigoId || '---'}
+                            </div>
                           </div>
                         </div>
-                      );
-                    })()}
+
+                        {/* Tipo de Documento, Número de Documento, Ciudad */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          {/* Tipo de Documento */}
+                          <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider block">
+                              Tipo de Documento <span className="text-red-500">*</span>
+                            </label>
+                            <select
+                              value={unregisteredTipoDoc}
+                              onChange={(e) => setUnregisteredTipoDoc(e.target.value)}
+                              className="w-full bg-[#0A0A0F] border border-[#1C1C28] text-white rounded-lg h-11 px-3 text-xs sm:text-sm font-inter focus:outline-none focus:border-amber-500 cursor-pointer"
+                            >
+                              <option value="CC">Cédula de Ciudadanía (CC)</option>
+                              <option value="CE">Cédula de Extranjería (CE)</option>
+                              <option value="NIT">NIT</option>
+                              <option value="PASAPORTE">Pasaporte</option>
+                              <option value="TI">Tarjeta de Identidad (TI)</option>
+                            </select>
+                          </div>
+
+                          {/* Número de Documento */}
+                          <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider block">
+                              Número de Documento <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={unregisteredDocumento}
+                              onChange={(e) => setUnregisteredDocumento(e.target.value)}
+                              placeholder="Ej: 1037654321"
+                              className="w-full bg-[#0A0A0F] border border-[#1C1C28] text-white rounded-lg h-11 px-3 text-xs sm:text-sm font-inter focus:outline-none focus:border-amber-500 transition-all placeholder:text-zinc-600"
+                              required
+                            />
+                          </div>
+
+                          {/* Ciudad */}
+                          <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider block">
+                              Ciudad <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={unregisteredCiudad}
+                              onChange={(e) => setUnregisteredCiudad(e.target.value)}
+                              placeholder="Ej: Medellín, Antioquia"
+                              className="w-full bg-[#0A0A0F] border border-[#1C1C28] text-white rounded-lg h-11 px-3 text-xs sm:text-sm font-inter focus:outline-none focus:border-amber-500 transition-all placeholder:text-zinc-600"
+                              required
+                            />
+                          </div>
+                        </div>
+
+                        <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs text-amber-300/90 font-inter flex items-center gap-2">
+                          <UserX className="w-4 h-4 shrink-0 text-amber-400" />
+                          <span>Creando cuenta de cobro para una persona no registrada en el sistema. Los datos ingresados se incluirán en el documento oficial.</span>
+                        </div>
+                      </div>
+                    ) : (
+                      /* MODO: COLABORADOR REGISTRADO EN EL STAFF */
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-start">
+                          {/* Select Trabajador */}
+                          <div className="sm:col-span-8 space-y-1.5">
+                            <label className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider block">
+                              Nombre del Colaborador (Staff) <span className="text-red-500">*</span>
+                            </label>
+                            <select
+                              value={selectedStaffUid}
+                              onChange={(e) => handleSelectStaff(e.target.value)}
+                              className="w-full bg-[#0A0A0F] border border-[#1C1C28] text-white rounded-lg h-11 px-3 text-xs sm:text-sm font-inter focus:outline-none focus:border-[#C8102E] focus:ring-1 focus:ring-[#C8102E] transition-all cursor-pointer"
+                              required
+                            >
+                              <option value="">[ SELECCIONAR COLABORADOR DEL STAFF ]</option>
+                              {staffUsersList.map(s => (
+                                <option key={s.uid} value={s.uid}>
+                                  {s.nombre} {s.documento !== 'N/A' ? `(CC: ${s.documento})` : ''}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Código Preview Box */}
+                          <div className="sm:col-span-4 space-y-1.5">
+                            <label className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider block">
+                              Código Automático
+                            </label>
+                            <div className="h-11 bg-[#0A0A0F] border border-[#1C1C28] rounded-lg px-3 flex items-center justify-center font-mono font-bold text-sm text-purple-300">
+                              {autoGeneratedCodigoId || '---'}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Ficha rápida informativa del colaborador seleccionado */}
+                        {(() => {
+                          const selectedStaff = staffUsersList.find(s => s.uid === selectedStaffUid);
+                          if (!selectedStaff) return null;
+
+                          return (
+                            <div className="bg-[#0A0A0F] border border-[#1C1C28]/80 rounded-lg p-3 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-inter">
+                              <div>
+                                <span className="text-[10px] text-zinc-500 uppercase block font-bold">Identificación</span>
+                                <span className="text-zinc-200 font-mono">{selectedStaff.documento}</span>
+                              </div>
+                              <div>
+                                <span className="text-[10px] text-zinc-500 uppercase block font-bold">Banco</span>
+                                <span className="text-zinc-200 truncate block">{selectedStaff.banco || 'No registrado'}</span>
+                              </div>
+                              <div>
+                                <span className="text-[10px] text-zinc-500 uppercase block font-bold">Cuenta ({selectedStaff.tipoCuenta || 'N/A'})</span>
+                                <span className="text-zinc-200 font-mono truncate block">{selectedStaff.numeroCuenta || 'No registrada'}</span>
+                              </div>
+                              <div>
+                                <span className="text-[10px] text-zinc-500 uppercase block font-bold">Ciudad</span>
+                                <span className="text-zinc-200 truncate block">{selectedStaff.ciudad || 'Bello, Antioquia'}</span>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    )}
                   </div>
 
                   {/* 2. DETALLES FINANCIEROS Y DE LA CUENTA DE COBRO */}
@@ -1588,7 +2478,7 @@ export default function CodigosAdminPage() {
 
                   <button 
                     type="submit"
-                    disabled={isSavingStaffCobro || !selectedStaffUid || !staffValor || Number(staffValor) <= 0 || !staffDescripcion.trim()}
+                    disabled={isSavingStaffCobro || (!isUnregisteredMode ? !selectedStaffUid : (!unregisteredNombre.trim() || !unregisteredDocumento.trim() || !unregisteredCiudad.trim())) || !staffValor || Number(staffValor) <= 0 || !staffDescripcion.trim()}
                     className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#C8102E] to-purple-800 hover:from-red-600 hover:to-purple-700 text-white font-inter font-bold text-xs tracking-wider uppercase transition-all shadow-lg shadow-red-950/40 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95"
                   >
                     {isSavingStaffCobro ? (
@@ -1605,6 +2495,233 @@ export default function CodigosAdminPage() {
                   </button>
                 </div>
               </form>
+
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* --- MODAL CARGA MASIVA ARCHIVO PLANO (AP) --- */}
+      <AnimatePresence>
+        {showArchivoPlanoModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-[#050816]/90 backdrop-blur-xl flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto print:hidden"
+          >
+            <div className="bg-[#0A0A0F] border border-[#1C1C28] shadow-2xl rounded-2xl w-full max-w-5xl overflow-hidden flex flex-col my-auto border-t-2 border-t-emerald-500 max-h-[90vh]">
+              
+              {/* Header Modal */}
+              <div className="flex justify-between items-center p-5 border-b border-[#1C1C28] bg-[#12121A]">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400">
+                    <UploadCloud className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-inter font-bold text-white text-base sm:text-lg tracking-wide uppercase flex items-center gap-2">
+                      CARGA MASIVA · ARCHIVO PLANO (AP)
+                    </h3>
+                    <p className="text-xs text-zinc-400 font-inter">
+                      Descarga la plantilla, edítala con los datos de las cuentas de cobro y súbela para crearlas automáticamente.
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => {
+                    setShowArchivoPlanoModal(false);
+                    setArchivoPlanoRows([]);
+                    setArchivoPlanoFileName('');
+                  }} 
+                  className="text-zinc-400 hover:text-white p-1 rounded-lg transition-colors"
+                >
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="p-5 sm:p-6 space-y-6 overflow-y-auto custom-scrollbar flex-1">
+                
+                {/* 1. Paso: Descargar Plantilla */}
+                <div className="bg-[#12121A] border border-[#1C1C28] rounded-xl p-4 sm:p-5 space-y-3">
+                  <span className="text-xs font-bold text-emerald-400 font-inter uppercase tracking-widest flex items-center gap-1.5">
+                    <Download className="w-4 h-4" /> 1. Descargar Plantilla Oficial de Cuentas de Cobro
+                  </span>
+                  <p className="text-xs text-zinc-300 font-inter leading-relaxed">
+                    El archivo plano incluye los 8 campos obligatorios: <span className="font-semibold text-white font-mono">NOMBRE, NUMERO_ID, CIUDAD, FECHA, VALOR, DESCRIPCION, RETENCION, CONSECUTIVO</span>.
+                    <br />
+                    <span className="text-zinc-400 italic">Si una cuenta de cobro no tiene retención, déjala como <span className="text-emerald-400 font-bold">0</span>.</span>
+                  </p>
+                  <div className="flex flex-wrap gap-3 pt-1">
+                    <button
+                      type="button"
+                      onClick={handleDownloadTemplateExcel}
+                      className="bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 px-4 py-2 rounded-lg font-bold font-inter text-xs flex items-center gap-2 transition-all hover:scale-105 active:scale-95 shadow-sm"
+                    >
+                      <Download className="w-4 h-4" /> Descargar en Excel (.xlsx)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDownloadTemplateCSV}
+                      className="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 px-4 py-2 rounded-lg font-bold font-inter text-xs flex items-center gap-2 transition-all hover:scale-105 active:scale-95"
+                    >
+                      <Download className="w-4 h-4" /> Descargar en CSV (.csv)
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2. Paso: Subir Archivo Diligenciado */}
+                <div className="bg-[#12121A] border border-[#1C1C28] rounded-xl p-4 sm:p-5 space-y-3">
+                  <span className="text-xs font-bold text-emerald-400 font-inter uppercase tracking-widest flex items-center gap-1.5">
+                    <FileUp className="w-4 h-4" /> 2. Cargar Archivo Plano Diligenciado (.xlsx / .csv)
+                  </span>
+
+                  <div className="relative border-2 border-dashed border-[#1C1C28] hover:border-emerald-500/50 rounded-xl p-6 text-center transition-all bg-[#0A0A0F]/60">
+                    <input 
+                      type="file" 
+                      accept=".xlsx, .xls, .csv" 
+                      onChange={handleFileUpload}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                    />
+                    <div className="flex flex-col items-center justify-center space-y-2 pointer-events-none">
+                      <div className="p-3 bg-emerald-500/10 rounded-full text-emerald-400">
+                        <UploadCloud className="w-8 h-8" />
+                      </div>
+                      <p className="text-sm font-semibold text-white">
+                        {archivoPlanoFileName ? (
+                          <span className="text-emerald-400 font-mono">{archivoPlanoFileName}</span>
+                        ) : (
+                          'Haz clic aquí o arrastra tu archivo Excel o CSV'
+                        )}
+                      </p>
+                      <p className="text-xs text-zinc-500 font-inter">Formatos permitidos: .xlsx, .xls, .csv</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Paso: Vista Previa y Validación */}
+                {archivoPlanoRows.length > 0 && (
+                  <div className="space-y-4">
+                    {/* Resumen */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 bg-[#12121A] border border-[#1C1C28] p-4 rounded-xl">
+                      <div className="flex flex-wrap gap-2 text-xs font-inter font-bold">
+                        <span className="bg-zinc-800 text-zinc-300 px-3 py-1 rounded-md">
+                          Total Filas: {archivoPlanoRows.length}
+                        </span>
+                        <span className="bg-emerald-950/60 text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-md">
+                          Listas para crear: {archivoPlanoRows.filter(r => r.isValid).length}
+                        </span>
+                        {archivoPlanoRows.filter(r => !r.isValid).length > 0 && (
+                          <span className="bg-red-950/60 text-red-400 border border-red-500/30 px-3 py-1 rounded-md">
+                            Con errores: {archivoPlanoRows.filter(r => !r.isValid).length}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="text-right">
+                        <span className="text-[10px] uppercase tracking-wider text-zinc-400 block font-bold">Total a Cobrar en Lote</span>
+                        <span className="text-lg font-bold font-mono text-emerald-400">
+                          ${archivoPlanoRows.filter(r => r.isValid).reduce((sum, r) => sum + r.valor, 0).toLocaleString('es-CO')}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Tabla de filas */}
+                    <div className="border border-[#1C1C28] rounded-xl overflow-hidden bg-[#0A0A0F]">
+                      <div className="overflow-x-auto max-h-[350px] custom-scrollbar">
+                        <table className="w-full text-left text-xs font-inter border-collapse">
+                          <thead className="bg-[#12121A] text-zinc-400 uppercase text-[10px] tracking-wider sticky top-0 z-10 border-b border-[#1C1C28]">
+                            <tr>
+                              <th className="py-2.5 px-3">#</th>
+                              <th className="py-2.5 px-3">Cód. Asignado</th>
+                              <th className="py-2.5 px-3">Nombre</th>
+                              <th className="py-2.5 px-3">Identificación</th>
+                              <th className="py-2.5 px-3">Ciudad</th>
+                              <th className="py-2.5 px-3">Fecha</th>
+                              <th className="py-2.5 px-3 text-right">Valor</th>
+                              <th className="py-2.5 px-3">Retención</th>
+                              <th className="py-2.5 px-3">Concepto</th>
+                              <th className="py-2.5 px-3">Estado</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[#1C1C28]/60">
+                            {archivoPlanoRows.map((row) => (
+                              <tr key={row.index} className={`hover:bg-[#12121A]/50 transition-colors ${!row.isValid ? 'bg-red-950/20' : ''}`}>
+                                <td className="py-2.5 px-3 font-mono text-zinc-400">{row.consecutivo}</td>
+                                <td className="py-2.5 px-3 font-mono font-bold text-purple-400">{row.codigoProyectado}</td>
+                                <td className="py-2.5 px-3 font-semibold text-white whitespace-nowrap">{row.nombre || '—'}</td>
+                                <td className="py-2.5 px-3 font-mono text-zinc-300">{row.numeroId || '—'}</td>
+                                <td className="py-2.5 px-3 text-zinc-300">{row.ciudad || '—'}</td>
+                                <td className="py-2.5 px-3 text-zinc-300 whitespace-nowrap">{row.fecha}</td>
+                                <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-400 whitespace-nowrap">
+                                  ${row.valor.toLocaleString('es-CO')}
+                                </td>
+                                <td className="py-2.5 px-3 text-zinc-300">
+                                  {row.retencion > 0 ? (
+                                    <span className="text-amber-400 font-bold">{row.retencion}%</span>
+                                  ) : (
+                                    <span className="text-zinc-500 font-mono">0%</span>
+                                  )}
+                                </td>
+                                <td className="py-2.5 px-3 text-zinc-300 max-w-[200px] truncate" title={row.descripcion}>
+                                  {row.descripcion || '—'}
+                                </td>
+                                <td className="py-2.5 px-3 whitespace-nowrap">
+                                  {row.isValid ? (
+                                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-950/50 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                                      <CheckCircle className="w-3 h-3" /> Válido
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-red-400 bg-red-950/50 px-2 py-0.5 rounded-full border border-red-500/20" title={row.errors.join(', ')}>
+                                      <AlertTriangle className="w-3 h-3" /> {row.errors[0]}
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 sm:p-5 border-t border-[#1C1C28] bg-[#12121A] flex flex-wrap items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowArchivoPlanoModal(false);
+                    setArchivoPlanoRows([]);
+                    setArchivoPlanoFileName('');
+                  }}
+                  disabled={isProcessingArchivoPlano}
+                  className="px-4 py-2.5 rounded-xl border border-zinc-700 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-inter font-bold text-xs transition-colors"
+                >
+                  Cerrar
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSaveArchivoPlanoCobros}
+                  disabled={isProcessingArchivoPlano || archivoPlanoRows.filter(r => r.isValid).length === 0}
+                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white font-inter font-bold text-xs tracking-wider uppercase transition-all shadow-lg shadow-emerald-950/40 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95"
+                >
+                  {isProcessingArchivoPlano ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      CREANDO CUENTAS DE COBRO...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-4 h-4" />
+                      CREAR {archivoPlanoRows.filter(r => r.isValid).length} CUENTAS DE COBRO (AP - ARCHIVO PLANO)
+                    </>
+                  )}
+                </button>
+              </div>
 
             </div>
           </motion.div>

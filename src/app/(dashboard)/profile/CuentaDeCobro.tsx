@@ -55,9 +55,30 @@ export function CuentaDeCobro({
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   
   // Format date to: BELLO, ANTIOQUIA. 29 de mayo de 2026
-  const normalizedFecha = fecha ? (fecha.includes('T') ? fecha : `${fecha}T12:00:00`) : new Date().toISOString();
-  const dateObj = new Date(normalizedFecha);
-  const formattedDate = dateObj.toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
+  const formattedDate = React.useMemo(() => {
+    if (!fecha) return new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
+    try {
+      if (fecha.includes('T')) {
+        const d = new Date(fecha);
+        if (!isNaN(d.getTime())) return d.toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
+      }
+      if (/^\d{4}-\d{2}-\d{2}/.test(fecha)) {
+        const d = new Date(`${fecha.substring(0, 10)}T12:00:00`);
+        if (!isNaN(d.getTime())) return d.toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
+      }
+      const parts = fecha.split(/[\/\-\.]/);
+      if (parts.length === 3) {
+        let [d, m, y] = parts.map(p => parseInt(p, 10));
+        if (y < 100) y += 2000;
+        if (d > 1000) { const temp = d; d = y; y = temp; }
+        const parsed = new Date(y, m - 1, d, 12, 0, 0);
+        if (!isNaN(parsed.getTime())) return parsed.toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
+      }
+      const direct = new Date(fecha);
+      if (!isNaN(direct.getTime())) return direct.toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
+    } catch (e) {}
+    return new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
+  }, [fecha]);
 
   // Format ID for PDF: Extract consecutive from PKS-[Initials][Num] and prepend CC-
   const displayNumero = React.useMemo(() => {
@@ -171,43 +192,61 @@ export function CuentaDeCobro({
   return (
     <>
       <style dangerouslySetInnerHTML={{__html: `
+        @page {
+          size: letter portrait;
+          margin: 10mm;
+        }
         @media print {
+          html, body {
+            background: white !important;
+            color: black !important;
+            height: auto !important;
+            min-height: 100% !important;
+            overflow: visible !important;
+            position: static !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
           body * {
             visibility: hidden;
           }
-          html, body {
-            background: white !important;
-            height: auto !important;
-            overflow: visible !important;
-            margin: 0;
-            padding: 0;
-          }
           #print-wrapper {
-            visibility: visible;
-            position: absolute !important; 
-            left: 0 !important;
-            top: 0 !important;
+            visibility: visible !important;
+            display: block !important;
+            position: static !important;
             width: 100% !important;
             height: auto !important;
+            min-height: auto !important;
             background: white !important;
             padding: 0 !important;
             margin: 0 !important;
-            display: block !important;
             overflow: visible !important;
+            inset: auto !important;
+            z-index: 999999 !important;
           }
-          #print-wrapper * {
-            visibility: visible;
+          #print-wrapper *, #printable-invoice, #printable-invoice * {
+            visibility: visible !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
           #printable-invoice {
+            display: block !important;
+            position: static !important;
             box-shadow: none !important;
             width: 100% !important;
-            max-width: none !important;
+            max-width: 100% !important;
             margin: 0 !important;
+            padding: 0 !important;
             border: none !important;
+            overflow: visible !important;
           }
           .no-print, .no-print * { 
             visibility: hidden !important;
             display: none !important; 
+            height: 0 !important;
+            width: 0 !important;
           }
         }
       `}} />
@@ -215,13 +254,13 @@ export function CuentaDeCobro({
       <div id="print-wrapper" className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm overflow-y-auto p-4 pt-16 md:pt-8 md:p-8 flex items-start justify-center">
         
         {/* Controls (Hidden in print) */}
-        <div className="fixed top-4 right-4 flex gap-2 z-10 no-print">
-          <Button onClick={handlePrintOnly} className="bg-[#0D1B3E] text-white hover:bg-[#0A0A0A] font-bold uppercase tracking-widest text-xs h-9 shadow-lg">
-            <Printer className="w-4 h-4 md:mr-2" />
-            <span className="hidden md:inline">Imprimir / PDF</span>
+        <div className="fixed top-4 right-4 flex items-center gap-2 z-10 no-print">
+          <Button onClick={handlePrintOnly} className="bg-[#0D1B3E] text-white hover:bg-[#0A0A0A] font-bold uppercase tracking-wider text-xs h-10 px-4 shadow-xl flex items-center gap-2">
+            <Printer className="w-4 h-4" />
+            <span>Imprimir / Guardar PDF</span>
           </Button>
-          <Button variant="outline" size="icon" onClick={onClose} className="h-9 w-9 bg-white text-black border-zinc-300 hover:bg-zinc-100 shadow-lg">
-            <X className="w-4 h-4" />
+          <Button variant="outline" size="icon" onClick={onClose} className="h-10 w-10 bg-white text-black border-zinc-300 hover:bg-zinc-100 shadow-xl">
+            <X className="w-5 h-5" />
           </Button>
         </div>
 
@@ -238,14 +277,14 @@ export function CuentaDeCobro({
           <div className="flex flex-col font-inter justify-between" style={{ minHeight: '800px' }}>
             
             {/* FULL WIDTH HEADER */}
-            <div className="bg-[#0D1B3E] text-white print:text-black p-6 md:p-8 print:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="bg-white border-b-2 border-[#0A0A0A] p-6 md:p-8 print:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-[#0A0A0A]">
               <div>
-                <h1 className="font-barlow text-3xl md:text-4xl print:text-3xl uppercase tracking-wide font-bold">PASKINES STUNT S.A.S.</h1>
-                <p className="text-xs md:text-sm print:text-xs font-light opacity-80 mt-1 tracking-wider">NIT: 902.028.450-5</p>
+                <h1 className="font-barlow text-3xl md:text-4xl print:text-3xl uppercase tracking-wide font-bold text-[#0A0A0A]">PASKINES STUNT S.A.S.</h1>
+                <p className="text-xs md:text-sm print:text-xs font-light text-[#0A0A0A]/70 mt-1 tracking-wider">NIT: 902.028.450-5</p>
               </div>
-              <div className="text-left sm:text-right border-t border-white/20 sm:border-t-0 pt-4 sm:pt-0 w-full sm:w-auto">
-                <h2 className="font-barlow text-xl md:text-2xl print:text-xl uppercase tracking-wider font-medium text-white/90 print:text-black">Cuenta de Cobro</h2>
-                <p className="font-barlow text-2xl md:text-3xl print:text-2xl font-bold mt-1 text-white print:text-black">N° {displayNumero}</p>
+              <div className="text-left sm:text-right border-t border-[#0A0A0A]/20 sm:border-t-0 pt-4 sm:pt-0 w-full sm:w-auto">
+                <h2 className="font-barlow text-xl md:text-2xl print:text-xl uppercase tracking-wider font-medium text-[#0A0A0A]/80">Cuenta de Cobro</h2>
+                <p className="font-barlow text-2xl md:text-3xl print:text-2xl font-bold mt-1 text-[#0A0A0A]">N° {displayNumero}</p>
               </div>
             </div>
 
@@ -261,27 +300,27 @@ export function CuentaDeCobro({
                 {/* DATA GRID */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-0 border border-[#0A0A0A] bg-white print:grid-cols-2">
                   <div className="p-3 md:p-4 print:p-3 border-b sm:border-b-0 sm:border-r border-[#0A0A0A] print:border-b-0 print:border-r">
-                    <p className="text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-[#0D1B3E] mb-1">Debe A:</p>
+                    <p className="text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-[#0A0A0A] mb-1">Debe A:</p>
                     <p className="font-barlow text-lg md:text-xl uppercase font-bold text-[#0A0A0A]">{cobradorNombre}</p>
                     <p className="text-xs md:text-sm print:text-xs text-[#0A0A0A] font-light mt-1">C.C. {cobradorDocumento}</p>
                   </div>
-                  <div className="p-3 md:p-4 print:p-3 flex flex-col justify-center bg-[#0D1B3E] text-white print:text-black">
-                    <p className="text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-white/70 print:text-black mb-1">La Suma De:</p>
-                    <p className="font-barlow text-3xl md:text-4xl print:text-3xl font-bold tracking-wide">${valorTotal.toLocaleString('es-CO')}</p>
+                  <div className="p-3 md:p-4 print:p-3 flex flex-col justify-center bg-zinc-50 border-[#0A0A0A] text-[#0A0A0A]">
+                    <p className="text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-[#0A0A0A]/70 mb-1">La Suma De:</p>
+                    <p className="font-barlow text-3xl md:text-4xl print:text-3xl font-bold tracking-wide text-[#0A0A0A]">${valorTotal.toLocaleString('es-CO')}</p>
                   </div>
                 </div>
 
                 {/* CONCEPTOS TABLE */}
                 <div>
-                  <h3 className="font-barlow text-lg font-bold text-[#0D1B3E] uppercase tracking-wide mb-2 flex items-center">
-                    <span className="w-4 h-0.5 bg-[#0D1B3E] mr-2"></span> Concepto
+                  <h3 className="font-barlow text-lg font-bold text-[#0A0A0A] uppercase tracking-wide mb-2 flex items-center">
+                    <span className="w-4 h-0.5 bg-[#0A0A0A] mr-2"></span> Concepto
                   </h3>
                   <table className="w-full text-left text-sm print:text-xs border-collapse border border-[#0A0A0A]">
                     <thead>
-                      <tr className="bg-[#0D1B3E] text-white print:text-black">
-                        <th className="py-2 px-3 font-semibold border border-[#0A0A0A] w-12 text-center">N°</th>
-                        <th className="py-2 px-3 font-semibold border border-[#0A0A0A]">Descripción del servicio prestado</th>
-                        <th className="py-2 px-3 font-semibold border border-[#0A0A0A] w-32 text-right">Valor Bruto</th>
+                      <tr className="bg-zinc-100 text-[#0A0A0A]">
+                        <th className="py-2 px-3 font-semibold border border-[#0A0A0A] w-12 text-center text-[#0A0A0A]">N°</th>
+                        <th className="py-2 px-3 font-semibold border border-[#0A0A0A] text-[#0A0A0A]">Descripción del servicio prestado</th>
+                        <th className="py-2 px-3 font-semibold border border-[#0A0A0A] w-32 text-right text-[#0A0A0A]">Valor Bruto</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -292,7 +331,7 @@ export function CuentaDeCobro({
                           <td className="py-2.5 px-3 text-right border border-[#0A0A0A] font-semibold text-[#0A0A0A]">${c.valor.toLocaleString('es-CO')}</td>
                         </tr>
                       ))}
-                      <tr className="bg-[#0A0A0A]/5">
+                      <tr className="bg-zinc-50">
                         <td colSpan={2} className="py-2.5 px-4 text-right font-bold text-[#0A0A0A] border border-[#0A0A0A]">SUBTOTAL:</td>
                         <td className="py-2.5 px-4 text-right font-bold text-[#0A0A0A] border border-[#0A0A0A]">${valorTotal.toLocaleString('es-CO')}</td>
                       </tr>
@@ -309,9 +348,9 @@ export function CuentaDeCobro({
                       ))}
 
                       {Object.keys(retencionesMap).length > 0 && (
-                        <tr className="bg-[#0D1B3E] text-white print:text-black">
-                          <td colSpan={2} className="py-3 px-4 text-right font-bold tracking-wider border border-[#0A0A0A]">TOTAL A PAGAR:</td>
-                          <td className="py-3 px-4 text-right font-bold tracking-wider border border-[#0A0A0A]">${granTotal.toLocaleString('es-CO')}</td>
+                        <tr className="bg-zinc-100 text-[#0A0A0A]">
+                          <td colSpan={2} className="py-3 px-4 text-right font-bold tracking-wider border border-[#0A0A0A] text-[#0A0A0A]">TOTAL A PAGAR:</td>
+                          <td className="py-3 px-4 text-right font-bold tracking-wider border border-[#0A0A0A] text-[#0A0A0A]">${granTotal.toLocaleString('es-CO')}</td>
                         </tr>
                       )}
                     </tbody>
@@ -320,7 +359,7 @@ export function CuentaDeCobro({
 
                 {/* LEGAL NOTE */}
                 {totalRetenido > 0 && (
-                  <div className="border-l-4 border-[#0D1B3E] bg-[#0A0A0A]/5 p-4 print:p-3 text-xs font-light text-justify text-[#0A0A0A] leading-relaxed">
+                  <div className="border-l-4 border-[#0A0A0A] bg-zinc-50 p-4 print:p-3 text-xs font-light text-justify text-[#0A0A0A] leading-relaxed">
                     <span className="font-semibold">Nota:</span> Solicito amablemente aplicar retención en la fuente de conformidad con el Art. 383 del Estatuto Tributario (retención en la fuente por honorarios/servicios para personas naturales), manifestando bajo la gravedad de juramento que no he contratado ni vinculado a dos (2) o más trabajadores asociados a la actividad por un término igual o superior a 90 días continuos o discontinuos dentro de un mismo periodo gravable.
                   </div>
                 )}
@@ -330,36 +369,77 @@ export function CuentaDeCobro({
               <div className="flex flex-col sm:grid sm:grid-cols-2 gap-8 print:grid print:grid-cols-2 print:gap-4 mt-8 pt-4 border-t border-[#0A0A0A]/20" style={{ pageBreakInside: 'avoid' }}>
                 {/* SIGNATURE */}
                 <div>
-                  <h3 className="font-barlow text-lg font-bold text-[#0D1B3E] uppercase tracking-wide mb-2">Firma de quien cobra</h3>
+                  <h3 className="font-barlow text-lg font-bold text-[#0A0A0A] uppercase tracking-wide mb-2">Firma de quien cobra</h3>
                   <div className="h-20 print:h-16 mb-2 relative border-b border-[#0A0A0A] flex items-end">
-                    {firma ? (
-                      <img src={firma} alt="Firma" className="absolute bottom-0 left-0 h-full max-w-full object-contain mix-blend-multiply" />
-                    ) : (
-                      <span className="text-[#0A0A0A]/40 italic text-sm mb-2 font-light">Firma digital registrada en sistema</span>
-                    )}
+                    {(() => {
+                      const isImageFirma = typeof firma === 'string' && (
+                        firma.startsWith('data:image') || 
+                        firma.startsWith('http://') || 
+                        firma.startsWith('https://') || 
+                        firma.startsWith('blob:') || 
+                        firma.startsWith('/')
+                      );
+
+                      if (isImageFirma) {
+                        return (
+                          <img 
+                            src={firma} 
+                            alt="Firma" 
+                            className="absolute bottom-0 left-0 h-full max-w-full object-contain mix-blend-multiply" 
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        );
+                      }
+
+                      return (
+                        <span className="text-[#0A0A0A]/40 italic text-sm mb-2 font-light">
+                          Firma digital registrada en sistema
+                        </span>
+                      );
+                    })()}
                   </div>
                   <p className="font-barlow text-xl print:text-lg uppercase font-bold text-[#0A0A0A]">{cobradorNombre}</p>
                   <p className="text-xs text-[#0A0A0A] font-light mt-0.5">C.C. {cobradorDocumento}</p>
                 </div>
 
                 {/* BANK INFO */}
-                <div>
-                  <h3 className="font-barlow text-lg font-bold text-[#0D1B3E] uppercase tracking-wide mb-2">Datos Bancarios</h3>
-                  <div className="border border-[#0A0A0A] p-4 print:p-3 bg-white text-sm print:text-xs">
-                    <div className="flex justify-between border-b border-[#0A0A0A]/10 pb-2 mb-2">
-                      <span className="font-semibold text-[#0A0A0A]">Banco:</span>
-                      <span className="font-light">{banco}</span>
+                {(() => {
+                  const isRegistered = (val?: string) => Boolean(val && val.trim() !== '' && val !== 'No registrado' && val !== 'null' && val !== 'undefined');
+                  const hasBanco = isRegistered(banco);
+                  const hasTipo = isRegistered(tipoCuenta);
+                  const hasNumero = isRegistered(numeroCuenta);
+                  const hasAnyBankInfo = hasBanco || hasTipo || hasNumero;
+
+                  if (!hasAnyBankInfo) return null;
+
+                  return (
+                    <div>
+                      <h3 className="font-barlow text-lg font-bold text-[#0D1B3E] uppercase tracking-wide mb-2">Datos Bancarios</h3>
+                      <div className="border border-[#0A0A0A] p-4 print:p-3 bg-white text-sm print:text-xs">
+                        {hasBanco && (
+                          <div className={`flex justify-between ${(hasTipo || hasNumero) ? 'border-b border-[#0A0A0A]/10 pb-2 mb-2' : ''}`}>
+                            <span className="font-semibold text-[#0A0A0A]">Banco:</span>
+                            <span className="font-light">{banco}</span>
+                          </div>
+                        )}
+                        {hasTipo && (
+                          <div className={`flex justify-between ${hasNumero ? 'border-b border-[#0A0A0A]/10 pb-2 mb-2' : ''}`}>
+                            <span className="font-semibold text-[#0A0A0A]">Tipo:</span>
+                            <span className="font-light">{tipoCuenta}</span>
+                          </div>
+                        )}
+                        {hasNumero && (
+                          <div className="flex justify-between">
+                            <span className="font-semibold text-[#0A0A0A]">Número:</span>
+                            <span className="font-light tracking-wider">{numeroCuenta}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex justify-between border-b border-[#0A0A0A]/10 pb-2 mb-2">
-                      <span className="font-semibold text-[#0A0A0A]">Tipo:</span>
-                      <span className="font-light">{tipoCuenta}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-semibold text-[#0A0A0A]">Número:</span>
-                      <span className="font-light tracking-wider">{numeroCuenta}</span>
-                    </div>
-                  </div>
-                </div>
+                  );
+                })()}
               </div>
 
             </div>
