@@ -30,6 +30,7 @@ interface Codigo {
   centroCosto?: string;
   retencionMotivo?: string | null;
   retencionPorcentaje?: number | null;
+  retencionValor?: number | null;
   estadoAprobacion?: 'pendiente' | 'aprobado' | 'rechazado';
   cuentaCobroNum?: string;
   firma?: string;
@@ -39,6 +40,10 @@ interface Codigo {
   ciudad?: string;
   tipoDocumento?: string;
   esNoRegistrado?: boolean;
+  origen?: string;
+  consecutivoArchivo?: string;
+  emailBeneficiario?: string;
+  [key: string]: any;
 }
 
 interface Usuario {

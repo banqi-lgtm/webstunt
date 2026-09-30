@@ -32,6 +32,7 @@ interface Codigo {
   centroCosto?: string;
   retencionMotivo?: string | null;
   retencionPorcentaje?: number | null;
+  retencionValor?: number | null;
   estadoAprobacion?: 'pendiente' | 'aprobado' | 'rechazado';
   cuentaCobroNum?: string;
   firma?: string;
@@ -43,6 +44,8 @@ interface Codigo {
   esNoRegistrado?: boolean;
   origen?: string;
   consecutivoArchivo?: string;
+  emailBeneficiario?: string;
+  [key: string]: any;
 }
 
 interface Usuario {
@@ -1771,12 +1774,24 @@ export default function CuentasDeCobroPage() {
       </AnimatePresence>
 
       {/* MODAL 4: INVOICE PRINT VIEW */}
-      {showInvoice && invoiceData && (
-        <CuentaDeCobro 
-          data={invoiceData}
-          onClose={() => setShowInvoice(false)}
-        />
-      )}
+      <AnimatePresence>
+        {showInvoice && invoiceData && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] bg-[#050816]/90 backdrop-blur-xl flex items-center justify-center print:static print:bg-transparent print:h-auto print:overflow-visible print:block"
+          >
+            <div className="relative z-10 w-full max-w-4xl max-h-screen overflow-y-auto custom-scrollbar p-4 print:p-0 print:overflow-visible print:h-auto print:max-h-none">
+              <CuentaDeCobro 
+                {...invoiceData} 
+                onClose={() => setShowInvoice(false)} 
+                onConfirm={() => {}}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
