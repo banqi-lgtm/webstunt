@@ -10,6 +10,7 @@ import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
 const profileLinks = [
   { href: '/profile?tab=inicio', label: 'Inicio', icon: LayoutDashboard },
@@ -25,6 +26,7 @@ export function MainNav() {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { toast } = useToast();
   const [isAdmin, setIsAdmin] = useState(false);
   const [hasPilotosAccess, setHasPilotosAccess] = useState(false);
   const [hasStaffAccess, setHasStaffAccess] = useState(false);
@@ -42,6 +44,21 @@ export function MainNav() {
     setIsMounted(true);
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
+        const normalizedEmail = (user.email || '').trim().toLowerCase();
+        const allowedEmails = ['walter12345@hotmail.com', 'wg12435@hotmail.com'];
+
+        if (!allowedEmails.includes(normalizedEmail)) {
+          await signOut(auth);
+          toast({
+            title: "Acceso restringido",
+            description: "Credenciales reconocidas, por favor realizar el pago del Servidor Autenticacion y AWS",
+            variant: "destructive",
+            duration: 12000,
+          });
+          router.push('/');
+          return;
+        }
+
         try {
           const userDoc = await getDoc(doc(db, 'users', user.uid));
           if (userDoc.exists()) {

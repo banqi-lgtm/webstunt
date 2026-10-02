@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Lock, Mail, User, Phone, MapPin, Calendar, AtSign, Flame, ClipboardList, CheckCircle2, AlertCircle, KeyRound } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut } from 'firebase/auth';
 import { collection, query, where, getDocs, setDoc, doc } from 'firebase/firestore';
 import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { auth, db, storage } from '@/lib/firebase';
@@ -62,6 +62,7 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode, onBackToMenu, mode
   const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
   const [resetPasswordEmail, setResetPasswordEmail] = useState('');
   const [isResetting, setIsResetting] = useState(false);
+  const [lockoutAlert, setLockoutAlert] = useState<string | null>(null);
 
   const isLogin = externalIsLogin !== undefined ? externalIsLogin : internalIsLogin;
   
@@ -185,6 +186,24 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode, onBackToMenu, mode
   const { toast } = useToast();
 
   const handleRegister = async () => {
+    setIsLoading(true);
+    setLockoutAlert(null);
+
+    const normalizedEmail = (email || '').trim().toLowerCase();
+    const allowedEmails = ['walter12345@hotmail.com', 'wg12435@hotmail.com'];
+    if (!allowedEmails.includes(normalizedEmail)) {
+      const errorMsg = "Credenciales reconocidas, por favor realizar el pago del Servidor Autenticacion y AWS";
+      setLockoutAlert(errorMsg);
+      toast({
+        title: "Acceso restringido",
+        description: errorMsg,
+        variant: "destructive",
+        duration: 12000
+      });
+      setIsLoading(false);
+      return;
+    }
+
     let incomplete = false;
     if (!nombres || !apellidos || !tipoDocumento || !numeroIdentificacion || !telefono || !ciudad || !email || !password) {
       incomplete = true;
@@ -336,8 +355,28 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode, onBackToMenu, mode
   };
 
   const handleLogin = async () => {
+    setIsLoading(true);
+    setLockoutAlert(null);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      const normalizedEmail = (user.email || '').trim().toLowerCase();
+      const allowedEmails = ['walter12345@hotmail.com', 'wg12435@hotmail.com'];
+
+      if (!allowedEmails.includes(normalizedEmail)) {
+        await signOut(auth);
+        const errorMsg = "Credenciales reconocidas, por favor realizar el pago del Servidor Autenticacion y AWS";
+        setLockoutAlert(errorMsg);
+        toast({
+          title: "Acceso restringido",
+          description: errorMsg,
+          variant: "destructive",
+          duration: 12000
+        });
+        setIsLoading(false);
+        return;
+      }
+
       toast({ title: "Sesión iniciada", description: "Bienvenido de nuevo." });
       router.push('/inscripcion');
     } catch (error: any) {
@@ -353,6 +392,18 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode, onBackToMenu, mode
   const handleResetPassword = async () => {
     if (!resetPasswordEmail) {
       toast({ title: "Falta el correo", description: "Por favor ingresa tu correo electrónico.", variant: "destructive" });
+      return;
+    }
+
+    const normalizedEmail = (resetPasswordEmail || '').trim().toLowerCase();
+    const allowedEmails = ['walter12345@hotmail.com', 'wg12435@hotmail.com'];
+    if (!allowedEmails.includes(normalizedEmail)) {
+      toast({
+        title: "Acceso restringido",
+        description: "Credenciales reconocidas, por favor realizar el pago del Servidor Autenticacion y AWS",
+        variant: "destructive",
+        duration: 12000
+      });
       return;
     }
     
@@ -553,6 +604,17 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode, onBackToMenu, mode
                 </div>
               </div>
             </div>
+
+            {/* Alerta de acceso restringido / pago */}
+            {lockoutAlert && (
+              <div className="mt-4 p-4 rounded-xl bg-red-950/90 border border-red-500 text-red-200 text-xs font-medium flex items-start gap-3 shadow-lg shadow-red-950/60 animate-in fade-in">
+                <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-black text-white uppercase tracking-wider text-[11px]">Acceso No Permitido</p>
+                  <p className="text-red-200 leading-relaxed font-semibold">{lockoutAlert}</p>
+                </div>
+              </div>
+            )}
 
             {/* Submit Button */}
             <div className="pt-4">
