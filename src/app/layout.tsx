@@ -6,6 +6,11 @@ import { Facebook, Instagram } from 'lucide-react';
 export const metadata: Metadata = {
   title: 'BTL & STUNT COL',
   description: 'Paskines Stunt (PKS) es la productora de eventos BTL y experiencias de stunt más importante de Colombia. Conectamos marcas, pilotos y audiencia.',
+  verification: {
+    other: {
+      'facebook-domain-verification': 'j6hpjkw3a5ip3uvkppvtmp6ny7fwm9',
+    },
+  },
   openGraph: {
     title: 'BTL & STUNT COL',
     description: 'Paskines Stunt (PKS) es la productora líder en eventos BTL, activaciones de marca y campeonatos de stunt en Colombia. Regístrate en nuestro ecosistema digital.',
@@ -39,6 +44,7 @@ export default function RootLayout({
   return (
     <html lang="es" translate="no" className="dark">
       <head>
+        <meta name="facebook-domain-verification" content="j6hpjkw3a5ip3uvkppvtmp6ny7fwm9" />
         <meta name="google" content="notranslate" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
