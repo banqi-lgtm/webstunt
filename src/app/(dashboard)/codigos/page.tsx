@@ -237,7 +237,7 @@ export default function CodigosAdminPage() {
         fecha: editFecha,
         cobradoEl: timestampFromDate,
         estado: 'cobrado',
-        estadoAprobacion: 'aprobado'
+        estadoAprobacion: selectedCodigo.estadoAprobacion || 'pendiente'
       };
 
       if (!selectedCodigo.cobradoPor) {
@@ -272,7 +272,7 @@ export default function CodigosAdminPage() {
       fecha: editFecha,
       cobradoEl: timestampFromDate,
       estado: 'cobrado',
-      estadoAprobacion: 'aprobado'
+      estadoAprobacion: selectedCodigo.estadoAprobacion || 'pendiente'
     };
 
     if (!selectedCodigo.cobradoPor) {
@@ -642,7 +642,7 @@ export default function CodigosAdminPage() {
         descripcion: staffDescripcion.trim(),
         centroCosto: (staffCentroCosto.trim() || 'STAFF').toUpperCase(),
         estado: 'cobrado',
-        estadoAprobacion: 'aprobado',
+        estadoAprobacion: 'pendiente',
         creadoEl: timestamp,
         fecha: safeStaffDate.ymd,
         cobradoEl: timestamp,
@@ -910,7 +910,7 @@ export default function CodigosAdminPage() {
           descripcion: row.descripcion,
           centroCosto: 'AP - ARCHIVO PLANO',
           estado: 'cobrado',
-          estadoAprobacion: 'aprobado',
+          estadoAprobacion: 'pendiente',
           creadoEl: timestamp,
           fecha: safeDate.ymd,
           cobradoEl: timestamp,
@@ -1126,6 +1126,11 @@ export default function CodigosAdminPage() {
       toast({ title: 'Advertencia', description: 'Faltan parámetros requeridos.', variant: 'destructive'});
       return;
     }
+
+    if (!newCentroCosto.trim()) {
+      toast({ title: 'Campo obligatorio', description: 'El Centro de Costo (CCO) es obligatorio.', variant: 'destructive'});
+      return;
+    }
     
     setIsCreating(true);
     try {
@@ -1175,20 +1180,20 @@ export default function CodigosAdminPage() {
       const newCodigoData = {
         valor: Number(newValor),
         descripcion: newDescripcion.trim(),
-        centroCosto: (newCentroCosto.trim() || 'STAFF').toUpperCase(),
-        estado: 'cobrado',
-        estadoAprobacion: 'aprobado',
+        centroCosto: newCentroCosto.trim().toUpperCase(),
+        estado: 'disponible',
+        estadoAprobacion: 'pendiente',
         creadoEl: nowIso,
         fecha: nowIso.split('T')[0],
-        cobradoEl: nowIso,
-        cobradoPor: usuarioAsignado.nombre,
-        cobradoPorUid: newAsignadoAUid,
+        cobradoEl: null,
+        cobradoPor: null,
+        cobradoPorUid: null,
         cuentaCobroNum: generatedCodigoId,
         asignadoAUid: newAsignadoAUid,
         asignadoANombre: usuarioAsignado.nombre,
         retencionMotivo: retencionMotivo.trim() || null,
         retencionPorcentaje: retencionPorcentaje ? Number(retencionPorcentaje) : null,
-        firmaGenerada: usuarioAsignado.nombre
+        firmaGenerada: null
       };
 
       await setDoc(codigoRef, newCodigoData);
@@ -1573,7 +1578,9 @@ export default function CodigosAdminPage() {
 
                   {/* Centro de Costo */}
                   <div className="space-y-2 group">
-                    <label className="text-xs font-bold text-[#8A8A9A] font-inter uppercase tracking-wider">Centro de Costo (Opcional)</label>
+                    <label className="text-xs font-bold text-white font-inter uppercase tracking-wider flex items-center gap-1.5">
+                      Centro de Costo (CCO) <span className="text-[#C8102E]">*</span>
+                    </label>
                     {isAddingCC ? (
                       <div className="flex gap-2">
                         <input 
@@ -1596,9 +1603,10 @@ export default function CodigosAdminPage() {
                           <select
                             value={newCentroCosto}
                             onChange={(e) => setNewCentroCosto(e.target.value)}
+                            required
                             className="w-full bg-[#0A0A0F] border border-[#1C1C28] text-[#F5F5F7] rounded-md h-12 px-4 text-sm focus:outline-none focus:border-zinc-500 transition-all appearance-none cursor-pointer group-hover:border-zinc-600"
                           >
-                            <option value="">[ NINGUNO ]</option>
+                            <option value="">[ SELECCIONAR CENTRO DE COSTO * ]</option>
                             {centrosCostoList.map(cc => (
                               <option key={cc} value={cc}>{cc}</option>
                             ))}

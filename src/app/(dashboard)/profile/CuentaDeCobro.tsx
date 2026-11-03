@@ -358,11 +358,9 @@ export function CuentaDeCobro({
                 </div>
 
                 {/* LEGAL NOTE */}
-                {totalRetenido > 0 && (
-                  <div className="border-l-4 border-[#0A0A0A] bg-zinc-50 p-4 print:p-3 text-xs font-light text-justify text-[#0A0A0A] leading-relaxed">
-                    <span className="font-semibold">Nota:</span> Solicito amablemente aplicar retención en la fuente de conformidad con el Art. 383 del Estatuto Tributario (retención en la fuente por honorarios/servicios para personas naturales), manifestando bajo la gravedad de juramento que no he contratado ni vinculado a dos (2) o más trabajadores asociados a la actividad por un término igual o superior a 90 días continuos o discontinuos dentro de un mismo periodo gravable.
-                  </div>
-                )}
+                <div className="border-l-4 border-[#0A0A0A] bg-zinc-50 p-4 print:p-3 text-xs font-light text-justify text-[#0A0A0A] leading-relaxed">
+                  <span className="font-semibold">Nota:</span> Solicito amablemente aplicar retención en la fuente de conformidad con el Art. 383 del Estatuto Tributario (retención en la fuente por honorarios/servicios para personas naturales), manifestando bajo la gravedad de juramento que no he contratado ni vinculado a dos (2) o más trabajadores asociados a la actividad por un término igual o superior a 90 días continuos o discontinuos dentro de un mismo periodo gravable.
+                </div>
               </div>
 
               {/* FOOTER - BIPARTITE */}

@@ -304,7 +304,7 @@ const handleCobrar = async (item: any) => {
         banco: userData.banco || 'No registrado',
         tipoCuenta: userData.tipoCuenta || 'No registrado',
         numeroCuenta: userData.numeroCuenta || 'No registrado',
-        ciudad: (userData.ciudad || '').replace(/[.,\s]+$/, '').trim() || 'BELLO, ANTIOQUIA',
+        ciudad: (localUserCity || userData.ciudad || '').replace(/[.,\s]+$/, '').trim() || 'BELLO, ANTIOQUIA',
         isHistorical: false,
         isNew: true
       });
@@ -321,6 +321,7 @@ const handleCobrar = async (item: any) => {
       // El ID ya fue generado y guardado en invoiceData.numero
       const generatedCodigoId = invoiceData?.numero || `PKS-XX000`;
       const numericValue = Number(valorTotal.replace(/\D/g, ''));
+      const cityToSave = (localUserCity || '').replace(/[.,\s]+$/, '').trim() || 'BELLO, ANTIOQUIA';
 
       await setDoc(doc(db, 'codigos', generatedCodigoId), {
         asignadoAUid: userUid,
@@ -335,10 +336,15 @@ const handleCobrar = async (item: any) => {
         firmaGenerada: firma,
         creadoEl: new Date().toISOString(),
         cobradoEl: new Date().toISOString(),
-        fechaEmision: fechaEmision
+        fechaEmision: fechaEmision,
+        ciudad: cityToSave
       });
+
+      if (cityToSave) {
+        await updateDoc(doc(db, 'users', userUid), { ciudad: cityToSave }).catch(() => {});
+      }
       
-      toast({ title: 'Éxito', description: 'Cuenta de cobro creada y firmada correctamente.' });
+      toast({ title: 'Éxito', description: 'Cuenta de cobro creada y enviada a revisión.' });
       setShowInvoiceModal(false);
       setConcepto('');
       setValorTotal('');
@@ -463,8 +469,14 @@ const handleCobrar = async (item: any) => {
               <input type="text" value={telefonoContacto} onChange={(e) => setTelefonoContacto(e.target.value)} placeholder="Ej: 300 123 4567" className="w-full bg-[#0A0A0A] border border-[#333333] rounded-md px-4 py-3 text-white text-sm hover:border-zinc-500 focus:border-[#E60000] focus:ring-1 focus:ring-[#E60000] outline-none transition-all" />
             </div>
             <div className="space-y-2">
-              <label className="text-[11px] font-medium text-zinc-400">Ciudad (Extraída del RUT)</label>
-              <input type="text" value={localUserCity} disabled placeholder="Se extraerá de tu RUT" className="w-full bg-[#0A0A0A] border border-[#222222] rounded-md px-4 py-3 text-white text-sm focus:border-[#E60000] outline-none transition-all opacity-80 cursor-not-allowed" />
+              <label className="text-[11px] font-medium text-zinc-400">Ciudad (Extraída del RUT o editable)</label>
+              <input 
+                type="text" 
+                value={localUserCity} 
+                onChange={(e) => setLocalUserCity(e.target.value.toUpperCase())} 
+                placeholder="Ej. BELLO, MEDELLÍN, BOGOTÁ..." 
+                className="w-full bg-[#0A0A0A] border border-[#333333] rounded-md px-4 py-3 text-white text-sm hover:border-zinc-500 focus:border-[#E60000] focus:ring-1 focus:ring-[#E60000] outline-none transition-all placeholder:text-zinc-600 font-inter" 
+              />
             </div>
             <div className="space-y-2">
               <label className="text-[11px] font-medium text-zinc-400">Concepto de la cuenta de cobro</label>
