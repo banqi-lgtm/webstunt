@@ -165,6 +165,24 @@ export default function CodigosAdminPage() {
   const [editRetencionMotivo, setEditRetencionMotivo] = useState('');
   const [editRetencionPorcentaje, setEditRetencionPorcentaje] = useState('');
   const [editCentroCosto, setEditCentroCosto] = useState('');
+  const [editNombre, setEditNombre] = useState('');
+  const [editDocumento, setEditDocumento] = useState('');
+  const [editCiudad, setEditCiudad] = useState('');
+
+  // Resolve Complete Titular (2 names, 2 surnames)
+  const getResolvedTitular = (c: Partial<Codigo> | null | undefined): string => {
+    if (!c) return 'Colaborador';
+    const cleanDoc = (c.documentoIdentificacion || '').replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim();
+    const raw = c.cobradoPor || c.asignadoANombre || 'Colaborador';
+    const upper = raw.toUpperCase();
+    if (cleanDoc === '1000760142' || upper.includes('HANNA BERMUDEZ')) {
+      return 'HANNA BERMUDEZ MARTINEZ';
+    }
+    if (cleanDoc === '1010096437' || upper.includes('GAVIRIA HERNANDEZ')) {
+      return 'WILSON DANIEL GAVIRIA HERNANDEZ';
+    }
+    return raw;
+  };
 
   const openDetalles = (codigo: Codigo) => {
     setSelectedCodigo(codigo);
@@ -173,6 +191,9 @@ export default function CodigosAdminPage() {
     setEditRetencionMotivo(codigo.retencionMotivo || '');
     setEditRetencionPorcentaje(codigo.retencionPorcentaje?.toString() || '');
     setEditCentroCosto(codigo.centroCosto || '');
+    setEditNombre(getResolvedTitular(codigo));
+    setEditDocumento((codigo.documentoIdentificacion || '').replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim());
+    setEditCiudad(codigo.ciudad || 'BELLO, ANTIOQUIA');
 
     // Extract emission date (YYYY-MM-DD)
     let initFecha = '';
@@ -205,11 +226,22 @@ export default function CodigosAdminPage() {
         estadoAprobacion: 'aprobado'
       };
 
+      if (editNombre.trim()) {
+        updatePayload.asignadoANombre = editNombre.trim();
+        updatePayload.cobradoPor = editNombre.trim();
+      }
+      if (editDocumento.trim()) {
+        updatePayload.documentoIdentificacion = editDocumento.trim().replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim();
+      }
+      if (editCiudad.trim()) {
+        updatePayload.ciudad = editCiudad.trim();
+      }
+
       if (!selectedCodigo.cobradoPor) {
-        updatePayload.cobradoPor = selectedCodigo.asignadoANombre;
+        updatePayload.cobradoPor = editNombre.trim() || selectedCodigo.asignadoANombre;
         updatePayload.cobradoPorUid = selectedCodigo.asignadoAUid;
         updatePayload.cuentaCobroNum = selectedCodigo.id;
-        updatePayload.firmaGenerada = selectedCodigo.asignadoANombre;
+        updatePayload.firmaGenerada = editNombre.trim() || selectedCodigo.asignadoANombre;
       }
 
       await updateDoc(doc(db, 'codigos', selectedCodigo.id), updatePayload);
@@ -240,12 +272,23 @@ export default function CodigosAdminPage() {
         estadoAprobacion: selectedCodigo.estadoAprobacion || 'pendiente'
       };
 
+      if (editNombre.trim()) {
+        updatePayload.asignadoANombre = editNombre.trim();
+        updatePayload.cobradoPor = editNombre.trim();
+      }
+      if (editDocumento.trim()) {
+        updatePayload.documentoIdentificacion = editDocumento.trim().replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim();
+      }
+      if (editCiudad.trim()) {
+        updatePayload.ciudad = editCiudad.trim();
+      }
+
       if (!selectedCodigo.cobradoPor) {
         updatePayload.cobradoEl = timestampFromDate;
-        updatePayload.cobradoPor = selectedCodigo.asignadoANombre;
+        updatePayload.cobradoPor = editNombre.trim() || selectedCodigo.asignadoANombre;
         updatePayload.cobradoPorUid = selectedCodigo.asignadoAUid;
         updatePayload.cuentaCobroNum = selectedCodigo.id;
-        updatePayload.firmaGenerada = selectedCodigo.asignadoANombre;
+        updatePayload.firmaGenerada = editNombre.trim() || selectedCodigo.asignadoANombre;
       }
 
       await updateDoc(doc(db, 'codigos', selectedCodigo.id), updatePayload);
@@ -275,11 +318,22 @@ export default function CodigosAdminPage() {
       estadoAprobacion: selectedCodigo.estadoAprobacion || 'pendiente'
     };
 
+    if (editNombre.trim()) {
+      updatePayload.asignadoANombre = editNombre.trim();
+      updatePayload.cobradoPor = editNombre.trim();
+    }
+    if (editDocumento.trim()) {
+      updatePayload.documentoIdentificacion = editDocumento.trim().replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim();
+    }
+    if (editCiudad.trim()) {
+      updatePayload.ciudad = editCiudad.trim();
+    }
+
     if (!selectedCodigo.cobradoPor) {
-      updatePayload.cobradoPor = selectedCodigo.asignadoANombre;
+      updatePayload.cobradoPor = editNombre.trim() || selectedCodigo.asignadoANombre;
       updatePayload.cobradoPorUid = selectedCodigo.asignadoAUid;
       updatePayload.cuentaCobroNum = selectedCodigo.id;
-      updatePayload.firmaGenerada = selectedCodigo.asignadoANombre;
+      updatePayload.firmaGenerada = editNombre.trim() || selectedCodigo.asignadoANombre;
     }
 
     try {
@@ -922,7 +976,7 @@ export default function CodigosAdminPage() {
           retencionMotivo: row.retencion > 0 ? `Retención (${row.retencion}%)` : null,
           retencionPorcentaje: row.retencion > 0 ? row.retencion : null,
           firmaGenerada: row.nombre,
-          documentoIdentificacion: `CC ${row.numeroId}`,
+          documentoIdentificacion: String(row.numeroId || '').replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim(),
           ciudad: row.ciudad,
           tipoDocumento: 'CC',
           esNoRegistrado: true,
@@ -958,7 +1012,46 @@ export default function CodigosAdminPage() {
   const fetchData = async () => {
     try {
       const snapshot = await getDocs(collection(db, 'codigos'));
-      let data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Codigo[];
+      let data = snapshot.docs.map(docSnap => {
+        const d = docSnap.data();
+        const cleanDoc = (d.documentoIdentificacion || '').replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim();
+        const upper = (d.cobradoPor || d.asignadoANombre || '').toUpperCase();
+        let titular = d.cobradoPor || d.asignadoANombre || 'Colaborador';
+        let needsDbUpdate = false;
+        const updatePayload: any = {};
+
+        if (d.documentoIdentificacion && d.documentoIdentificacion !== cleanDoc) {
+          updatePayload.documentoIdentificacion = cleanDoc;
+          needsDbUpdate = true;
+        }
+
+        if (cleanDoc === '1000760142' || (upper.includes('HANNA BERMUDEZ') && !upper.includes('MARTINEZ'))) {
+          titular = 'HANNA BERMUDEZ MARTINEZ';
+          updatePayload.cobradoPor = titular;
+          updatePayload.asignadoANombre = titular;
+          needsDbUpdate = true;
+        }
+
+        if (cleanDoc === '1010096437' || (upper.includes('GAVIRIA HERNANDEZ') && !upper.includes('WILSON'))) {
+          titular = 'WILSON DANIEL GAVIRIA HERNANDEZ';
+          updatePayload.cobradoPor = titular;
+          updatePayload.asignadoANombre = titular;
+          needsDbUpdate = true;
+        }
+
+        if (needsDbUpdate) {
+          updateDoc(doc(db, 'codigos', docSnap.id), updatePayload).catch(console.error);
+        }
+
+        return {
+          id: docSnap.id,
+          ...d,
+          ...updatePayload,
+          documentoIdentificacion: cleanDoc || d.documentoIdentificacion,
+          cobradoPor: titular,
+          asignadoANombre: titular
+        } as Codigo;
+      });
       
       // Sort in JS to ensure documents without creadoEl aren't omitted by Firestore query
       data.sort((a, b) => {
@@ -982,7 +1075,38 @@ export default function CodigosAdminPage() {
       const fetchedUsuarios: Usuario[] = [];
       snapUsuarios.forEach(docSnap => {
         const d = docSnap.data();
-        const nombre = `${d.nombres || ''} ${d.apellidos || ''}`.trim() || d.email || 'Usuario';
+        let nombre = `${d.nombres || ''} ${d.apellidos || ''}`.trim() || d.nombreCompleto || d.nombre || d.email || 'Usuario';
+        const cleanUserDoc = (d.numeroIdentificacion || d.documentoIdentidad || d.cedula || '').replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim();
+        let needsUserUpdate = false;
+        const userUpdatePayload: any = {};
+
+        if (cleanUserDoc === '1000760142' || nombre.toUpperCase().includes('HANNA BERMUDEZ')) {
+          nombre = 'HANNA BERMUDEZ MARTINEZ';
+          if (d.nombreCompleto !== 'HANNA BERMUDEZ MARTINEZ' || d.apellidos !== 'BERMUDEZ MARTINEZ') {
+            userUpdatePayload.nombreCompleto = 'HANNA BERMUDEZ MARTINEZ';
+            userUpdatePayload.nombres = 'HANNA';
+            userUpdatePayload.apellidos = 'BERMUDEZ MARTINEZ';
+            needsUserUpdate = true;
+          }
+        } else if (cleanUserDoc === '1010096437' || nombre.toUpperCase().includes('GAVIRIA HERNANDEZ')) {
+          nombre = 'WILSON DANIEL GAVIRIA HERNANDEZ';
+          if (d.nombreCompleto !== 'WILSON DANIEL GAVIRIA HERNANDEZ' || d.nombres !== 'WILSON DANIEL') {
+            userUpdatePayload.nombreCompleto = 'WILSON DANIEL GAVIRIA HERNANDEZ';
+            userUpdatePayload.nombres = 'WILSON DANIEL';
+            userUpdatePayload.apellidos = 'GAVIRIA HERNANDEZ';
+            needsUserUpdate = true;
+          }
+        }
+
+        if (d.numeroIdentificacion && d.numeroIdentificacion !== cleanUserDoc) {
+          userUpdatePayload.numeroIdentificacion = cleanUserDoc;
+          needsUserUpdate = true;
+        }
+
+        if (needsUserUpdate) {
+          updateDoc(doc(db, 'users', docSnap.id), userUpdatePayload).catch(console.error);
+        }
+
         fetchedUsuarios.push({ uid: docSnap.id, nombre, rol: d.rol || 'piloto' });
       });
       fetchedUsuarios.sort((a, b) => a.nombre.localeCompare(b.nombre));
@@ -1049,18 +1173,18 @@ export default function CodigosAdminPage() {
       }
     }
 
-    const cobradorName = codigo.cobradoPor || 
-      codigo.asignadoANombre || 
-      userData.nombreCompleto || 
-      `${userData.nombres || ''} ${userData.apellidos || ''}`.trim() || 
-      userData.nombre || 
-      'Colaborador';
+    const userFullName = userData.nombreCompleto || `${userData.nombres || ''} ${userData.apellidos || ''}`.trim() || userData.nombre;
+    const rawCobradorName = (!codigo.esNoRegistrado && userFullName)
+      ? userFullName
+      : (codigo.cobradoPor || codigo.asignadoANombre || userFullName || 'Colaborador');
+    const cobradorName = getResolvedTitular({ ...codigo, cobradoPor: rawCobradorName });
 
-    const cobradorDoc = codigo.documentoIdentificacion || 
+    const rawDoc = codigo.documentoIdentificacion || 
       userData.numeroIdentificacion || 
       userData.documentoIdentidad || 
       userData.cedula || 
       'No registrado';
+    const cobradorDoc = rawDoc !== 'No registrado' ? rawDoc.replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim() : rawDoc;
 
     const cobradorCiudad = codigo.ciudad || userData.ciudad || 'BELLO, ANTIOQUIA';
 
@@ -1098,9 +1222,9 @@ export default function CodigosAdminPage() {
         'ITEM': i + 1,
         'CÓDIGO / ID': c.id,
         'CONSECUTIVO ARCHIVO': c.consecutivoArchivo || 'N/A',
-        'TITULAR / COLABORADOR': c.cobradoPor || c.asignadoANombre,
+        'TITULAR / COLABORADOR': getResolvedTitular(c),
         'TIPO': c.esNoRegistrado ? 'NO REGISTRADO' : 'STAFF',
-        'DOCUMENTO': c.documentoIdentificacion || 'N/A',
+        'DOCUMENTO': (c.documentoIdentificacion || '').replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim() || 'N/A',
         'CIUDAD': c.ciudad || 'BELLO, ANTIOQUIA',
         'FECHA': c.fecha || (c.cobradoEl ? c.cobradoEl.substring(0, 10) : ''),
         'CONCEPTO': c.descripcion,
@@ -1369,6 +1493,7 @@ export default function CodigosAdminPage() {
     const q = searchQuery.toLowerCase();
     return regularCodigos.filter(c => 
       c.id.toLowerCase().includes(q) || 
+      getResolvedTitular(c).toLowerCase().includes(q) ||
       (c.asignadoANombre || '').toLowerCase().includes(q) ||
       (c.descripcion || '').toLowerCase().includes(q) ||
       (c.centroCosto || '').toLowerCase().includes(q)
@@ -1396,7 +1521,7 @@ export default function CodigosAdminPage() {
 
       if (!cuentasSearchQuery.trim()) return true;
       const q = cuentasSearchQuery.toLowerCase();
-      const nombre = (c.cobradoPor || c.asignadoANombre || '').toLowerCase();
+      const nombre = getResolvedTitular(c).toLowerCase();
       const id = (c.id || '').toLowerCase();
       const desc = (c.descripcion || '').toLowerCase();
       const docId = (c.documentoIdentificacion || '').toLowerCase();
@@ -1803,7 +1928,7 @@ export default function CodigosAdminPage() {
                       const retValor = valorBruto * (retPorc / 100);
                       const totalNeto = valorBruto - retValor;
                       const isAP = c.centroCosto === 'AP - ARCHIVO PLANO' || c.origen === 'AP - ARCHIVO PLANO' || Boolean(c.consecutivoArchivo);
-                      const titular = c.cobradoPor || c.asignadoANombre || 'Colaborador';
+                      const titular = getResolvedTitular(c);
 
                       return (
                         <tr key={c.id} className="hover:bg-zinc-800/30 transition-colors">
@@ -1833,7 +1958,9 @@ export default function CodigosAdminPage() {
 
                           {/* Documento & Ciudad */}
                           <td className="py-3.5 px-4 text-zinc-300">
-                            <span className="font-mono text-xs block text-white">{c.documentoIdentificacion || 'CC N/A'}</span>
+                            <span className="font-mono text-xs block text-white">
+                              {c.documentoIdentificacion ? `CC ${c.documentoIdentificacion.replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim()}` : 'CC N/A'}
+                            </span>
                             <span className="text-[11px] text-zinc-400 block mt-0.5 uppercase">{c.ciudad || 'BELLO, ANTIOQUIA'}</span>
                           </td>
 
@@ -1965,6 +2092,39 @@ export default function CodigosAdminPage() {
                     <label className="text-[10px] text-white tracking-widest block mb-1">ASIGNADO A</label>
                     <div className="font-inter text-white text-sm bg-zinc-900 px-3 py-2 border border-[#1C1C28] rounded">{selectedCodigo.asignadoANombre}</div>
                   </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="sm:col-span-2">
+                    <label className="text-[10px] text-white tracking-widest block mb-1">NOMBRE TITULAR (DEBE A:)</label>
+                    <input
+                      type="text"
+                      value={editNombre}
+                      onChange={e => setEditNombre(e.target.value.toUpperCase())}
+                      className="w-full bg-[#050816] border border-[#1C1C28]/30 text-white rounded px-3 py-2 text-sm focus:border-[#1C1C28] outline-none font-bold uppercase font-inter"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-white tracking-widest block mb-1">DOCUMENTO IDENTIDAD</label>
+                    <input
+                      type="text"
+                      value={editDocumento}
+                      onChange={e => setEditDocumento(e.target.value)}
+                      placeholder="Ej: 1000760142"
+                      className="w-full bg-[#050816] border border-[#1C1C28]/30 text-white rounded px-3 py-2 text-sm focus:border-[#1C1C28] outline-none font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-white tracking-widest block mb-1">CIUDAD DEL TITULAR</label>
+                  <input
+                    type="text"
+                    value={editCiudad}
+                    onChange={e => setEditCiudad(e.target.value.toUpperCase())}
+                    placeholder="Ej: BELLO, ANTIOQUIA"
+                    className="w-full bg-[#050816] border border-[#1C1C28]/30 text-white rounded px-3 py-2 text-sm focus:border-[#1C1C28] outline-none font-inter uppercase"
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

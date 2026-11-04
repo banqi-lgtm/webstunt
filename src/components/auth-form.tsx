@@ -142,14 +142,29 @@ export function AuthForm({ externalIsLogin, onToggleAuthMode, onBackToMenu, mode
 
       const data = await response.json();
       if (data.documentoIdentidad) {
-        setNumeroIdentificacion(data.documentoIdentidad);
-        setTipoDocumento('NIT');
-        toast({ title: "Datos extraídos", description: "Número de documento completado por IA." });
+        const cleanDoc = String(data.documentoIdentidad).replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim();
+        setNumeroIdentificacion(cleanDoc);
+        if (data.razonSocial) {
+          setTipoDocumento('NIT');
+        } else {
+          setTipoDocumento('CC');
+        }
       }
+      if (data.nombres) setNombres(data.nombres);
+      if (data.apellidos) setApellidos(data.apellidos);
       if (data.banco) setBanco(data.banco);
       if (data.tipoCuenta) setTipoCuenta(data.tipoCuenta);
       if (data.numeroCuenta) setNumeroCuenta(data.numeroCuenta);
       if (data.ciudad) setCiudad(data.ciudad);
+      
+      if (type === 'rut') {
+        const infoMsg = [
+          data.nombreCompleto ? `Nombre: ${data.nombreCompleto}` : null,
+          data.documentoIdentidad ? `NIT/CC: ${data.documentoIdentidad}` : null,
+          data.ciudad ? `Ciudad: ${data.ciudad}` : null
+        ].filter(Boolean).join(' | ');
+        toast({ title: "Datos extraídos del RUT", description: infoMsg || "Información completada por IA." });
+      }
       
     } catch (error) {
       console.error("Error extraindo documento", error);

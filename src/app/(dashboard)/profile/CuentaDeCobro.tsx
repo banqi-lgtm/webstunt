@@ -90,6 +90,44 @@ export function CuentaDeCobro({
     return numero;
   }, [numero]);
 
+  // Format Document: Clean duplicate prefixes like "C.C. CC 1010096437"
+  const formattedCobradorDocumento = React.useMemo(() => {
+    if (!cobradorDocumento || cobradorDocumento === 'No registrado' || cobradorDocumento === '--' || cobradorDocumento === '00') {
+      return 'No registrado';
+    }
+    let str = cobradorDocumento.trim();
+    
+    // Detect if there's a specific non-CC document type indicated (NIT, CE, TI, PASAPORTE)
+    let prefix = 'C.C.';
+    if (/^NIT\b/i.test(str)) prefix = 'NIT';
+    else if (/^(C\.?\s*E\.?|CE)\b/i.test(str)) prefix = 'C.E.';
+    else if (/^(T\.?\s*I\.?|TI)\b/i.test(str)) prefix = 'T.I.';
+    else if (/^PASAPORTE\b/i.test(str)) prefix = 'PASAPORTE';
+
+    // Strip ANY repeated prefixes (CC, C.C., C.C, CC., NIT, etc.)
+    while (/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i.test(str)) {
+      str = str.replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim();
+    }
+
+    return `${prefix} ${str}`.trim();
+  }, [cobradorDocumento]);
+
+  // Resolve Complete Name: Ensure 2 names and 2 surnames for known staff / RUT
+  const resolvedCobradorNombre = React.useMemo(() => {
+    if (!cobradorNombre || cobradorNombre === 'Colaborador') return 'Colaborador';
+    const cleanDoc = (cobradorDocumento || '').replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim();
+    const upperName = cobradorNombre.toUpperCase().trim();
+
+    if (cleanDoc === '1000760142' || upperName.includes('HANNA BERMUDEZ')) {
+      return 'HANNA BERMUDEZ MARTINEZ';
+    }
+    if (cleanDoc === '1010096437' || upperName.includes('GAVIRIA HERNANDEZ')) {
+      return 'WILSON DANIEL GAVIRIA HERNANDEZ';
+    }
+
+    return cobradorNombre;
+  }, [cobradorNombre, cobradorDocumento]);
+
   // Calculate retenciones
   const retencionesMap: Record<string, { porcentaje: number, totalBase: number, valorRetenido: number }> = {};
   conceptos.forEach(c => {
@@ -301,8 +339,8 @@ export function CuentaDeCobro({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-0 border border-[#0A0A0A] bg-white print:grid-cols-2">
                   <div className="p-3 md:p-4 print:p-3 border-b sm:border-b-0 sm:border-r border-[#0A0A0A] print:border-b-0 print:border-r">
                     <p className="text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-[#0A0A0A] mb-1">Debe A:</p>
-                    <p className="font-barlow text-lg md:text-xl uppercase font-bold text-[#0A0A0A]">{cobradorNombre}</p>
-                    <p className="text-xs md:text-sm print:text-xs text-[#0A0A0A] font-light mt-1">C.C. {cobradorDocumento}</p>
+                    <p className="font-barlow text-lg md:text-xl uppercase font-bold text-[#0A0A0A]">{resolvedCobradorNombre}</p>
+                    <p className="text-xs md:text-sm print:text-xs text-[#0A0A0A] font-light mt-1">{formattedCobradorDocumento}</p>
                   </div>
                   <div className="p-3 md:p-4 print:p-3 flex flex-col justify-center bg-zinc-50 border-[#0A0A0A] text-[#0A0A0A]">
                     <p className="text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-[#0A0A0A]/70 mb-1">La Suma De:</p>
@@ -398,8 +436,8 @@ export function CuentaDeCobro({
                       );
                     })()}
                   </div>
-                  <p className="font-barlow text-xl print:text-lg uppercase font-bold text-[#0A0A0A]">{cobradorNombre}</p>
-                  <p className="text-xs text-[#0A0A0A] font-light mt-0.5">C.C. {cobradorDocumento}</p>
+                  <p className="font-barlow text-xl print:text-lg uppercase font-bold text-[#0A0A0A]">{resolvedCobradorNombre}</p>
+                  <p className="text-xs text-[#0A0A0A] font-light mt-0.5">{formattedCobradorDocumento}</p>
                 </div>
 
                 {/* BANK INFO */}

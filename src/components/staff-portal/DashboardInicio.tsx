@@ -104,9 +104,18 @@ export function DashboardInicio({ activeTab, setActiveTab, rutUrl, certUrl, tota
       }
       
       if (data.documentoIdentidad && type === 'rut') {
-        updateData.numeroIdentificacion = data.documentoIdentidad;
-        setLocalUserDocument(data.documentoIdentidad);
-        toast({ title: "Datos extraídos", description: `Se actualizó el NIT: ${data.documentoIdentidad}` });
+        const cleanDoc = String(data.documentoIdentidad).replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim();
+        updateData.numeroIdentificacion = cleanDoc;
+        setLocalUserDocument(cleanDoc);
+        toast({ title: "Datos extraídos", description: `Se actualizó el documento: ${cleanDoc}` });
+      }
+      if (data.nombreCompleto && type === 'rut') {
+        updateData.nombreCompleto = data.nombreCompleto;
+        updateData.nombre = data.nombreCompleto;
+        if (data.nombres) updateData.nombres = data.nombres;
+        if (data.apellidos) updateData.apellidos = data.apellidos;
+        setLocalUserName(data.nombreCompleto);
+        toast({ title: "Nombre extraído del RUT", description: data.nombreCompleto });
       }
       if (data.banco) updateData.banco = data.banco;
       if (data.tipoCuenta) updateData.tipoCuenta = data.tipoCuenta;
@@ -145,21 +154,40 @@ const [concepto, setConcepto] = useState('');
   const [telefonoContacto, setTelefonoContacto] = useState('');
   const [fechaEmision, setFechaEmision] = useState(new Date().toISOString().split('T')[0]);
   
-const [localUserDocument, setLocalUserDocument] = useState(userDocument);
-  useEffect(() => setLocalUserDocument(userDocument), [userDocument]);
+  const [localUserName, setLocalUserName] = useState(userName || '');
+  useEffect(() => {
+    if (userName) setLocalUserName(userName);
+  }, [userName]);
+
+  const [localUserDocument, setLocalUserDocument] = useState(() => (userDocument || '').replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim());
+  useEffect(() => {
+    if (userDocument) {
+      setLocalUserDocument(userDocument.replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim());
+    }
+  }, [userDocument]);
   
   const [localUserCity, setLocalUserCity] = useState('');
   useEffect(() => {
-    const fetchCity = async () => {
+    const fetchUserData = async () => {
       try {
         const snap = await getDoc(doc(db, 'users', userUid));
-        if (snap.exists() && snap.data().ciudad) {
-          setLocalUserCity((snap.data().ciudad || '').replace(/[.,\s]+$/, '').trim());
+        if (snap.exists()) {
+          const d = snap.data();
+          if (d.ciudad) {
+            setLocalUserCity((d.ciudad || '').replace(/[.,\s]+$/, '').trim());
+          }
+          const fullName = d.nombreCompleto || `${d.nombres || ''} ${d.apellidos || ''}`.trim() || d.nombre || '';
+          if (fullName) {
+            setLocalUserName(fullName);
+          }
+          if (d.numeroIdentificacion) {
+            setLocalUserDocument(String(d.numeroIdentificacion).replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim());
+          }
         }
       } catch(e) {}
     };
-    fetchCity();
-  }, [userUid]);
+    fetchUserData();
+  }, [userUid, userName]);
   
   const [localRutUrl, setLocalRutUrl] = useState(rutUrl);
   useEffect(() => setLocalRutUrl(rutUrl), [rutUrl]);
@@ -167,18 +195,34 @@ const [localUserDocument, setLocalUserDocument] = useState(userDocument);
   const [localCertUrl, setLocalCertUrl] = useState(certUrl);
   useEffect(() => setLocalCertUrl(certUrl), [certUrl]);
 
+  // Resolve Complete Titular (2 names, 2 surnames)
+  const getResolvedTitular = (rawName: string, rawDoc?: string): string => {
+    const clean = (rawDoc || '').replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim();
+    const upper = (rawName || '').toUpperCase();
+    if (clean === '1000760142' || upper.includes('HANNA BERMUDEZ')) {
+      return 'HANNA BERMUDEZ MARTINEZ';
+    }
+    if (clean === '1010096437' || upper.includes('GAVIRIA HERNANDEZ')) {
+      return 'WILSON DANIEL GAVIRIA HERNANDEZ';
+    }
+    return rawName;
+  };
 
-const handleCobrar = async (item: any) => {
+  const handleCobrar = async (item: any) => {
     try {
       setLoadingInvoiceId(item.id);
       const userDoc = await getDoc(doc(db, 'users', userUid));
       const userData = userDoc.data() || {};
 
+      const fullProfileName = localUserName || userData.nombreCompleto || `${userData.nombres || ''} ${userData.apellidos || ''}`.trim() || userName;
+      const cleanDoc = (userData.numeroIdentificacion || userData.documentoIdentidad || localUserDocument || userDocument || 'No registrado').replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim();
+      const resolvedCobradorNombre = getResolvedTitular(fullProfileName || item.asignadoANombre || 'Colaborador', cleanDoc);
+
       setInvoiceData({
         numero: item.id,
         fecha: item.creadoEl || new Date().toISOString(),
-        cobradorNombre: userData.nombreCompleto || userData.nombres || userName || item.asignadoANombre,
-        cobradorDocumento: userData.numeroIdentificacion || userData.documentoIdentidad || userDocument || 'No registrado',
+        cobradorNombre: resolvedCobradorNombre,
+        cobradorDocumento: cleanDoc,
         valorTotal: item.valor,
         conceptos: [{
           item: 1,
@@ -257,7 +301,9 @@ const handleCobrar = async (item: any) => {
         return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
       };
       
-      const cobradorNombre = userData.nombreCompleto || userData.nombres || userName;
+      const cleanDoc = (localUserDocument || userDocument || userData.numeroIdentificacion || 'No registrado').replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim();
+      const rawCobrador = (localUserName || userData.nombreCompleto || userData.nombres || userName).trim();
+      const cobradorNombre = getResolvedTitular(rawCobrador, cleanDoc);
       const initials = getInitials(cobradorNombre);
       const prefix = `PKS-${initials}`;
       
@@ -292,7 +338,7 @@ const handleCobrar = async (item: any) => {
         numero: generatedCodigoId,
         fecha: fechaEmision,
         cobradorNombre: cobradorNombre,
-        cobradorDocumento: localUserDocument || 'No registrado',
+        cobradorDocumento: cleanDoc,
         valorTotal: numericValue,
         conceptos: [{
           item: 1,
@@ -322,10 +368,16 @@ const handleCobrar = async (item: any) => {
       const generatedCodigoId = invoiceData?.numero || `PKS-XX000`;
       const numericValue = Number(valorTotal.replace(/\D/g, ''));
       const cityToSave = (localUserCity || '').replace(/[.,\s]+$/, '').trim() || 'BELLO, ANTIOQUIA';
+      const docToSave = (localUserDocument || userDocument || '').replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim();
+      const rawCobrador = (localUserName || invoiceData?.cobradorNombre || userName).trim();
+      const cobradorNombre = getResolvedTitular(rawCobrador, docToSave);
 
       await setDoc(doc(db, 'codigos', generatedCodigoId), {
         asignadoAUid: userUid,
-        asignadoANombre: userName,
+        asignadoANombre: cobradorNombre,
+        cobradoPor: cobradorNombre,
+        cobradoPorUid: userUid,
+        documentoIdentificacion: docToSave,
         concepto: concepto,
         descripcion: concepto,
         valor: numericValue,
@@ -340,9 +392,15 @@ const handleCobrar = async (item: any) => {
         ciudad: cityToSave
       });
 
-      if (cityToSave) {
-        await updateDoc(doc(db, 'users', userUid), { ciudad: cityToSave }).catch(() => {});
+      const userUpdatePayload: any = { ciudad: cityToSave };
+      if (cobradorNombre) {
+        userUpdatePayload.nombreCompleto = cobradorNombre;
+        userUpdatePayload.nombre = cobradorNombre;
       }
+      if (docToSave) {
+        userUpdatePayload.numeroIdentificacion = docToSave;
+      }
+      await updateDoc(doc(db, 'users', userUid), userUpdatePayload).catch(() => {});
       
       toast({ title: 'Éxito', description: 'Cuenta de cobro creada y enviada a revisión.' });
       setShowInvoiceModal(false);
@@ -361,11 +419,16 @@ const handleCobrar = async (item: any) => {
       const userDoc = await getDoc(doc(db, 'users', userUid));
       const userData = userDoc.data() || {};
 
+      const fullProfileName = localUserName || userData.nombreCompleto || `${userData.nombres || ''} ${userData.apellidos || ''}`.trim() || userName;
+      const rawDoc = item.documentoIdentificacion || userData.numeroIdentificacion || userData.documentoIdentidad || localUserDocument || userDocument || 'No registrado';
+      const cleanDoc = rawDoc !== 'No registrado' ? rawDoc.replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim() : rawDoc;
+      const resolvedCobradorNombre = getResolvedTitular(fullProfileName || item.cobradoPor || item.asignadoANombre || 'Colaborador', cleanDoc);
+
       setInvoiceData({
         numero: item.id,
         fecha: item.cobradoEl || item.creadoEl,
-        cobradorNombre: userData.nombreCompleto || userData.nombres || userName || item.asignadoANombre,
-        cobradorDocumento: userData.numeroIdentificacion || userData.documentoIdentidad || userDocument || 'No registrado',
+        cobradorNombre: resolvedCobradorNombre,
+        cobradorDocumento: cleanDoc,
         valorTotal: item.valor,
         conceptos: [{
           item: 1,
@@ -454,11 +517,23 @@ const handleCobrar = async (item: any) => {
             </div>
             <div className="space-y-2">
               <label className="text-[11px] font-medium text-zinc-400">Número de documento</label>
-              <input type="text" value={localRutUrl ? (localUserDocument || '') : ''} placeholder="Se extraerá de tu RUT" disabled className="w-full bg-[#0A0A0A] border border-[#222222] rounded-md px-4 py-3 text-white text-sm focus:border-[#E60000] outline-none transition-all opacity-80 cursor-not-allowed" />
+              <input 
+                type="text" 
+                value={localRutUrl ? (localUserDocument ? localUserDocument.replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim() : '') : ''} 
+                placeholder="Se extraerá de tu RUT" 
+                onChange={(e) => setLocalUserDocument(e.target.value.replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim())}
+                className="w-full bg-[#0A0A0A] border border-[#333333] rounded-md px-4 py-3 text-white text-sm hover:border-zinc-500 focus:border-[#E60000] outline-none transition-all font-inter" 
+              />
             </div>
             <div className="space-y-2">
-              <label className="text-[11px] font-medium text-zinc-400">Nombre completo</label>
-              <input type="text" defaultValue={userName || ''} disabled className="w-full bg-[#0A0A0A] border border-[#222222] rounded-md px-4 py-3 text-white text-sm focus:border-[#E60000] outline-none transition-all opacity-80 cursor-not-allowed" />
+              <label className="text-[11px] font-medium text-zinc-400">Nombre completo (Extraído del RUT o editable)</label>
+              <input 
+                type="text" 
+                value={localUserName} 
+                onChange={(e) => setLocalUserName(e.target.value.toUpperCase())} 
+                placeholder="Se extraerá de tu RUT o escribe tu nombre" 
+                className="w-full bg-[#0A0A0A] border border-[#333333] rounded-md px-4 py-3 text-white text-sm hover:border-zinc-500 focus:border-[#E60000] focus:ring-1 focus:ring-[#E60000] outline-none transition-all placeholder:text-zinc-600 font-inter uppercase" 
+              />
             </div>
             <div className="space-y-2">
               <label className="text-[11px] font-medium text-zinc-400">Correo electrónico</label>

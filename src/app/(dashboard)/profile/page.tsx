@@ -292,9 +292,9 @@ export default function PskPitxDashboard() {
           let numeroIdentificacion = '';
           if (userDoc.exists()) {
             const d = userDoc.data();
-            name = `${d.nombres || ''} ${d.apellidos || ''}`.trim();
+            name = d.nombreCompleto || `${d.nombres || ''} ${d.apellidos || ''}`.trim() || d.nombre || name;
             rol = d.rol || '';
-            numeroIdentificacion = d.numeroIdentificacion || '';
+            numeroIdentificacion = (d.numeroIdentificacion || '').replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim();
           }
           
           let number = '00';
@@ -596,7 +596,7 @@ export default function PskPitxDashboard() {
   }
 
   if (currentUser.rol === 'staff' || currentUser.rol === 'admin') {
-    return <StaffProfileView userUid={currentUser.uid} userName={currentUser.name} userDocument={currentUser.numeroIdentificacion || currentUser.number} />;
+    return <StaffProfileView userUid={currentUser.uid} userName={currentUser.name} userDocument={(currentUser.numeroIdentificacion || currentUser.number || '').replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim()} />;
   }
 
   return (

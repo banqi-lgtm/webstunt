@@ -202,6 +202,24 @@ export default function CuentasDeCobroPage() {
   const [editRetencionMotivo, setEditRetencionMotivo] = useState('');
   const [editRetencionPorcentaje, setEditRetencionPorcentaje] = useState('');
   const [editCentroCosto, setEditCentroCosto] = useState('');
+  const [editNombre, setEditNombre] = useState('');
+  const [editDocumento, setEditDocumento] = useState('');
+  const [editCiudad, setEditCiudad] = useState('');
+
+  // Resolve Complete Titular (2 names, 2 surnames)
+  const getResolvedTitular = (c: Partial<Codigo> | null | undefined): string => {
+    if (!c) return 'Colaborador';
+    const cleanDoc = (c.documentoIdentificacion || '').replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim();
+    const raw = c.cobradoPor || c.asignadoANombre || 'Colaborador';
+    const upper = raw.toUpperCase();
+    if (cleanDoc === '1000760142' || upper.includes('HANNA BERMUDEZ')) {
+      return 'HANNA BERMUDEZ MARTINEZ';
+    }
+    if (cleanDoc === '1010096437' || upper.includes('GAVIRIA HERNANDEZ')) {
+      return 'WILSON DANIEL GAVIRIA HERNANDEZ';
+    }
+    return raw;
+  };
 
   // Get Initials helper
   const getInitials = (name: string) => {
@@ -251,12 +269,48 @@ export default function CuentasDeCobroPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // 1. Fetch Codigos
+      // 1. Fetch Codigos and Auto-Heal in Firestore
       const codigosSnap = await getDocs(collection(db, 'codigos'));
-      const codList = codigosSnap.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Codigo[];
+      const codList = codigosSnap.docs.map(docSnap => {
+        const d = docSnap.data();
+        const cleanDoc = (d.documentoIdentificacion || '').replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim();
+        const upper = (d.cobradoPor || d.asignadoANombre || '').toUpperCase();
+        let titular = d.cobradoPor || d.asignadoANombre || 'Colaborador';
+        let needsDbUpdate = false;
+        const updatePayload: any = {};
+
+        if (d.documentoIdentificacion && d.documentoIdentificacion !== cleanDoc) {
+          updatePayload.documentoIdentificacion = cleanDoc;
+          needsDbUpdate = true;
+        }
+
+        if (cleanDoc === '1000760142' || (upper.includes('HANNA BERMUDEZ') && !upper.includes('MARTINEZ'))) {
+          titular = 'HANNA BERMUDEZ MARTINEZ';
+          updatePayload.cobradoPor = titular;
+          updatePayload.asignadoANombre = titular;
+          needsDbUpdate = true;
+        }
+
+        if (cleanDoc === '1010096437' || (upper.includes('GAVIRIA HERNANDEZ') && !upper.includes('WILSON'))) {
+          titular = 'WILSON DANIEL GAVIRIA HERNANDEZ';
+          updatePayload.cobradoPor = titular;
+          updatePayload.asignadoANombre = titular;
+          needsDbUpdate = true;
+        }
+
+        if (needsDbUpdate) {
+          updateDoc(doc(db, 'codigos', docSnap.id), updatePayload).catch(console.error);
+        }
+
+        return {
+          id: docSnap.id,
+          ...d,
+          ...updatePayload,
+          documentoIdentificacion: cleanDoc || d.documentoIdentificacion,
+          cobradoPor: titular,
+          asignadoANombre: titular
+        } as Codigo;
+      });
       
       codList.sort((a, b) => {
         const da = new Date(a.fecha || a.cobradoEl || a.creadoEl).getTime();
@@ -265,8 +319,33 @@ export default function CuentasDeCobroPage() {
       });
       setCodigos(codList);
 
-      // 2. Fetch Users
+      // 2. Fetch Users and Auto-Heal
       const usersSnap = await getDocs(collection(db, 'users'));
+      for (const uDoc of usersSnap.docs) {
+        const uData = uDoc.data();
+        const cleanDoc = (uData.numeroIdentificacion || '').replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim();
+        if (cleanDoc === '1000760142' || (uData.apellidos === 'BERMUDEZ' && uData.nombres === 'HANNA')) {
+          if (!uData.nombreCompleto || !uData.nombreCompleto.includes('MARTINEZ')) {
+            updateDoc(doc(db, 'users', uDoc.id), {
+              nombreCompleto: 'HANNA BERMUDEZ MARTINEZ',
+              nombre: 'HANNA BERMUDEZ MARTINEZ',
+              apellidos: 'BERMUDEZ MARTINEZ',
+              numeroIdentificacion: '1000760142'
+            }).catch(console.error);
+          }
+        }
+        if (cleanDoc === '1010096437' || (uData.apellidos && uData.apellidos.includes('HERNANDEZ') && uData.nombres === 'DANIEL')) {
+          if (!uData.nombreCompleto || !uData.nombreCompleto.includes('WILSON')) {
+            updateDoc(doc(db, 'users', uDoc.id), {
+              nombreCompleto: 'WILSON DANIEL GAVIRIA HERNANDEZ',
+              nombre: 'WILSON DANIEL GAVIRIA HERNANDEZ',
+              nombres: 'WILSON DANIEL',
+              apellidos: 'GAVIRIA HERNANDEZ',
+              numeroIdentificacion: '1010096437'
+            }).catch(console.error);
+          }
+        }
+      }
       const uList = usersSnap.docs.map(doc => ({
         uid: doc.id,
         nombre: `${doc.data().nombres || ''} ${doc.data().apellidos || ''}`.trim() || doc.data().nombre || 'Sin Nombre',
@@ -279,10 +358,10 @@ export default function CuentasDeCobroPage() {
         const data = d.data();
         return {
           uid: d.id,
-          nombre: `${data.nombres || ''} ${data.apellidos || ''}`.trim() || data.nombre || 'Colaborador',
+          nombre: data.nombreCompleto || `${data.nombres || ''} ${data.apellidos || ''}`.trim() || data.nombre || 'Colaborador',
           nombres: data.nombres || '',
           apellidos: data.apellidos || '',
-          documento: data.numeroIdentificacion || data.documentoIdentidad || data.cedula || '',
+          documento: (data.numeroIdentificacion || data.documentoIdentidad || data.cedula || '').replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim(),
           email: data.email || '',
           telefono: data.telefono || '',
           banco: data.banco || '',
@@ -599,7 +678,7 @@ export default function CuentasDeCobroPage() {
           retencionMotivo: row.retencion > 0 ? `Retención (${row.retencion}%)` : null,
           retencionPorcentaje: row.retencion > 0 ? row.retencion : null,
           firmaGenerada: row.nombre,
-          documentoIdentificacion: `CC ${row.numeroId}`,
+          documentoIdentificacion: String(row.numeroId || '').replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim(),
           ciudad: row.ciudad,
           tipoDocumento: 'CC',
           esNoRegistrado: true,
@@ -762,7 +841,7 @@ export default function CuentasDeCobroPage() {
           retencionMotivo: unregRetencionPorcentaje ? (unregRetencionMotivo || `Retención (${unregRetencionPorcentaje}%)`) : null,
           retencionPorcentaje: unregRetencionPorcentaje ? Number(unregRetencionPorcentaje) : null,
           firmaGenerada: staff.nombre,
-          documentoIdentificacion: staff.documento ? `CC ${staff.documento}` : 'No registrado',
+          documentoIdentificacion: staff.documento ? staff.documento.replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim() : 'No registrado',
           ciudad: staff.ciudad || 'Bello, Antioquia',
           tipoDocumento: 'CC',
           esNoRegistrado: false
@@ -794,23 +873,35 @@ export default function CuentasDeCobroPage() {
   // View / Print Invoice
   const handleViewCuentaCobro = (codigo: Codigo) => {
     let cobradorName = codigo.cobradoPor || codigo.asignadoANombre || 'Colaborador';
-    let cobradorDoc = codigo.documentoIdentificacion || 'No registrado';
+    let cobradorDoc = (codigo.documentoIdentificacion || 'No registrado').replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim();
     let cobradorCiudad = codigo.ciudad || 'BELLO, ANTIOQUIA';
     let banco = 'No registrado';
     let tipoCuenta = 'No registrado';
     let numeroCuenta = 'No registrado';
 
-    if (!codigo.esNoRegistrado) {
-      const staff = staffUsersList.find(s => s.uid === (codigo.cobradoPorUid || codigo.asignadoAUid));
-      if (staff) {
-        cobradorName = staff.nombre;
-        if (staff.documento) cobradorDoc = `CC ${staff.documento}`;
-        if (staff.ciudad) cobradorCiudad = staff.ciudad;
-        if (staff.banco) banco = staff.banco;
-        if (staff.tipoCuenta) tipoCuenta = staff.tipoCuenta;
-        if (staff.numeroCuenta) numeroCuenta = staff.numeroCuenta;
+    const resolved = getResolvedTitular(codigo);
+    if (resolved && resolved !== 'Colaborador') cobradorName = resolved;
+
+    const staff = staffUsersList.find(s => 
+      (s.uid && (s.uid === codigo.cobradoPorUid || s.uid === codigo.asignadoAUid)) ||
+      (s.documento && cobradorDoc && s.documento === cobradorDoc) ||
+      (s.nombre && cobradorName && s.nombre.toUpperCase().includes(cobradorName.toUpperCase()))
+    );
+
+    if (staff) {
+      if (staff.nombre && staff.nombre !== 'Colaborador') cobradorName = staff.nombre;
+      if (staff.documento) {
+        const cleanDoc = staff.documento.replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim();
+        cobradorDoc = cleanDoc || staff.documento;
       }
+      if (staff.ciudad) cobradorCiudad = staff.ciudad;
+      if (staff.banco) banco = staff.banco;
+      if (staff.tipoCuenta) tipoCuenta = staff.tipoCuenta;
+      if (staff.numeroCuenta) numeroCuenta = staff.numeroCuenta;
     }
+
+    const doubleCheck = getResolvedTitular({ ...codigo, cobradoPor: cobradorName, documentoIdentificacion: cobradorDoc });
+    if (doubleCheck && doubleCheck !== 'Colaborador') cobradorName = doubleCheck;
 
     setInvoiceData({
       numero: codigo.id,
@@ -843,6 +934,9 @@ export default function CuentasDeCobroPage() {
     setEditRetencionMotivo(codigo.retencionMotivo || '');
     setEditRetencionPorcentaje(codigo.retencionPorcentaje?.toString() || '');
     setEditCentroCosto(codigo.centroCosto || '');
+    setEditNombre(getResolvedTitular(codigo));
+    setEditDocumento((codigo.documentoIdentificacion || '').replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim());
+    setEditCiudad(codigo.ciudad || 'BELLO, ANTIOQUIA');
     let initFecha = codigo.fecha ? codigo.fecha.substring(0, 10) : (codigo.cobradoEl ? codigo.cobradoEl.substring(0, 10) : new Date().toISOString().split('T')[0]);
     setEditFecha(initFecha);
     setShowDetallesModal(true);
@@ -868,6 +962,17 @@ export default function CuentasDeCobroPage() {
         estado: 'cobrado',
         estadoAprobacion: selectedCodigo.estadoAprobacion || 'pendiente'
       };
+
+      if (editNombre.trim()) {
+        updatePayload.asignadoANombre = editNombre.trim();
+        updatePayload.cobradoPor = editNombre.trim();
+      }
+      if (editDocumento.trim()) {
+        updatePayload.documentoIdentificacion = editDocumento.trim().replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim();
+      }
+      if (editCiudad.trim()) {
+        updatePayload.ciudad = editCiudad.trim();
+      }
 
       await updateDoc(doc(db, 'codigos', selectedCodigo.id), updatePayload);
       setCodigos(codigos.map(c => c.id === selectedCodigo.id ? { ...c, ...updatePayload } : c));
@@ -1168,7 +1273,7 @@ export default function CuentasDeCobroPage() {
                         </td>
                         <td className="py-3 px-4">
                           <div className="font-bold text-white uppercase flex items-center gap-1.5 flex-wrap">
-                            <span>{c.cobradoPor || c.asignadoANombre}</span>
+                            <span>{getResolvedTitular(c)}</span>
                             {isAP ? (
                               <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-950/80 border border-purple-500/40 text-purple-300">
                                 AP
@@ -1760,12 +1865,42 @@ export default function CuentasDeCobroPage() {
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-zinc-400">Titular: {selectedCodigo.cobradoPor || selectedCodigo.asignadoANombre}</p>
+                  <p className="text-xs text-zinc-400">Titular: {getResolvedTitular(selectedCodigo)}</p>
                 </div>
                 <button onClick={() => setShowDetallesModal(false)} className="text-zinc-400 hover:text-white">✕</button>
               </div>
 
               <div className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="sm:col-span-2">
+                    <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-1">Nombre Titular (Debe a:)</label>
+                    <input 
+                      type="text"
+                      value={editNombre}
+                      onChange={(e) => setEditNombre(e.target.value.toUpperCase())}
+                      className="w-full px-3 py-2 bg-black/50 border border-[#1C1C28] rounded-lg text-xs text-white uppercase outline-none font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-1">Documento Identidad</label>
+                    <input 
+                      type="text"
+                      value={editDocumento}
+                      onChange={(e) => setEditDocumento(e.target.value.replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim())}
+                      className="w-full px-3 py-2 bg-black/50 border border-[#1C1C28] rounded-lg text-xs text-white outline-none font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-1">Ciudad del Titular</label>
+                  <input 
+                    type="text"
+                    value={editCiudad}
+                    onChange={(e) => setEditCiudad(e.target.value.toUpperCase())}
+                    className="w-full px-3 py-2 bg-black/50 border border-[#1C1C28] rounded-lg text-xs text-white uppercase outline-none"
+                  />
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-1">Valor</label>

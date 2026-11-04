@@ -36,6 +36,7 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
 
   const userEmail = auth.currentUser?.email || '';
   const [extractedDocNum, setExtractedDocNum] = useState<string | null>(null);
+  const [extractedName, setExtractedName] = useState<string | null>(null);
 
   const fetchUserData = async () => {
     try {
@@ -45,7 +46,9 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
         const data = userDoc.data();
         if (data.rutUrl) setRutUrl(data.rutUrl);
         if (data.certUrl) setCertUrl(data.certUrl);
-        if (data.numeroIdentificacion) setExtractedDocNum(data.numeroIdentificacion);
+        if (data.numeroIdentificacion) setExtractedDocNum(String(data.numeroIdentificacion).replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim());
+        const full = data.nombreCompleto || `${data.nombres || ''} ${data.apellidos || ''}`.trim() || data.nombre;
+        if (full) setExtractedName(full);
         if (data.documentosRechazados) setDocumentosRechazados(data.documentosRechazados);
       }
     } catch(e) {
@@ -98,9 +101,12 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
     return timeB - timeA;
   });
 
-  const finalDocNum = (userDocument === '00' || userDocument === '--' || !userDocument) && extractedDocNum 
+  const rawCleanDoc = (userDocument || '').replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim();
+  const finalDocNum = (rawCleanDoc === '00' || rawCleanDoc === '--' || !rawCleanDoc) && extractedDocNum 
     ? extractedDocNum 
-    : userDocument;
+    : (extractedDocNum || rawCleanDoc);
+
+  const finalName = extractedName || userName;
 
   const renderContent = () => {
     switch (activeTab) {
@@ -117,7 +123,7 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
             totalAcumulado={totalAcumulado}
             saldoPorCobrar={saldoPorCobrar}
             historial={todasLasCuentas}
-            userName={userName}
+            userName={finalName}
             userDocument={finalDocNum}
             userEmail={userEmail}
             userUid={userUid}
