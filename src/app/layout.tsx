@@ -29,10 +29,12 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: '/sponsors/PKS Negro.png?v=5', type: 'image/png' }
+      { url: '/favicon.png?v=7', type: 'image/png' },
+      { url: '/favicon.ico?v=7', sizes: 'any' },
+      { url: '/sponsors/PKS Negro.png?v=7', type: 'image/png' }
     ],
-    shortcut: '/sponsors/PKS Negro.png?v=5',
-    apple: '/sponsors/PKS Negro.png?v=5',
+    shortcut: '/favicon.png?v=7',
+    apple: '/favicon.png?v=7',
   },
 };
 
@@ -44,6 +46,8 @@ export default function RootLayout({
   return (
     <html lang="es" translate="no" className="dark">
       <head>
+        <link rel="icon" type="image/png" href="/favicon.png?v=7" />
+        <link rel="apple-touch-icon" href="/favicon.png?v=7" />
         <meta name="facebook-domain-verification" content="j6hpjkw3a5ip3uvkppvtmp6ny7fwm9" />
         <meta name="google" content="notranslate" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
