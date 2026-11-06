@@ -16,6 +16,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CuentaDeCobro } from '../profile/CuentaDeCobro';
+import { ConceptoAutocomplete } from '@/components/ConceptoAutocomplete';
 import * as XLSX from 'xlsx';
 
 interface Codigo {
@@ -1766,13 +1767,12 @@ export default function CuentasDeCobroPage() {
 
                 <div>
                   <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider block mb-1">Concepto / Descripción *</label>
-                  <textarea 
+                  <ConceptoAutocomplete 
                     required
-                    rows={2}
                     value={unregDescripcion}
-                    onChange={(e) => setUnregDescripcion(e.target.value)}
-                    placeholder="Descripción detallada de las actividades o servicios prestados..."
-                    className="w-full px-3.5 py-2.5 bg-black/50 border border-[#1C1C28] focus:border-[#C8102E] rounded-xl text-xs text-white outline-none resize-none"
+                    onChange={setUnregDescripcion}
+                    placeholder="Escribe o busca el concepto (ej. Pagina web, Logistica, Show...)"
+                    className="w-full px-3.5 py-2.5 bg-black/50 border border-[#1C1C28] focus:border-[#C8102E] rounded-xl text-xs text-white outline-none"
                   />
                 </div>
 
@@ -1924,11 +1924,11 @@ export default function CuentasDeCobroPage() {
 
                 <div>
                   <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-1">Concepto</label>
-                  <textarea 
-                    rows={2}
+                  <ConceptoAutocomplete 
                     value={editDescripcion}
-                    onChange={(e) => setEditDescripcion(e.target.value)}
-                    className="w-full px-3 py-2 bg-black/50 border border-[#1C1C28] rounded-lg text-xs text-white outline-none resize-none"
+                    onChange={setEditDescripcion}
+                    placeholder="Concepto oficial o personalizado..."
+                    className="w-full px-3 py-2 bg-black/50 border border-[#1C1C28] rounded-lg text-xs text-white outline-none"
                   />
                 </div>
 

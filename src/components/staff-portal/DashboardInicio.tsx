@@ -7,6 +7,8 @@ import { useToast } from '@/hooks/use-toast';
 import { db, storage } from '@/lib/firebase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CuentaDeCobro } from '../../app/(dashboard)/profile/CuentaDeCobro';
+import { ConceptoAutocomplete } from '@/components/ConceptoAutocomplete';
+import { getConceptoItem } from '@/lib/conceptosCatalogo';
 
 interface DashboardInicioProps {
   activeTab: string;
@@ -183,6 +185,9 @@ const [concepto, setConcepto] = useState('');
           if (d.numeroIdentificacion) {
             setLocalUserDocument(String(d.numeroIdentificacion).replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim());
           }
+          if (d.telefono || d.celular || d.telefonoContacto) {
+            setTelefonoContacto(String(d.telefono || d.celular || d.telefonoContacto).trim());
+          }
         }
       } catch(e) {}
     };
@@ -274,8 +279,23 @@ const [concepto, setConcepto] = useState('');
   };
 
   const handleContinuarCreacion = async () => {
-    if (!concepto || !valorTotal) {
-      toast({ title: "Atención", description: "Por favor ingresa un concepto y un valor total.", variant: "destructive" });
+    if (!localUserDocument || !localUserDocument.trim()) {
+      toast({ title: "Atención", description: "Por favor ingresa tu número de documento.", variant: "destructive" });
+      return;
+    }
+
+    if (!telefonoContacto || !telefonoContacto.trim()) {
+      toast({ title: "Atención", description: "Por favor ingresa tu número de teléfono de contacto.", variant: "destructive" });
+      return;
+    }
+
+    if (!concepto || !concepto.trim()) {
+      toast({ title: "Atención", description: "Por favor ingresa un concepto.", variant: "destructive" });
+      return;
+    }
+
+    if (!valorTotal || !valorTotal.trim()) {
+      toast({ title: "Atención", description: "Por favor ingresa un valor total.", variant: "destructive" });
       return;
     }
 
@@ -372,14 +392,23 @@ const [concepto, setConcepto] = useState('');
       const rawCobrador = (localUserName || invoiceData?.cobradorNombre || userName).trim();
       const cobradorNombre = getResolvedTitular(rawCobrador, docToSave);
 
+      const matchedConcepto = getConceptoItem(concepto);
+      const codigoContable = matchedConcepto ? matchedConcepto.codigo : null;
+      const conceptoFinalParaGuardar = matchedConcepto && !concepto.startsWith(matchedConcepto.codigo) 
+        ? `${matchedConcepto.codigo} - ${concepto}`
+        : concepto;
+
       await setDoc(doc(db, 'codigos', generatedCodigoId), {
         asignadoAUid: userUid,
         asignadoANombre: cobradorNombre,
         cobradoPor: cobradorNombre,
         cobradoPorUid: userUid,
         documentoIdentificacion: docToSave,
-        concepto: concepto,
-        descripcion: concepto,
+        telefono: telefonoContacto.trim(),
+        concepto: conceptoFinalParaGuardar,
+        descripcion: conceptoFinalParaGuardar,
+        codigoConcepto: codigoContable,
+        codigoContable: codigoContable,
         valor: numericValue,
         retencionMotivo: null,
         retencionPorcentaje: null,
@@ -392,7 +421,10 @@ const [concepto, setConcepto] = useState('');
         ciudad: cityToSave
       });
 
-      const userUpdatePayload: any = { ciudad: cityToSave };
+      const userUpdatePayload: any = { 
+        ciudad: cityToSave,
+        telefono: telefonoContacto.trim()
+      };
       if (cobradorNombre) {
         userUpdatePayload.nombreCompleto = cobradorNombre;
         userUpdatePayload.nombre = cobradorNombre;
@@ -516,7 +548,7 @@ const [concepto, setConcepto] = useState('');
               </select>
             </div>
             <div className="space-y-2">
-              <label className="text-[11px] font-medium text-zinc-400">Número de documento</label>
+              <label className="text-[11px] font-medium text-zinc-400">Número de documento <span className="text-[#E60000] font-bold">*</span></label>
               <input 
                 type="text" 
                 value={localRutUrl ? (localUserDocument ? localUserDocument.replace(/^(C\.?\s*C\.?|NIT|C\.?\s*E\.?|T\.?\s*I\.?|PASAPORTE)[\s:\-_.]*/i, '').trim() : '') : ''} 
@@ -540,7 +572,7 @@ const [concepto, setConcepto] = useState('');
               <input type="email" defaultValue={userEmail || ''} disabled className="w-full bg-[#0A0A0A] border border-[#222222] rounded-md px-4 py-3 text-white text-sm focus:border-[#E60000] outline-none transition-all opacity-80 cursor-not-allowed" />
             </div>
             <div className="space-y-2">
-              <label className="text-[11px] font-medium text-zinc-400">Teléfono de contacto</label>
+              <label className="text-[11px] font-medium text-zinc-400">Teléfono de contacto <span className="text-[#E60000] font-bold">*</span></label>
               <input type="text" value={telefonoContacto} onChange={(e) => setTelefonoContacto(e.target.value)} placeholder="Ej: 300 123 4567" className="w-full bg-[#0A0A0A] border border-[#333333] rounded-md px-4 py-3 text-white text-sm hover:border-zinc-500 focus:border-[#E60000] focus:ring-1 focus:ring-[#E60000] outline-none transition-all" />
             </div>
             <div className="space-y-2">
@@ -555,7 +587,13 @@ const [concepto, setConcepto] = useState('');
             </div>
             <div className="space-y-2">
               <label className="text-[11px] font-medium text-zinc-400">Concepto de la cuenta de cobro</label>
-              <input type="text" onFocus={checkDocsBeforeTyping} value={concepto} onChange={(e) => setConcepto(e.target.value)} placeholder="Ej. Servicios de producción evento Copa Stunt" className="w-full bg-[#0A0A0A] border border-[#333333] rounded-md px-4 py-3 text-white text-sm hover:border-zinc-500 focus:border-[#E60000] focus:ring-1 focus:ring-[#E60000] outline-none transition-all placeholder:text-zinc-600" />
+              <ConceptoAutocomplete
+                value={concepto}
+                onChange={setConcepto}
+                onFocus={checkDocsBeforeTyping}
+                placeholder="Ej. Servicios de producción evento Copa Stunt"
+                className="w-full bg-[#0A0A0A] border border-[#333333] rounded-md px-4 py-3 text-white text-sm hover:border-zinc-500 focus:border-[#E60000] focus:ring-1 focus:ring-[#E60000] outline-none transition-all placeholder:text-zinc-600"
+              />
             </div>
             <div className="space-y-2">
               <label className="text-[11px] font-medium text-zinc-400">Valor total</label>

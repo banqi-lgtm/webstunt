@@ -14,6 +14,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CuentaDeCobro } from '../profile/CuentaDeCobro';
+import { ConceptoAutocomplete } from '@/components/ConceptoAutocomplete';
 import * as XLSX from 'xlsx';
 
 interface Codigo {
@@ -1660,11 +1661,11 @@ export default function CodigosAdminPage() {
                   {/* Description */}
                   <div className="space-y-2 group">
                     <label className="text-xs font-bold text-[#8A8A9A] font-inter uppercase tracking-wider">Parámetro / Concepto</label>
-                    <input 
-                      placeholder="Ingrese protocolo de descripción..." 
+                    <ConceptoAutocomplete 
+                      placeholder="Ingrese protocolo o seleccione concepto..." 
                       value={newDescripcion}
-                      onChange={(e) => setNewDescripcion(e.target.value)}
-                      className="w-full bg-[#0A0A0F] border border-[#1C1C28] text-[#F5F5F7] rounded-md h-12 px-4 focus:outline-none focus:border-zinc-500 transition-all group-hover:border-zinc-600"
+                      onChange={setNewDescripcion}
+                      className="w-full bg-[#0A0A0F] border border-[#1C1C28] text-[#F5F5F7] rounded-md h-12 px-4 focus:outline-none focus:border-zinc-500 transition-all group-hover:border-zinc-600 text-sm"
                     />
                   </div>
 
@@ -2152,10 +2153,10 @@ export default function CodigosAdminPage() {
 
                 <div>
                   <label className="text-[10px] text-white tracking-widest block mb-1">DESCRIPCIÓN</label>
-                  <input
-                    type="text"
+                  <ConceptoAutocomplete
                     value={editDescripcion}
-                    onChange={e => setEditDescripcion(e.target.value)}
+                    onChange={setEditDescripcion}
+                    placeholder="Escriba o seleccione un concepto..."
                     className="w-full bg-[#050816] border border-[#1C1C28]/30 text-white rounded px-3 py-2 text-sm focus:border-[#1C1C28] outline-none font-inter"
                   />
                 </div>
@@ -2559,12 +2560,11 @@ export default function CodigosAdminPage() {
                       <label className="text-[10px] text-zinc-300 font-bold uppercase tracking-wider block mb-1.5 flex items-center gap-1">
                         <FileText className="w-3.5 h-3.5 text-blue-400" /> Descripción / Concepto del Cobro <span className="text-red-500">*</span>
                       </label>
-                      <textarea 
-                        rows={2}
+                      <ConceptoAutocomplete 
                         placeholder="Ej. Prestación de servicios de apoyo logístico y operativo staff en evento..."
                         value={staffDescripcion} 
-                        onChange={e => setStaffDescripcion(e.target.value)}
-                        className="w-full bg-[#0A0A0F] border border-[#1C1C28] text-white rounded-lg px-3 py-2 text-xs font-inter focus:border-[#C8102E] outline-none resize-none"
+                        onChange={setStaffDescripcion}
+                        className="w-full bg-[#0A0A0F] border border-[#1C1C28] text-white rounded-lg px-3 py-2 text-xs font-inter focus:border-[#C8102E] outline-none"
                         required
                       />
                     </div>
