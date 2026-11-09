@@ -213,6 +213,8 @@ export default function CuentasDeCobroPage() {
   const [editNombre, setEditNombre] = useState('');
   const [editDocumento, setEditDocumento] = useState('');
   const [editCiudad, setEditCiudad] = useState('');
+  const [editFechaEventoDesde, setEditFechaEventoDesde] = useState('');
+  const [editFechaEventoHasta, setEditFechaEventoHasta] = useState('');
 
   // Approval Modal State (Mandatory CCO and editable issuance date)
   const [showApprovalModal, setShowApprovalModal] = useState(false);
@@ -1056,6 +1058,8 @@ export default function CuentasDeCobroPage() {
     setEditCiudad(codigo.ciudad || 'BELLO, ANTIOQUIA');
     let initFecha = codigo.fecha ? codigo.fecha.substring(0, 10) : (codigo.cobradoEl ? codigo.cobradoEl.substring(0, 10) : new Date().toISOString().split('T')[0]);
     setEditFecha(initFecha);
+    setEditFechaEventoDesde(codigo.fechaEventoDesde || '');
+    setEditFechaEventoHasta(codigo.fechaEventoHasta || '');
     setShowDetallesModal(true);
   };
 
@@ -1068,12 +1072,17 @@ export default function CuentasDeCobroPage() {
     try {
       const safeDate = parseSafeDate(editFecha);
       const timestamp = safeDate.iso;
+      const matchedConcepto = getConceptoItem(editDescripcion);
       const updatePayload: any = {
         valor: Number(editValor),
         descripcion: editDescripcion,
         retencionMotivo: editRetencionMotivo || null,
         retencionPorcentaje: editRetencionPorcentaje ? Number(editRetencionPorcentaje) : null,
         centroCosto: editCentroCosto.trim().toUpperCase(),
+        fechaEventoDesde: editFechaEventoDesde || null,
+        fechaEventoHasta: editFechaEventoHasta || null,
+        codigoConcepto: matchedConcepto?.codigo || null,
+        codigoContable: matchedConcepto?.codigo || null,
         fecha: safeDate.ymd,
         cobradoEl: timestamp,
         estado: 'cobrado',
@@ -1998,38 +2007,36 @@ export default function CuentasDeCobroPage() {
                   />
                 </div>
 
-                {/* RENGLÓN DINÁMICO: FECHAS DE EVENTO (DESDE - HASTA) */}
-                {unregDescripcion.trim().length > 0 && (
-                  <div className="bg-[#0D0D0D] border border-[#262626] rounded-xl p-3.5 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[11px] font-bold text-[#C8102E] uppercase tracking-wider flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-[#C8102E]" /> Fechas de evento (Desde - Hasta) <span className="text-[#C8102E]">*</span>
-                      </label>
-                      <span className="text-[10px] text-zinc-500 font-medium">Requerido para la prestación del servicio</span>
+                {/* FECHAS DE EVENTO (DESDE - HASTA) - SIEMPRE VISIBLE */}
+                <div className="bg-[#0D0D0D] border border-[#262626] rounded-xl p-3.5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-bold text-[#C8102E] uppercase tracking-wider flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-[#C8102E]" /> Fechas de evento (Desde - Hasta) <span className="text-[#C8102E]">*</span>
+                    </label>
+                    <span className="text-[10px] text-zinc-500 font-medium">Requerido para la prestación del servicio</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-zinc-400 font-medium">Fecha en la que se prestó el servicio (Desde) <span className="text-[#C8102E] font-bold">*</span></label>
+                      <input
+                        type="date"
+                        required
+                        value={unregFechaEventoDesde}
+                        onChange={(e) => setUnregFechaEventoDesde(e.target.value)}
+                        className="w-full px-3 py-2 bg-black/50 border border-[#1C1C28] focus:border-[#C8102E] rounded-xl text-xs text-white outline-none"
+                      />
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <label className="text-[10px] text-zinc-400 font-medium">Fecha en la que se prestó el servicio (Desde) <span className="text-[#C8102E] font-bold">*</span></label>
-                        <input
-                          type="date"
-                          required
-                          value={unregFechaEventoDesde}
-                          onChange={(e) => setUnregFechaEventoDesde(e.target.value)}
-                          className="w-full px-3 py-2 bg-black/50 border border-[#1C1C28] focus:border-[#C8102E] rounded-xl text-xs text-white outline-none"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[10px] text-zinc-400 font-medium">Fecha fin del servicio (Hasta)</label>
-                        <input
-                          type="date"
-                          value={unregFechaEventoHasta}
-                          onChange={(e) => setUnregFechaEventoHasta(e.target.value)}
-                          className="w-full px-3 py-2 bg-black/50 border border-[#1C1C28] focus:border-[#C8102E] rounded-xl text-xs text-white outline-none"
-                        />
-                      </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-zinc-400 font-medium">Fecha fin del servicio (Hasta)</label>
+                      <input
+                        type="date"
+                        value={unregFechaEventoHasta}
+                        onChange={(e) => setUnregFechaEventoHasta(e.target.value)}
+                        className="w-full px-3 py-2 bg-black/50 border border-[#1C1C28] focus:border-[#C8102E] rounded-xl text-xs text-white outline-none"
+                      />
                     </div>
                   </div>
-                )}
+                </div>
 
                 <div className="grid grid-cols-2 gap-3 bg-black/30 p-3 rounded-xl border border-[#1C1C28]">
                   <div>
@@ -2185,6 +2192,36 @@ export default function CuentasDeCobroPage() {
                     placeholder="Concepto oficial o personalizado..."
                     className="w-full px-3 py-2 bg-black/50 border border-[#1C1C28] rounded-lg text-xs text-white outline-none"
                   />
+                </div>
+
+                {/* FECHAS DE EVENTO (DESDE - HASTA) EN DETALLES */}
+                <div className="bg-black/30 border border-[#1C1C28] rounded-xl p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-bold text-[#C8102E] uppercase tracking-wider flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5 text-[#C8102E]" /> Fechas de evento (Desde - Hasta)
+                    </label>
+                    <span className="text-[10px] text-zinc-500">Período del servicio</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="text-[10px] text-zinc-400 block mb-0.5 font-medium">Desde</span>
+                      <input
+                        type="date"
+                        value={editFechaEventoDesde}
+                        onChange={(e) => setEditFechaEventoDesde(e.target.value)}
+                        className="w-full px-2.5 py-1.5 bg-black/60 border border-[#1C1C28] focus:border-[#C8102E] rounded-lg text-xs text-white outline-none"
+                      />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-zinc-400 block mb-0.5 font-medium">Hasta</span>
+                      <input
+                        type="date"
+                        value={editFechaEventoHasta}
+                        onChange={(e) => setEditFechaEventoHasta(e.target.value)}
+                        className="w-full px-2.5 py-1.5 bg-black/60 border border-[#1C1C28] focus:border-[#C8102E] rounded-lg text-xs text-white outline-none"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
