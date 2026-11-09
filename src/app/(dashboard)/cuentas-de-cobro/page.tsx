@@ -393,7 +393,7 @@ export default function CuentasDeCobroPage() {
       });
       setStaffUsersList(sList);
 
-      // 4. Centros de Costo
+      // 4. Centros de Costo (Solo CCOs oficiales y creados explícitamente)
       try {
         const defaultCCOs = [
           'OPERACIONES PKS',
@@ -408,12 +408,9 @@ export default function CuentasDeCobroPage() {
         const found = new Set<string>(defaultCCOs);
         const ccSnap = await getDocs(collection(db, 'centrosCosto'));
         ccSnap.forEach(d => {
-          const val = (d.data().nombre || d.id || '').trim();
-          if (val) found.add(val);
-        });
-        codList.forEach(c => {
-          if (c.centroCosto && c.centroCosto !== 'PENDIENTE' && !c.centroCosto.includes('ARCHIVO PLANO')) {
-            found.add(c.centroCosto.trim());
+          const val = (d.data().nombre || d.id || '').trim().toUpperCase();
+          if (val && val.length <= 30 && !val.includes('.') && !val.includes('ARRENDAMIENTO')) {
+            found.add(val);
           }
         });
         setCentrosCostoList(Array.from(found));
@@ -1040,7 +1037,8 @@ export default function CuentasDeCobroPage() {
 
   const handleStartAprobar = (codigo: Codigo) => {
     setApprovingCodigo(codigo);
-    setApprovalCCO(codigo.centroCosto || (centrosCostoList[0] || ''));
+    const existing = (codigo.centroCosto && codigo.centroCosto !== 'PENDIENTE' && centrosCostoList.includes(codigo.centroCosto)) ? codigo.centroCosto : '';
+    setApprovalCCO(existing);
     setApprovalFechaEmision(codigo.fechaEmision || (codigo.creadoEl ? codigo.creadoEl.substring(0, 10) : new Date().toISOString().substring(0, 10)));
     setIsAddingNewCCO(false);
     setNewCCOText('');
