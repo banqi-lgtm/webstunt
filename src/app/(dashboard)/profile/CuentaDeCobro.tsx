@@ -37,6 +37,16 @@ interface CuentaDeCobroProps {
   onConfirm: (firmaData: string) => void;
 }
 
+const formatEventDate = (dt?: string | null) => {
+  if (!dt) return '';
+  const clean = dt.split('T')[0].trim();
+  const parts = clean.split('-');
+  if (parts.length === 3) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+  return clean;
+};
+
 export function CuentaDeCobro({
   numero,
   fecha,
@@ -242,14 +252,14 @@ export function CuentaDeCobro({
       <style dangerouslySetInnerHTML={{__html: `
         @page {
           size: letter portrait;
-          margin: 10mm;
+          margin: 8mm 10mm;
         }
         @media print {
           html, body {
             background: white !important;
             color: black !important;
             height: auto !important;
-            min-height: 100% !important;
+            min-height: auto !important;
             overflow: visible !important;
             position: static !important;
             margin: 0 !important;
@@ -258,21 +268,19 @@ export function CuentaDeCobro({
             print-color-adjust: exact !important;
           }
           body * {
-            visibility: hidden;
+            visibility: hidden !important;
           }
           #print-wrapper {
             visibility: visible !important;
-            display: block !important;
-            position: static !important;
-            width: 100% !important;
-            height: auto !important;
-            min-height: auto !important;
-            background: white !important;
+            background: transparent !important;
             padding: 0 !important;
             margin: 0 !important;
             overflow: visible !important;
+            position: static !important;
             inset: auto !important;
-            z-index: 999999 !important;
+            width: 100% !important;
+            height: auto !important;
+            min-height: auto !important;
           }
           #print-wrapper *, #printable-invoice, #printable-invoice * {
             visibility: visible !important;
@@ -281,7 +289,9 @@ export function CuentaDeCobro({
           }
           #printable-invoice {
             display: block !important;
-            position: static !important;
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
             box-shadow: none !important;
             width: 100% !important;
             max-width: 100% !important;
@@ -289,6 +299,8 @@ export function CuentaDeCobro({
             padding: 0 !important;
             border: none !important;
             overflow: visible !important;
+            page-break-inside: avoid !important;
+            page-break-after: avoid !important;
           }
           .no-print, .no-print * { 
             visibility: hidden !important;
@@ -322,7 +334,7 @@ export function CuentaDeCobro({
             .font-inter { font-family: 'Inter', sans-serif; }
           `}} />
 
-          <div className="flex flex-col font-inter justify-between" style={{ minHeight: '800px' }}>
+          <div className="flex flex-col font-inter justify-between min-h-[600px] print:min-h-0">
             
             {/* FULL WIDTH HEADER */}
             <div className="bg-white border-b-2 border-[#0A0A0A] p-6 md:p-8 print:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-[#0A0A0A]">
@@ -391,7 +403,7 @@ export function CuentaDeCobro({
                               <span className="font-medium text-[#0A0A0A]">{c.descripcion}</span>
                               {eventDateDesde && (
                                 <div className="text-[11px] text-zinc-600 mt-1 flex items-center gap-1 font-inter">
-                                  <span className="font-bold text-[#0A0A0A]">Fechas de evento:</span> Desde {eventDateDesde} {eventDateHasta && eventDateHasta !== eventDateDesde ? `hasta ${eventDateHasta}` : ''}
+                                  <span className="font-bold text-[#0A0A0A]">Fechas de evento:</span> {eventDateHasta && eventDateHasta !== eventDateDesde ? `Desde ${formatEventDate(eventDateDesde)} hasta ${formatEventDate(eventDateHasta)}` : formatEventDate(eventDateDesde)}
                                 </div>
                               )}
                             </td>
@@ -496,7 +508,7 @@ export function CuentaDeCobro({
                         {hasTipo && (
                           <div className={`flex justify-between ${hasNumero ? 'border-b border-[#0A0A0A]/10 pb-2 mb-2' : ''}`}>
                             <span className="font-semibold text-[#0A0A0A]">Tipo:</span>
-                            <span className="font-light">{tipoCuenta}</span>
+                            <span className="font-light">{tipoCuenta.toLowerCase() === 'nequi' || tipoCuenta.toLowerCase().includes('bajo monto') ? 'Ahorros' : tipoCuenta}</span>
                           </div>
                         )}
                         {hasNumero && (

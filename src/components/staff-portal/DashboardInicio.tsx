@@ -286,6 +286,74 @@ export function DashboardInicio({ activeTab, setActiveTab, rutUrl, certUrl, tota
   const [fechaEventoDesde, setFechaEventoDesde] = useState('');
   const [fechaEventoHasta, setFechaEventoHasta] = useState('');
   
+  const [centroCosto, setCentroCosto] = useState('OPERACIONES PKS');
+  const [isAddingNewCCO, setIsAddingNewCCO] = useState(false);
+  const [newCCOText, setNewCCOText] = useState('');
+  const [centrosCostoList, setCentrosCostoList] = useState<string[]>([
+    'OPERACIONES PKS',
+    'STUNT FEST',
+    'BTL MEDELLIN',
+    'BTL BOGOTA',
+    'ADMINISTRATIVO',
+    'LOGISTICA Y MONTAJE',
+    'PRODUCCION',
+    'MARKETING Y PUBLICIDAD'
+  ]);
+
+  useEffect(() => {
+    const fetchCCOs = async () => {
+      try {
+        const found = new Set<string>([
+          'OPERACIONES PKS',
+          'STUNT FEST',
+          'BTL MEDELLIN',
+          'BTL BOGOTA',
+          'ADMINISTRATIVO',
+          'LOGISTICA Y MONTAJE',
+          'PRODUCCION',
+          'MARKETING Y PUBLICIDAD'
+        ]);
+        const ccSnap = await getDocs(collection(db, 'centrosCosto'));
+        ccSnap.forEach(d => {
+          const val = (d.data().nombre || d.id || '').trim();
+          if (val) found.add(val);
+        });
+        const codSnap = await getDocs(collection(db, 'codigos'));
+        codSnap.forEach(d => {
+          const val = (d.data().centroCosto || '').trim();
+          if (val && val !== 'null' && val !== 'undefined') found.add(val);
+        });
+        setCentrosCostoList(Array.from(found));
+      } catch (err) {}
+    };
+    fetchCCOs();
+  }, []);
+
+  const handleAddNewCCO = async () => {
+    const trimmed = newCCOText.trim().toUpperCase();
+    if (!trimmed) return;
+    try {
+      await setDoc(doc(db, 'centrosCosto', trimmed), {
+        nombre: trimmed,
+        creadoEl: new Date().toISOString()
+      });
+      if (!centrosCostoList.includes(trimmed)) {
+        setCentrosCostoList(prev => [...prev, trimmed]);
+      }
+      setCentroCosto(trimmed);
+      setIsAddingNewCCO(false);
+      setNewCCOText('');
+      toast({ title: "Centro de Costo creado", description: `Se añadió ${trimmed} a la lista.` });
+    } catch (e) {
+      if (!centrosCostoList.includes(trimmed)) {
+        setCentrosCostoList(prev => [...prev, trimmed]);
+      }
+      setCentroCosto(trimmed);
+      setIsAddingNewCCO(false);
+      setNewCCOText('');
+    }
+  };
+
   const [localUserName, setLocalUserName] = useState(userName || '');
   useEffect(() => {
     if (userName) setLocalUserName(userName);
@@ -510,16 +578,16 @@ export function DashboardInicio({ activeTab, setActiveTab, rutUrl, certUrl, tota
         cobradorNombre: cobradorNombre,
         cobradorDocumento: cleanDoc,
         cobradorTelefono: telefonoContacto.trim(),
-        centroCosto: null,
+        centroCosto: centroCosto || 'OPERACIONES PKS',
         fechaEventoDesde: fechaEventoDesde,
-        fechaEventoHasta: fechaEventoHasta || fechaEventoDesde,
+        fechaEventoHasta: fechaEventoHasta || null,
         valorTotal: numericValue,
         conceptos: [{
           item: 1,
           descripcion: concepto,
           valor: numericValue,
           fechaDesde: fechaEventoDesde,
-          fechaHasta: fechaEventoHasta || fechaEventoDesde,
+          fechaHasta: fechaEventoHasta || null,
           retencionMotivo: null,
           retencionPorcentaje: null
         }],
@@ -574,8 +642,9 @@ export function DashboardInicio({ activeTab, setActiveTab, rutUrl, certUrl, tota
         creadoEl: new Date().toISOString(),
         cobradoEl: new Date().toISOString(),
         fechaEmision: fechaEmision,
+        centroCosto: centroCosto || 'OPERACIONES PKS',
         fechaEventoDesde: fechaEventoDesde || null,
-        fechaEventoHasta: fechaEventoHasta || fechaEventoDesde || null,
+        fechaEventoHasta: fechaEventoHasta || null,
         ciudad: cityToSave
       });
 
@@ -780,7 +849,6 @@ export function DashboardInicio({ activeTab, setActiveTab, rutUrl, certUrl, tota
                       value={fechaEventoDesde}
                       onChange={(e) => {
                         setFechaEventoDesde(e.target.value);
-                        if (!fechaEventoHasta) setFechaEventoHasta(e.target.value);
                       }}
                       className="w-full bg-[#0A0A0A] border border-[#333333] rounded-md px-3.5 py-2.5 text-white text-xs hover:border-zinc-500 focus:border-[#E60000] focus:ring-1 focus:ring-[#E60000] outline-none transition-all"
                     />
@@ -797,6 +865,69 @@ export function DashboardInicio({ activeTab, setActiveTab, rutUrl, certUrl, tota
                 </div>
               </div>
             )}
+
+            {/* CENTRO DE COSTO (CCO) */}
+            <div className="space-y-2 col-span-1 md:col-span-2">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <Building2 className="w-3.5 h-3.5 text-[#E60000]" /> Centro de Costo (CCO) <span className="text-[#E60000] font-bold">*</span>
+                </label>
+                <span className="text-[10px] text-zinc-500 font-medium">Asignar a proyecto o evento</span>
+              </div>
+              {isAddingNewCCO ? (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Nombre nuevo CCO (ej: EVENTO MEDELLIN)..."
+                    value={newCCOText}
+                    onChange={(e) => setNewCCOText(e.target.value.toUpperCase())}
+                    className="flex-1 bg-[#0A0A0A] border border-[#E60000] text-white rounded-md h-11 px-3.5 text-xs outline-none uppercase font-inter"
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddNewCCO}
+                    className="bg-[#E60000] hover:bg-red-700 text-white px-4 rounded-md text-xs font-bold transition shadow-lg"
+                  >
+                    Guardar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setIsAddingNewCCO(false); setNewCCOText(''); }}
+                    className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 rounded-md text-xs transition"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <select
+                      value={centroCosto}
+                      onChange={(e) => setCentroCosto(e.target.value)}
+                      className="w-full bg-[#0A0A0A] border border-[#333333] hover:border-zinc-500 focus:border-[#E60000] rounded-md h-11 px-3 text-xs text-white outline-none appearance-none cursor-pointer"
+                    >
+                      <option value="">[ SELECCIONAR CENTRO DE COSTO * ]</option>
+                      {centrosCostoList.map((cc) => (
+                        <option key={cc} value={cc}>
+                          {cc}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500 text-xs">▼</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingNewCCO(true)}
+                    className="bg-[#18181b] border border-[#27272a] hover:border-[#E60000]/60 text-zinc-300 hover:text-white px-3.5 rounded-md text-xs font-bold flex items-center gap-1.5 transition"
+                    title="Crear nuevo Centro de Costo"
+                  >
+                    <PlusCircle className="w-4 h-4 text-[#E60000]" />
+                    <span>Nuevo CCO</span>
+                  </button>
+                </div>
+              )}
+            </div>
 
             <div className="space-y-2">
               <label className="text-[11px] font-medium text-zinc-400">Valor total <span className="text-[#E60000] font-bold">*</span></label>

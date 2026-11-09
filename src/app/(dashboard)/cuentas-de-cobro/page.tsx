@@ -214,7 +214,16 @@ export default function CuentasDeCobroPage() {
   const [approvalFechaEmision, setApprovalFechaEmision] = useState('');
   const [isAddingNewCCO, setIsAddingNewCCO] = useState(false);
   const [newCCOText, setNewCCOText] = useState('');
-  const [centrosCostoList, setCentrosCostoList] = useState<string[]>([]);
+  const [centrosCostoList, setCentrosCostoList] = useState<string[]>([
+    'OPERACIONES PKS',
+    'STUNT FEST',
+    'BTL MEDELLIN',
+    'BTL BOGOTA',
+    'ADMINISTRATIVO',
+    'LOGISTICA Y MONTAJE',
+    'PRODUCCION',
+    'MARKETING Y PUBLICIDAD'
+  ]);
   const [isSubmittingApproval, setIsSubmittingApproval] = useState(false);
 
   // Resolve Complete Titular (2 names, 2 surnames)
@@ -386,14 +395,28 @@ export default function CuentasDeCobroPage() {
 
       // 4. Centros de Costo
       try {
+        const defaultCCOs = [
+          'OPERACIONES PKS',
+          'STUNT FEST',
+          'BTL MEDELLIN',
+          'BTL BOGOTA',
+          'ADMINISTRATIVO',
+          'LOGISTICA Y MONTAJE',
+          'PRODUCCION',
+          'MARKETING Y PUBLICIDAD'
+        ];
+        const found = new Set<string>(defaultCCOs);
         const ccSnap = await getDocs(collection(db, 'centrosCosto'));
-        const ccList: string[] = [];
         ccSnap.forEach(d => {
           const val = (d.data().nombre || d.id || '').trim();
-          if (val && !ccList.includes(val)) ccList.push(val);
+          if (val) found.add(val);
         });
-        if (!ccList.includes('OPERACIONES PKS')) ccList.unshift('OPERACIONES PKS');
-        setCentrosCostoList(ccList);
+        codList.forEach(c => {
+          if (c.centroCosto && c.centroCosto !== 'PENDIENTE' && !c.centroCosto.includes('ARCHIVO PLANO')) {
+            found.add(c.centroCosto.trim());
+          }
+        });
+        setCentrosCostoList(Array.from(found));
       } catch (err) {
         console.error("Error al cargar centros de costo", err);
       }
@@ -808,7 +831,7 @@ export default function CuentasDeCobroPage() {
         setUnregDocumento('');
         setUnregValor('');
         setUnregDescripcion('');
-        setUnregCentroCosto('');
+        setUnregCentroCosto('OPERACIONES PKS');
         setUnregRetencionMotivo('');
         setUnregRetencionPorcentaje('');
         await fetchData();
@@ -882,7 +905,7 @@ export default function CuentasDeCobroPage() {
         setSelectedStaffUid('');
         setUnregValor('');
         setUnregDescripcion('');
-        setUnregCentroCosto('');
+        setUnregCentroCosto('OPERACIONES PKS');
         setUnregRetencionMotivo('');
         setUnregRetencionPorcentaje('');
         await fetchData();
@@ -1035,6 +1058,8 @@ export default function CuentasDeCobroPage() {
         setCentrosCostoList(prev => [...prev, ccoName]);
       }
       setApprovalCCO(ccoName);
+      setUnregCentroCosto(ccoName);
+      setEditCentroCosto(ccoName);
       setIsAddingNewCCO(false);
       setNewCCOText('');
       toast({ title: 'Centro de Costo creado', description: `Se añadió ${ccoName} a la lista.` });
@@ -1842,15 +1867,57 @@ export default function CuentasDeCobroPage() {
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider block mb-1">Centro de Costo (CCO) *</label>
-                    <input 
-                      type="text" 
-                      required
-                      value={unregCentroCosto}
-                      onChange={(e) => setUnregCentroCosto(e.target.value.toUpperCase())}
-                      placeholder="EJ: OPERACIONES PKS"
-                      className="w-full px-3.5 py-2.5 bg-black/50 border border-[#1C1C28] focus:border-[#C8102E] rounded-xl text-xs text-white uppercase outline-none"
-                    />
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider block">Centro de Costo (CCO) *</label>
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingNewCCO(true)}
+                        className="text-[10px] text-[#C8102E] hover:underline font-bold"
+                      >
+                        + Nuevo CCO
+                      </button>
+                    </div>
+                    {isAddingNewCCO ? (
+                      <div className="flex gap-1.5">
+                        <input
+                          type="text"
+                          placeholder="Nombre CCO..."
+                          value={newCCOText}
+                          onChange={(e) => setNewCCOText(e.target.value.toUpperCase())}
+                          className="flex-1 px-3 py-2 bg-black/60 border border-[#C8102E] rounded-xl text-xs text-white uppercase outline-none"
+                          autoFocus
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddNewCCO}
+                          className="bg-[#C8102E] text-white px-2.5 rounded-xl text-xs font-bold"
+                        >
+                          OK
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setIsAddingNewCCO(false); setNewCCOText(''); }}
+                          className="bg-zinc-800 text-zinc-400 px-2 rounded-xl text-xs"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="relative">
+                        <select 
+                          required
+                          value={unregCentroCosto}
+                          onChange={(e) => setUnregCentroCosto(e.target.value)}
+                          className="w-full px-3.5 py-2.5 bg-black/50 border border-[#1C1C28] focus:border-[#C8102E] rounded-xl text-xs text-white uppercase outline-none cursor-pointer appearance-none"
+                        >
+                          <option value="">[ SELECCIONAR CCO ]</option>
+                          {centrosCostoList.map((cc) => (
+                            <option key={cc} value={cc}>{cc}</option>
+                          ))}
+                        </select>
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500 text-xs">▼</div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -2032,14 +2099,57 @@ export default function CuentasDeCobroPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block mb-1">Centro Costo (CCO) *</label>
-                    <input 
-                      type="text"
-                      required
-                      value={editCentroCosto}
-                      onChange={(e) => setEditCentroCosto(e.target.value.toUpperCase())}
-                      className="w-full px-3 py-2 bg-black/50 border border-[#1C1C28] rounded-lg text-xs text-white uppercase outline-none"
-                    />
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block">Centro Costo (CCO) *</label>
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingNewCCO(true)}
+                        className="text-[10px] text-[#C8102E] hover:underline font-bold"
+                      >
+                        + Nuevo
+                      </button>
+                    </div>
+                    {isAddingNewCCO ? (
+                      <div className="flex gap-1.5">
+                        <input
+                          type="text"
+                          placeholder="Nombre CCO..."
+                          value={newCCOText}
+                          onChange={(e) => setNewCCOText(e.target.value.toUpperCase())}
+                          className="flex-1 px-2.5 py-1.5 bg-black/60 border border-[#C8102E] rounded-lg text-xs text-white uppercase outline-none"
+                          autoFocus
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddNewCCO}
+                          className="bg-[#C8102E] text-white px-2 rounded-lg text-xs font-bold"
+                        >
+                          OK
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setIsAddingNewCCO(false); setNewCCOText(''); }}
+                          className="bg-zinc-800 text-zinc-400 px-1.5 rounded-lg text-xs"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="relative">
+                        <select 
+                          required
+                          value={editCentroCosto}
+                          onChange={(e) => setEditCentroCosto(e.target.value)}
+                          className="w-full px-3 py-2 bg-black/50 border border-[#1C1C28] focus:border-[#C8102E] rounded-lg text-xs text-white uppercase outline-none cursor-pointer appearance-none"
+                        >
+                          <option value="">[ SELECCIONAR CCO ]</option>
+                          {centrosCostoList.map((cc) => (
+                            <option key={cc} value={cc}>{cc}</option>
+                          ))}
+                        </select>
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500 text-xs">▼</div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
