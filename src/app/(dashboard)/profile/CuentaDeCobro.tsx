@@ -10,6 +10,8 @@ interface Concepto {
   item: number;
   descripcion: string;
   valor: number;
+  fechaDesde?: string | null;
+  fechaHasta?: string | null;
   retencionMotivo?: string | null;
   retencionPorcentaje?: number | null;
 }
@@ -19,6 +21,10 @@ interface CuentaDeCobroProps {
   fecha: string;
   cobradorNombre: string;
   cobradorDocumento: string;
+  cobradorTelefono?: string | null;
+  centroCosto?: string | null;
+  fechaEventoDesde?: string | null;
+  fechaEventoHasta?: string | null;
   valorTotal: number;
   conceptos: Concepto[];
   banco: string;
@@ -36,6 +42,10 @@ export function CuentaDeCobro({
   fecha,
   cobradorNombre,
   cobradorDocumento,
+  cobradorTelefono,
+  centroCosto,
+  fechaEventoDesde,
+  fechaEventoHasta,
   valorTotal,
   conceptos,
   banco,
@@ -323,6 +333,15 @@ export function CuentaDeCobro({
               <div className="text-left sm:text-right border-t border-[#0A0A0A]/20 sm:border-t-0 pt-4 sm:pt-0 w-full sm:w-auto">
                 <h2 className="font-barlow text-xl md:text-2xl print:text-xl uppercase tracking-wider font-medium text-[#0A0A0A]/80">Cuenta de Cobro</h2>
                 <p className="font-barlow text-2xl md:text-3xl print:text-2xl font-bold mt-1 text-[#0A0A0A]">N° {displayNumero}</p>
+                {centroCosto ? (
+                  <div className="mt-1.5 inline-block bg-[#0A0A0A] text-white px-2.5 py-1 rounded text-[11px] font-bold tracking-wider uppercase font-inter print:border print:border-[#0A0A0A]">
+                    C.C.O: {centroCosto}
+                  </div>
+                ) : (
+                  <div className="mt-1 inline-block border border-dashed border-zinc-400 bg-zinc-50 px-2 py-0.5 rounded text-[10px] font-medium text-zinc-500 tracking-wider uppercase font-inter">
+                    C.C.O: PENDIENTE
+                  </div>
+                )}
               </div>
             </div>
 
@@ -362,13 +381,24 @@ export function CuentaDeCobro({
                       </tr>
                     </thead>
                     <tbody>
-                      {conceptos.map((c, i) => (
-                        <tr key={i} className="bg-white">
-                          <td className="py-2.5 px-3 text-center border border-[#0A0A0A] font-light text-[#0A0A0A]">{c.item}</td>
-                          <td className="py-2.5 px-3 border border-[#0A0A0A] font-light text-[#0A0A0A]">{c.descripcion}</td>
-                          <td className="py-2.5 px-3 text-right border border-[#0A0A0A] font-semibold text-[#0A0A0A]">${c.valor.toLocaleString('es-CO')}</td>
-                        </tr>
-                      ))}
+                      {conceptos.map((c, i) => {
+                        const eventDateDesde = c.fechaDesde || fechaEventoDesde;
+                        const eventDateHasta = c.fechaHasta || fechaEventoHasta;
+                        return (
+                          <tr key={i} className="bg-white">
+                            <td className="py-2.5 px-3 text-center border border-[#0A0A0A] font-light text-[#0A0A0A]">{c.item}</td>
+                            <td className="py-2.5 px-3 border border-[#0A0A0A] font-light text-[#0A0A0A]">
+                              <span className="font-medium text-[#0A0A0A]">{c.descripcion}</span>
+                              {eventDateDesde && (
+                                <div className="text-[11px] text-zinc-600 mt-1 flex items-center gap-1 font-inter">
+                                  <span className="font-bold text-[#0A0A0A]">Fechas de evento:</span> Desde {eventDateDesde} {eventDateHasta && eventDateHasta !== eventDateDesde ? `hasta ${eventDateHasta}` : ''}
+                                </div>
+                              )}
+                            </td>
+                            <td className="py-2.5 px-3 text-right border border-[#0A0A0A] font-semibold text-[#0A0A0A]">${c.valor.toLocaleString('es-CO')}</td>
+                          </tr>
+                        );
+                      })}
                       <tr className="bg-zinc-50">
                         <td colSpan={2} className="py-2.5 px-4 text-right font-bold text-[#0A0A0A] border border-[#0A0A0A]">SUBTOTAL:</td>
                         <td className="py-2.5 px-4 text-right font-bold text-[#0A0A0A] border border-[#0A0A0A]">${valorTotal.toLocaleString('es-CO')}</td>
@@ -438,6 +468,9 @@ export function CuentaDeCobro({
                   </div>
                   <p className="font-barlow text-xl print:text-lg uppercase font-bold text-[#0A0A0A]">{resolvedCobradorNombre}</p>
                   <p className="text-xs text-[#0A0A0A] font-light mt-0.5">{formattedCobradorDocumento}</p>
+                  {cobradorTelefono && cobradorTelefono !== 'No registrado' && (
+                    <p className="text-xs text-[#0A0A0A] font-light mt-0.5">Teléfono: {cobradorTelefono}</p>
+                  )}
                 </div>
 
                 {/* BANK INFO */}

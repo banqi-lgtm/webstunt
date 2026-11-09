@@ -7,7 +7,7 @@ import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, getDocs, doc, getDoc, setDoc, deleteDoc, query, where, updateDoc, orderBy } from 'firebase/firestore';
 import { 
-  FileSpreadsheet, Receipt, FileText, Plus, Trash2, CheckCircle, XCircle, Search, 
+  FileSpreadsheet, Receipt, FileText, Plus, Trash2, CheckCircle, XCircle, X, Search, 
   Eye, Users, Calendar, DollarSign, Percent, ShieldCheck, Layers, Loader2, 
   Building2, UserCheck, RefreshCw, UserX, Download, UploadCloud, FileUp, 
   AlertTriangle, Printer, ArrowRight, Filter, ChevronRight, Edit3, ArrowLeft,
@@ -207,6 +207,16 @@ export default function CuentasDeCobroPage() {
   const [editDocumento, setEditDocumento] = useState('');
   const [editCiudad, setEditCiudad] = useState('');
 
+  // Approval Modal State (Mandatory CCO and editable issuance date)
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [approvingCodigo, setApprovingCodigo] = useState<Codigo | null>(null);
+  const [approvalCCO, setApprovalCCO] = useState('');
+  const [approvalFechaEmision, setApprovalFechaEmision] = useState('');
+  const [isAddingNewCCO, setIsAddingNewCCO] = useState(false);
+  const [newCCOText, setNewCCOText] = useState('');
+  const [centrosCostoList, setCentrosCostoList] = useState<string[]>([]);
+  const [isSubmittingApproval, setIsSubmittingApproval] = useState(false);
+
   // Resolve Complete Titular (2 names, 2 surnames)
   const getResolvedTitular = (c: Partial<Codigo> | null | undefined): string => {
     if (!c) return 'Colaborador';
@@ -373,6 +383,20 @@ export default function CuentasDeCobroPage() {
         };
       });
       setStaffUsersList(sList);
+
+      // 4. Centros de Costo
+      try {
+        const ccSnap = await getDocs(collection(db, 'centrosCosto'));
+        const ccList: string[] = [];
+        ccSnap.forEach(d => {
+          const val = (d.data().nombre || d.id || '').trim();
+          if (val && !ccList.includes(val)) ccList.push(val);
+        });
+        if (!ccList.includes('OPERACIONES PKS')) ccList.unshift('OPERACIONES PKS');
+        setCentrosCostoList(ccList);
+      } catch (err) {
+        console.error("Error al cargar centros de costo", err);
+      }
 
     } catch (e) {
       console.error(e);
@@ -906,14 +930,20 @@ export default function CuentasDeCobroPage() {
 
     setInvoiceData({
       numero: codigo.id,
-      fecha: codigo.fecha || codigo.cobradoEl || codigo.creadoEl || new Date().toISOString(),
+      fecha: codigo.fechaEmision || codigo.fecha || codigo.cobradoEl || codigo.creadoEl || new Date().toISOString(),
       cobradorNombre: cobradorName,
       cobradorDocumento: cobradorDoc,
+      cobradorTelefono: codigo.telefono || staff?.telefono || 'No registrado',
+      centroCosto: codigo.centroCosto || null,
+      fechaEventoDesde: codigo.fechaEventoDesde || null,
+      fechaEventoHasta: codigo.fechaEventoHasta || null,
       valorTotal: codigo.valor,
       conceptos: [{
         item: 1,
         descripcion: codigo.descripcion,
         valor: codigo.valor,
+        fechaDesde: codigo.fechaEventoDesde || null,
+        fechaHasta: codigo.fechaEventoHasta || null,
         retencionMotivo: codigo.retencionMotivo || null,
         retencionPorcentaje: codigo.retencionPorcentaje || null
       }],
@@ -985,17 +1015,76 @@ export default function CuentasDeCobroPage() {
     }
   };
 
-  const handleAprobarCodigo = async (id: string) => {
+  const handleStartAprobar = (codigo: Codigo) => {
+    setApprovingCodigo(codigo);
+    setApprovalCCO(codigo.centroCosto || (centrosCostoList[0] || ''));
+    setApprovalFechaEmision(codigo.fechaEmision || (codigo.creadoEl ? codigo.creadoEl.substring(0, 10) : new Date().toISOString().substring(0, 10)));
+    setIsAddingNewCCO(false);
+    setNewCCOText('');
+    setShowApprovalModal(true);
+  };
+
+  const handleAddNewCCO = async () => {
+    if (!newCCOText.trim()) return;
     try {
-      await updateDoc(doc(db, 'codigos', id), { estadoAprobacion: 'aprobado' });
-      setCodigos(prev => prev.map(c => c.id === id ? { ...c, estadoAprobacion: 'aprobado' } : c));
-      if (selectedCodigo && selectedCodigo.id === id) {
-        setSelectedCodigo(prev => prev ? { ...prev, estadoAprobacion: 'aprobado' } : null);
+      const ccoName = newCCOText.trim().toUpperCase();
+      await setDoc(doc(db, 'centrosCosto', ccoName), {
+        nombre: ccoName
+      }, { merge: true });
+      if (!centrosCostoList.includes(ccoName)) {
+        setCentrosCostoList(prev => [...prev, ccoName]);
       }
-      toast({ title: 'Cuenta Aprobada', description: `La cuenta de cobro ${id} ha sido aprobada (Realizado).` });
+      setApprovalCCO(ccoName);
+      setIsAddingNewCCO(false);
+      setNewCCOText('');
+      toast({ title: 'Centro de Costo creado', description: `Se añadió ${ccoName} a la lista.` });
+    } catch (e) {
+      toast({ title: 'Error al crear CCO', variant: 'destructive' });
+    }
+  };
+
+  const handleConfirmApproval = async () => {
+    if (!approvalCCO || !approvalCCO.trim()) {
+      toast({ title: 'Centro de Costo obligatorio', description: 'Debes asignar un Centro de Costo (CCO) para poder aprobar la cuenta de cobro.', variant: 'destructive' });
+      return;
+    }
+    if (!approvingCodigo) return;
+    try {
+      setIsSubmittingApproval(true);
+      const ccoFinal = approvalCCO.trim().toUpperCase();
+      const fechaFinal = approvalFechaEmision || new Date().toISOString().substring(0, 10);
+      
+      await updateDoc(doc(db, 'codigos', approvingCodigo.id), {
+        estadoAprobacion: 'aprobado',
+        centroCosto: ccoFinal,
+        fechaEmision: fechaFinal,
+        aprobadoEl: new Date().toISOString()
+      });
+
+      setCodigos(prev => prev.map(c => c.id === approvingCodigo.id ? {
+        ...c,
+        estadoAprobacion: 'aprobado',
+        centroCosto: ccoFinal,
+        fechaEmision: fechaFinal
+      } : c));
+
+      if (selectedCodigo && selectedCodigo.id === approvingCodigo.id) {
+        setSelectedCodigo(prev => prev ? {
+          ...prev,
+          estadoAprobacion: 'aprobado',
+          centroCosto: ccoFinal,
+          fechaEmision: fechaFinal
+        } : null);
+      }
+
+      toast({ title: 'Cuenta Aprobada', description: `La cuenta de cobro ${approvingCodigo.id} ha sido aprobada con CCO ${ccoFinal}.` });
+      setShowApprovalModal(false);
+      setApprovingCodigo(null);
     } catch (e) {
       console.error(e);
       toast({ title: 'Error', description: 'No se pudo aprobar la cuenta de cobro.', variant: 'destructive' });
+    } finally {
+      setIsSubmittingApproval(false);
     }
   };
 
@@ -1341,7 +1430,7 @@ export default function CuentasDeCobroPage() {
                             {c.estadoAprobacion !== 'aprobado' && (
                               <button
                                 type="button"
-                                onClick={() => handleAprobarCodigo(c.id)}
+                                onClick={() => handleStartAprobar(c)}
                                 title="Aprobar Cuenta de Cobro (Marcar Realizado)"
                                 className="p-1.5 rounded-lg bg-emerald-950/60 hover:bg-emerald-800 text-emerald-400 border border-emerald-500/40 transition"
                               >
@@ -1969,9 +2058,8 @@ export default function CuentasDeCobroPage() {
                   {selectedCodigo.estadoAprobacion !== 'aprobado' && (
                     <button
                       type="button"
-                      onClick={async () => {
-                        await handleAprobarCodigo(selectedCodigo.id);
-                        setShowDetallesModal(false);
+                      onClick={() => {
+                        handleStartAprobar(selectedCodigo);
                       }}
                       className="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5"
                     >
@@ -2007,6 +2095,167 @@ export default function CuentasDeCobroPage() {
                     Guardar
                   </button>
                 </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL DE APROBACIÓN CON CCO OBLIGATORIO Y FECHA EDITABLE */}
+      <AnimatePresence>
+        {showApprovalModal && approvingCodigo && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-[#0A0A0F] border border-[#222222] rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl"
+            >
+              <div className="p-6 border-b border-[#1A1A1A] flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-black text-white flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-emerald-500" />
+                    APROBAR CUENTA DE COBRO
+                  </h3>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    Cuenta <span className="text-white font-mono font-bold">{approvingCodigo.id}</span> • {approvingCodigo.cobradoPor || approvingCodigo.asignadoANombre || 'Colaborador'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowApprovalModal(false)}
+                  className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-5">
+                <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-xl p-3.5 flex justify-between items-center text-xs">
+                  <div>
+                    <span className="text-zinc-400 block text-[11px]">Valor a pagar:</span>
+                    <span className="text-lg font-bold text-emerald-400 font-mono">
+                      ${approvingCodigo.valor?.toLocaleString('es-CO')}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-zinc-400 block text-[11px]">Concepto:</span>
+                    <span className="text-zinc-200 font-medium max-w-[200px] truncate block">
+                      {approvingCodigo.descripcion || approvingCodigo.concepto}
+                    </span>
+                  </div>
+                </div>
+
+                {/* CENTRO DE COSTO (CCO) OBLIGATORIO */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                      Centro de Costo (CCO) <span className="text-[#C8102E]">*</span>
+                    </label>
+                    <span className="text-[10px] font-semibold bg-red-950/50 text-red-400 px-2 py-0.5 rounded border border-red-500/30">
+                      OBLIGATORIO
+                    </span>
+                  </div>
+
+                  {isAddingNewCCO ? (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Nombre nuevo CCO (ej: EVENTO MEDELLIN)..."
+                        value={newCCOText}
+                        onChange={(e) => setNewCCOText(e.target.value.toUpperCase())}
+                        className="flex-1 bg-black/60 border border-[#C8102E] text-white rounded-lg h-10 px-3.5 text-xs outline-none uppercase font-inter"
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddNewCCO}
+                        className="bg-[#C8102E] hover:bg-red-700 text-white px-3.5 rounded-lg text-xs font-bold transition"
+                      >
+                        Guardar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setIsAddingNewCCO(false); setNewCCOText(''); }}
+                        className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 rounded-lg text-xs transition"
+                      >
+                        X
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <select
+                          value={approvalCCO}
+                          onChange={(e) => setApprovalCCO(e.target.value)}
+                          className="w-full bg-black/50 border border-[#262626] focus:border-[#C8102E] rounded-lg h-10 px-3 text-xs text-white outline-none appearance-none cursor-pointer"
+                        >
+                          <option value="">[ SELECCIONAR CENTRO DE COSTO * ]</option>
+                          {centrosCostoList.map((cc) => (
+                            <option key={cc} value={cc}>
+                              {cc}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500 text-xs">▼</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingNewCCO(true)}
+                        className="bg-zinc-900 border border-[#262626] hover:border-[#C8102E]/60 text-zinc-300 hover:text-white px-3 rounded-lg text-xs font-bold flex items-center gap-1 transition"
+                        title="Crear nuevo Centro de Costo"
+                      >
+                        <Plus className="w-4 h-4 text-[#C8102E]" />
+                        <span>Nuevo</span>
+                      </button>
+                    </div>
+                  )}
+                  <p className="text-[10px] text-zinc-500">
+                    El Centro de Costos se imprimirá debajo del número de cuenta de cobro.
+                  </p>
+                </div>
+
+                {/* FECHA DE EXPEDICIÓN EDITABLE AL APROBAR */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider">
+                      Fecha de Expedición (Editable al aprobar)
+                    </label>
+                    <span className="text-[10px] text-zinc-500">Fecha formal de la cuenta</span>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={approvalFechaEmision}
+                      onChange={(e) => setApprovalFechaEmision(e.target.value)}
+                      className="w-full bg-black/50 border border-[#262626] focus:border-[#C8102E] rounded-lg h-10 px-3 text-xs text-white outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 bg-zinc-950 border-t border-[#1A1A1A] flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowApprovalModal(false)}
+                  disabled={isSubmittingApproval}
+                  className="px-4 py-2.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-bold transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmApproval}
+                  disabled={isSubmittingApproval || !approvalCCO.trim()}
+                  className="px-5 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold flex items-center gap-2 transition shadow-lg shadow-emerald-950/50"
+                >
+                  {isSubmittingApproval ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <CheckCircle className="w-4 h-4" />
+                  )}
+                  <span>Aprobar y Registrar CCO</span>
+                </button>
               </div>
             </motion.div>
           </div>

@@ -40,13 +40,103 @@ export function DashboardInicio({ activeTab, setActiveTab, rutUrl, certUrl, tota
   const [isUpdatingRut, setIsUpdatingRut] = useState(false);
   const [isUpdatingCert, setIsUpdatingCert] = useState(false);
 
-  const fileToBase64 = (file: File): Promise<string> => {
+  const [localBanco, setLocalBanco] = useState('');
+  const [localTipoCuenta, setLocalTipoCuenta] = useState('');
+  const [localNumeroCuenta, setLocalNumeroCuenta] = useState('');
+
+  const [showManualBankModal, setShowManualBankModal] = useState(false);
+  const [pendingCertDownloadUrl, setPendingCertDownloadUrl] = useState<string | null>(null);
+  const [manualBanco, setManualBanco] = useState('Nequi');
+  const [manualTipoCuenta, setManualTipoCuenta] = useState('Ahorros');
+  const [manualNumeroCuenta, setManualNumeroCuenta] = useState('');
+
+  // Comprimir imagen a resolución balanceada (1600px, 0.88 quality) para agilizar OCR e IA
+  const compressImageIfNeeded = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = error => reject(error);
+      if (!file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = error => reject(error);
+        return;
+      }
+
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        const MAX_DIM = 1600;
+        let width = img.width;
+        let height = img.height;
+        if (width > MAX_DIM || height > MAX_DIM) {
+          if (width > height) {
+            height = Math.round((height * MAX_DIM) / width);
+            width = MAX_DIM;
+          } else {
+            width = Math.round((width * MAX_DIM) / height);
+            height = MAX_DIM;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.88));
+        } else {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = error => reject(error);
+        }
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = error => reject(error);
+      };
+      img.src = objectUrl;
     });
+  };
+
+  const handleSaveManualBank = async () => {
+    const cleanNum = manualNumeroCuenta.replace(/\D/g, '').trim();
+    if (!cleanNum) {
+      toast({ title: "Campo requerido", description: "Por favor ingresa el número de cuenta.", variant: "destructive" });
+      return;
+    }
+    try {
+      const userRef = doc(db, 'users', userUid);
+      const updateData: any = {
+        banco: manualBanco,
+        tipoCuenta: manualTipoCuenta,
+        numeroCuenta: cleanNum,
+      };
+      if (pendingCertDownloadUrl) {
+        updateData.certUrl = pendingCertDownloadUrl;
+        setLocalCertUrl(pendingCertDownloadUrl);
+      }
+      const docKey = 'certBancaria';
+      if (documentosRechazados.includes(docKey)) {
+        updateData.documentosRechazados = arrayRemove(docKey);
+      }
+      await updateDoc(userRef, updateData);
+      setLocalBanco(manualBanco);
+      setLocalTipoCuenta(manualTipoCuenta);
+      setLocalNumeroCuenta(cleanNum);
+      if (setDocumentosRechazados && documentosRechazados.includes(docKey)) {
+        setDocumentosRechazados(prev => prev.filter(k => k !== docKey));
+      }
+      setShowManualBankModal(false);
+      setPendingCertDownloadUrl(null);
+      toast({ title: "Datos Guardados", description: `${manualBanco} - ${manualTipoCuenta} N° ${cleanNum}` });
+    } catch (err) {
+      console.error(err);
+      toast({ title: "Error", description: "No se pudieron guardar los datos.", variant: "destructive" });
+    }
   };
 
   const handleUpdateDocument = async (e: React.ChangeEvent<HTMLInputElement>, type: 'rut' | 'cert') => {
@@ -57,7 +147,7 @@ export function DashboardInicio({ activeTab, setActiveTab, rutUrl, certUrl, tota
       if (type === 'rut') setIsUpdatingRut(true);
       if (type === 'cert') setIsUpdatingCert(true);
 
-      const dataUrl = await fileToBase64(file);
+      const dataUrl = await compressImageIfNeeded(file);
       
       // Upload to Storage
       const storageRef = ref(storage, `users/${userUid}/${type}_${Date.now()}`);
@@ -65,33 +155,60 @@ export function DashboardInicio({ activeTab, setActiveTab, rutUrl, certUrl, tota
       const downloadUrl = await getDownloadURL(storageRef);
 
       const body: any = {};
-      if (type === 'rut') body.rutFile = { dataUrl, fileType: file.type };
-      if (type === 'cert') body.certFile = { dataUrl, fileType: file.type };
+      if (type === 'rut') body.rutFile = { dataUrl, fileType: file.type || 'application/pdf' };
+      if (type === 'cert') body.certFile = { dataUrl, fileType: file.type || 'application/pdf' };
 
       // Extract Data via AI
       toast({ title: "Procesando", description: `Analizando ${type.toUpperCase()} con IA...` });
-      const response = await fetch('/api/extract-document', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      const data = await response.json();
-      console.log("Raw AI Response:", data);
       
-      // Validar si la IA pudo extraer la info requerida
+      let data: any = {};
+      try {
+        const response = await fetch('/api/extract-document', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        if (response.ok) {
+          data = await response.json();
+          console.log("Raw AI Response:", data);
+        } else {
+          console.warn("AI extraction returned status:", response.status);
+        }
+      } catch (fErr) {
+        console.warn("AI extraction fetch error:", fErr);
+      }
+      
+      // Validar y normalizar
       if (type === 'rut') {
-        if (!data.documentoIdentidad || !data.ciudad) {
-          toast({ title: "Documento ilegible", description: "No pudimos extraer el NIT o la Ciudad. El archivo puede estar bloqueado o borroso. Por favor, vuelve a subirlo.", variant: "destructive" });
-          return; // Detenemos el proceso y no lo marcamos como subido
+        if (!data.documentoIdentidad) {
+          toast({ title: "Documento ilegible", description: "No pudimos extraer el NIT o cédula del RUT. Por favor revisa que el archivo sea nítido y vuelve a subirlo.", variant: "destructive" });
+          return;
         }
       } else if (type === 'cert') {
-        if (!data.banco || !data.tipoCuenta || !data.numeroCuenta) {
-          toast({ title: "Documento ilegible", description: "No pudimos extraer tu Banco, Tipo o Número de cuenta. El archivo puede estar bloqueado o borroso. Por favor, vuelve a subirlo.", variant: "destructive" });
-          return; // Detenemos el proceso
-        }
-      }
+        const cleanNum = String(data.numeroCuenta || '').replace(/\D/g, '');
+        let detectedBank = data.banco;
+        let detectedTipo = data.tipoCuenta || 'Ahorros';
 
-      toast({ title: "Debug IA", description: JSON.stringify(data).substring(0, 200) });
+        if (!detectedBank && cleanNum.length === 10 && cleanNum.startsWith('3')) {
+          detectedBank = 'Nequi';
+          detectedTipo = 'Ahorros';
+        }
+
+        if (!detectedBank || !cleanNum) {
+          // Abrir modal de confirmación asistida sin bloquear al usuario
+          setPendingCertDownloadUrl(downloadUrl);
+          setManualBanco(detectedBank || 'Nequi');
+          setManualTipoCuenta(detectedTipo || 'Ahorros');
+          setManualNumeroCuenta(cleanNum || '');
+          setShowManualBankModal(true);
+          toast({ title: "Confirmar Datos Bancarios", description: "Verifica o completa los datos de tu cuenta para guardarla." });
+          return;
+        }
+
+        data.banco = detectedBank;
+        data.tipoCuenta = detectedTipo;
+        data.numeroCuenta = cleanNum;
+      }
 
       // Update Firestore
       const userRef = doc(db, 'users', userUid);
@@ -119,12 +236,23 @@ export function DashboardInicio({ activeTab, setActiveTab, rutUrl, certUrl, tota
         setLocalUserName(data.nombreCompleto);
         toast({ title: "Nombre extraído del RUT", description: data.nombreCompleto });
       }
-      if (data.banco) updateData.banco = data.banco;
-      if (data.tipoCuenta) updateData.tipoCuenta = data.tipoCuenta;
-      if (data.numeroCuenta) updateData.numeroCuenta = data.numeroCuenta;
+      if (data.banco) {
+        updateData.banco = data.banco;
+        setLocalBanco(data.banco);
+      }
+      if (data.tipoCuenta) {
+        updateData.tipoCuenta = data.tipoCuenta;
+        setLocalTipoCuenta(data.tipoCuenta);
+      }
+      if (data.numeroCuenta) {
+        updateData.numeroCuenta = data.numeroCuenta;
+        setLocalNumeroCuenta(data.numeroCuenta);
+      }
       if (data.ciudad) {
         updateData.ciudad = data.ciudad;
         setLocalUserCity(data.ciudad.replace(/[.,\s]+$/, '').trim());
+      } else if (type === 'rut' && !updateData.ciudad && localUserCity) {
+        updateData.ciudad = localUserCity;
       }
 
       const docKey = type === 'rut' ? 'rut' : 'certBancaria';
@@ -151,10 +279,12 @@ export function DashboardInicio({ activeTab, setActiveTab, rutUrl, certUrl, tota
   };
 
 
-const [concepto, setConcepto] = useState('');
+  const [concepto, setConcepto] = useState('');
   const [valorTotal, setValorTotal] = useState('');
   const [telefonoContacto, setTelefonoContacto] = useState('');
   const [fechaEmision, setFechaEmision] = useState(new Date().toISOString().split('T')[0]);
+  const [fechaEventoDesde, setFechaEventoDesde] = useState('');
+  const [fechaEventoHasta, setFechaEventoHasta] = useState('');
   
   const [localUserName, setLocalUserName] = useState(userName || '');
   useEffect(() => {
@@ -187,6 +317,15 @@ const [concepto, setConcepto] = useState('');
           }
           if (d.telefono || d.celular || d.telefonoContacto) {
             setTelefonoContacto(String(d.telefono || d.celular || d.telefonoContacto).trim());
+          }
+          if (d.banco) {
+            setLocalBanco(String(d.banco).trim());
+          }
+          if (d.tipoCuenta) {
+            setLocalTipoCuenta(String(d.tipoCuenta).trim());
+          }
+          if (d.numeroCuenta) {
+            setLocalNumeroCuenta(String(d.numeroCuenta).trim());
           }
         }
       } catch(e) {}
@@ -228,17 +367,23 @@ const [concepto, setConcepto] = useState('');
         fecha: item.creadoEl || new Date().toISOString(),
         cobradorNombre: resolvedCobradorNombre,
         cobradorDocumento: cleanDoc,
+        cobradorTelefono: item.telefono || telefonoContacto || userData.telefono || userData.celular || 'No registrado',
+        centroCosto: item.centroCosto || null,
+        fechaEventoDesde: item.fechaEventoDesde || null,
+        fechaEventoHasta: item.fechaEventoHasta || null,
         valorTotal: item.valor,
         conceptos: [{
           item: 1,
           descripcion: item.descripcion || item.concepto || 'Servicios prestados',
           valor: item.valor,
+          fechaDesde: item.fechaEventoDesde || null,
+          fechaHasta: item.fechaEventoHasta || null,
           retencionMotivo: item.retencionMotivo || null,
           retencionPorcentaje: item.retencionPorcentaje || null
         }],
-        banco: userData.banco || 'No registrado',
-        tipoCuenta: userData.tipoCuenta || 'No registrado',
-        numeroCuenta: userData.numeroCuenta || 'No registrado',
+        banco: localBanco || userData.banco || 'No registrado',
+        tipoCuenta: localTipoCuenta || userData.tipoCuenta || 'No registrado',
+        numeroCuenta: localNumeroCuenta || userData.numeroCuenta || 'No registrado',
         ciudad: (userData.ciudad || '').replace(/[.,\s]+$/, '').trim() || 'BELLO, ANTIOQUIA',
         isHistorical: false,
         itemId: item.id
@@ -291,6 +436,11 @@ const [concepto, setConcepto] = useState('');
 
     if (!concepto || !concepto.trim()) {
       toast({ title: "Atención", description: "Por favor ingresa un concepto.", variant: "destructive" });
+      return;
+    }
+
+    if (!fechaEventoDesde || !fechaEventoDesde.trim()) {
+      toast({ title: "Atención", description: "Por favor ingresa la fecha en la que se prestó el servicio (Desde).", variant: "destructive" });
       return;
     }
 
@@ -359,17 +509,23 @@ const [concepto, setConcepto] = useState('');
         fecha: fechaEmision,
         cobradorNombre: cobradorNombre,
         cobradorDocumento: cleanDoc,
+        cobradorTelefono: telefonoContacto.trim(),
+        centroCosto: null,
+        fechaEventoDesde: fechaEventoDesde,
+        fechaEventoHasta: fechaEventoHasta || fechaEventoDesde,
         valorTotal: numericValue,
         conceptos: [{
           item: 1,
           descripcion: concepto,
           valor: numericValue,
+          fechaDesde: fechaEventoDesde,
+          fechaHasta: fechaEventoHasta || fechaEventoDesde,
           retencionMotivo: null,
           retencionPorcentaje: null
         }],
-        banco: userData.banco || 'No registrado',
-        tipoCuenta: userData.tipoCuenta || 'No registrado',
-        numeroCuenta: userData.numeroCuenta || 'No registrado',
+        banco: localBanco || userData.banco || 'No registrado',
+        tipoCuenta: localTipoCuenta || userData.tipoCuenta || 'No registrado',
+        numeroCuenta: localNumeroCuenta || userData.numeroCuenta || 'No registrado',
         ciudad: (localUserCity || userData.ciudad || '').replace(/[.,\s]+$/, '').trim() || 'BELLO, ANTIOQUIA',
         isHistorical: false,
         isNew: true
@@ -418,6 +574,8 @@ const [concepto, setConcepto] = useState('');
         creadoEl: new Date().toISOString(),
         cobradoEl: new Date().toISOString(),
         fechaEmision: fechaEmision,
+        fechaEventoDesde: fechaEventoDesde || null,
+        fechaEventoHasta: fechaEventoHasta || fechaEventoDesde || null,
         ciudad: cityToSave
       });
 
@@ -438,6 +596,8 @@ const [concepto, setConcepto] = useState('');
       setShowInvoiceModal(false);
       setConcepto('');
       setValorTotal('');
+      setFechaEventoDesde('');
+      setFechaEventoHasta('');
       setTimeout(() => window.location.reload(), 1500);
     } catch (e) {
       console.error(e);
@@ -458,20 +618,26 @@ const [concepto, setConcepto] = useState('');
 
       setInvoiceData({
         numero: item.id,
-        fecha: item.cobradoEl || item.creadoEl,
+        fecha: item.fechaEmision || item.cobradoEl || item.creadoEl,
         cobradorNombre: resolvedCobradorNombre,
         cobradorDocumento: cleanDoc,
+        cobradorTelefono: item.telefono || userData.telefono || userData.celular || 'No registrado',
+        centroCosto: item.centroCosto || null,
+        fechaEventoDesde: item.fechaEventoDesde || null,
+        fechaEventoHasta: item.fechaEventoHasta || null,
         valorTotal: item.valor,
         conceptos: [{
           item: 1,
           descripcion: item.descripcion || 'Servicios prestados',
           valor: item.valor,
+          fechaDesde: item.fechaEventoDesde || null,
+          fechaHasta: item.fechaEventoHasta || null,
           retencionMotivo: item.retencionMotivo || null,
           retencionPorcentaje: item.retencionPorcentaje || null
         }],
-        banco: userData.banco || 'No registrado',
-        tipoCuenta: userData.tipoCuenta || 'No registrado',
-        numeroCuenta: userData.numeroCuenta || 'No registrado',
+        banco: localBanco || userData.banco || 'No registrado',
+        tipoCuenta: localTipoCuenta || userData.tipoCuenta || 'No registrado',
+        numeroCuenta: localNumeroCuenta || userData.numeroCuenta || 'No registrado',
         ciudad: (userData.ciudad || '').replace(/[.,\s]+$/, '').trim() || 'BELLO, ANTIOQUIA',
         isHistorical: true
       });
@@ -585,8 +751,8 @@ const [concepto, setConcepto] = useState('');
                 className="w-full bg-[#0A0A0A] border border-[#333333] rounded-md px-4 py-3 text-white text-sm hover:border-zinc-500 focus:border-[#E60000] focus:ring-1 focus:ring-[#E60000] outline-none transition-all placeholder:text-zinc-600 font-inter" 
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-[11px] font-medium text-zinc-400">Concepto de la cuenta de cobro</label>
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-[11px] font-medium text-zinc-400">Concepto de la cuenta de cobro <span className="text-[#E60000] font-bold">*</span></label>
               <ConceptoAutocomplete
                 value={concepto}
                 onChange={setConcepto}
@@ -595,12 +761,52 @@ const [concepto, setConcepto] = useState('');
                 className="w-full bg-[#0A0A0A] border border-[#333333] rounded-md px-4 py-3 text-white text-sm hover:border-zinc-500 focus:border-[#E60000] focus:ring-1 focus:ring-[#E60000] outline-none transition-all placeholder:text-zinc-600"
               />
             </div>
+
+            {/* RENGLÓN DINÁMICO: FECHAS DE EVENTO (DESDE - HASTA) */}
+            {concepto.trim().length > 0 && (
+              <div className="col-span-1 md:col-span-2 bg-[#0D0D0D] border border-[#262626] rounded-xl p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-[#E60000] uppercase tracking-wider flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-[#E60000]" /> Fechas de evento (Desde - Hasta) <span className="text-[#E60000]">*</span>
+                  </label>
+                  <span className="text-[10px] text-zinc-500 font-medium">Requerido para la prestación del servicio</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-zinc-400 font-medium">Fecha en la que se prestó el servicio (Desde) <span className="text-[#E60000] font-bold">*</span></label>
+                    <input
+                      type="date"
+                      required
+                      value={fechaEventoDesde}
+                      onChange={(e) => {
+                        setFechaEventoDesde(e.target.value);
+                        if (!fechaEventoHasta) setFechaEventoHasta(e.target.value);
+                      }}
+                      className="w-full bg-[#0A0A0A] border border-[#333333] rounded-md px-3.5 py-2.5 text-white text-xs hover:border-zinc-500 focus:border-[#E60000] focus:ring-1 focus:ring-[#E60000] outline-none transition-all"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-zinc-400 font-medium">Fecha fin del servicio (Hasta)</label>
+                    <input
+                      type="date"
+                      value={fechaEventoHasta}
+                      onChange={(e) => setFechaEventoHasta(e.target.value)}
+                      className="w-full bg-[#0A0A0A] border border-[#333333] rounded-md px-3.5 py-2.5 text-white text-xs hover:border-zinc-500 focus:border-[#E60000] focus:ring-1 focus:ring-[#E60000] outline-none transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
-              <label className="text-[11px] font-medium text-zinc-400">Valor total</label>
+              <label className="text-[11px] font-medium text-zinc-400">Valor total <span className="text-[#E60000] font-bold">*</span></label>
               <input type="text" onFocus={checkDocsBeforeTyping} value={valorTotal} onChange={(e) => setValorTotal(e.target.value)} placeholder="$ 2.500.000" className="w-full bg-[#0A0A0A] border border-[#333333] rounded-md px-4 py-3 text-white text-sm hover:border-zinc-500 focus:border-[#E60000] focus:ring-1 focus:ring-[#E60000] outline-none transition-all placeholder:text-zinc-600 font-mono" />
             </div>
             <div className="space-y-2">
-              <label className="text-[11px] font-medium text-zinc-400">Fecha de emisión</label>
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-medium text-zinc-400">Fecha de emisión</label>
+                <span className="text-[10px] text-zinc-500">🔒 Fija (Se confirma al aprobar)</span>
+              </div>
               <div className="relative">
                 <input type="date" value={fechaEmision} disabled className="w-full bg-[#0A0A0A] border border-[#222222] rounded-md px-4 py-3 text-white text-sm outline-none transition-all appearance-none opacity-80 cursor-not-allowed" />
                 <Calendar className="w-4 h-4 text-zinc-500 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -965,6 +1171,112 @@ const [concepto, setConcepto] = useState('');
                     className="w-full bg-transparent hover:bg-white/5 text-zinc-400 font-medium py-3 rounded-lg transition-colors border border-transparent hover:border-[#333]"
                   >
                     Cancelar
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+
+      {/* MODAL CONFIRMAR DATOS BANCARIOS */}
+      {mounted && typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {showManualBankModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[9999] bg-[#050816]/90 backdrop-blur-xl flex items-center justify-center p-4"
+            >
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="bg-[#111] border border-[#222] rounded-xl p-6 max-w-md w-full relative shadow-2xl"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-red-500/10 rounded-full flex items-center justify-center">
+                    <Building2 className="w-5 h-5 text-red-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-white">Confirmar Datos Bancarios</h3>
+                    <p className="text-zinc-400 text-xs">Completa o verifica la información de tu certificación:</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4 mb-6">
+                  <div>
+                    <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block mb-1">
+                      Banco
+                    </label>
+                    <select
+                      value={manualBanco}
+                      onChange={(e) => setManualBanco(e.target.value)}
+                      className="w-full bg-[#18181b] border border-[#27272a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-red-500"
+                    >
+                      <option value="Nequi">Nequi</option>
+                      <option value="Bancolombia">Bancolombia</option>
+                      <option value="Daviplata">Daviplata</option>
+                      <option value="Davivienda">Davivienda</option>
+                      <option value="Banco de Bogotá">Banco de Bogotá</option>
+                      <option value="Nu">Nu</option>
+                      <option value="Lulo Bank">Lulo Bank</option>
+                      <option value="BBVA">BBVA</option>
+                      <option value="Banco de Occidente">Banco de Occidente</option>
+                      <option value="Banco Popular">Banco Popular</option>
+                      <option value="Banco AV Villas">Banco AV Villas</option>
+                      <option value="Scotiabank Colpatria">Scotiabank Colpatria</option>
+                      <option value="Banco Falabella">Banco Falabella</option>
+                      <option value="Otro">Otro</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block mb-1">
+                      Tipo de Cuenta
+                    </label>
+                    <select
+                      value={manualTipoCuenta}
+                      onChange={(e) => setManualTipoCuenta(e.target.value)}
+                      className="w-full bg-[#18181b] border border-[#27272a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-red-500"
+                    >
+                      <option value="Ahorros">Ahorros</option>
+                      <option value="Corriente">Corriente</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block mb-1">
+                      Número de Cuenta / Celular
+                    </label>
+                    <input
+                      type="text"
+                      value={manualNumeroCuenta}
+                      onChange={(e) => setManualNumeroCuenta(e.target.value.replace(/\D/g, ''))}
+                      placeholder="Ej. 3123456789 o 03112345678"
+                      className="w-full bg-[#18181b] border border-[#27272a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-red-500 placeholder:text-zinc-600"
+                    />
+                    <p className="text-[11px] text-zinc-500 mt-1">Solo números, sin guiones ni espacios.</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setShowManualBankModal(false);
+                      setPendingCertDownloadUrl(null);
+                    }}
+                    className="flex-1 bg-transparent hover:bg-white/5 text-zinc-400 font-medium py-2.5 rounded-lg border border-[#27272a] transition-colors text-sm"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleSaveManualBank}
+                    className="flex-1 bg-[#E60000] hover:bg-red-700 text-white font-bold py-2.5 rounded-lg transition-colors shadow-lg text-sm"
+                  >
+                    Guardar y Confirmar
                   </button>
                 </div>
               </motion.div>
