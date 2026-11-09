@@ -216,11 +216,14 @@ export default function CuentasDeCobroPage() {
   const [editFechaEventoDesde, setEditFechaEventoDesde] = useState('');
   const [editFechaEventoHasta, setEditFechaEventoHasta] = useState('');
 
-  // Approval Modal State (Mandatory CCO and editable issuance date)
+  // Approval Modal State (Mandatory CCO, Event Dates, Concept Code, and editable issuance date)
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [approvingCodigo, setApprovingCodigo] = useState<Codigo | null>(null);
   const [approvalCCO, setApprovalCCO] = useState('');
   const [approvalFechaEmision, setApprovalFechaEmision] = useState('');
+  const [approvalFechaEventoDesde, setApprovalFechaEventoDesde] = useState('');
+  const [approvalFechaEventoHasta, setApprovalFechaEventoHasta] = useState('');
+  const [approvalConcepto, setApprovalConcepto] = useState('');
   const [isAddingNewCCO, setIsAddingNewCCO] = useState(false);
   const [newCCOText, setNewCCOText] = useState('');
   const [centrosCostoList, setCentrosCostoList] = useState<string[]>([
@@ -325,6 +328,23 @@ export default function CuentasDeCobroPage() {
           updatePayload.cobradoPor = titular;
           updatePayload.asignadoANombre = titular;
           needsDbUpdate = true;
+        }
+
+        // Auto-heal Concepto con Código Contable si aún no tiene el prefijo oficial
+        const currentDesc = d.descripcion || d.concepto || '';
+        const matchedConcept = getConceptoItem(currentDesc);
+        if (matchedConcept) {
+          if (!currentDesc.startsWith(matchedConcept.codigo)) {
+            const properDesc = `${matchedConcept.codigo} - ${matchedConcept.descripcion}`;
+            updatePayload.descripcion = properDesc;
+            updatePayload.concepto = properDesc;
+            needsDbUpdate = true;
+          }
+          if (!d.codigoConcepto || d.codigoConcepto !== matchedConcept.codigo) {
+            updatePayload.codigoConcepto = matchedConcept.codigo;
+            updatePayload.codigoContable = matchedConcept.codigo;
+            needsDbUpdate = true;
+          }
         }
 
         if (needsDbUpdate) {
@@ -844,15 +864,20 @@ export default function CuentasDeCobroPage() {
         const safeDate = parseSafeDate(unregFecha);
         const timestamp = safeDate.iso;
         const matchedConcepto = getConceptoItem(unregDescripcion);
+        const conceptoFinal = matchedConcepto && !unregDescripcion.startsWith(matchedConcepto.codigo)
+          ? `${matchedConcepto.codigo} - ${matchedConcepto.descripcion}`
+          : unregDescripcion;
+        const codigoContable = matchedConcepto ? matchedConcepto.codigo : null;
 
         const newCodigoData = {
           valor: Number(unregValor),
-          descripcion: unregDescripcion,
+          descripcion: conceptoFinal,
+          concepto: conceptoFinal,
           centroCosto: unregCentroCosto.trim().toUpperCase(),
           fechaEventoDesde: unregFechaEventoDesde,
           fechaEventoHasta: unregFechaEventoHasta || null,
-          codigoConcepto: matchedConcepto?.codigo || null,
-          codigoContable: matchedConcepto?.codigo || null,
+          codigoConcepto: codigoContable,
+          codigoContable: codigoContable,
           estado: 'cobrado',
           estadoAprobacion: 'pendiente',
           creadoEl: timestamp,
@@ -930,15 +955,20 @@ export default function CuentasDeCobroPage() {
         const safeDate = parseSafeDate(unregFecha);
         const timestamp = safeDate.iso;
         const matchedStaffConcepto = getConceptoItem(unregDescripcion);
+        const conceptoFinalStaff = matchedStaffConcepto && !unregDescripcion.startsWith(matchedStaffConcepto.codigo)
+          ? `${matchedStaffConcepto.codigo} - ${matchedStaffConcepto.descripcion}`
+          : unregDescripcion;
+        const codigoContableStaff = matchedStaffConcepto ? matchedStaffConcepto.codigo : null;
 
         const newCodigoData = {
           valor: Number(unregValor),
-          descripcion: unregDescripcion,
+          descripcion: conceptoFinalStaff,
+          concepto: conceptoFinalStaff,
           centroCosto: unregCentroCosto.trim().toUpperCase(),
           fechaEventoDesde: unregFechaEventoDesde,
           fechaEventoHasta: unregFechaEventoHasta || null,
-          codigoConcepto: matchedStaffConcepto?.codigo || null,
-          codigoContable: matchedStaffConcepto?.codigo || null,
+          codigoConcepto: codigoContableStaff,
+          codigoContable: codigoContableStaff,
           estado: 'cobrado',
           estadoAprobacion: 'pendiente',
           creadoEl: timestamp,
@@ -1073,16 +1103,22 @@ export default function CuentasDeCobroPage() {
       const safeDate = parseSafeDate(editFecha);
       const timestamp = safeDate.iso;
       const matchedConcepto = getConceptoItem(editDescripcion);
+      const conceptoFinal = matchedConcepto && !editDescripcion.startsWith(matchedConcepto.codigo)
+        ? `${matchedConcepto.codigo} - ${matchedConcepto.descripcion}`
+        : editDescripcion;
+      const codigoContable = matchedConcepto ? matchedConcepto.codigo : null;
+
       const updatePayload: any = {
         valor: Number(editValor),
-        descripcion: editDescripcion,
+        descripcion: conceptoFinal,
+        concepto: conceptoFinal,
         retencionMotivo: editRetencionMotivo || null,
         retencionPorcentaje: editRetencionPorcentaje ? Number(editRetencionPorcentaje) : null,
         centroCosto: editCentroCosto.trim().toUpperCase(),
         fechaEventoDesde: editFechaEventoDesde || null,
         fechaEventoHasta: editFechaEventoHasta || null,
-        codigoConcepto: matchedConcepto?.codigo || null,
-        codigoContable: matchedConcepto?.codigo || null,
+        codigoConcepto: codigoContable,
+        codigoContable: codigoContable,
         fecha: safeDate.ymd,
         cobradoEl: timestamp,
         estado: 'cobrado',
@@ -1115,6 +1151,9 @@ export default function CuentasDeCobroPage() {
     const existing = (codigo.centroCosto && codigo.centroCosto !== 'PENDIENTE' && centrosCostoList.includes(codigo.centroCosto)) ? codigo.centroCosto : '';
     setApprovalCCO(existing);
     setApprovalFechaEmision(codigo.fechaEmision || (codigo.creadoEl ? codigo.creadoEl.substring(0, 10) : new Date().toISOString().substring(0, 10)));
+    setApprovalFechaEventoDesde(codigo.fechaEventoDesde || '');
+    setApprovalFechaEventoHasta(codigo.fechaEventoHasta || codigo.fechaEventoDesde || '');
+    setApprovalConcepto(codigo.descripcion || codigo.concepto || '');
     setIsAddingNewCCO(false);
     setNewCCOText('');
     setShowApprovalModal(true);
@@ -1142,40 +1181,63 @@ export default function CuentasDeCobroPage() {
   };
 
   const handleConfirmApproval = async () => {
+    if (!approvingCodigo) return;
+
     if (!approvalCCO || !approvalCCO.trim()) {
       toast({ title: 'Centro de Costo obligatorio', description: 'Debes asignar un Centro de Costo (CCO) para poder aprobar la cuenta de cobro.', variant: 'destructive' });
       return;
     }
-    if (!approvingCodigo) return;
+
+    if (!approvalFechaEventoDesde || !approvalFechaEventoDesde.trim()) {
+      toast({ title: 'Fechas de evento requeridas', description: 'La fecha de inicio de servicio (Desde) es obligatoria antes de aprobar.', variant: 'destructive' });
+      return;
+    }
+
+    const matched = getConceptoItem(approvalConcepto);
+    if (!matched && !approvalConcepto.trim()) {
+      toast({ title: 'Concepto obligatorio', description: 'Debes asignar un concepto válido con código contable para poder aprobar.', variant: 'destructive' });
+      return;
+    }
+
     try {
       setIsSubmittingApproval(true);
       const ccoFinal = approvalCCO.trim().toUpperCase();
       const fechaFinal = approvalFechaEmision || new Date().toISOString().substring(0, 10);
+      const fechaHastaFinal = approvalFechaEventoHasta && approvalFechaEventoHasta.trim() ? approvalFechaEventoHasta.trim() : approvalFechaEventoDesde.trim();
       
-      await updateDoc(doc(db, 'codigos', approvingCodigo.id), {
-        estadoAprobacion: 'aprobado',
+      const finalConcepto = matched && !approvalConcepto.startsWith(matched.codigo)
+        ? `${matched.codigo} - ${matched.descripcion}`
+        : approvalConcepto.trim();
+      const finalCodigo = matched ? matched.codigo : (approvingCodigo.codigoConcepto || null);
+      
+      const updateData = {
+        estadoAprobacion: 'aprobado' as const,
         centroCosto: ccoFinal,
         fechaEmision: fechaFinal,
+        fechaEventoDesde: approvalFechaEventoDesde.trim(),
+        fechaEventoHasta: fechaHastaFinal,
+        descripcion: finalConcepto,
+        concepto: finalConcepto,
+        codigoConcepto: finalCodigo,
+        codigoContable: finalCodigo,
         aprobadoEl: new Date().toISOString()
-      });
+      };
+
+      await updateDoc(doc(db, 'codigos', approvingCodigo.id), updateData);
 
       setCodigos(prev => prev.map(c => c.id === approvingCodigo.id ? {
         ...c,
-        estadoAprobacion: 'aprobado',
-        centroCosto: ccoFinal,
-        fechaEmision: fechaFinal
+        ...updateData
       } : c));
 
       if (selectedCodigo && selectedCodigo.id === approvingCodigo.id) {
         setSelectedCodigo(prev => prev ? {
           ...prev,
-          estadoAprobacion: 'aprobado',
-          centroCosto: ccoFinal,
-          fechaEmision: fechaFinal
+          ...updateData
         } : null);
       }
 
-      toast({ title: 'Cuenta Aprobada', description: `La cuenta de cobro ${approvingCodigo.id} ha sido aprobada con CCO ${ccoFinal}.` });
+      toast({ title: '¡Cuenta Aprobada!', description: `La cuenta de cobro ${approvingCodigo.id} ha sido aprobada con CCO ${ccoFinal} y fechas de servicio.` });
       setShowApprovalModal(false);
       setApprovingCodigo(null);
     } catch (e) {
@@ -1484,11 +1546,29 @@ export default function CuentasDeCobroPage() {
                         <td className="py-3 px-4 text-zinc-400 whitespace-nowrap">
                           {c.fecha || (c.cobradoEl ? c.cobradoEl.substring(0, 10) : (c.creadoEl ? c.creadoEl.substring(0, 10) : 'N/A'))}
                         </td>
-                        <td className="py-3 px-4 max-w-xs truncate" title={c.descripcion}>
-                          <span className="text-zinc-300">{c.descripcion}</span>
+                        <td className="py-3 px-4 max-w-xs" title={c.descripcion}>
+                          <span className="text-zinc-200 font-medium block">{c.descripcion}</span>
                           {c.centroCosto && (
-                            <span className="block text-[10px] text-zinc-500">{c.centroCosto}</span>
+                            <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-zinc-800 text-zinc-300 border border-zinc-700">
+                              CCO: {c.centroCosto}
+                            </span>
                           )}
+                          <div className="mt-1">
+                            {c.fechaEventoDesde ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-1.5 py-0.5 rounded">
+                                <Calendar className="w-3 h-3 text-emerald-400 shrink-0" />
+                                <span>
+                                  Servicio: {c.fechaEventoDesde}
+                                  {c.fechaEventoHasta && c.fechaEventoHasta !== c.fechaEventoDesde ? ` → ${c.fechaEventoHasta}` : ''}
+                                </span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-950/60 border border-amber-500/40 px-1.5 py-0.5 rounded">
+                                <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0" />
+                                <span>Sin fechas de servicio</span>
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="py-3 px-4 text-right font-mono font-bold text-white whitespace-nowrap">
                           ${valorBruto.toLocaleString()}
@@ -2376,7 +2456,7 @@ export default function CuentasDeCobroPage() {
                 </button>
               </div>
 
-              <div className="p-6 space-y-5">
+              <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
                 <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-xl p-3.5 flex justify-between items-center text-xs">
                   <div>
                     <span className="text-zinc-400 block text-[11px]">Valor a pagar:</span>
@@ -2385,11 +2465,96 @@ export default function CuentasDeCobroPage() {
                     </span>
                   </div>
                   <div className="text-right">
-                    <span className="text-zinc-400 block text-[11px]">Concepto:</span>
-                    <span className="text-zinc-200 font-medium max-w-[200px] truncate block">
-                      {approvingCodigo.descripcion || approvingCodigo.concepto}
+                    <span className="text-zinc-400 block text-[11px]">Titular:</span>
+                    <span className="text-white font-bold uppercase truncate block max-w-[200px]">
+                      {approvingCodigo.cobradoPor || approvingCodigo.asignadoANombre || 'Colaborador'}
                     </span>
                   </div>
+                </div>
+
+                {/* CONCEPTO Y CÓDIGO CONTABLE */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                      Concepto / Código Contable <span className="text-[#C8102E]">*</span>
+                    </label>
+                    {getConceptoItem(approvalConcepto) ? (
+                      <span className="text-[10px] font-bold bg-emerald-950/70 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/40 font-mono">
+                        CÓD: {getConceptoItem(approvalConcepto)?.codigo}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold bg-amber-950/70 text-amber-400 px-2 py-0.5 rounded border border-amber-500/40">
+                        CÓDIGO REQUERIDO
+                      </span>
+                    )}
+                  </div>
+                  <ConceptoAutocomplete 
+                    value={approvalConcepto}
+                    onChange={setApprovalConcepto}
+                    placeholder="Busca o escribe el concepto oficial del catálogo..."
+                    className="w-full bg-black/50 border border-[#262626] focus:border-[#C8102E] rounded-lg h-10 px-3 text-xs text-white outline-none"
+                  />
+                  {getConceptoItem(approvalConcepto) ? (
+                    <p className="text-[11px] text-emerald-400 font-mono flex items-center gap-1">
+                      <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>Oficial: <strong className="text-white">{getConceptoItem(approvalConcepto)?.codigo}</strong> — {getConceptoItem(approvalConcepto)?.descripcion}</span>
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-amber-400 flex items-center gap-1">
+                      <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                      <span>Selecciona un concepto oficial del catálogo para asignarle su código contable.</span>
+                    </p>
+                  )}
+                </div>
+
+                {/* FECHAS DE EVENTO (DESDE - HASTA) - OBLIGATORIO */}
+                <div className="bg-[#0E0E14] border border-[#262626] rounded-xl p-3.5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-[#C8102E]" />
+                      Fechas de Evento (Servicio) <span className="text-[#C8102E]">*</span>
+                    </label>
+                    {approvalFechaEventoDesde.trim() ? (
+                      <span className="text-[10px] font-bold bg-emerald-950/70 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/40">
+                        DEFINIDAS
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold bg-red-950/70 text-red-400 px-2 py-0.5 rounded border border-red-500/40">
+                        OBLIGATORIAS
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[10px] text-zinc-400 font-semibold block mb-1">
+                        Fecha en que se prestó el servicio (Desde) <span className="text-[#C8102E]">*</span>
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        value={approvalFechaEventoDesde}
+                        onChange={(e) => setApprovalFechaEventoDesde(e.target.value)}
+                        className="w-full bg-black/60 border border-[#262626] focus:border-[#C8102E] rounded-lg h-9 px-3 text-xs text-white outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-zinc-400 font-semibold block mb-1">
+                        Fecha fin del servicio (Hasta)
+                      </label>
+                      <input
+                        type="date"
+                        value={approvalFechaEventoHasta}
+                        onChange={(e) => setApprovalFechaEventoHasta(e.target.value)}
+                        className="w-full bg-black/60 border border-[#262626] focus:border-[#C8102E] rounded-lg h-9 px-3 text-xs text-white outline-none"
+                      />
+                    </div>
+                  </div>
+                  {!approvalFechaEventoDesde.trim() && (
+                    <p className="text-[11px] text-amber-400 flex items-center gap-1 font-medium">
+                      <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0" />
+                      <span>Debes ingresar la fecha de prestación del servicio antes de aprobar.</span>
+                    </p>
+                  )}
                 </div>
 
                 {/* CENTRO DE COSTO (CCO) OBLIGATORIO */}
@@ -2480,29 +2645,54 @@ export default function CuentasDeCobroPage() {
                 </div>
               </div>
 
-              <div className="p-4 bg-zinc-950 border-t border-[#1A1A1A] flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowApprovalModal(false)}
-                  disabled={isSubmittingApproval}
-                  className="px-4 py-2.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-bold transition"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  onClick={handleConfirmApproval}
-                  disabled={isSubmittingApproval || !approvalCCO.trim()}
-                  className="px-5 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold flex items-center gap-2 transition shadow-lg shadow-emerald-950/50"
-                >
-                  {isSubmittingApproval ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <CheckCircle className="w-4 h-4" />
-                  )}
-                  <span>Aprobar y Registrar CCO</span>
-                </button>
-              </div>
+              {/* FOOTER MODAL DE APROBACIÓN */}
+              {(() => {
+                const hasCCO = Boolean(approvalCCO && approvalCCO.trim());
+                const hasFechaEvento = Boolean(approvalFechaEventoDesde && approvalFechaEventoDesde.trim());
+                const matched = getConceptoItem(approvalConcepto);
+                const hasConcepto = Boolean(matched || (approvalConcepto && approvalConcepto.trim().length > 0));
+                const canApprove = hasCCO && hasFechaEvento && hasConcepto;
+
+                return (
+                  <div className="p-4 bg-zinc-950 border-t border-[#1A1A1A] flex flex-col sm:flex-row items-center justify-between gap-3">
+                    {!canApprove ? (
+                      <div className="text-[11px] text-amber-400 font-medium flex items-center gap-1.5 text-left">
+                        <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+                        <span>Falta: {!hasCCO ? 'CCO • ' : ''}{!hasFechaEvento ? 'Fechas de servicio • ' : ''}{!hasConcepto ? 'Concepto válido' : ''}</span>
+                      </div>
+                    ) : (
+                      <div className="text-[11px] text-emerald-400 font-medium flex items-center gap-1.5 text-left">
+                        <CheckCircle className="w-3.5 h-3.5 shrink-0 text-emerald-400" />
+                        <span>Listo para aprobar</span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setShowApprovalModal(false)}
+                        disabled={isSubmittingApproval}
+                        className="px-4 py-2.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-bold transition"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleConfirmApproval}
+                        disabled={isSubmittingApproval || !canApprove}
+                        className="px-5 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold flex items-center gap-2 transition shadow-lg shadow-emerald-950/50"
+                      >
+                        {isSubmittingApproval ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <CheckCircle className="w-4 h-4" />
+                        )}
+                        <span>Aprobar y Registrar</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
             </motion.div>
           </div>
         )}
