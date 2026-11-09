@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CuentaDeCobro } from '../profile/CuentaDeCobro';
 import { ConceptoAutocomplete } from '@/components/ConceptoAutocomplete';
+import { getConceptoItem } from '@/lib/conceptosCatalogo';
 import * as XLSX from 'xlsx';
 
 interface Codigo {
@@ -77,6 +78,10 @@ interface ArchivoPlanoRow {
   numeroId: string;
   ciudad: string;
   fecha: string;
+  centroCosto: string;
+  fechaEventoDesde?: string | null;
+  fechaEventoHasta?: string | null;
+  codigoConcepto?: string | null;
   valor: number;
   descripcion: string;
   retencion: number;
@@ -179,6 +184,8 @@ export default function CuentasDeCobroPage() {
   const [unregFecha, setUnregFecha] = useState(new Date().toISOString().split('T')[0]);
   const [unregValor, setUnregValor] = useState('');
   const [unregDescripcion, setUnregDescripcion] = useState('');
+  const [unregFechaEventoDesde, setUnregFechaEventoDesde] = useState('');
+  const [unregFechaEventoHasta, setUnregFechaEventoHasta] = useState('');
   const [unregCentroCosto, setUnregCentroCosto] = useState('OPERACIONES PKS');
   const [unregRetencionMotivo, setUnregRetencionMotivo] = useState('');
   const [unregRetencionPorcentaje, setUnregRetencionPorcentaje] = useState('');
@@ -484,9 +491,12 @@ export default function CuentasDeCobroPage() {
         NOMBRE: 'JUAN CAMILO PEREZ',
         NUMERO_ID: '1037654321',
         CIUDAD: 'MEDELLIN',
-        FECHA: today,
+        FECHA_EMISION: today,
+        CCO: 'OPERACIONES PKS',
+        FECHA_INICIO: today,
+        FECHA_FIN: today,
+        CODIGO_CONCEPTO: '73509501',
         VALOR: 500000,
-        DESCRIPCION: 'SERVICIOS DE LOGISTICA Y APOYO EN PISTA',
         RETENCION: 0
       },
       {
@@ -494,9 +504,12 @@ export default function CuentasDeCobroPage() {
         NOMBRE: 'MARIA ALEJANDRA GOMEZ',
         NUMERO_ID: '1020304050',
         CIUDAD: 'BELLO',
-        FECHA: today,
+        FECHA_EMISION: today,
+        CCO: 'STUNT FEST',
+        FECHA_INICIO: today,
+        FECHA_FIN: today,
+        CODIGO_CONCEPTO: '73351002',
         VALOR: 750000,
-        DESCRIPCION: 'COORDINACION Y SEGURIDAD EVENTO',
         RETENCION: 4
       },
       {
@@ -504,9 +517,12 @@ export default function CuentasDeCobroPage() {
         NOMBRE: 'CARLOS ANDRES ZAPATA',
         NUMERO_ID: '71987654',
         CIUDAD: 'ENVIGADO',
-        FECHA: today,
+        FECHA_EMISION: today,
+        CCO: 'LOGISTICA Y MONTAJE',
+        FECHA_INICIO: today,
+        FECHA_FIN: today,
+        CODIGO_CONCEPTO: '73355005',
         VALOR: 600000,
-        DESCRIPCION: 'MONTAJE TECNICO Y ESTRUCTURAS',
         RETENCION: 0
       }
     ];
@@ -517,9 +533,12 @@ export default function CuentasDeCobroPage() {
       { wch: 28 },
       { wch: 18 },
       { wch: 18 },
+      { wch: 15 },
+      { wch: 22 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 20 },
       { wch: 14 },
-      { wch: 14 },
-      { wch: 42 },
       { wch: 14 }
     ];
     const wb = XLSX.utils.book_new();
@@ -530,10 +549,10 @@ export default function CuentasDeCobroPage() {
   const handleDownloadTemplateCSV = () => {
     const today = new Date().toISOString().split('T')[0];
     const csvContent = 
-      "CONSECUTIVO;NOMBRE;NUMERO_ID;CIUDAD;FECHA;VALOR;DESCRIPCION;RETENCION\n" +
-      `1;JUAN CAMILO PEREZ;1037654321;MEDELLIN;${today};500000;SERVICIOS DE LOGISTICA Y APOYO EN PISTA;0\n` +
-      `2;MARIA ALEJANDRA GOMEZ;1020304050;BELLO;${today};750000;COORDINACION Y SEGURIDAD EVENTO;4\n` +
-      `3;CARLOS ANDRES ZAPATA;71987654;ENVIGADO;${today};600000;MONTAJE TECNICO Y ESTRUCTURAS;0\n`;
+      "CONSECUTIVO;NOMBRE;NUMERO_ID;CIUDAD;FECHA_EMISION;CCO;FECHA_INICIO;FECHA_FIN;CODIGO_CONCEPTO;VALOR;RETENCION\n" +
+      `1;JUAN CAMILO PEREZ;1037654321;MEDELLIN;${today};OPERACIONES PKS;${today};${today};73509501;500000;0\n` +
+      `2;MARIA ALEJANDRA GOMEZ;1020304050;BELLO;${today};STUNT FEST;${today};${today};73351002;750000;4\n` +
+      `3;CARLOS ANDRES ZAPATA;71987654;ENVIGADO;${today};LOGISTICA Y MONTAJE;${today};${today};73355005;600000;0\n`;
 
     const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -584,15 +603,36 @@ export default function CuentasDeCobroPage() {
           const nombre = findVal(row, ['nombre', 'nombredelapersona', 'colaborador', 'trabajador', 'persona']);
           const numeroId = findVal(row, ['numerodeid', 'numeroid', 'cedula', 'identificacion', 'documento', 'nit', 'id', 'numid']);
           const ciudad = findVal(row, ['ciudad', 'municipio', 'city']) || 'BELLO, ANTIOQUIA';
-          let fechaRaw = findVal(row, ['fecha', 'fechadeemision', 'fechaemision', 'date', 'emision']);
+          let fechaRaw = findVal(row, ['fechaemision', 'fecha_emision', 'fecha', 'fechadeemision', 'date', 'emision']);
+          const ccoRaw = findVal(row, ['cco', 'centrodecosto', 'centrocosto', 'centrodecostos', 'centro_costo', 'centro_de_costo']);
+          const fechaInicioRaw = findVal(row, ['fechainicio', 'fecha_inicio', 'fechadesde', 'fecha_desde', 'desde', 'fechaserviciodesde', 'fechainicial']);
+          const fechaFinRaw = findVal(row, ['fechafin', 'fecha_fin', 'fechahasta', 'fecha_hasta', 'hasta', 'fechaserviciohasta', 'fechafinal']);
           const valorRaw = findVal(row, ['valor', 'valorbruto', 'total', 'precio', 'monto', 'subtotal']);
-          const descripcion = findVal(row, ['descripcion', 'concepto', 'servicio', 'detalle', 'motivo']);
+          const codigoOrDesc = findVal(row, ['codigoconcepto', 'codigo_concepto', 'codigoconceptos', 'codigo', 'cod', 'descripcion', 'concepto', 'servicio', 'detalle', 'motivo']);
           const retencionRaw = findVal(row, ['retencion', 'retenciones', 'retefuente', 'porcentaje', 'ret']);
           const consecutivoRaw = findVal(row, ['consecutivo', 'numero', 'nro', 'orden', 'item', 'consec']);
 
-          // Parse fecha safely
+          // Parse fecha emisión safely
           const safeDate = parseSafeDate(fechaRaw);
           const fecha = safeDate.ymd;
+
+          // Parse CCO
+          const centroCosto = ccoRaw ? ccoRaw.trim().toUpperCase() : 'OPERACIONES PKS';
+
+          // Parse Fechas de Evento
+          const fechaEventoDesde = fechaInicioRaw ? parseSafeDate(fechaInicioRaw).ymd : safeDate.ymd;
+          const fechaEventoHasta = fechaFinRaw ? parseSafeDate(fechaFinRaw).ymd : null;
+
+          // Parse Concepto / Código de Concepto con auto-resolución del catálogo
+          let descripcion = codigoOrDesc;
+          let codigoConcepto: string | null = null;
+          if (codigoOrDesc) {
+            const matched = getConceptoItem(codigoOrDesc);
+            if (matched) {
+              codigoConcepto = matched.codigo;
+              descripcion = `${matched.codigo} - ${matched.descripcion}`;
+            }
+          }
 
           // Parse valor safely
           const valor = parseSafeValor(valorRaw);
@@ -608,7 +648,7 @@ export default function CuentasDeCobroPage() {
           if (!ciudad) errors.push('Falta Ciudad');
           if (!fechaRaw && !fecha) errors.push('Falta Fecha');
           if (!valor || valor <= 0) errors.push('Falta Valor válido');
-          if (!descripcion) errors.push('Falta Descripción');
+          if (!descripcion) errors.push('Falta Código o Concepto');
 
           // Projected code
           const initials = getInitials(nombre || 'XX');
@@ -638,6 +678,10 @@ export default function CuentasDeCobroPage() {
             numeroId,
             ciudad,
             fecha,
+            centroCosto,
+            fechaEventoDesde,
+            fechaEventoHasta,
+            codigoConcepto,
             valor,
             descripcion,
             retencion,
@@ -709,7 +753,11 @@ export default function CuentasDeCobroPage() {
         const newCodigoData = {
           valor: row.valor,
           descripcion: row.descripcion,
-          centroCosto: 'AP - ARCHIVO PLANO',
+          centroCosto: (row.centroCosto && row.centroCosto.trim()) ? row.centroCosto.trim().toUpperCase() : 'OPERACIONES PKS',
+          fechaEventoDesde: row.fechaEventoDesde || null,
+          fechaEventoHasta: row.fechaEventoHasta || null,
+          codigoConcepto: row.codigoConcepto || null,
+          codigoContable: row.codigoConcepto || null,
           estado: 'cobrado',
           estadoAprobacion: 'pendiente',
           creadoEl: timestamp,
@@ -734,10 +782,6 @@ export default function CuentasDeCobroPage() {
         await setDoc(doc(db, 'codigos', generatedId), newCodigoData);
         createdCount++;
       }
-
-      try {
-        await setDoc(doc(db, 'centrosCosto', 'AP - ARCHIVO PLANO'), { nombre: 'AP - ARCHIVO PLANO' }, { merge: true });
-      } catch (e) {}
 
       toast({
         title: '¡Cuentas de cobro creadas con éxito!',
@@ -770,6 +814,10 @@ export default function CuentasDeCobroPage() {
         toast({ title: 'Faltan datos requeridos', description: 'Nombre, documento, ciudad, fecha, valor y concepto son obligatorios.', variant: 'destructive' });
         return;
       }
+      if (!unregFechaEventoDesde || !unregFechaEventoDesde.trim()) {
+        toast({ title: 'Fecha de evento requerida', description: 'Por favor ingresa la fecha en la que se prestó el servicio (Desde).', variant: 'destructive' });
+        return;
+      }
 
       setIsSavingCobro(true);
       try {
@@ -793,11 +841,16 @@ export default function CuentasDeCobroPage() {
         const syntheticUid = `unreg_${unregTipoDoc}_${cleanDoc}`;
         const safeDate = parseSafeDate(unregFecha);
         const timestamp = safeDate.iso;
+        const matchedConcepto = getConceptoItem(unregDescripcion);
 
         const newCodigoData = {
           valor: Number(unregValor),
           descripcion: unregDescripcion,
           centroCosto: unregCentroCosto.trim().toUpperCase(),
+          fechaEventoDesde: unregFechaEventoDesde,
+          fechaEventoHasta: unregFechaEventoHasta || null,
+          codigoConcepto: matchedConcepto?.codigo || null,
+          codigoContable: matchedConcepto?.codigo || null,
           estado: 'cobrado',
           estadoAprobacion: 'pendiente',
           creadoEl: timestamp,
@@ -828,6 +881,8 @@ export default function CuentasDeCobroPage() {
         setUnregDocumento('');
         setUnregValor('');
         setUnregDescripcion('');
+        setUnregFechaEventoDesde('');
+        setUnregFechaEventoHasta('');
         setUnregCentroCosto('OPERACIONES PKS');
         setUnregRetencionMotivo('');
         setUnregRetencionPorcentaje('');
@@ -842,6 +897,10 @@ export default function CuentasDeCobroPage() {
       // Staff mode
       if (!selectedStaffUid || !unregValor || !unregDescripcion.trim()) {
         toast({ title: 'Faltan datos', description: 'Selecciona un colaborador e ingresa valor y concepto.', variant: 'destructive' });
+        return;
+      }
+      if (!unregFechaEventoDesde || !unregFechaEventoDesde.trim()) {
+        toast({ title: 'Fecha de evento requerida', description: 'Por favor ingresa la fecha en la que se prestó el servicio (Desde).', variant: 'destructive' });
         return;
       }
 
@@ -868,11 +927,16 @@ export default function CuentasDeCobroPage() {
         const generatedId = `${prefix}${nextNum.toString().padStart(3, '0')}`;
         const safeDate = parseSafeDate(unregFecha);
         const timestamp = safeDate.iso;
+        const matchedStaffConcepto = getConceptoItem(unregDescripcion);
 
         const newCodigoData = {
           valor: Number(unregValor),
           descripcion: unregDescripcion,
           centroCosto: unregCentroCosto.trim().toUpperCase(),
+          fechaEventoDesde: unregFechaEventoDesde,
+          fechaEventoHasta: unregFechaEventoHasta || null,
+          codigoConcepto: matchedStaffConcepto?.codigo || null,
+          codigoContable: matchedStaffConcepto?.codigo || null,
           estado: 'cobrado',
           estadoAprobacion: 'pendiente',
           creadoEl: timestamp,
@@ -902,6 +966,8 @@ export default function CuentasDeCobroPage() {
         setSelectedStaffUid('');
         setUnregValor('');
         setUnregDescripcion('');
+        setUnregFechaEventoDesde('');
+        setUnregFechaEventoHasta('');
         setUnregCentroCosto('OPERACIONES PKS');
         setUnregRetencionMotivo('');
         setUnregRetencionPorcentaje('');
@@ -1611,11 +1677,11 @@ export default function CuentasDeCobroPage() {
                             <th className="py-2.5 px-3">Cód. Asignado</th>
                             <th className="py-2.5 px-3">Nombre</th>
                             <th className="py-2.5 px-3">Cédula / ID</th>
-                            <th className="py-2.5 px-3">Ciudad</th>
-                            <th className="py-2.5 px-3">Fecha</th>
-                            <th className="py-2.5 px-3 text-right">Valor</th>
-                            <th className="py-2.5 px-3 text-center">Retención</th>
+                            <th className="py-2.5 px-3">CCO</th>
+                            <th className="py-2.5 px-3">Fechas Servicio</th>
                             <th className="py-2.5 px-3">Concepto</th>
+                            <th className="py-2.5 px-3 text-right">Valor</th>
+                            <th className="py-2.5 px-3 text-center">Ret.</th>
                             <th className="py-2.5 px-3 text-center">Estado</th>
                           </tr>
                         </thead>
@@ -1626,15 +1692,17 @@ export default function CuentasDeCobroPage() {
                               <td className="py-2 px-3 font-mono font-bold text-purple-400">{row.codigoProyectado}</td>
                               <td className="py-2 px-3 font-bold text-white uppercase">{row.nombre}</td>
                               <td className="py-2 px-3">{row.numeroId}</td>
-                              <td className="py-2 px-3 text-zinc-400 uppercase">{row.ciudad}</td>
-                              <td className="py-2 px-3 text-zinc-400 whitespace-nowrap">{row.fecha}</td>
+                              <td className="py-2 px-3 font-bold text-zinc-200 uppercase whitespace-nowrap">{row.centroCosto}</td>
+                              <td className="py-2 px-3 text-zinc-400 whitespace-nowrap text-[11px]">
+                                {row.fechaEventoDesde ? `${row.fechaEventoDesde}${row.fechaEventoHasta ? ` → ${row.fechaEventoHasta}` : ''}` : '-'}
+                              </td>
+                              <td className="py-2 px-3 max-w-xs truncate" title={row.descripcion}>{row.descripcion}</td>
                               <td className="py-2 px-3 text-right font-mono font-bold text-white whitespace-nowrap">
                                 ${row.valor.toLocaleString()}
                               </td>
                               <td className="py-2 px-3 text-center whitespace-nowrap font-bold text-amber-400">
                                 {row.retencion > 0 ? `${row.retencion}%` : '0%'}
                               </td>
-                              <td className="py-2 px-3 max-w-xs truncate">{row.descripcion}</td>
                               <td className="py-2 px-3 text-center">
                                 {row.isValid ? (
                                   <span className="text-[10px] text-emerald-400 font-bold">Válido</span>
@@ -1929,6 +1997,39 @@ export default function CuentasDeCobroPage() {
                     className="w-full px-3.5 py-2.5 bg-black/50 border border-[#1C1C28] focus:border-[#C8102E] rounded-xl text-xs text-white outline-none"
                   />
                 </div>
+
+                {/* RENGLÓN DINÁMICO: FECHAS DE EVENTO (DESDE - HASTA) */}
+                {unregDescripcion.trim().length > 0 && (
+                  <div className="bg-[#0D0D0D] border border-[#262626] rounded-xl p-3.5 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-bold text-[#C8102E] uppercase tracking-wider flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-[#C8102E]" /> Fechas de evento (Desde - Hasta) <span className="text-[#C8102E]">*</span>
+                      </label>
+                      <span className="text-[10px] text-zinc-500 font-medium">Requerido para la prestación del servicio</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[10px] text-zinc-400 font-medium">Fecha en la que se prestó el servicio (Desde) <span className="text-[#C8102E] font-bold">*</span></label>
+                        <input
+                          type="date"
+                          required
+                          value={unregFechaEventoDesde}
+                          onChange={(e) => setUnregFechaEventoDesde(e.target.value)}
+                          className="w-full px-3 py-2 bg-black/50 border border-[#1C1C28] focus:border-[#C8102E] rounded-xl text-xs text-white outline-none"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] text-zinc-400 font-medium">Fecha fin del servicio (Hasta)</label>
+                        <input
+                          type="date"
+                          value={unregFechaEventoHasta}
+                          onChange={(e) => setUnregFechaEventoHasta(e.target.value)}
+                          className="w-full px-3 py-2 bg-black/50 border border-[#1C1C28] focus:border-[#C8102E] rounded-xl text-xs text-white outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-3 bg-black/30 p-3 rounded-xl border border-[#1C1C28]">
                   <div>
