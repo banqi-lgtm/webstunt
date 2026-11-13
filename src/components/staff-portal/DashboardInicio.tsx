@@ -763,12 +763,12 @@ export function DashboardInicio({ activeTab, setActiveTab, rutUrl, certUrl, tota
               />
             </div>
 
-            {/* RENGLÓN DINÁMICO: FECHAS DE EVENTO (DESDE - HASTA) */}
+            {/* RENGLÓN DINÁMICO: PERIODO DE PRESTACIÓN DEL SERVICIO (FECHAS) */}
             {concepto.trim().length > 0 && (
               <div className="col-span-1 md:col-span-2 bg-[#0D0D0D] border border-[#262626] rounded-xl p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
                 <div className="flex items-center justify-between">
                   <label className="text-[11px] font-bold text-[#E60000] uppercase tracking-wider flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-[#E60000]" /> Fechas de evento (Desde - Hasta) <span className="text-[#E60000]">*</span>
+                    <Calendar className="w-3.5 h-3.5 text-[#E60000]" /> Periodo de prestación del servicio (fechas) <span className="text-[#E60000]">*</span>
                   </label>
                   <span className="text-[10px] text-zinc-500 font-medium">Requerido para la prestación del servicio</span>
                 </div>

@@ -403,7 +403,7 @@ export function CuentaDeCobro({
                               <span className="font-medium text-[#0A0A0A]">{c.descripcion}</span>
                               {eventDateDesde && (
                                 <div className="text-[11px] text-zinc-600 mt-1 flex items-center gap-1 font-inter">
-                                  <span className="font-bold text-[#0A0A0A]">Fechas de evento:</span> {eventDateHasta && eventDateHasta !== eventDateDesde ? `Desde ${formatEventDate(eventDateDesde)} hasta ${formatEventDate(eventDateHasta)}` : formatEventDate(eventDateDesde)}
+                                  <span className="font-bold text-[#0A0A0A]">Periodo de prestación del servicio (fechas):</span> {eventDateHasta && eventDateHasta !== eventDateDesde ? `Desde ${formatEventDate(eventDateDesde)} hasta ${formatEventDate(eventDateHasta)}` : formatEventDate(eventDateDesde)}
                                 </div>
                               )}
                             </td>

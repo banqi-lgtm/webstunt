@@ -1189,7 +1189,7 @@ export default function CuentasDeCobroPage() {
     }
 
     if (!approvalFechaEventoDesde || !approvalFechaEventoDesde.trim()) {
-      toast({ title: 'Fechas de evento requeridas', description: 'La fecha de inicio de servicio (Desde) es obligatoria antes de aprobar.', variant: 'destructive' });
+      toast({ title: 'Periodo de servicio requerido', description: 'La fecha de inicio de servicio (Desde) es obligatoria antes de aprobar.', variant: 'destructive' });
       return;
     }
 
@@ -2087,11 +2087,11 @@ export default function CuentasDeCobroPage() {
                   />
                 </div>
 
-                {/* FECHAS DE EVENTO (DESDE - HASTA) - SIEMPRE VISIBLE */}
+                {/* PERIODO DE PRESTACIÓN DEL SERVICIO (FECHAS) - SIEMPRE VISIBLE */}
                 <div className="bg-[#0D0D0D] border border-[#262626] rounded-xl p-3.5 space-y-3">
                   <div className="flex items-center justify-between">
                     <label className="text-[11px] font-bold text-[#C8102E] uppercase tracking-wider flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-[#C8102E]" /> Fechas de evento (Desde - Hasta) <span className="text-[#C8102E]">*</span>
+                      <Calendar className="w-3.5 h-3.5 text-[#C8102E]" /> Periodo de prestación del servicio (fechas) <span className="text-[#C8102E]">*</span>
                     </label>
                     <span className="text-[10px] text-zinc-500 font-medium">Requerido para la prestación del servicio</span>
                   </div>
@@ -2274,11 +2274,11 @@ export default function CuentasDeCobroPage() {
                   />
                 </div>
 
-                {/* FECHAS DE EVENTO (DESDE - HASTA) EN DETALLES */}
+                {/* PERIODO DE PRESTACIÓN DEL SERVICIO (FECHAS) EN DETALLES */}
                 <div className="bg-black/30 border border-[#1C1C28] rounded-xl p-3 space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="text-[11px] font-bold text-[#C8102E] uppercase tracking-wider flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5 text-[#C8102E]" /> Fechas de evento (Desde - Hasta)
+                      <Calendar className="w-3.5 h-3.5 text-[#C8102E]" /> Periodo de prestación del servicio (fechas)
                     </label>
                     <span className="text-[10px] text-zinc-500">Período del servicio</span>
                   </div>
@@ -2507,12 +2507,12 @@ export default function CuentasDeCobroPage() {
                   )}
                 </div>
 
-                {/* FECHAS DE EVENTO (DESDE - HASTA) - OBLIGATORIO */}
+                {/* PERIODO DE PRESTACIÓN DEL SERVICIO (FECHAS) - OBLIGATORIO */}
                 <div className="bg-[#0E0E14] border border-[#262626] rounded-xl p-3.5 space-y-3">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
                       <Calendar className="w-3.5 h-3.5 text-[#C8102E]" />
-                      Fechas de Evento (Servicio) <span className="text-[#C8102E]">*</span>
+                      Periodo de prestación del servicio (fechas) <span className="text-[#C8102E]">*</span>
                     </label>
                     {approvalFechaEventoDesde.trim() ? (
                       <span className="text-[10px] font-bold bg-emerald-950/70 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/40">
