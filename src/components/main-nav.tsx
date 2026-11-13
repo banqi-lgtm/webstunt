@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { User, CalendarDays, LogOut, Shield, Users, Menu, Star, LayoutDashboard, Search, FileText, CheckCircle, XCircle, Clock, ShieldCheck, Flag, Settings, Smartphone, Bell, Video, ClipboardList, QrCode, ChevronDown, FileSpreadsheet, Receipt } from 'lucide-react';
+import { User, CalendarDays, LogOut, Shield, Users, Menu, Star, LayoutDashboard, Search, FileText, CheckCircle, XCircle, Clock, ShieldCheck, Flag, Settings, Smartphone, Bell, Video, ClipboardList, QrCode, ChevronDown, FileSpreadsheet, Receipt, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { auth, db } from '@/lib/firebase';
@@ -72,7 +72,7 @@ export function MainNav() {
             } else {
               setHasQrAccess(false);
             }
-            if (isSuperAdmin || interfaces.includes('codigos') || interfaces.includes('cuentas') || interfaces.includes('cuentas-de-cobro')) {
+            if (isSuperAdmin || interfaces.includes('codigos') || interfaces.includes('cuentas') || interfaces.includes('cuentas-de-cobro') || interfaces.includes('centros-de-costo')) {
               setHasCodigosAccess(true);
             } else {
               setHasCodigosAccess(false);
@@ -128,6 +128,7 @@ export function MainNav() {
   if (hasCodigosAccess) {
     adminLinks.push({ href: '/codigos', label: 'Códigos', icon: FileText });
     adminLinks.push({ href: '/cuentas-de-cobro', label: 'Cuentas de Cobro', icon: Receipt });
+    adminLinks.push({ href: '/centros-de-costo', label: 'Centros de Costo', icon: Building2 });
   }
   if (isAdmin) {
     adminLinks.push({ href: '/admin', label: 'Panel Admin', icon: Shield });
@@ -160,6 +161,9 @@ export function MainNav() {
     if (href === '/cuentas-de-cobro') {
       return pathname === '/cuentas-de-cobro';
     }
+    if (href === '/centros-de-costo') {
+      return pathname === '/centros-de-costo';
+    }
     return pathname === href;
   };
 
@@ -171,6 +175,7 @@ export function MainNav() {
     const isQr = link.href === '/qr';
     const isCodigos = link.href === '/codigos';
     const isCuentas = link.href === '/cuentas-de-cobro';
+    const isCentros = link.href === '/centros-de-costo';
     
     let activeClass = 'bg-zinc-800 text-white border border-transparent';
     let inactiveClass = 'text-zinc-400 hover:text-white hover:bg-zinc-900 border border-transparent';
@@ -204,6 +209,10 @@ export function MainNav() {
       activeClass = 'bg-zinc-800 text-white border border-emerald-500/20';
       inactiveClass = 'text-zinc-400 hover:text-white hover:bg-zinc-900 border border-emerald-500/10';
       iconClass = 'h-4 w-4 text-emerald-400';
+    } else if (isCentros) {
+      activeClass = 'bg-zinc-800 text-white border border-amber-500/20';
+      inactiveClass = 'text-zinc-400 hover:text-white hover:bg-zinc-900 border border-amber-500/10';
+      iconClass = 'h-4 w-4 text-amber-400';
     }
 
     return (
