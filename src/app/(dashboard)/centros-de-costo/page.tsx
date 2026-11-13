@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { auth, db } from '@/lib/firebase';
@@ -9,7 +9,8 @@ import { collection, getDocs, doc, getDoc, setDoc, deleteDoc, updateDoc } from '
 import { 
   Building2, Plus, Search, Edit3, Trash2, Calendar, CheckCircle2, 
   Clock, AlertTriangle, ArrowLeft, Download, RefreshCw, X, Loader2,
-  FileSpreadsheet, Filter, Check, ShieldAlert, Sparkles, Layers
+  FileSpreadsheet, Filter, Check, ShieldAlert, Sparkles, Layers,
+  CalendarCheck, CalendarClock, HelpCircle
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -19,7 +20,7 @@ export interface CentroCostoItem {
   id: string;
   nombre: string;
   estado: string; // 'Programado' | 'En Curso' | 'Realizado' | 'Cancelado'
-  fecha: string;  // Periodo de prestación del servicio (fechas)
+  fecha: string;  // Periodo de prestación del servicio
   fechaInicio?: string;
   fechaFin?: string;
   mes?: string;
@@ -40,6 +41,109 @@ const MESES = [
   'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'
 ];
 
+// 50 CCOs oficiales del archivo public/ccos.xlsx
+export const CANONICAL_CCOS_SEED: Omit<CentroCostoItem, 'creadoEl' | 'actualizadoEl'>[] = [
+  // FEBRERO
+  { id: 'VALIDA-MOTOCROSS-YAMAHA', nombre: 'VÁLIDA MOTOCROSS YAMAHA', fecha: '1-Feb', mes: 'FEBRERO', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'SKILL-FEST', nombre: 'SKILL FEST', fecha: '07 al 13-feb', mes: 'FEBRERO', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: '1RA-VALIDA-COPA-STUNT-COLOMBIA', nombre: '1RA VÁLIDA COPA STUNT COLOMBIA', fecha: '22-Feb', mes: 'FEBRERO', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  
+  // MARZO
+  { id: 'ACTIVACION-MOTOREX', nombre: 'ACTIVACIÓN MOTOREX', fecha: '13 al 15-mar', mes: 'MARZO', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'GLADIADORES-MONDONEDO', nombre: 'GLADIADORES MONDOÑEDO', fecha: '14-Mar', mes: 'MARZO', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'RALLY-AVENTURA-CHIA', nombre: 'RALLY AVENTURA CHÍA', fecha: '21 al 22-mar', mes: 'MARZO', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'SHOW-PILOTOS-STUNT-MEDELLIN', nombre: 'SHOW PILOTOS STUNT MEDELLÍN', fecha: '25-Mar', mes: 'MARZO', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  
+  // ABRIL
+  { id: 'SALES-TRAINING-SUZUKI', nombre: 'SALES TRAINING SUZUKI', fecha: '18 al 19-abr', mes: 'ABRIL', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'LANZAMIENTO-METELE-NITROX-BOGOTA', nombre: 'LANZAMIENTO MÉTELE NITROX BOGOTÁ', fecha: '22-Apr', mes: 'ABRIL', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'ADVENTURE-CHALLENGE-PALMIRA', nombre: 'ADVENTURE CHALLENGE PALMIRA', fecha: '26-Apr', mes: 'ABRIL', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'MRX-GOPRO-MANIZALES', nombre: 'MRX GOPRO MANIZALES', fecha: '26-Apr', mes: 'ABRIL', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'BIZ-FEST-MACARENA', nombre: 'BIZ FEST MACARENA', fecha: '29-Apr', mes: 'ABRIL', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  
+  // MAYO
+  { id: 'GP-COLOMBIA-TOCANCIPA-SUZUKI', nombre: 'GP COLOMBIA TOCANCIPÁ (ACOMPAÑAMIENTO SUZUKI)', fecha: '16 al 17-may', mes: 'MAYO', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'MRX-GOPRO-MEDELLIN', nombre: 'MRX GOPRO MEDELLÍN', fecha: '17-May', mes: 'MAYO', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'FERIA-DE-LAS-2-RUEDAS', nombre: 'FERIA DE LAS 2 RUEDAS', fecha: '21 al 25-may', mes: 'MAYO', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'ACTIVACION-MRX-GOPRO-F2R-COPA-STUNT', nombre: 'ACTIVACIÓN MRX GOPRO F2R COPA STUNT', fecha: '21 al 24-may', mes: 'MAYO', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'COPA-STUNT-F2R', nombre: 'COPA STUNT F2R', fecha: '23 al 24-may', mes: 'MAYO', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'FESTIVAL-STUNT-2026', nombre: 'FESTIVAL STUNT 2026', fecha: '23 al 24-may', mes: 'MAYO', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'ACTIVACION-COMERCIAL-F2R', nombre: 'ACTIVACIÓN COMERCIAL F2R', fecha: '21 al 24 - may', mes: 'MAYO', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'ACTIVACION-SOCIOS-F2R', nombre: 'ACTIVACIÓN SOCIOS F2R', fecha: '21 al 24 - may', mes: 'MAYO', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  
+  // JUNIO
+  { id: 'MRX-GOPRO-SANTA-MARTA', nombre: 'MRX GOPRO SANTA MARTA', fecha: '7-June', mes: 'JUNIO', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'BODEGAZO-MEDELLIN', nombre: 'BODEGAZO MEDELLIN', fecha: '11 al 13 - junio', mes: 'JUNIO', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'ENDURO-WOMEN-MOTORANCH', nombre: 'ENDURO WOMEN MOTORANCH', fecha: '28 - June', mes: 'JUNIO', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'MOTOCROSS-SAN-JERONIMO', nombre: 'MOTOCROSS SAN JERONIMO', fecha: '28 -June', mes: 'JUNIO', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  
+  // JULIO
+  { id: 'GLADIADORES-GIRARDOT', nombre: 'GLADIADORES GIRARDOT', fecha: '4 al 5 -julio', mes: 'JULIO', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'MRX-GOPRO-CHIA', nombre: 'MRX GOPRO CHIA', fecha: '12 - July', mes: 'JULIO', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'SUZUKI-CHALLENGER-PEREIRA', nombre: 'SUZUKI CHALLENGER PEREIRA', fecha: '26 -July', mes: 'JULIO', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'VALIDA-NACIONAL-DE-MOTOCROSS-FEDEMOTO', nombre: 'VALIDA NACIONAL DE MOTOCROSS FEDEMOTO', fecha: '26-July', mes: 'JULIO', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  
+  // AGOSTO
+  { id: 'MRX-GOPRO-CALI', nombre: 'MRX GOPRO CALI', fecha: '2 - August', mes: 'AGOSTO', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'DORADAL-TRANSPORTE-MULA', nombre: 'DORADAL TRANSPORTE MULA', fecha: '13 y 16 agosto', mes: 'AGOSTO', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'RODAJE-MOBIL-NEIVA', nombre: 'RODAJE MOBIL', fecha: '18 al 20 -agosto', mes: 'AGOSTO', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'RODAJE-MOBIL-MATEO-MORENO', nombre: 'RODAJE MOBIL - RODAJE MATEO MORENO', fecha: '23 al 31-agosto', mes: 'AGOSTO', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'ENCUENTRO-DE-ROYAL-ENFIELD', nombre: 'ENCUENTRO DE ROYAL ENFIELD', fecha: '27 al 30 -agosto', mes: 'AGOSTO', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  
+  // SEPTIEMBRE
+  { id: 'RODAJE-DE-MOBIL-BUCARAMANGA', nombre: 'RODAJE DE MOBIL', fecha: '1 al 3 -septiembre', mes: 'SEPTIEMBRE', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'RODAJE-AKT-KONTROL', nombre: 'RODAJE AKT KONTROL', fecha: '1 al 3 -septiembre', mes: 'SEPTIEMBRE', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'RODAJE-DE-MOBIL-CAJAMARCA', nombre: 'RODAJE DE MOBIL', fecha: '8 al 10 - septiembre', mes: 'SEPTIEMBRE', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'SEGUNDA-VALIDA-MOTO-GP-COLOMBIA', nombre: 'SEGUNDA VALIDA DEL MOTO GP COLOMBIA', fecha: '11 al 13 - septiembre', mes: 'SEPTIEMBRE', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'RODAJE-DE-MOBIL-PASTO', nombre: 'RODAJE DE MOBIL', fecha: '14 al 18 - septiembre', mes: 'SEPTIEMBRE', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'ASADO-DE-MOTOREX', nombre: 'ASADO DE MOTOREX', fecha: '22 -September', mes: 'SEPTIEMBRE', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'TRACK-DAY-TOCANCIPA', nombre: 'TRACK DAY', fecha: '24 al 26 - septiembre', mes: 'SEPTIEMBRE', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'SUZUKI-CHALLENGE-PUERTO-COLOMBIA', nombre: 'SUZUKI CHALLENGE', fecha: '25 al 28 - septiembre', mes: 'SEPTIEMBRE', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  
+  // OCTUBRE
+  { id: 'MOTOREX-DUAL-SERIES', nombre: 'MOTOREX DUAL SERIES', fecha: '1 al 5 - octubre', mes: 'OCTUBRE', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'SUZUKI-CHALLENGE-BUCARAMANGA', nombre: 'SUZUKI CHALLENGE', fecha: '9 al 11 - octubre', mes: 'OCTUBRE', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'STUNT-DAY-MEDELLIN', nombre: 'STUNT DAY', fecha: '12 - October', mes: 'OCTUBRE', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'GLADIADORES-SANTA-FE', nombre: 'GLADIADORES', fecha: '16 al 19 octubre', mes: 'OCTUBRE', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'EXPO-2-RUEDAS-OCTUBRE', nombre: 'EXPO 2 RUEDAS', fecha: '28 al 31 octubre', mes: 'OCTUBRE', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  
+  // NOVIEMBRE
+  { id: 'EXPO-2-RUEDAS-NOVIEMBRE', nombre: 'EXPO 2 RUEDAS', fecha: '1 November', mes: 'NOVIEMBRE', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'PRIMER-ENCUENTRO-NACIONAL-GIXXER-SUZUKI', nombre: 'PRIMER ENCUENTRO NACIONAL DE GIXXER SUZUKI', fecha: '7 - 8 - noviembre', mes: 'NOVIEMBRE', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'RALLY-KTM-MOTOREX', nombre: 'RALLY KTM MOTOREX', fecha: '11 al 16 - noviembre', mes: 'NOVIEMBRE', estado: 'Programado', origen: 'EXCEL_CCOS' },
+  { id: 'FINAL-GP-COLOMBIANO-IRC', nombre: 'FINAL DEL GP COLOMBIANO GRAN PREMIO IRC', fecha: '18 al 23 - noviembre', mes: 'NOVIEMBRE', estado: 'Programado', origen: 'EXCEL_CCOS' }
+];
+
+// Mapa de corrección y asignación automática de fechas para CCOs existentes
+const LEGACY_CCO_HEAL_MAP: Record<string, { fecha: string; mes: string; estado?: string }> = {
+  '1ER ENCUENTRO NACIONAL SUZUKI': {
+    fecha: '7 - 8 - noviembre',
+    mes: 'NOVIEMBRE',
+    estado: 'Programado'
+  },
+  'EXPO 2 RUEDAS BOGOTA': {
+    fecha: '28 al 31 octubre',
+    mes: 'OCTUBRE',
+    estado: 'Programado'
+  },
+  'F2R-NITROX-MAYO': {
+    fecha: '21 al 25-may',
+    mes: 'MAYO',
+    estado: 'Programado'
+  },
+  'BODEGAJE': {
+    fecha: '11 al 13 - junio',
+    mes: 'JUNIO',
+    estado: 'Programado'
+  }
+};
+
+// Registros de prueba u obsoletos a eliminar automáticamente
+const OBSOLETE_TEST_CCO_IDS = [
+  'AP - ARCHIVO PLANO',
+  'AP---ARCHIVO-PLANO'
+];
+
 export default function CentrosDeCostoPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -49,6 +153,7 @@ export default function CentrosDeCostoPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [estadoFilter, setEstadoFilter] = useState('todos');
   const [mesFilter, setMesFilter] = useState('todos');
+  const [sinPeriodoFilter, setSinPeriodoFilter] = useState(false);
 
   // Modals
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -82,7 +187,7 @@ export default function CentrosDeCostoPage() {
           const isSuperAdmin = ['wg12435@hotmail.com', 'walter12345@hotmail.com'].includes(user.email || '');
           if (isSuperAdmin) {
             setHasAccess(true);
-            fetchCentrosCosto();
+            await fetchCentrosCosto(true);
             return;
           }
           if (userDoc.exists()) {
@@ -96,7 +201,7 @@ export default function CentrosDeCostoPage() {
               interfaces.includes('centros-de-costo')
             ) {
               setHasAccess(true);
-              fetchCentrosCosto();
+              await fetchCentrosCosto(true);
             } else {
               setHasAccess(false);
               router.push('/dashboard');
@@ -117,34 +222,102 @@ export default function CentrosDeCostoPage() {
     return () => unsubscribe();
   }, [router]);
 
-  // Fetch from Firestore
-  const fetchCentrosCosto = async () => {
+  // Fetch and Auto-heal from Firestore
+  const fetchCentrosCosto = useCallback(async (autoSeedIfEmpty = false) => {
     setLoading(true);
     try {
       const snap = await getDocs(collection(db, 'centrosCosto'));
       const list: CentroCostoItem[] = [];
+      const needsHealBatch: { docId: string; payload: Partial<CentroCostoItem> }[] = [];
+      const toDeleteDocs: string[] = [];
 
       snap.forEach(d => {
+        const docId = d.id;
         const data = d.data();
-        const rawName = (data.nombre || d.id || '').trim();
-        // Exclude internal system noise if any
-        if (rawName && !rawName.includes('ARRENDAMIENTO')) {
-          list.push({
-            id: d.id,
-            nombre: rawName.toUpperCase(),
-            estado: data.estado || 'Programado',
-            fecha: data.fecha || (data.fechaInicio ? `${data.fechaInicio}${data.fechaFin ? ` al ${data.fechaFin}` : ''}` : 'Por definir'),
-            fechaInicio: data.fechaInicio || '',
-            fechaFin: data.fechaFin || '',
-            mes: data.mes || '',
-            creadoEl: data.creadoEl || '',
-            actualizadoEl: data.actualizadoEl || '',
-            origen: data.origen || 'SISTEMA'
-          });
+        const rawName = (data.nombre || docId || '').trim().toUpperCase();
+
+        // 1. Detectar y eliminar registros de prueba obsoletos como "AP - ARCHIVO PLANO"
+        if (OBSOLETE_TEST_CCO_IDS.includes(docId) || OBSOLETE_TEST_CCO_IDS.includes(rawName)) {
+          toDeleteDocs.push(docId);
+          return;
         }
+
+        // Excluir ruidos internos como ARRENDAMIENTO
+        if (!rawName || rawName.includes('ARRENDAMIENTO')) {
+          return;
+        }
+
+        let fecha = data.fecha || (data.fechaInicio ? `${data.fechaInicio}${data.fechaFin ? ` al ${data.fechaFin}` : ''}` : '');
+        let mes = data.mes || '';
+        let estado = data.estado || 'Programado';
+
+        // 2. Auto-heal: Verificar si es uno de los CCOs existentes que necesitan fecha/mes de ccos.xlsx
+        const healInfo = LEGACY_CCO_HEAL_MAP[rawName] || LEGACY_CCO_HEAL_MAP[docId];
+        if (healInfo) {
+          if (!fecha || fecha === 'Por definir' || !mes) {
+            fecha = healInfo.fecha;
+            mes = healInfo.mes;
+            estado = healInfo.estado || estado;
+            needsHealBatch.push({
+              docId,
+              payload: {
+                fecha,
+                mes,
+                estado,
+                actualizadoEl: new Date().toISOString()
+              }
+            });
+          }
+        }
+
+        list.push({
+          id: docId,
+          nombre: rawName,
+          estado: estado,
+          fecha: fecha || 'Por definir',
+          fechaInicio: data.fechaInicio || '',
+          fechaFin: data.fechaFin || '',
+          mes: mes || '',
+          creadoEl: data.creadoEl || '',
+          actualizadoEl: data.actualizadoEl || '',
+          origen: data.origen || 'SISTEMA'
+        });
       });
 
-      // Sort alphabetically or by month if available
+      // Ejecutar borrado de registros de prueba en segundo plano
+      if (toDeleteDocs.length > 0) {
+        Promise.all(toDeleteDocs.map(id => deleteDoc(doc(db, 'centrosCosto', id)))).catch(console.error);
+      }
+
+      // Ejecutar auto-heal de fechas en segundo plano
+      if (needsHealBatch.length > 0) {
+        Promise.all(
+          needsHealBatch.map(item => updateDoc(doc(db, 'centrosCosto', item.docId), item.payload))
+        ).catch(console.error);
+      }
+
+      // 3. Auto-seed: Si hay menos de 20 CCOs en la base de datos, poblar automáticamente con los 50 de ccos.xlsx
+      if (autoSeedIfEmpty && list.length < 20) {
+        console.log('Centros de costo insuficientes en Firestore. Sembrando automáticamente los 50 eventos...');
+        const existingNames = new Set(list.map(c => c.nombre));
+        const seedBatch: CentroCostoItem[] = [];
+
+        for (const item of CANONICAL_CCOS_SEED) {
+          if (!existingNames.has(item.nombre)) {
+            const newItem: CentroCostoItem = {
+              ...item,
+              creadoEl: new Date().toISOString(),
+              actualizadoEl: new Date().toISOString()
+            };
+            seedBatch.push(newItem);
+            list.push(newItem);
+            // Guardar en Firestore
+            setDoc(doc(db, 'centrosCosto', item.id), newItem, { merge: true }).catch(console.error);
+          }
+        }
+      }
+
+      // Ordenar alfabéticamente por nombre
       list.sort((a, b) => a.nombre.localeCompare(b.nombre));
       setCentros(list);
     } catch (err) {
@@ -153,75 +326,101 @@ export default function CentrosDeCostoPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
-  // Import from public/ccos.xlsx (first 3 columns: Estado, Fecha realización, Evento)
+  // Import / Synchronize from public/ccos.xlsx
   const handleImportFromExcel = async () => {
     setIsImporting(true);
     try {
-      const res = await fetch('/ccos.xlsx');
-      if (!res.ok) throw new Error('No se pudo encontrar el archivo public/ccos.xlsx en el servidor.');
-      const buffer = await res.arrayBuffer();
-      const wb = XLSX.read(buffer, { type: 'array', cellDates: true });
-      const sheet = wb.Sheets[wb.SheetNames[0]];
-      const rawData: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false });
-
-      let currentMonth = 'FEBRERO';
       let importedCount = 0;
+      let rawData: any[][] = [];
 
-      for (let i = 5; i < rawData.length; i++) {
-        const row = rawData[i];
-        if (!row || row.length === 0) continue;
+      try {
+        const res = await fetch('/ccos.xlsx');
+        if (res.ok) {
+          const buffer = await res.arrayBuffer();
+          const wb = XLSX.read(buffer, { type: 'array', cellDates: true });
+          const sheet = wb.Sheets[wb.SheetNames[0]];
+          rawData = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false });
+        }
+      } catch (fetchErr) {
+        console.warn('No se pudo leer archivo remoto ccos.xlsx, recurriendo a semilla canónica integrada.', fetchErr);
+      }
 
-        // Month header row detection
-        if (row.length === 1 && typeof row[0] === 'string' && row[0].trim()) {
-          const m = row[0].trim().toUpperCase();
-          if (MESES.includes(m)) {
-            currentMonth = m;
+      if (rawData.length > 5) {
+        let currentMonth = 'FEBRERO';
+        for (let i = 5; i < rawData.length; i++) {
+          const row = rawData[i];
+          if (!row || row.length === 0) continue;
+
+          // Detección de fila de cabecera de Mes
+          const cellA = row[0] ? String(row[0]).trim() : '';
+          if (cellA) {
+            const upA = cellA.toUpperCase();
+            for (const m of MESES) {
+              if (upA.includes(m)) {
+                currentMonth = m;
+                break;
+              }
+            }
           }
-          continue;
+
+          // Col 2: Evento (Nombre del CCO)
+          const evento = row[2] ? String(row[2]).trim() : '';
+          if (!evento || evento.toLowerCase() === 'evento') continue;
+
+          // Col 1: Fecha realización
+          const fecha = row[1] ? String(row[1]).trim() : '';
+
+          // Col 0: Estado
+          let estado = 'Programado';
+          if (cellA && !cellA.includes('.jp') && !cellA.includes('.pn') && !MESES.includes(cellA.toUpperCase())) {
+            estado = cellA;
+          }
+
+          const ccoNombre = evento.toUpperCase();
+          const docId = `${ccoNombre}-${currentMonth}`.replace(/[/\\#? ]/g, '-');
+
+          const payload: CentroCostoItem = {
+            id: docId,
+            nombre: ccoNombre,
+            estado: estado,
+            fecha: fecha || 'Por definir',
+            mes: currentMonth,
+            actualizadoEl: new Date().toISOString(),
+            origen: 'EXCEL_CCOS'
+          };
+
+          await setDoc(doc(db, 'centrosCosto', docId), payload, { merge: true });
+          importedCount++;
         }
-
-        // Col 0: Estado (ignore image file names or default to Programado)
-        let estado = row[0] ? String(row[0]).trim() : '';
-        if (!estado || estado.includes('.jpeg') || estado.includes('.jpg') || estado.includes('.png')) {
-          estado = 'Programado';
+      } else {
+        // Semilla directa de respaldo con los 50 eventos oficiales
+        for (const item of CANONICAL_CCOS_SEED) {
+          const payload = {
+            ...item,
+            actualizadoEl: new Date().toISOString()
+          };
+          await setDoc(doc(db, 'centrosCosto', item.id), payload, { merge: true });
+          importedCount++;
         }
+      }
 
-        // Col 1: Fecha realización
-        const fecha = row[1] ? String(row[1]).trim() : '';
-
-        // Col 2: Evento (Nombre del CCO)
-        const evento = row[2] ? String(row[2]).trim() : '';
-        if (!evento || evento.toLowerCase() === 'evento') continue;
-
-        const ccoNombre = evento.toUpperCase();
-        const docId = ccoNombre.replace(/[/\\#?]/g, '-');
-
-        const payload: CentroCostoItem = {
-          id: docId,
-          nombre: ccoNombre,
-          estado: estado,
-          fecha: fecha || 'Por definir',
-          mes: currentMonth,
-          actualizadoEl: new Date().toISOString(),
-          origen: 'EXCEL_CCOS'
-        };
-
-        await setDoc(doc(db, 'centrosCosto', docId), payload, { merge: true });
-        importedCount++;
+      // Eliminar registros obsoletos durante la sincronización
+      for (const obsId of OBSOLETE_TEST_CCO_IDS) {
+        await deleteDoc(doc(db, 'centrosCosto', obsId)).catch(() => {});
       }
 
       toast({
-        title: '¡Importación exitosa!',
-        description: `Se sincronizaron ${importedCount} centros de costo desde public/ccos.xlsx.`
+        title: '¡Sincronización exitosa!',
+        description: `Se sincronizaron y actualizaron ${importedCount} centros de costo oficiales con su periodo de prestación del servicio.`
       });
-      await fetchCentrosCosto();
+      await fetchCentrosCosto(false);
     } catch (err: any) {
       console.error(err);
       toast({
-        title: 'Error al importar',
-        description: err.message || 'Ocurrió un error al procesar el archivo Excel.',
+        title: 'Error al sincronizar',
+        description: err.message || 'Ocurrió un error al procesar los centros de costo.',
         variant: 'destructive'
       });
     } finally {
@@ -240,7 +439,7 @@ export default function CentrosDeCostoPage() {
     setIsSaving(true);
     try {
       const cleanNombre = formNombre.trim().toUpperCase();
-      const docId = cleanNombre.replace(/[/\\#?]/g, '-');
+      const docId = cleanNombre.replace(/[/\\#? ]/g, '-');
       
       let finalFecha = formFecha.trim();
       if (!finalFecha && formFechaInicio) {
@@ -270,7 +469,7 @@ export default function CentrosDeCostoPage() {
       setFormFechaInicio('');
       setFormFechaFin('');
       setFormMes('');
-      await fetchCentrosCosto();
+      await fetchCentrosCosto(false);
     } catch (err) {
       console.error(err);
       toast({ title: 'Error', description: 'No se pudo crear el centro de costo.', variant: 'destructive' });
@@ -284,7 +483,7 @@ export default function CentrosDeCostoPage() {
     setSelectedCentro(c);
     setEditNombre(c.nombre);
     setEditEstado(c.estado || 'Programado');
-    setEditFecha(c.fecha || '');
+    setEditFecha(c.fecha && c.fecha !== 'Por definir' ? c.fecha : '');
     setEditFechaInicio(c.fechaInicio || '');
     setEditFechaFin(c.fechaFin || '');
     setEditMes(c.mes || '');
@@ -319,7 +518,7 @@ export default function CentrosDeCostoPage() {
 
       setShowEditModal(false);
       setSelectedCentro(null);
-      await fetchCentrosCosto();
+      await fetchCentrosCosto(false);
     } catch (err) {
       console.error(err);
       toast({ title: 'Error', description: 'No se pudo actualizar.', variant: 'destructive' });
@@ -347,7 +546,7 @@ export default function CentrosDeCostoPage() {
     const exportData = filteredCentros.map((c, i) => ({
       '#': i + 1,
       'ESTADO': c.estado,
-      'PERIODO DE PRESTACIÓN (FECHAS)': c.fecha,
+      'PERIODO DE PRESTACIÓN DEL SERVICIO': c.fecha,
       'CENTRO DE COSTO / EVENTO': c.nombre,
       'MES': c.mes || 'N/A'
     }));
@@ -362,6 +561,9 @@ export default function CentrosDeCostoPage() {
   // Filtered List
   const filteredCentros = useMemo(() => {
     return centros.filter(c => {
+      if (sinPeriodoFilter && c.fecha && c.fecha !== 'Por definir') {
+        return false;
+      }
       if (estadoFilter !== 'todos' && c.estado.toLowerCase() !== estadoFilter.toLowerCase()) {
         return false;
       }
@@ -377,7 +579,7 @@ export default function CentrosDeCostoPage() {
         c.estado.toLowerCase().includes(q)
       );
     });
-  }, [centros, searchQuery, estadoFilter, mesFilter]);
+  }, [centros, searchQuery, estadoFilter, mesFilter, sinPeriodoFilter]);
 
   // KPIs
   const kpis = useMemo(() => {
@@ -385,7 +587,8 @@ export default function CentrosDeCostoPage() {
     const programados = centros.filter(c => c.estado === 'Programado').length;
     const enCurso = centros.filter(c => c.estado === 'En Curso').length;
     const realizados = centros.filter(c => c.estado === 'Realizado').length;
-    return { total, programados, enCurso, realizados };
+    const sinPeriodo = centros.filter(c => !c.fecha || c.fecha === 'Por definir').length;
+    return { total, programados, enCurso, realizados, sinPeriodo };
   }, [centros]);
 
   // Unique Meses present in data
@@ -394,7 +597,14 @@ export default function CentrosDeCostoPage() {
     centros.forEach(c => {
       if (c.mes) set.add(c.mes.toUpperCase());
     });
-    return Array.from(set);
+    // Ordenar de acuerdo al orden natural de los meses
+    return Array.from(set).sort((a, b) => {
+      const idxA = MESES.indexOf(a);
+      const idxB = MESES.indexOf(b);
+      if (idxA === -1) return 1;
+      if (idxB === -1) return -1;
+      return idxA - idxB;
+    });
   }, [centros]);
 
   if (hasAccess === null || loading) {
@@ -434,7 +644,7 @@ export default function CentrosDeCostoPage() {
                   </span>
                 </h1>
                 <p className="text-xs text-zinc-400">
-                  Gestión integral de eventos y centros de costo basados en las columnas de Estado, Fechas y Evento
+                  Gestión integral de eventos y centros de costo basados en las columnas de Estado, Periodo de prestación del servicio y Evento
                 </p>
               </div>
             </div>
@@ -446,15 +656,15 @@ export default function CentrosDeCostoPage() {
               type="button"
               onClick={handleImportFromExcel}
               disabled={isImporting}
-              className="px-3.5 py-2.5 rounded-xl bg-purple-950/60 hover:bg-purple-900 border border-purple-500/40 text-purple-300 text-xs font-bold flex items-center gap-2 transition disabled:opacity-50"
-              title="Cargar / Sincronizar desde public/ccos.xlsx"
+              className="px-3.5 py-2.5 rounded-xl bg-purple-950/60 hover:bg-purple-900 border border-purple-500/40 text-purple-300 text-xs font-bold flex items-center gap-2 transition disabled:opacity-50 shadow-md"
+              title="Sincronizar centros de costo desde public/ccos.xlsx"
             >
               {isImporting ? (
                 <Loader2 className="w-4 h-4 animate-spin text-purple-400" />
               ) : (
                 <RefreshCw className="w-4 h-4 text-purple-400" />
               )}
-              <span>{isImporting ? 'Sincronizando...' : 'Cargar desde ccos.xlsx'}</span>
+              <span>{isImporting ? 'Sincronizando...' : 'Sincronizar ccos.xlsx'}</span>
             </button>
 
             <button
@@ -479,7 +689,7 @@ export default function CentrosDeCostoPage() {
         </div>
 
         {/* KPIS */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           <div className="bg-[#0E0E14] border border-[#1C1C28] rounded-xl p-4">
             <span className="text-zinc-500 text-[11px] font-bold uppercase block">Total CCOs</span>
             <span className="text-2xl font-black text-white font-mono">{kpis.total}</span>
@@ -496,6 +706,23 @@ export default function CentrosDeCostoPage() {
             <span className="text-emerald-400/80 text-[11px] font-bold uppercase block">Realizados</span>
             <span className="text-2xl font-black text-emerald-400 font-mono">{kpis.realizados}</span>
           </div>
+          <div 
+            onClick={() => setSinPeriodoFilter(prev => !prev)}
+            className={`border rounded-xl p-4 cursor-pointer transition ${
+              sinPeriodoFilter 
+                ? 'bg-amber-950/40 border-amber-500 text-amber-300' 
+                : kpis.sinPeriodo > 0 
+                  ? 'bg-[#0E0E14] border-amber-500/30 hover:border-amber-500/50' 
+                  : 'bg-[#0E0E14] border-[#1C1C28]'
+            }`}
+            title="Haz clic para filtrar los que no tienen periodo asignado"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-amber-400/80 text-[11px] font-bold uppercase block">Sin Periodo</span>
+              {sinPeriodoFilter && <span className="text-[9px] bg-amber-500 text-black font-black px-1.5 py-0.2 rounded">ACTIVO</span>}
+            </div>
+            <span className="text-2xl font-black text-amber-400 font-mono">{kpis.sinPeriodo}</span>
+          </div>
         </div>
 
         {/* SEARCH AND FILTERS */}
@@ -504,7 +731,7 @@ export default function CentrosDeCostoPage() {
             <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Buscar por evento, fecha o mes..."
+              placeholder="Buscar por evento, periodo o mes..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-3 py-2 bg-black/50 border border-[#1C1C28] focus:border-[#C8102E] rounded-xl text-xs text-white outline-none"
@@ -551,6 +778,23 @@ export default function CentrosDeCostoPage() {
                 ))}
               </select>
             )}
+
+            {/* Reset Filter Button */}
+            {(estadoFilter !== 'todos' || mesFilter !== 'todos' || sinPeriodoFilter || searchQuery) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setEstadoFilter('todos');
+                  setMesFilter('todos');
+                  setSinPeriodoFilter(false);
+                  setSearchQuery('');
+                }}
+                className="px-2.5 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white text-xs transition"
+                title="Limpiar filtros"
+              >
+                Limpiar
+              </button>
+            )}
           </div>
         </div>
 
@@ -562,7 +806,7 @@ export default function CentrosDeCostoPage() {
                 <tr>
                   <th className="py-3.5 px-4 w-12 text-center">#</th>
                   <th className="py-3.5 px-4">Estado</th>
-                  <th className="py-3.5 px-4">Periodo de Prestación (Fechas)</th>
+                  <th className="py-3.5 px-4">Periodo de prestación del servicio</th>
                   <th className="py-3.5 px-4">Centro de Costo / Evento</th>
                   <th className="py-3.5 px-4 text-center">Mes</th>
                   <th className="py-3.5 px-4 text-right">Acciones</th>
@@ -573,9 +817,9 @@ export default function CentrosDeCostoPage() {
                   <tr>
                     <td colSpan={6} className="py-12 text-center text-zinc-500">
                       <Building2 className="w-8 h-8 text-zinc-600 mx-auto mb-2 opacity-50" />
-                      <p className="font-semibold">No se encontraron Centros de Costo.</p>
+                      <p className="font-semibold">No se encontraron Centros de Costo con los filtros actuales.</p>
                       <p className="text-[11px] mt-1 text-zinc-600">
-                        Haz clic en &quot;Cargar desde ccos.xlsx&quot; para importar los eventos iniciales o crea uno nuevo.
+                        Haz clic en &quot;Sincronizar ccos.xlsx&quot; para restaurar todos los eventos oficiales o crea uno nuevo.
                       </p>
                     </td>
                   </tr>
@@ -585,6 +829,8 @@ export default function CentrosDeCostoPage() {
                       label: c.estado,
                       color: 'bg-zinc-800 text-zinc-300 border-zinc-700'
                     };
+
+                    const hasPeriodo = c.fecha && c.fecha !== 'Por definir';
 
                     return (
                       <tr key={c.id} className="hover:bg-zinc-900/50 transition">
@@ -598,24 +844,36 @@ export default function CentrosDeCostoPage() {
                           </span>
                         </td>
                         <td className="py-3 px-4 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-                            <span className="font-medium text-zinc-200">
-                              {c.fecha || 'Por definir'}
-                            </span>
-                          </div>
+                          {hasPeriodo ? (
+                            <div className="flex items-center gap-2">
+                              <Calendar className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                              <span className="font-medium text-zinc-200">
+                                {c.fecha}
+                              </span>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => openEdit(c)}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-amber-950/40 hover:bg-amber-900/60 text-amber-300 border border-amber-500/30 transition group"
+                              title="Haga clic para asignar periodo de prestación del servicio"
+                            >
+                              <AlertTriangle className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition" />
+                              <span>Por definir (Asignar)</span>
+                            </button>
+                          )}
                         </td>
                         <td className="py-3 px-4">
                           <span className="font-bold text-white text-sm tracking-wide block uppercase">
                             {c.nombre}
                           </span>
                           {c.origen === 'EXCEL_CCOS' && (
-                            <span className="text-[9px] text-purple-400 font-mono">Fuente: ccos.xlsx</span>
+                            <span className="text-[9px] text-purple-400 font-mono">Oficial ccos.xlsx</span>
                           )}
                         </td>
                         <td className="py-3 px-4 text-center whitespace-nowrap">
                           {c.mes ? (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-zinc-800 text-zinc-300 border border-zinc-700">
+                            <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-zinc-800 text-zinc-300 border border-zinc-700">
                               {c.mes}
                             </span>
                           ) : (
@@ -627,7 +885,7 @@ export default function CentrosDeCostoPage() {
                             <button
                               type="button"
                               onClick={() => openEdit(c)}
-                              title="Modificar Centro de Costo y Fechas"
+                              title="Modificar Centro de Costo y Periodo"
                               className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-amber-400 border border-amber-500/30 transition"
                             >
                               <Edit3 className="w-3.5 h-3.5" />
@@ -737,7 +995,7 @@ export default function CentrosDeCostoPage() {
                 <div className="bg-black/30 border border-[#1C1C28] rounded-xl p-3.5 space-y-2.5">
                   <label className="text-xs font-bold text-[#C8102E] uppercase tracking-wider flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5 text-[#C8102E]" />
-                    Periodo de prestación del servicio (fechas)
+                    Periodo de prestación del servicio
                   </label>
 
                   <div>
@@ -796,7 +1054,7 @@ export default function CentrosDeCostoPage() {
         )}
       </AnimatePresence>
 
-      {/* MODAL 2: EDITAR CENTRO DE COSTO Y FECHAS */}
+      {/* MODAL 2: EDITAR CENTRO DE COSTO Y PERIODO */}
       <AnimatePresence>
         {showEditModal && selectedCentro && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
@@ -813,7 +1071,7 @@ export default function CentrosDeCostoPage() {
                   </div>
                   <div>
                     <h3 className="text-base font-black text-white">MODIFICAR CENTRO DE COSTO</h3>
-                    <p className="text-xs text-zinc-400">Actualiza el nombre, estado o fechas del CCO</p>
+                    <p className="text-xs text-zinc-400">Actualiza el nombre, estado o periodo del CCO</p>
                   </div>
                 </div>
                 <button
@@ -878,17 +1136,18 @@ export default function CentrosDeCostoPage() {
                 <div className="bg-black/30 border border-[#1C1C28] rounded-xl p-3.5 space-y-2.5">
                   <label className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5 text-amber-400" />
-                    Periodo de prestación del servicio (fechas)
+                    Periodo de prestación del servicio
                   </label>
 
                   <div>
-                    <span className="text-[10px] text-zinc-400 block mb-1">Descripción de fechas / rango:</span>
+                    <span className="text-[10px] text-zinc-400 block mb-1">Descripción del periodo / rango:</span>
                     <input
                       type="text"
                       placeholder="Ej. 07 al 13-feb o 15 de Marzo"
                       value={editFecha}
                       onChange={(e) => setEditFecha(e.target.value)}
                       className="w-full px-3 py-2 bg-black/60 border border-[#1C1C28] focus:border-amber-500 rounded-lg text-xs text-white outline-none"
+                      autoFocus
                     />
                   </div>
 

@@ -438,7 +438,7 @@ export default function CuentasDeCobroPage() {
         const ccSnap = await getDocs(collection(db, 'centrosCosto'));
         ccSnap.forEach(d => {
           const val = (d.data().nombre || d.id || '').trim().toUpperCase();
-          if (val && val.length <= 80 && !val.includes('ARRENDAMIENTO')) {
+          if (val && val.length <= 80 && !val.includes('ARRENDAMIENTO') && !val.includes('ARCHIVO PLANO')) {
             found.add(val);
           }
         });
