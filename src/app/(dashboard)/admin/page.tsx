@@ -21,6 +21,19 @@ interface AppUser {
   interfaces: string[];
 }
 
+const INTERFACES_CONFIG = [
+  { id: 'f2r', label: 'Copa F2R', color: 'text-zinc-300', border: 'border-zinc-800' },
+  { id: 'admin', label: 'Panel Admin', color: 'text-red-400 font-bold', border: 'border-red-500/30 bg-red-950/20' },
+  { id: 'pilotos', label: 'Pilotos', color: 'text-blue-400', border: 'border-blue-500/30' },
+  { id: 'staff', label: 'Staff', color: 'text-purple-400', border: 'border-purple-500/30' },
+  { id: 'control-staff', label: 'Control Staff', color: 'text-emerald-400 font-medium', border: 'border-emerald-500/30' },
+  { id: 'jueces', label: 'Jueces', color: 'text-yellow-400', border: 'border-yellow-500/30' },
+  { id: 'qr', label: 'QRs', color: 'text-cyan-400', border: 'border-cyan-500/30' },
+  { id: 'codigos', label: 'Códigos', color: 'text-rose-400', border: 'border-rose-500/30' },
+  { id: 'cuentas-de-cobro', label: 'Cuentas Cobro', color: 'text-teal-400', border: 'border-teal-500/30' },
+  { id: 'centros-de-costo', label: 'Centros Costo', color: 'text-amber-400', border: 'border-amber-500/30' },
+];
+
 export default function AdminPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -84,8 +97,11 @@ export default function AdminPage() {
 
   const toggleInterface = async (userId: string, targetInterface: string, currentInterfaces: string[]) => {
     let newInterfaces = [...currentInterfaces];
-    if (newInterfaces.includes(targetInterface)) {
-      newInterfaces = newInterfaces.filter(i => i !== targetInterface); // Remove
+    const isTargetPresent = newInterfaces.includes(targetInterface) || 
+      (targetInterface === 'cuentas-de-cobro' && newInterfaces.includes('cuentas'));
+
+    if (isTargetPresent) {
+      newInterfaces = newInterfaces.filter(i => i !== targetInterface && !(targetInterface === 'cuentas-de-cobro' && i === 'cuentas')); // Remove
     } else {
       newInterfaces.push(targetInterface); // Add
     }
@@ -115,7 +131,7 @@ export default function AdminPage() {
     <div className="min-h-screen p-4 lg:p-10 relative">
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-red-600/10 blur-[150px] mix-blend-screen pointer-events-none rounded-full"></div>
       
-      <div className="max-w-6xl mx-auto w-full relative z-10">
+      <div className="max-w-7xl mx-auto w-full relative z-10">
         
         <div className="flex items-center gap-4 mb-8">
           <div className="p-3 bg-red-500/20 rounded-xl border border-red-500/50">
@@ -123,7 +139,7 @@ export default function AdminPage() {
           </div>
           <div>
             <h1 className="text-3xl font-bold text-white">Panel Super Administrador</h1>
-            <p className="text-zinc-400">Gestiona permisos e interfaces (Eventos) de toda tu DB de pilotos.</p>
+            <p className="text-zinc-400">Gestiona permisos e interfaces activas para cada usuario y colaborador del sistema.</p>
           </div>
         </div>
 
@@ -131,8 +147,8 @@ export default function AdminPage() {
           <CardHeader className="border-b border-zinc-800/50">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
               <div>
-                <CardTitle className="text-white text-xl">Directorio de Perfiles</CardTitle>
-                <CardDescription className="text-zinc-400">Total: {users.length} Registros</CardDescription>
+                <CardTitle className="text-white text-xl">Directorio de Perfiles y Accesos</CardTitle>
+                <CardDescription className="text-zinc-400">Total: {users.length} Registros ({filteredUsers.length} visibles)</CardDescription>
               </div>
               <div className="relative w-full md:w-80">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
@@ -152,81 +168,52 @@ export default function AdminPage() {
               <table className="w-full text-left text-sm text-zinc-400">
                 <thead className="bg-zinc-900/50 text-zinc-300 uppercase font-semibold text-xs border-b border-zinc-800">
                   <tr>
-                    <th className="px-6 py-4">Piloto</th>
-                    <th className="px-6 py-4">Identificación</th>
-                    <th className="px-6 py-4">Permisos Habilitados (Interfaces)</th>
+                    <th className="px-5 py-4 w-64">Usuario / Colaborador</th>
+                    <th className="px-4 py-4 w-32">Identificación</th>
+                    <th className="px-5 py-4">Permisos Habilitados (Interfaces)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-800/50">
                   {filteredUsers.map((user) => (
                     <tr key={user.id} className="hover:bg-zinc-900/30 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div>
-                            <div className="text-white font-medium">{user.nombres} {user.apellidos}</div>
-                            <div className="text-zinc-500">{user.email}</div>
-                          </div>
+                      <td className="px-5 py-4 align-top">
+                        <div>
+                          <div className="text-white font-medium">{user.nombres} {user.apellidos}</div>
+                          <div className="text-xs text-zinc-500 font-mono truncate max-w-[200px]">{user.email}</div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="font-mono text-zinc-300">{user.numeroIdentificacion}</span>
+                      <td className="px-4 py-4 align-top">
+                        <span className="font-mono text-zinc-300 text-xs bg-zinc-900 px-2 py-1 rounded border border-zinc-800 block w-fit">
+                          {user.numeroIdentificacion}
+                        </span>
                       </td>
-                      <td className="px-6 py-4 flex gap-4">
-                        
-                        <div className="flex items-center space-x-2 bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded-md">
-                          <Checkbox 
-                            id={`f2r-${user.id}`} 
-                            checked={user.interfaces.includes('f2r')} 
-                            onCheckedChange={() => toggleInterface(user.id, 'f2r', user.interfaces)}
-                          />
-                          <label htmlFor={`f2r-${user.id}`} className="text-sm font-medium text-zinc-300 cursor-pointer">Copa Stunt F2R</label>
+                      <td className="px-5 py-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1.5">
+                          {INTERFACES_CONFIG.map((item) => {
+                            const isChecked = user.interfaces.includes(item.id) || 
+                              (item.id === 'cuentas-de-cobro' && user.interfaces.includes('cuentas'));
+                            return (
+                              <label
+                                key={item.id}
+                                htmlFor={`${item.id}-${user.id}`}
+                                className={`flex items-center space-x-2 px-2.5 py-1.5 rounded-md border text-xs cursor-pointer select-none transition-all ${
+                                  isChecked 
+                                    ? `bg-zinc-900 ${item.border} shadow-sm` 
+                                    : 'bg-zinc-950/40 border-zinc-800/50 opacity-40 hover:opacity-80'
+                                }`}
+                              >
+                                <Checkbox 
+                                  id={`${item.id}-${user.id}`} 
+                                  checked={isChecked} 
+                                  onCheckedChange={() => toggleInterface(user.id, item.id, user.interfaces)}
+                                />
+                                <span className={`font-medium ${item.color} truncate`}>
+                                  {item.label}
+                                </span>
+                              </label>
+                            );
+                          })}
                         </div>
-
-                        <div className="flex items-center space-x-2 bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded-md">
-                          <Checkbox 
-                            id={`admin-${user.id}`} 
-                            checked={user.interfaces.includes('admin')} 
-                            onCheckedChange={() => toggleInterface(user.id, 'admin', user.interfaces)}
-                          />
-                          <label htmlFor={`admin-${user.id}`} className="text-sm font-medium text-amber-500 cursor-pointer">Admin</label>
-                        </div>
-                        
-                        <div className="flex items-center space-x-2 bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded-md">
-                          <Checkbox 
-                            id={`pilotos-${user.id}`} 
-                            checked={user.interfaces.includes('pilotos')} 
-                            onCheckedChange={() => toggleInterface(user.id, 'pilotos', user.interfaces)}
-                          />
-                          <label htmlFor={`pilotos-${user.id}`} className="text-sm font-medium text-blue-400 cursor-pointer">Pilotos</label>
-                        </div>
-
-                        <div className="flex items-center space-x-2 bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded-md">
-                          <Checkbox 
-                            id={`staff-${user.id}`} 
-                            checked={user.interfaces.includes('staff')} 
-                            onCheckedChange={() => toggleInterface(user.id, 'staff', user.interfaces)}
-                          />
-                          <label htmlFor={`staff-${user.id}`} className="text-sm font-medium text-purple-400 cursor-pointer">Staff</label>
-                        </div>
-
-                        <div className="flex items-center space-x-2 bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded-md">
-                          <Checkbox 
-                            id={`jueces-${user.id}`} 
-                            checked={user.interfaces.includes('jueces')} 
-                            onCheckedChange={() => toggleInterface(user.id, 'jueces', user.interfaces)}
-                          />
-                          <label htmlFor={`jueces-${user.id}`} className="text-sm font-medium text-yellow-500 cursor-pointer">Jueces</label>
-                        </div>
-
-                        <div className="flex items-center space-x-2 bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded-md">
-                          <Checkbox 
-                            id={`qr-${user.id}`} 
-                            checked={user.interfaces.includes('qr')} 
-                            onCheckedChange={() => toggleInterface(user.id, 'qr', user.interfaces)}
-                          />
-                          <label htmlFor={`qr-${user.id}`} className="text-sm font-medium text-cyan-400 cursor-pointer">QRs</label>
-                        </div>
-                        
                       </td>
                     </tr>
                   ))}

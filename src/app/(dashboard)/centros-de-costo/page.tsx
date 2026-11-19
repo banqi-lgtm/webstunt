@@ -274,21 +274,18 @@ export default function CentrosDeCostoPage() {
             const data = userDoc.data();
             const interfaces = data.interfaces || [];
             if (
-              interfaces.includes('codigos') ||
               interfaces.includes('admin') ||
-              interfaces.includes('cuentas') ||
-              interfaces.includes('cuentas-de-cobro') ||
               interfaces.includes('centros-de-costo')
             ) {
               setHasAccess(true);
               await fetchCentrosCosto(true);
             } else {
               setHasAccess(false);
-              router.push('/dashboard');
+              router.push('/profile');
             }
           } else {
             setHasAccess(false);
-            router.push('/dashboard');
+            router.push('/profile');
           }
         } catch (e) {
           setHasAccess(false);

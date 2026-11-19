@@ -136,7 +136,7 @@ export default function StaffPage() {
         
         const isSuperAdmin = ['wg12435@hotmail.com', 'walter12345@hotmail.com'].includes(user.email || '') || interfaces.includes('admin');
         
-        if (isSuperAdmin || interfaces.includes('staff') || interfaces.includes('cuentas-de-cobro')) {
+        if (isSuperAdmin || interfaces.includes('staff')) {
           setHasAccess(true);
           await loadAllData();
         } else {

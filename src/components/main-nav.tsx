@@ -28,10 +28,13 @@ export function MainNav() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [hasPilotosAccess, setHasPilotosAccess] = useState(false);
   const [hasStaffAccess, setHasStaffAccess] = useState(false);
+  const [hasControlStaffAccess, setHasControlStaffAccess] = useState(false);
   const [hasWhatsAppAccess, setHasWhatsAppAccess] = useState(false);
   const [hasJuecesAccess, setHasJuecesAccess] = useState(false);
   const [hasQrAccess, setHasQrAccess] = useState(false);
   const [hasCodigosAccess, setHasCodigosAccess] = useState(false);
+  const [hasCuentasDeCobroAccess, setHasCuentasDeCobroAccess] = useState(false);
+  const [hasCentrosDeCostoAccess, setHasCentrosDeCostoAccess] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileExpanded, setIsProfileExpanded] = useState(true);
@@ -46,46 +49,32 @@ export function MainNav() {
           const userDoc = await getDoc(doc(db, 'users', user.uid));
           if (userDoc.exists()) {
             const data = userDoc.data();
-            const interfaces = data.interfaces || [];
+            const interfaces: string[] = data.interfaces || [];
             setUserRol(data.rol || data.role || '');
             
             const isSuperAdmin = ['wg12435@hotmail.com', 'walter12345@hotmail.com'].includes(user?.email || '') || interfaces.includes('admin');
             setIsAdmin(isSuperAdmin);
 
-            if (isSuperAdmin || interfaces.includes('pilotos')) {
-              setHasPilotosAccess(true);
-            } else {
-              setHasPilotosAccess(false);
-            }
-            if (isSuperAdmin || interfaces.includes('staff')) {
-              setHasStaffAccess(true);
-            } else {
-              setHasStaffAccess(false);
-            }
-            if (isSuperAdmin || interfaces.includes('jueces')) {
-              setHasJuecesAccess(true);
-            } else {
-              setHasJuecesAccess(false);
-            }
-            if (isSuperAdmin || interfaces.includes('qr')) {
-              setHasQrAccess(true);
-            } else {
-              setHasQrAccess(false);
-            }
-            if (isSuperAdmin || interfaces.includes('codigos') || interfaces.includes('cuentas') || interfaces.includes('cuentas-de-cobro') || interfaces.includes('centros-de-costo')) {
-              setHasCodigosAccess(true);
-            } else {
-              setHasCodigosAccess(false);
-            }
+            setHasPilotosAccess(isSuperAdmin || interfaces.includes('pilotos'));
+            setHasStaffAccess(isSuperAdmin || interfaces.includes('staff'));
+            setHasControlStaffAccess(isSuperAdmin || interfaces.includes('control-staff'));
+            setHasJuecesAccess(isSuperAdmin || interfaces.includes('jueces'));
+            setHasQrAccess(isSuperAdmin || interfaces.includes('qr'));
+            setHasCodigosAccess(isSuperAdmin || interfaces.includes('codigos'));
+            setHasCuentasDeCobroAccess(isSuperAdmin || interfaces.includes('cuentas-de-cobro') || interfaces.includes('cuentas'));
+            setHasCentrosDeCostoAccess(isSuperAdmin || interfaces.includes('centros-de-costo'));
           } else {
             const isSuperAdmin = ['wg12435@hotmail.com', 'walter12345@hotmail.com'].includes(user?.email || '');
             setIsAdmin(isSuperAdmin);
             if (isSuperAdmin) {
               setHasPilotosAccess(true);
               setHasStaffAccess(true);
+              setHasControlStaffAccess(true);
               setHasJuecesAccess(true);
               setHasQrAccess(true);
               setHasCodigosAccess(true);
+              setHasCuentasDeCobroAccess(true);
+              setHasCentrosDeCostoAccess(true);
             }
           }
         } catch (e) {
@@ -94,9 +83,13 @@ export function MainNav() {
       } else {
         setHasPilotosAccess(false);
         setHasStaffAccess(false);
+        setHasControlStaffAccess(false);
         setHasJuecesAccess(false);
         setHasQrAccess(false);
         setHasCodigosAccess(false);
+        setHasCuentasDeCobroAccess(false);
+        setHasCentrosDeCostoAccess(false);
+        setIsAdmin(false);
         setUserRol('');
       }
     });
@@ -119,6 +112,9 @@ export function MainNav() {
   if (hasStaffAccess) {
     adminLinks.push({ href: '/staff', label: 'Staff', icon: Star });
   }
+  if (hasControlStaffAccess) {
+    adminLinks.push({ href: '/control-staff', label: 'Control de Staff', icon: Clock });
+  }
   if (hasJuecesAccess) {
     adminLinks.push({ href: '/jueces', label: 'Jueces', icon: ClipboardList });
   }
@@ -127,7 +123,11 @@ export function MainNav() {
   }
   if (hasCodigosAccess) {
     adminLinks.push({ href: '/codigos', label: 'Códigos', icon: FileText });
+  }
+  if (hasCuentasDeCobroAccess) {
     adminLinks.push({ href: '/cuentas-de-cobro', label: 'Cuentas de Cobro', icon: Receipt });
+  }
+  if (hasCentrosDeCostoAccess) {
     adminLinks.push({ href: '/centros-de-costo', label: 'Centros de Costo', icon: Building2 });
   }
   if (isAdmin) {
@@ -164,6 +164,9 @@ export function MainNav() {
     if (href === '/centros-de-costo') {
       return pathname === '/centros-de-costo';
     }
+    if (href === '/control-staff') {
+      return pathname === '/control-staff';
+    }
     return pathname === href;
   };
 
@@ -171,6 +174,7 @@ export function MainNav() {
     const isPilotos = link.href === '/pilotos';
     const isAdminLink = link.href === '/admin';
     const isStaff = link.href === '/staff';
+    const isControlStaff = link.href === '/control-staff';
     const isJueces = link.href === '/jueces';
     const isQr = link.href === '/qr';
     const isCodigos = link.href === '/codigos';
@@ -193,6 +197,10 @@ export function MainNav() {
       activeClass = 'bg-zinc-800 text-white border border-purple-500/20';
       inactiveClass = 'text-zinc-400 hover:text-white hover:bg-zinc-900 border border-purple-500/10';
       iconClass = 'h-4 w-4 text-purple-400';
+    } else if (isControlStaff) {
+      activeClass = 'bg-zinc-800 text-white border border-emerald-500/20';
+      inactiveClass = 'text-zinc-400 hover:text-white hover:bg-zinc-900 border border-emerald-500/10';
+      iconClass = 'h-4 w-4 text-emerald-400';
     } else if (isJueces) {
       activeClass = 'bg-zinc-800 text-white border border-yellow-500/20';
       inactiveClass = 'text-zinc-400 hover:text-white hover:bg-zinc-900 border border-yellow-500/10';

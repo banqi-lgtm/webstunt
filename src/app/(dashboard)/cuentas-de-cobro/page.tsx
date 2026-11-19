@@ -275,16 +275,16 @@ export default function CuentasDeCobroPage() {
           if (userDoc.exists()) {
             const data = userDoc.data();
             const interfaces = data.interfaces || [];
-            if (interfaces.includes('codigos') || interfaces.includes('admin') || interfaces.includes('cuentas') || interfaces.includes('cuentas-de-cobro')) {
+            if (interfaces.includes('admin') || interfaces.includes('cuentas-de-cobro') || interfaces.includes('cuentas')) {
               setHasAccess(true);
               fetchData();
             } else {
               setHasAccess(false);
-              router.push('/dashboard');
+              router.push('/profile');
             }
           } else {
             setHasAccess(false);
-            router.push('/dashboard');
+            router.push('/profile');
           }
         } catch (e) {
           setHasAccess(false);
