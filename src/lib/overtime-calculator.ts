@@ -3,7 +3,7 @@ import { isDominicalOFestivoColombia } from './colombian-holidays';
 export interface HorarioLaboralStaff {
   diasLaborales?: number[]; // [1, 2, 3, 4, 5] (1=Lunes, 5=Viernes, 6=Sábado, 0=Domingo)
   horaEntradaDefecto?: string; // "08:00"
-  horaSalidaDefecto?: string; // "17:00"
+  horaSalidaDefecto?: string; // "19:00"
   minutosDescansoDefecto?: number; // 60
   jornadaDiariaHoras?: number; // 8
   horasSemanales?: number; // 42 o 44
@@ -20,10 +20,10 @@ export interface InputTurnoStaff {
 
 export interface ResultadoCalculoHoras {
   horasTotalesEfectivas: number;
-  horasOrdinariasDiurnas: number; // 6am - 9pm dentro de jornada (1.0x)
-  horasRecargoNocturno: number; // 9pm - 6am dentro de jornada (+0.35x)
-  horasExtraDiurna: number; // HED (+0.25x / 1.25x)
-  horasExtraNocturna: number; // HEN (+0.75x / 1.75x)
+  horasOrdinariasDiurnas: number; // 6am - 7pm dentro de jornada (1.0x)
+  horasRecargoNocturno: number; // recargo nocturno dentro de jornada (+0.35x)
+  horasExtraDiurna: number; // HED (+0.25x / 1.25x) - Inicia a las 7:00 PM hasta las 9:00 PM
+  horasExtraNocturna: number; // HEN (+0.75x / 1.75x) - 9:00 PM en adelante
   horasDominicalOrdinaria: number; // RDF dentro de jornada (+0.75x / 1.75x)
   horasExtraDominicalDiurna: number; // HEDDF (+1.00x / 2.00x)
   horasExtraDominicalNocturna: number; // HENDF (+1.50x / 2.50x)
@@ -44,8 +44,8 @@ function parseDateTime(fechaStr: string, horaStr: string): Date {
 }
 
 /**
- * Calcula con precisión según la legislación laboral colombiana
- * el desglose de horas ordinarias, recargos y horas extras.
+ * Calcula con precisión según la legislación laboral colombiana y los horarios
+ * configurados desde Staff. Las horas extra diurnas empiezan a las 7:00 PM (19:00).
  */
 export function calculateOvertimeColombia(input: InputTurnoStaff): ResultadoCalculoHoras {
   const {
@@ -55,6 +55,11 @@ export function calculateOvertimeColombia(input: InputTurnoStaff): ResultadoCalc
     minutosDescanso = 0,
     horarioLaboral = {},
   } = input;
+
+  // Horario oficial del staff: por defecto entrada 08:00 y salida 19:00 (7:00 PM).
+  // A las 7:00 PM inician las horas extra diurnas.
+  const horaEntradaOficial = horarioLaboral.horaEntradaDefecto || '08:00';
+  const horaSalidaOficial = horarioLaboral.horaSalidaDefecto || '19:00';
 
   const jornadaMaxHoras = horarioLaboral.jornadaDiariaHoras && horarioLaboral.jornadaDiariaHoras > 0
     ? horarioLaboral.jornadaDiariaHoras
@@ -70,6 +75,13 @@ export function calculateOvertimeColombia(input: InputTurnoStaff): ResultadoCalc
     end = new Date(end.getTime() + 24 * 60 * 60 * 1000);
   }
 
+  // Calculamos los hitos de salida e inicio programados para el staff
+  let scheduledStart = parseDateTime(fecha, horaEntradaOficial);
+  let scheduledEnd = parseDateTime(fecha, horaSalidaOficial);
+  if (scheduledEnd.getTime() <= scheduledStart.getTime()) {
+    scheduledEnd = new Date(scheduledEnd.getTime() + 24 * 60 * 60 * 1000);
+  }
+
   // Duración total bruta en minutos
   const diffMs = end.getTime() - start.getTime();
   const totalMinutosBrutos = Math.max(0, Math.round(diffMs / (60 * 1000)));
@@ -77,9 +89,6 @@ export function calculateOvertimeColombia(input: InputTurnoStaff): ResultadoCalc
   // Minutos de descanso efectivos
   const descansoRealMinutos = Math.min(minutosDescanso, totalMinutosBrutos);
   const totalMinutosEfectivos = Math.max(0, totalMinutosBrutos - descansoRealMinutos);
-
-  // Jornada ordinaria máxima en minutos
-  const maxOrdinariaMinutos = jornadaMaxHoras * 60;
 
   // Minutos acumuladores por categoría
   let minOrdinariosDiurnos = 0;
@@ -93,7 +102,6 @@ export function calculateOvertimeColombia(input: InputTurnoStaff): ResultadoCalc
   // Calculamos la proporción de descanso por minuto para descontarlo uniformemente
   const factorEfectivo = totalMinutosBrutos > 0 ? totalMinutosEfectivos / totalMinutosBrutos : 0;
 
-  let minutosEfectivosAcumulados = 0;
   let festivoInicial: { esDominicalOFestivo: boolean; nombreFestivo?: string } = { esDominicalOFestivo: false };
 
   // Analizamos cada bloque de 1 minuto del turno
@@ -113,9 +121,12 @@ export function calculateOvertimeColombia(input: InputTurnoStaff): ResultadoCalc
 
     // Multiplicamos por el factor de trabajo efectivo (descuenta el descanso proporcionalmente)
     const minutoPonderado = 1 * factorEfectivo;
-    minutosEfectivosAcumulados += minutoPonderado;
 
-    const esOrdinaria = minutosEfectivosAcumulados <= maxOrdinariaMinutos;
+    // Las horas extra diurnas inician a las 7:00 PM (o después de la salida programada del staff)
+    const esDespuesDeSalidaProgramada = currentMoment.getTime() >= scheduledEnd.getTime();
+    const esAntesDeInicioProgramado = currentMoment.getTime() < scheduledStart.getTime();
+    const esExtra = esDespuesDeSalidaProgramada || esAntesDeInicioProgramado;
+    const esOrdinaria = !esExtra;
 
     if (esOrdinaria) {
       if (esDominical) {
@@ -132,7 +143,9 @@ export function calculateOvertimeColombia(input: InputTurnoStaff): ResultadoCalc
         }
       }
     } else {
-      // Es hora extra
+      // Es hora extra:
+      // Si cae entre 19:00 y 20:59 (esDiurno), es Extra Diurna (+25% o +100% en dominical)
+      // Si cae entre 21:00 y 05:59 (!esDiurno), es Extra Nocturna (+75% o +150% en dominical)
       if (esDominical) {
         if (esDiurno) {
           minExtraDominicalDiurna += minutoPonderado;

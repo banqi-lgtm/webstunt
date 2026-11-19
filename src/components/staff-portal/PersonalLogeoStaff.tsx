@@ -86,7 +86,7 @@ export function PersonalLogeoStaff({ userUid, userName, userDocument }: Personal
   // Form states
   const [formFecha, setFormFecha] = useState<string>(new Date().toISOString().substring(0, 10));
   const [formHoraEntrada, setFormHoraEntrada] = useState<string>('08:00');
-  const [formHoraSalida, setFormHoraSalida] = useState<string>('17:00');
+  const [formHoraSalida, setFormHoraSalida] = useState<string>('19:00');
   const [formMinutosDescanso, setFormMinutosDescanso] = useState<number>(60);
   const [formObservaciones, setFormObservaciones] = useState<string>('');
 

@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
 
-export interface CentroCostoItem {
+interface CentroCostoItem {
   id: string;
   nombre: string;
   ciudad?: string;
@@ -56,7 +56,7 @@ const MES_NUM: Record<string, string> = {
  * Función que determina el estado de un evento a partir de sus fechas reales
  * en comparación con la fecha actual de hoy.
  */
-export function determineEstadoEvento(fechaInicio?: string, fechaFin?: string, estadoActual?: string): string {
+function determineEstadoEvento(fechaInicio?: string, fechaFin?: string, estadoActual?: string): string {
   if (estadoActual === 'Cancelado') return 'Cancelado';
 
   const hoy = new Date().toISOString().split('T')[0];
@@ -79,7 +79,7 @@ export function determineEstadoEvento(fechaInicio?: string, fechaFin?: string, e
 /**
  * Parsea textos como "07 al 13-feb", "1-Feb", "28 al 31 octubre" a fechas ISO (YYYY-MM-DD).
  */
-export function parseDateRange(rawStr: string, monthContext: string, year = '2026'): { start: string; end: string } {
+function parseDateRange(rawStr: string, monthContext: string, year = '2026'): { start: string; end: string } {
   if (!rawStr || rawStr === 'Por definir') return { start: '', end: '' };
   const s = String(rawStr).trim().toLowerCase();
 
@@ -112,7 +112,7 @@ export function parseDateRange(rawStr: string, monthContext: string, year = '202
 }
 
 // 50 CCOs oficiales del archivo public/ccos.xlsx con Ciudad, Fechas Reales y Estado
-export const CANONICAL_CCOS_SEED: Omit<CentroCostoItem, 'creadoEl' | 'actualizadoEl'>[] = [
+const CANONICAL_CCOS_SEED: Omit<CentroCostoItem, 'creadoEl' | 'actualizadoEl'>[] = [
   // FEBRERO
   { id: 'VALIDA-MOTOCROSS-YAMAHA', nombre: 'VÁLIDA MOTOCROSS YAMAHA', ciudad: 'Girardota', fecha: '1-Feb', fechaInicio: '2026-02-01', fechaFin: '2026-02-01', mes: 'FEBRERO', estado: 'Realizado', origen: 'EXCEL_CCOS' },
   { id: 'SKILL-FEST', nombre: 'SKILL FEST', ciudad: 'Medellín', fecha: '07 al 13-feb', fechaInicio: '2026-02-07', fechaFin: '2026-02-13', mes: 'FEBRERO', estado: 'Realizado', origen: 'EXCEL_CCOS' },

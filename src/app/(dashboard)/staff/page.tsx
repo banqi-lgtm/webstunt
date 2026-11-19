@@ -24,7 +24,7 @@ import {
 } from '@/lib/overtime-calculator';
 import { isDominicalOFestivoColombia } from '@/lib/colombian-holidays';
 
-export interface StaffMember {
+interface StaffMember {
   id: string;
   uid: string;
   nombres: string;
@@ -37,7 +37,7 @@ export interface StaffMember {
   horarioLaboral?: HorarioLaboralStaff;
 }
 
-export interface TurnoStaffRecord {
+interface TurnoStaffRecord {
   id: string;
   staffUid: string;
   staffNombre: string;
@@ -108,7 +108,7 @@ export default function StaffPage() {
   const [formStaffUid, setFormStaffUid] = useState('');
   const [formFecha, setFormFecha] = useState(new Date().toISOString().substring(0, 10));
   const [formHoraEntrada, setFormHoraEntrada] = useState('08:00');
-  const [formHoraSalida, setFormHoraSalida] = useState('17:00');
+  const [formHoraSalida, setFormHoraSalida] = useState('19:00');
   const [formMinutosDescanso, setFormMinutosDescanso] = useState(60);
   const [formCentroCosto, setFormCentroCosto] = useState('');
   const [formObservaciones, setFormObservaciones] = useState('');
@@ -116,7 +116,7 @@ export default function StaffPage() {
   // Form states: Parametrizar Horario
   const [horarioDias, setHorarioDias] = useState<number[]>([1, 2, 3, 4, 5]);
   const [horarioEntrada, setHorarioEntrada] = useState('08:00');
-  const [horarioSalida, setHorarioSalida] = useState('17:00');
+  const [horarioSalida, setHorarioSalida] = useState('19:00');
   const [horarioDescanso, setHorarioDescanso] = useState(60);
   const [horarioJornadaHoras, setHorarioJornadaHoras] = useState(8);
   const [horarioValorHora, setHorarioValorHora] = useState<number | ''>('');
@@ -267,7 +267,7 @@ export default function StaffPage() {
     setFormStaffUid(defaultStaff);
     setFormFecha(new Date().toISOString().substring(0, 10));
     setFormHoraEntrada(staffObj?.horarioLaboral?.horaEntradaDefecto || '08:00');
-    setFormHoraSalida(staffObj?.horarioLaboral?.horaSalidaDefecto || '17:00');
+    setFormHoraSalida(staffObj?.horarioLaboral?.horaSalidaDefecto || '19:00');
     setFormMinutosDescanso(staffObj?.horarioLaboral?.minutosDescansoDefecto ?? 60);
     setFormCentroCosto('');
     setFormObservaciones('');
@@ -364,7 +364,7 @@ export default function StaffPage() {
     const h = staff.horarioLaboral;
     setHorarioDias(h?.diasLaborales && h.diasLaborales.length > 0 ? h.diasLaborales : [1, 2, 3, 4, 5]);
     setHorarioEntrada(h?.horaEntradaDefecto || '08:00');
-    setHorarioSalida(h?.horaSalidaDefecto || '17:00');
+    setHorarioSalida(h?.horaSalidaDefecto || '19:00');
     setHorarioDescanso(h?.minutosDescansoDefecto ?? 60);
     setHorarioJornadaHoras(h?.jornadaDiariaHoras || 8);
     setHorarioValorHora(h?.valorHoraOrdinaria || '');
@@ -975,7 +975,7 @@ export default function StaffPage() {
                             ) : (
                               <div className="flex items-center gap-1.5 text-zinc-500">
                                 <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
-                                <span>Estándar (08:00 - 17:00 / 8h)</span>
+                                <span>Estándar (08:00 - 19:00 / Extras desde 7pm)</span>
                               </div>
                             )}
                           </td>
@@ -1068,7 +1068,7 @@ export default function StaffPage() {
                         const s = staffList.find(item => item.uid === e.target.value);
                         if (s?.horarioLaboral?.horaEntradaDefecto) {
                           setFormHoraEntrada(s.horarioLaboral.horaEntradaDefecto);
-                          setFormHoraSalida(s.horarioLaboral.horaSalidaDefecto || '17:00');
+                          setFormHoraSalida(s.horarioLaboral.horaSalidaDefecto || '19:00');
                           setFormMinutosDescanso(s.horarioLaboral.minutosDescansoDefecto ?? 60);
                         }
                       }}

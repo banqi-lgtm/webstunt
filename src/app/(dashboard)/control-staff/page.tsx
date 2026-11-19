@@ -22,7 +22,7 @@ import {
 } from '@/lib/overtime-calculator';
 import { isDominicalOFestivoColombia } from '@/lib/colombian-holidays';
 
-export interface StaffMember {
+interface StaffMember {
   id: string;
   uid: string;
   nombres: string;
@@ -34,7 +34,7 @@ export interface StaffMember {
   horarioLaboral?: HorarioLaboralStaff;
 }
 
-export interface TurnoStaffRecord {
+interface TurnoStaffRecord {
   id: string;
   staffUid: string;
   staffNombre: string;
@@ -105,7 +105,7 @@ export default function ControlStaffPage() {
   const [formStaffUid, setFormStaffUid] = useState('');
   const [formFecha, setFormFecha] = useState(new Date().toISOString().substring(0, 10));
   const [formHoraEntrada, setFormHoraEntrada] = useState('08:00');
-  const [formHoraSalida, setFormHoraSalida] = useState('17:00');
+  const [formHoraSalida, setFormHoraSalida] = useState('19:00');
   const [formMinutosDescanso, setFormMinutosDescanso] = useState(60);
   const [formCentroCosto, setFormCentroCosto] = useState('');
   const [formObservaciones, setFormObservaciones] = useState('');
@@ -254,7 +254,7 @@ export default function ControlStaffPage() {
     setFormStaffUid(defaultStaff);
     setFormFecha(new Date().toISOString().substring(0, 10));
     setFormHoraEntrada(staffObj?.horarioLaboral?.horaEntradaDefecto || '08:00');
-    setFormHoraSalida(staffObj?.horarioLaboral?.horaSalidaDefecto || '17:00');
+    setFormHoraSalida(staffObj?.horarioLaboral?.horaSalidaDefecto || '19:00');
     setFormMinutosDescanso(staffObj?.horarioLaboral?.minutosDescansoDefecto ?? 60);
     setFormCentroCosto('');
     setFormObservaciones('');
@@ -853,7 +853,7 @@ export default function ControlStaffPage() {
                         const s = staffList.find(item => item.uid === e.target.value);
                         if (s?.horarioLaboral?.horaEntradaDefecto) {
                           setFormHoraEntrada(s.horarioLaboral.horaEntradaDefecto);
-                          setFormHoraSalida(s.horarioLaboral.horaSalidaDefecto || '17:00');
+                          setFormHoraSalida(s.horarioLaboral.horaSalidaDefecto || '19:00');
                           setFormMinutosDescanso(s.horarioLaboral.minutosDescansoDefecto ?? 60);
                         }
                       }}
