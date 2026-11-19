@@ -62,6 +62,21 @@ export interface TurnoStaffRecord {
   origen?: string;
 }
 
+const MESES_ES = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+];
+
+function formatFechaCompleta(ymd: string): string {
+  if (!ymd) return '';
+  const parts = ymd.split('-').map(Number);
+  if (parts.length !== 3) return ymd;
+  const [y, m, d] = parts;
+  const dateObj = new Date(y, m - 1, d, 12, 0, 0);
+  const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  return `${diasSemana[dateObj.getDay()]}, ${d} de ${MESES_ES[m - 1]} de ${y}`;
+}
+
 export default function ControlStaffPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -840,18 +855,43 @@ export default function ControlStaffPage() {
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider block mb-1">
-                      Fecha del Turno <span className="text-[#C8102E]">*</span>
-                    </label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider block">
+                        Fecha del Turno <span className="text-[#C8102E]">*</span>
+                      </label>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setFormFecha(new Date().toISOString().substring(0, 10))}
+                          className="px-1.5 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-mono text-[10px]"
+                        >
+                          Hoy
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const d = new Date();
+                            d.setDate(d.getDate() - 1);
+                            setFormFecha(d.toISOString().substring(0, 10));
+                          }}
+                          className="px-1.5 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-mono text-[10px]"
+                        >
+                          Ayer
+                        </button>
+                      </div>
+                    </div>
                     <input
                       type="date"
                       required
                       value={formFecha}
                       onChange={(e) => setFormFecha(e.target.value)}
-                      className="w-full px-3.5 py-2 bg-black/50 border border-[#1C1C28] focus:border-[#C8102E] rounded-xl text-xs text-white outline-none"
+                      className="w-full px-3.5 py-2 bg-black/50 border border-[#1C1C28] focus:border-[#C8102E] rounded-xl text-xs text-white outline-none cursor-pointer"
                     />
+                    <div className="mt-1 text-[11px] text-zinc-400 capitalize">
+                      📅 {formatFechaCompleta(formFecha)}
+                    </div>
                     {liveCalculation.esDominicalOFestivo && (
-                      <span className="text-[10px] text-rose-400 font-bold block mt-1">
+                      <span className="text-[10px] text-rose-400 font-bold block mt-0.5">
                         ★ {liveCalculation.nombreFestivo || 'Día Domingo'} (Aplica recargo dominical/festivo)
                       </span>
                     )}

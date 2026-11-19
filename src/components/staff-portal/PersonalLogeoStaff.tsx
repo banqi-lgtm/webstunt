@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Clock, Calendar, Sparkles, Sun, Moon, CheckCircle2, 
   Trash2, Edit3, AlertTriangle, Loader2, ShieldCheck, 
-  User, Check, DollarSign, X, History, FileText, ChevronRight
+  User, Check, DollarSign, X, History, FileText, ChevronRight,
+  ChevronLeft, CalendarDays, Coffee
 } from 'lucide-react';
 import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
@@ -50,8 +51,30 @@ interface PersonalLogeoStaffProps {
   userDocument?: string;
 }
 
+const MESES_ES = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+];
+
+const DIAS_SEMANA_CORTOS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+/**
+ * Devuelve la fecha formateada en español completo:
+ * ej. "Jueves, 19 de Noviembre de 2026"
+ */
+function formatFechaCompleta(ymd: string): string {
+  if (!ymd) return '';
+  const parts = ymd.split('-').map(Number);
+  if (parts.length !== 3) return ymd;
+  const [y, m, d] = parts;
+  const dateObj = new Date(y, m - 1, d, 12, 0, 0);
+  const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  return `${diasSemana[dateObj.getDay()]}, ${d} de ${MESES_ES[m - 1]} de ${y}`;
+}
+
 export function PersonalLogeoStaff({ userUid, userName, userDocument }: PersonalLogeoStaffProps) {
   const { toast } = useToast();
+  const nativeDateInputRef = useRef<HTMLInputElement>(null);
 
   // Active identity
   const [currentUid, setCurrentUid] = useState<string>(userUid || auth.currentUser?.uid || '');
@@ -66,6 +89,17 @@ export function PersonalLogeoStaff({ userUid, userName, userDocument }: Personal
   const [formHoraSalida, setFormHoraSalida] = useState<string>('17:00');
   const [formMinutosDescanso, setFormMinutosDescanso] = useState<number>(60);
   const [formObservaciones, setFormObservaciones] = useState<string>('');
+
+  // Interactive Visual Calendar Modal State
+  const [showCalendarModal, setShowCalendarModal] = useState<boolean>(false);
+  const [calMonth, setCalMonth] = useState<number>(() => {
+    const today = new Date();
+    return today.getMonth();
+  });
+  const [calYear, setCalYear] = useState<number>(() => {
+    const today = new Date();
+    return today.getFullYear();
+  });
 
   // Editing state
   const [editingTurno, setEditingTurno] = useState<TurnoPersonalRecord | null>(null);
@@ -95,9 +129,11 @@ export function PersonalLogeoStaff({ userUid, userName, userDocument }: Personal
           if (data.rol) setUserRol(data.rol);
           if (data.horarioLaboral) {
             setHorarioParametrizado(data.horarioLaboral);
-            if (data.horarioLaboral.horaEntradaHabitual) setFormHoraEntrada(data.horarioLaboral.horaEntradaHabitual);
-            if (data.horarioLaboral.horaSalidaHabitual) setFormHoraSalida(data.horarioLaboral.horaSalidaHabitual);
-            if (typeof data.horarioLaboral.minutosDescansoHabitual === 'number') setFormMinutosDescanso(data.horarioLaboral.minutosDescansoHabitual);
+            if (data.horarioLaboral.horaEntradaDefecto) setFormHoraEntrada(data.horarioLaboral.horaEntradaDefecto);
+            if (data.horarioLaboral.horaSalidaDefecto) setFormHoraSalida(data.horarioLaboral.horaSalidaDefecto);
+            if (typeof data.horarioLaboral.minutosDescansoDefecto === 'number') {
+              setFormMinutosDescanso(data.horarioLaboral.minutosDescansoDefecto);
+            }
           }
         }
       } catch (err) {
@@ -177,6 +213,122 @@ export function PersonalLogeoStaff({ userUid, userName, userDocument }: Personal
     });
   }, [formFecha, formHoraEntrada, formHoraSalida, formMinutosDescanso, horarioParametrizado]);
 
+  // Quick Date Selectors
+  const setDateToday = () => {
+    const today = new Date().toISOString().substring(0, 10);
+    setFormFecha(today);
+  };
+
+  const setDateYesterday = () => {
+    const yest = new Date();
+    yest.setDate(yest.getDate() - 1);
+    setFormFecha(yest.toISOString().substring(0, 10));
+  };
+
+  // Open native picker if available or open visual calendar
+  const handleOpenCalendar = () => {
+    if (nativeDateInputRef.current && typeof (nativeDateInputRef.current as any).showPicker === 'function') {
+      try {
+        (nativeDateInputRef.current as any).showPicker();
+        return;
+      } catch (e) {
+        // Fallback to visual modal
+      }
+    }
+    // Update cal view to current selected date
+    if (formFecha) {
+      const parts = formFecha.split('-').map(Number);
+      if (parts.length === 3) {
+        setCalYear(parts[0]);
+        setCalMonth(parts[1] - 1);
+      }
+    }
+    setShowCalendarModal(true);
+  };
+
+  // Visual Calendar Grid Calculation
+  const calendarDays = useMemo(() => {
+    const firstDayOfMonth = new Date(calYear, calMonth, 1);
+    const lastDayOfMonth = new Date(calYear, calMonth + 1, 0);
+    const daysInMonth = lastDayOfMonth.getDate();
+    
+    // Day of week: 0=Sun, 1=Mon, ..., 6=Sat -> adjust to Mon=0, Sun=6
+    let startingDayOfWeek = firstDayOfMonth.getDay() - 1;
+    if (startingDayOfWeek === -1) startingDayOfWeek = 6;
+
+    const days: Array<{
+      dateStr: string;
+      dayNum: number;
+      isCurrentMonth: boolean;
+      isSunday: boolean;
+      isHoliday: boolean;
+      holidayName?: string;
+      isSelected: boolean;
+      isToday: boolean;
+    }> = [];
+
+    // Empty padding cells before 1st day of month
+    for (let i = 0; i < startingDayOfWeek; i++) {
+      days.push({
+        dateStr: '',
+        dayNum: 0,
+        isCurrentMonth: false,
+        isSunday: false,
+        isHoliday: false,
+        isSelected: false,
+        isToday: false,
+      });
+    }
+
+    const todayStr = new Date().toISOString().substring(0, 10);
+
+    // Days of current month
+    for (let d = 1; d <= daysInMonth; d++) {
+      const mStr = String(calMonth + 1).padStart(2, '0');
+      const dStr = String(d).padStart(2, '0');
+      const dateStr = `${calYear}-${mStr}-${dStr}`;
+      
+      const holidayInfo = isDominicalOFestivoColombia(dateStr);
+
+      days.push({
+        dateStr,
+        dayNum: d,
+        isCurrentMonth: true,
+        isSunday: holidayInfo.esDomingo,
+        isHoliday: holidayInfo.esFestivo,
+        holidayName: holidayInfo.nombreFestivo,
+        isSelected: dateStr === formFecha,
+        isToday: dateStr === todayStr,
+      });
+    }
+
+    return days;
+  }, [calYear, calMonth, formFecha]);
+
+  const handleSelectCalendarDay = (dateStr: string) => {
+    if (!dateStr) return;
+    setFormFecha(dateStr);
+    setShowCalendarModal(false);
+  };
+
+  const handlePrevMonth = () => {
+    if (calMonth === 0) {
+      setCalMonth(11);
+      setCalYear(prev => prev - 1);
+    } else {
+      setCalMonth(prev => prev - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (calMonth === 11) {
+      setCalMonth(0);
+      setCalYear(prev => prev + 1);
+    } else {
+      setCalMonth(prev => prev + 1);
+    }
+  };
+
   // Submit / Register Turno
   const handleSubmitTurno = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -229,7 +381,7 @@ export function PersonalLogeoStaff({ userUid, userName, userDocument }: Personal
         toast({ title: '¡Turno Registrado!', description: 'Tu turno se guardó y calculó correctamente.' });
       }
 
-      // Reset fields
+      // Reset observations
       setFormObservaciones('');
       await loadMyTurnos();
     } catch (err) {
@@ -321,40 +473,51 @@ export function PersonalLogeoStaff({ userUid, userName, userDocument }: Personal
   }, [filteredMyTurnos]);
 
   return (
-    <div className="w-full space-y-6 pb-12">
+    <div className="w-full space-y-5 pb-16 px-1 sm:px-0">
       
-      {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-zinc-950 via-zinc-900 to-black border border-zinc-800 shadow-2xl relative overflow-hidden">
+      {/* Hidden native date input for browsers supporting showPicker() */}
+      <input
+        ref={nativeDateInputRef}
+        type="date"
+        value={formFecha}
+        onChange={(e) => setFormFecha(e.target.value)}
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden="true"
+      />
+
+      {/* HEADER BANNER */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-6 rounded-2xl bg-gradient-to-r from-zinc-950 via-zinc-900 to-black border border-zinc-800 shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-red-600/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="flex items-center gap-4 relative z-10">
-          <div className="p-3.5 bg-red-600/20 border border-red-500/40 rounded-2xl flex items-center justify-center shadow-lg shadow-red-950/40">
-            <Clock className="w-8 h-8 text-red-500" />
+        <div className="flex items-center gap-3.5 relative z-10">
+          <div className="p-3 sm:p-3.5 bg-red-600/20 border border-red-500/40 rounded-2xl flex items-center justify-center shadow-lg shadow-red-950/40 shrink-0">
+            <Clock className="w-7 h-7 sm:w-8 sm:h-8 text-red-500" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl sm:text-3xl font-black text-white font-orbitron tracking-wide">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-white font-orbitron tracking-wide">
                 LOGEO DE TURNOS
               </h1>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 uppercase font-mono tracking-wider">
+              <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 uppercase font-mono tracking-wider">
                 Personal
               </span>
             </div>
-            <p className="text-xs sm:text-sm text-zinc-400 mt-1 max-w-xl">
-              Registra tu hora de entrada y salida laboral. El cálculo de horas extras ordinarias, nocturnas, dominicales y festivas se procesa automáticamente en tiempo real bajo la ley colombiana.
+            <p className="text-xs text-zinc-400 mt-1 line-clamp-2 sm:line-clamp-none max-w-xl">
+              Registra tu jornada laboral de forma rápida. El cálculo de horas extras y recargos nocturnos, dominicales y festivos se ejecuta en tiempo real según la ley colombiana.
             </p>
           </div>
         </div>
 
         {/* User Identity Pill (Read-only / Fixed) */}
-        <div className="shrink-0 bg-black/60 border border-zinc-800 rounded-xl p-3 sm:p-3.5 flex items-center gap-3 relative z-10">
-          <div className="w-10 h-10 rounded-xl bg-zinc-800/80 border border-zinc-700/60 flex items-center justify-center font-bold text-white text-sm">
-            <User className="w-5 h-5 text-zinc-300" />
+        <div className="shrink-0 bg-black/70 border border-zinc-800/90 rounded-xl p-3 flex items-center gap-3 relative z-10 w-full sm:w-auto">
+          <div className="w-9 h-9 rounded-xl bg-zinc-800 border border-zinc-700/60 flex items-center justify-center font-bold text-white shrink-0">
+            <User className="w-4 h-4 text-zinc-300" />
           </div>
-          <div className="text-left">
+          <div className="text-left min-w-0 flex-1 sm:flex-initial">
             <div className="text-xs font-black text-white truncate max-w-[200px]">
               {fixedNombre || 'Colaborador Staff'}
             </div>
-            <div className="text-[11px] font-mono text-zinc-400 flex items-center gap-1.5">
+            <div className="text-[11px] font-mono text-zinc-400 flex items-center gap-1.5 truncate">
               <span>CC: {fixedIdentificacion || 'Identificación'}</span>
               <span className="text-zinc-600">•</span>
               <span className="uppercase text-amber-400 font-semibold text-[10px]">{userRol}</span>
@@ -363,15 +526,15 @@ export function PersonalLogeoStaff({ userUid, userName, userDocument }: Personal
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start">
         
         {/* LEFT COLUMN: REGISTRATION FORM */}
-        <div className="lg:col-span-5 bg-[#0E0E14] border border-[#1C1C28] rounded-2xl p-5 sm:p-6 shadow-xl relative">
+        <div className="lg:col-span-5 bg-[#0E0E14] border border-[#1C1C28] rounded-2xl p-4 sm:p-6 shadow-xl relative">
           
           <div className="flex items-center justify-between mb-4 border-b border-[#1C1C28] pb-3">
             <div className="flex items-center gap-2">
               <div className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse" />
-              <h2 className="text-sm font-bold text-white uppercase tracking-wider font-orbitron">
+              <h2 className="text-xs sm:text-sm font-bold text-white uppercase tracking-wider font-orbitron">
                 {editingTurno ? 'Modificar Turno Personal' : 'Registrar Mi Turno'}
               </h2>
             </div>
@@ -379,7 +542,7 @@ export function PersonalLogeoStaff({ userUid, userName, userDocument }: Personal
               <button
                 type="button"
                 onClick={handleCancelEdit}
-                className="text-xs text-zinc-400 hover:text-white px-2 py-1 rounded bg-zinc-800"
+                className="text-xs text-zinc-400 hover:text-white px-2 py-1 rounded bg-zinc-800 transition"
               >
                 Cancelar edición
               </button>
@@ -389,90 +552,168 @@ export function PersonalLogeoStaff({ userUid, userName, userDocument }: Personal
           <form onSubmit={handleSubmitTurno} className="space-y-4">
             
             {/* Fixed Identity Alert */}
-            <div className="bg-zinc-950/80 border border-zinc-800/80 rounded-xl p-3 flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2">
+            <div className="bg-zinc-950/90 border border-zinc-800/80 rounded-xl p-3 flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2 min-w-0">
                 <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span className="text-zinc-400">Titular de registro:</span>
+                <span className="text-zinc-400 shrink-0">Titular:</span>
                 <span className="text-white font-bold truncate">{fixedNombre}</span>
               </div>
-              <span className="font-mono text-zinc-500 text-[11px] shrink-0">Bloqueado a tu perfil</span>
+              <span className="font-mono text-emerald-400/80 text-[10px] bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/20 shrink-0 ml-2">
+                Fijo / Personal
+              </span>
             </div>
 
-            {/* Fecha del Turno */}
+            {/* SELECCIÓN DE DÍA CON CALENDARIO VISUAL INTERACTIVO */}
             <div>
-              <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider block mb-1.5">
-                Fecha del Turno <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <input
-                  type="date"
-                  required
-                  value={formFecha}
-                  onChange={(e) => setFormFecha(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-black/60 border border-[#1C1C28] focus:border-red-600 rounded-xl text-xs text-white outline-none font-mono"
-                />
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-red-500" />
+                  <span>Día del Turno</span>
+                  <span className="text-red-500">*</span>
+                </label>
+                
+                {/* Accesos rápidos */}
+                <div className="flex items-center gap-1 text-[11px]">
+                  <button
+                    type="button"
+                    onClick={setDateToday}
+                    className={`px-2 py-0.5 rounded font-mono transition ${
+                      formFecha === new Date().toISOString().substring(0, 10)
+                        ? 'bg-red-600 text-white font-bold'
+                        : 'bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300'
+                    }`}
+                  >
+                    Hoy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={setDateYesterday}
+                    className="px-2 py-0.5 rounded bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 font-mono transition"
+                  >
+                    Ayer
+                  </button>
+                </div>
+              </div>
+
+              {/* TARJETA INTERACTIVA DE FECHA: Al pulsar abre el calendario para que no quede mal el día */}
+              <div
+                onClick={handleOpenCalendar}
+                className="w-full p-3 sm:p-3.5 bg-black/60 hover:bg-zinc-900 border border-[#1C1C28] hover:border-red-600 rounded-xl cursor-pointer transition flex items-center justify-between group shadow-sm active:scale-[0.99]"
+                title="Pulsar para cambiar fecha en el calendario"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-red-600/20 border border-red-500/30 flex items-center justify-center text-red-400 group-hover:scale-105 transition shrink-0">
+                    <CalendarDays className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-white font-bold text-xs sm:text-sm capitalize truncate">
+                      {formatFechaCompleta(formFecha)}
+                    </div>
+                    <div className="text-[11px] font-mono text-zinc-400 truncate flex items-center gap-1.5">
+                      <span className="text-zinc-500">{formFecha}</span>
+                      <span>•</span>
+                      {infoDia.esFestivo ? (
+                        <span className="text-amber-400 font-semibold truncate">🇨🇴 Festivo: {infoDia.nombreFestivo}</span>
+                      ) : infoDia.esDomingo ? (
+                        <span className="text-amber-400 font-semibold">☀️ Domingo</span>
+                      ) : (
+                        <span className="text-zinc-400">Día Hábil Ordinario</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="shrink-0 flex items-center gap-1 text-[11px] font-bold text-red-400 bg-red-950/40 px-2.5 py-1.5 rounded-lg border border-red-500/30 group-hover:bg-red-600 group-hover:text-white transition ml-2">
+                  <span>Calendario</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </div>
               </div>
 
               {/* Sunday / Holiday Detection Tag */}
-              <div className="mt-2">
-                {infoDia.esFestivo ? (
-                  <div className="flex items-center gap-1.5 text-xs text-amber-300 bg-amber-950/40 border border-amber-500/30 px-3 py-1.5 rounded-lg">
-                    <Sun className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                    <span><strong>🇨🇴 Festivo Oficial:</strong> {infoDia.nombreFestivo} (Recargo Dominical/Festivo aplicable)</span>
-                  </div>
-                ) : infoDia.esDomingo ? (
-                  <div className="flex items-center gap-1.5 text-xs text-amber-300 bg-amber-950/40 border border-amber-500/30 px-3 py-1.5 rounded-lg">
-                    <Sun className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                    <span><strong>☀️ Domingo:</strong> Día dominical oficial (+75% ordinario / recargos dominicales)</span>
-                  </div>
-                ) : (
-                  <div className="text-[11px] text-zinc-500 pl-1">
-                    Día hábil regular de jornada laboral.
-                  </div>
-                )}
+              {infoDia.esFestivo && (
+                <div className="mt-2 flex items-center gap-1.5 text-xs text-amber-300 bg-amber-950/40 border border-amber-500/30 px-3 py-1.5 rounded-lg">
+                  <Sun className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span><strong>🇨🇴 Festivo Oficial:</strong> {infoDia.nombreFestivo} (Recargo Dominical/Festivo aplicable)</span>
+                </div>
+              )}
+              {infoDia.esDomingo && !infoDia.esFestivo && (
+                <div className="mt-2 flex items-center gap-1.5 text-xs text-amber-300 bg-amber-950/40 border border-amber-500/30 px-3 py-1.5 rounded-lg">
+                  <Sun className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span><strong>☀️ Domingo:</strong> Día dominical oficial (+75% ordinario / recargos dominicales)</span>
+                </div>
+              )}
+            </div>
+
+            {/* HORAS ENTRADA Y SALIDA: Optimizado para móvil (grandes, fáciles de pulsar) */}
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <div>
+                <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1 mb-1.5">
+                  <Sun className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Hora Entrada</span>
+                  <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="time"
+                    required
+                    value={formHoraEntrada}
+                    onChange={(e) => setFormHoraEntrada(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-black/60 border border-[#1C1C28] focus:border-red-600 rounded-xl text-sm font-bold text-white outline-none font-mono text-center transition"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1 mb-1.5">
+                  <Moon className="w-3.5 h-3.5 text-purple-400" />
+                  <span>Hora Salida</span>
+                  <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="time"
+                    required
+                    value={formHoraSalida}
+                    onChange={(e) => setFormHoraSalida(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-black/60 border border-[#1C1C28] focus:border-red-600 rounded-xl text-sm font-bold text-white outline-none font-mono text-center transition"
+                  />
+                </div>
               </div>
             </div>
 
-            {/* Hora Entrada, Hora Salida, Descanso */}
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider block mb-1.5">
-                  Entrada <span className="text-red-500">*</span>
+            {/* DESCANSO (MINUTOS) CON BOTONES RÁPIDOS PARA MÓVIL */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1">
+                  <Coffee className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>Descanso / Almuerzo</span>
                 </label>
-                <input
-                  type="time"
-                  required
-                  value={formHoraEntrada}
-                  onChange={(e) => setFormHoraEntrada(e.target.value)}
-                  className="w-full px-2.5 py-2 bg-black/60 border border-[#1C1C28] focus:border-red-600 rounded-xl text-xs text-white outline-none font-mono text-center"
-                />
+                <span className="text-xs font-mono font-bold text-zinc-400">
+                  {formMinutosDescanso} min
+                </span>
               </div>
 
-              <div>
-                <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider block mb-1.5">
-                  Salida <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="time"
-                  required
-                  value={formHoraSalida}
-                  onChange={(e) => setFormHoraSalida(e.target.value)}
-                  className="w-full px-2.5 py-2 bg-black/60 border border-[#1C1C28] focus:border-red-600 rounded-xl text-xs text-white outline-none font-mono text-center"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider block mb-1.5">
-                  Descanso (Min)
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  step={15}
-                  value={formMinutosDescanso}
-                  onChange={(e) => setFormMinutosDescanso(Number(e.target.value))}
-                  className="w-full px-2.5 py-2 bg-black/60 border border-[#1C1C28] focus:border-red-600 rounded-xl text-xs text-white outline-none font-mono text-center"
-                />
+              {/* Touch Pills para móvil */}
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { label: 'Sin desc.', value: 0 },
+                  { label: '30 min', value: 30 },
+                  { label: '60 min', value: 60 },
+                  { label: '90 min', value: 90 },
+                ].map((pill) => (
+                  <button
+                    key={pill.value}
+                    type="button"
+                    onClick={() => setFormMinutosDescanso(pill.value)}
+                    className={`py-2 px-1 rounded-xl text-xs font-semibold border transition text-center ${
+                      formMinutosDescanso === pill.value
+                        ? 'bg-red-600 border-red-500 text-white font-bold shadow-md shadow-red-950/50'
+                        : 'bg-black/40 border-[#1C1C28] text-zinc-400 hover:text-white hover:bg-zinc-900'
+                    }`}
+                  >
+                    {pill.label}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -548,34 +789,51 @@ export function PersonalLogeoStaff({ userUid, userName, userDocument }: Personal
               )}
             </div>
 
-            {/* Observaciones (Opcional) */}
+            {/* OBSERVACIONES (OPCIONAL) CON BOTONES RÁPIDOS */}
             <div>
               <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider block mb-1">
                 Observaciones / Novedad (Opcional)
               </label>
+              
+              {/* Sugerencias rápidas para móvil */}
+              <div className="flex flex-wrap gap-1.5 mb-1.5">
+                {['Montaje de pista', 'Logística y pits', 'Control de acceso', 'Juzgamiento'].map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => {
+                      setFormObservaciones(prev => prev ? `${prev}, ${tag}` : tag);
+                    }}
+                    className="text-[10px] bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white px-2 py-0.5 rounded-full border border-zinc-800 transition"
+                  >
+                    + {tag}
+                  </button>
+                ))}
+              </div>
+
               <textarea
                 rows={2}
                 placeholder="Ej. Apoyo en montaje de pista, acreditaciones, logística..."
                 value={formObservaciones}
                 onChange={(e) => setFormObservaciones(e.target.value)}
-                className="w-full px-3 py-2 bg-black/60 border border-[#1C1C28] focus:border-red-600 rounded-xl text-xs text-white outline-none resize-none"
+                className="w-full px-3 py-2 bg-black/60 border border-[#1C1C28] focus:border-red-600 rounded-xl text-xs text-white outline-none resize-none transition"
               />
             </div>
 
-            {/* Action Button */}
+            {/* ACTION BUTTON (GRANDE Y FÁCIL DE TOCAR EN MÓVIL) */}
             <button
               type="submit"
               disabled={isSaving}
-              className="w-full py-3 rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold text-xs uppercase tracking-wider font-orbitron flex items-center justify-center gap-2 shadow-lg shadow-red-950/60 transition"
+              className="w-full py-3.5 sm:py-4 rounded-xl bg-red-600 hover:bg-red-700 active:scale-[0.99] disabled:opacity-50 text-white font-black text-xs sm:text-sm uppercase tracking-wider font-orbitron flex items-center justify-center gap-2 shadow-lg shadow-red-950/60 transition cursor-pointer"
             >
               {isSaving ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-5 h-5 animate-spin" />
                   <span>Guardando Turno...</span>
                 </>
               ) : (
                 <>
-                  <Check className="w-4 h-4" />
+                  <Check className="w-5 h-5" />
                   <span>{editingTurno ? 'Actualizar Mi Turno' : 'Registrar Mi Turno'}</span>
                 </>
               )}
@@ -613,7 +871,7 @@ export function PersonalLogeoStaff({ userUid, userName, userDocument }: Personal
             </div>
           </div>
 
-          {/* TABLE CARD */}
+          {/* TABLE / MOBILE CARDS CARD */}
           <div className="bg-[#0E0E14] border border-[#1C1C28] rounded-2xl shadow-xl overflow-hidden">
             
             <div className="p-4 border-b border-[#1C1C28] flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-black/40">
@@ -645,104 +903,261 @@ export function PersonalLogeoStaff({ userUid, userName, userDocument }: Personal
               )}
             </div>
 
-            <div className="overflow-x-auto">
-              {loadingTurnos ? (
-                <div className="p-8 text-center text-zinc-500 text-xs flex items-center justify-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Cargando tu historial de turnos...
-                </div>
-              ) : filteredMyTurnos.length === 0 ? (
-                <div className="p-10 text-center text-zinc-500 text-xs">
-                  <Clock className="w-8 h-8 mx-auto mb-2 text-zinc-700" />
-                  No tienes turnos registrados aún. Usa el formulario para registrar tu primera jornada.
-                </div>
-              ) : (
-                <table className="w-full text-left text-xs text-zinc-300">
-                  <thead className="bg-black/60 text-zinc-400 uppercase font-semibold text-[10px] border-b border-[#1C1C28]">
-                    <tr>
-                      <th className="px-4 py-3">Fecha</th>
-                      <th className="px-3 py-3">Horario</th>
-                      <th className="px-3 py-3 text-center">Efectivas</th>
-                      <th className="px-3 py-3 text-center">Extras</th>
-                      <th className="px-3 py-3">Novedad</th>
-                      <th className="px-3 py-3 text-right">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#1C1C28]">
-                    {filteredMyTurnos.map((t) => (
-                      <tr key={t.id} className="hover:bg-zinc-900/40 transition">
-                        {/* Fecha */}
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <div className="font-mono font-bold text-white text-xs">{t.fecha}</div>
+            {loadingTurnos ? (
+              <div className="p-8 text-center text-zinc-500 text-xs flex items-center justify-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Cargando tu historial de turnos...
+              </div>
+            ) : filteredMyTurnos.length === 0 ? (
+              <div className="p-10 text-center text-zinc-500 text-xs">
+                <Clock className="w-8 h-8 mx-auto mb-2 text-zinc-700" />
+                No tienes turnos registrados aún. Usa el formulario para registrar tu primera jornada.
+              </div>
+            ) : (
+              <>
+                {/* 1. VISTA MÓVIL (TARJETAS INDIVIDUALES - CERO SCROLL HORIZONTAL) */}
+                <div className="block sm:hidden divide-y divide-[#1C1C28]">
+                  {filteredMyTurnos.map((t) => (
+                    <div key={`mob-${t.id}`} className="p-3.5 space-y-2 hover:bg-zinc-900/30 transition">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="font-mono font-black text-white text-sm">{t.fecha}</span>
                           {t.esDominicalOFestivo && (
-                            <span className="inline-block mt-0.5 text-[9px] px-1.5 py-0.2 rounded bg-amber-950 text-amber-300 border border-amber-600/30">
+                            <span className="ml-2 text-[9px] px-1.5 py-0.2 rounded bg-amber-950 text-amber-300 border border-amber-600/30 font-bold">
                               {t.nombreFestivo || 'Dominical'}
                             </span>
                           )}
-                        </td>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleEditTurno(t)}
+                            className="p-1.5 rounded-lg bg-zinc-800 text-zinc-300 hover:text-white"
+                            title="Editar"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteTurno(t.id)}
+                            className="p-1.5 rounded-lg bg-red-950/60 text-red-400 hover:text-red-200"
+                            title="Eliminar"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
 
-                        {/* Horario */}
-                        <td className="px-3 py-3 whitespace-nowrap font-mono text-[11px]">
-                          <div>{t.horaEntrada} - {t.horaSalida}</div>
+                      <div className="flex items-center justify-between text-xs text-zinc-400 font-mono">
+                        <div className="flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5 text-zinc-500" />
+                          <span>{t.horaEntrada} - {t.horaSalida}</span>
                           {t.minutosDescanso > 0 && (
-                            <div className="text-[10px] text-zinc-500">Desc: {t.minutosDescanso}m</div>
+                            <span className="text-[10px] text-zinc-600">({t.minutosDescanso}m desc.)</span>
                           )}
-                        </td>
-
-                        {/* Efectivas */}
-                        <td className="px-3 py-3 text-center whitespace-nowrap">
-                          <span className="font-mono font-bold text-white text-xs bg-zinc-900 px-2 py-0.5 rounded border border-zinc-800">
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-white font-black bg-zinc-900 px-2 py-0.5 rounded border border-zinc-800">
                             {t.horasTotalesEfectivas}h
                           </span>
-                        </td>
-
-                        {/* Extras */}
-                        <td className="px-3 py-3 text-center whitespace-nowrap">
-                          {t.totalHorasExtras > 0 ? (
-                            <span className="font-mono font-bold text-amber-400 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-500/30 text-xs">
-                              +{t.totalHorasExtras}h
+                          {t.totalHorasExtras > 0 && (
+                            <span className="text-amber-400 font-bold bg-amber-950/60 px-2 py-0.5 rounded border border-amber-500/30">
+                              +{t.totalHorasExtras}h Extra
                             </span>
-                          ) : (
-                            <span className="text-zinc-600 font-mono text-xs">-</span>
                           )}
-                        </td>
+                        </div>
+                      </div>
 
-                        {/* Observaciones */}
-                        <td className="px-3 py-3 max-w-[140px] truncate text-[11px] text-zinc-400">
-                          {t.observaciones || <span className="text-zinc-600 italic">Sin novedad</span>}
-                        </td>
+                      {t.observaciones && (
+                        <div className="text-[11px] text-zinc-400 bg-black/40 p-2 rounded-lg border border-zinc-900">
+                          {t.observaciones}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
 
-                        {/* Acciones */}
-                        <td className="px-3 py-3 text-right whitespace-nowrap">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => handleEditTurno(t)}
-                              className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition"
-                              title="Modificar turno"
-                            >
-                              <Edit3 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteTurno(t.id)}
-                              className="p-1 rounded bg-red-950/50 hover:bg-red-900/80 text-red-400 hover:text-red-200 transition"
-                              title="Eliminar turno"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </td>
+                {/* 2. VISTA ESCRITORIO (TABLA TRADICIONAL) */}
+                <div className="hidden sm:block overflow-x-auto">
+                  <table className="w-full text-left text-xs text-zinc-300">
+                    <thead className="bg-black/60 text-zinc-400 uppercase font-semibold text-[10px] border-b border-[#1C1C28]">
+                      <tr>
+                        <th className="px-4 py-3">Fecha</th>
+                        <th className="px-3 py-3">Horario</th>
+                        <th className="px-3 py-3 text-center">Efectivas</th>
+                        <th className="px-3 py-3 text-center">Extras</th>
+                        <th className="px-3 py-3">Novedad</th>
+                        <th className="px-3 py-3 text-right">Acciones</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
+                    </thead>
+                    <tbody className="divide-y divide-[#1C1C28]">
+                      {filteredMyTurnos.map((t) => (
+                        <tr key={t.id} className="hover:bg-zinc-900/40 transition">
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <div className="font-mono font-bold text-white text-xs">{t.fecha}</div>
+                            {t.esDominicalOFestivo && (
+                              <span className="inline-block mt-0.5 text-[9px] px-1.5 py-0.2 rounded bg-amber-950 text-amber-300 border border-amber-600/30">
+                                {t.nombreFestivo || 'Dominical'}
+                              </span>
+                            )}
+                          </td>
+
+                          <td className="px-3 py-3 whitespace-nowrap font-mono text-[11px]">
+                            <div>{t.horaEntrada} - {t.horaSalida}</div>
+                            {t.minutosDescanso > 0 && (
+                              <div className="text-[10px] text-zinc-500">Desc: {t.minutosDescanso}m</div>
+                            )}
+                          </td>
+
+                          <td className="px-3 py-3 text-center whitespace-nowrap">
+                            <span className="font-mono font-bold text-white text-xs bg-zinc-900 px-2 py-0.5 rounded border border-zinc-800">
+                              {t.horasTotalesEfectivas}h
+                            </span>
+                          </td>
+
+                          <td className="px-3 py-3 text-center whitespace-nowrap">
+                            {t.totalHorasExtras > 0 ? (
+                              <span className="font-mono font-bold text-amber-400 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-500/30 text-xs">
+                                +{t.totalHorasExtras}h
+                              </span>
+                            ) : (
+                              <span className="text-zinc-600 font-mono text-xs">-</span>
+                            )}
+                          </td>
+
+                          <td className="px-3 py-3 max-w-[140px] truncate text-[11px] text-zinc-400">
+                            {t.observaciones || <span className="text-zinc-600 italic">Sin novedad</span>}
+                          </td>
+
+                          <td className="px-3 py-3 text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleEditTurno(t)}
+                                className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition"
+                                title="Modificar turno"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteTurno(t.id)}
+                                className="p-1 rounded bg-red-950/50 hover:bg-red-900/80 text-red-400 hover:text-red-200 transition"
+                                title="Eliminar turno"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
       </div>
+
+      {/* MODAL DEL CALENDARIO VISUAL INTERACTIVO */}
+      {showCalendarModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-[#111118] border border-zinc-800 rounded-2xl w-full max-w-sm p-4 sm:p-5 shadow-2xl relative">
+            
+            {/* Header del Calendario */}
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+              <button
+                type="button"
+                onClick={handlePrevMonth}
+                className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
+                title="Mes anterior"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              <div className="text-center">
+                <span className="text-sm font-black text-white font-orbitron uppercase">
+                  {MESES_ES[calMonth]} {calYear}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleNextMonth}
+                className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
+                title="Mes siguiente"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Días de la Semana */}
+            <div className="grid grid-cols-7 gap-1 text-center py-2.5 text-[11px] font-bold text-zinc-400 font-mono">
+              {DIAS_SEMANA_CORTOS.map((d, idx) => (
+                <div key={d} className={idx === 6 ? 'text-amber-400 font-black' : ''}>
+                  {d}
+                </div>
+              ))}
+            </div>
+
+            {/* Cuadrícula de Días */}
+            <div className="grid grid-cols-7 gap-1">
+              {calendarDays.map((cd, index) => {
+                if (!cd.isCurrentMonth) {
+                  return <div key={`empty-${index}`} className="h-9" />;
+                }
+
+                return (
+                  <button
+                    key={cd.dateStr}
+                    type="button"
+                    onClick={() => handleSelectCalendarDay(cd.dateStr)}
+                    className={`h-9 rounded-xl flex flex-col items-center justify-center text-xs font-mono font-bold transition relative ${
+                      cd.isSelected
+                        ? 'bg-red-600 text-white shadow-lg shadow-red-950/60 scale-105'
+                        : cd.isHoliday
+                        ? 'bg-amber-950/50 hover:bg-amber-900/80 text-amber-300 border border-amber-600/40'
+                        : cd.isSunday
+                        ? 'bg-zinc-900 hover:bg-zinc-800 text-amber-400'
+                        : 'bg-zinc-900/60 hover:bg-zinc-800 text-zinc-200'
+                    } ${cd.isToday && !cd.isSelected ? 'ring-2 ring-red-500' : ''}`}
+                    title={cd.holidayName ? `🇨🇴 Festivo: ${cd.holidayName}` : cd.isSunday ? 'Domingo' : cd.dateStr}
+                  >
+                    <span>{cd.dayNum}</span>
+                    {cd.isHoliday && (
+                      <span className="w-1 h-1 rounded-full bg-amber-400 -mt-0.5" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Leyenda */}
+            <div className="mt-3 pt-3 border-t border-zinc-800/80 flex items-center justify-between text-[10px] text-zinc-400 font-mono">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-amber-400" />
+                <span>Festivo / Domingo</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-red-600" />
+                <span>Seleccionado</span>
+              </div>
+            </div>
+
+            {/* Botón Cerrar */}
+            <button
+              type="button"
+              onClick={() => setShowCalendarModal(false)}
+              className="mt-3 w-full py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold text-xs"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
