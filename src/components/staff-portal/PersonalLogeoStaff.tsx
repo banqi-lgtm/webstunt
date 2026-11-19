@@ -5,7 +5,7 @@ import {
   Clock, Calendar, Sparkles, Sun, Moon, CheckCircle2, 
   Trash2, Edit3, AlertTriangle, Loader2, ShieldCheck, 
   User, Check, DollarSign, X, History, FileText, ChevronRight,
-  ChevronLeft, CalendarDays, Coffee
+  ChevronLeft, CalendarDays, Coffee, Eye
 } from 'lucide-react';
 import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
@@ -101,8 +101,9 @@ export function PersonalLogeoStaff({ userUid, userName, userDocument }: Personal
     return today.getFullYear();
   });
 
-  // Editing state
+  // Editing & Detail states
   const [editingTurno, setEditingTurno] = useState<TurnoPersonalRecord | null>(null);
+  const [detalleTurno, setDetalleTurno] = useState<TurnoPersonalRecord | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
   // History & Filters
@@ -369,17 +370,33 @@ export function PersonalLogeoStaff({ userUid, userName, userDocument }: Personal
         origen: 'LOGEO_PERSONAL'
       };
 
+      let savedRecord: TurnoPersonalRecord;
       if (editingTurno) {
         await updateDoc(doc(db, 'staffTurnos', editingTurno.id), payload);
+        savedRecord = {
+          id: editingTurno.id,
+          ...payload,
+          creadoEl: editingTurno.creadoEl,
+          nombreFestivo: payload.nombreFestivo || undefined,
+        };
         toast({ title: 'Turno actualizado', description: 'Tus horas han sido actualizadas con éxito.' });
         setEditingTurno(null);
       } else {
-        await addDoc(collection(db, 'staffTurnos'), {
+        const docRef = await addDoc(collection(db, 'staffTurnos'), {
           ...payload,
           creadoEl: new Date().toISOString()
         });
+        savedRecord = {
+          id: docRef.id,
+          ...payload,
+          creadoEl: new Date().toISOString(),
+          nombreFestivo: payload.nombreFestivo || undefined,
+        };
         toast({ title: '¡Turno Registrado!', description: 'Tu turno se guardó y calculó correctamente.' });
       }
+
+      // Abre automáticamente el modal de detalles con el desglose del turno guardado
+      setDetalleTurno(savedRecord);
 
       // Reset observations
       setFormObservaciones('');
@@ -717,78 +734,6 @@ export function PersonalLogeoStaff({ userUid, userName, userDocument }: Personal
               </div>
             </div>
 
-            {/* LIVE CALCULATION PREVIEW CARD (MATCHES USER SCREENSHOT) */}
-            <div className="bg-black/60 border border-emerald-500/30 rounded-xl p-3.5 sm:p-4 space-y-3 shadow-inner">
-              <div className="flex items-center justify-between border-b border-emerald-500/20 pb-2">
-                <span className="text-xs font-black text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-emerald-400 animate-spin" style={{ animationDuration: '6s' }} />
-                  Cálculo de Horas en Tiempo Real
-                </span>
-                <span className="text-xs font-mono font-black text-white bg-emerald-950 px-2.5 py-0.5 rounded-full border border-emerald-500/40">
-                  {liveCalculation.horasTotalesEfectivas}h Totales
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                {/* Ord. Diurna */}
-                <div className="bg-[#0E0E14] p-2 rounded-lg border border-[#1C1C28]">
-                  <span className="text-[10px] text-zinc-400 block truncate">Ord. Diurna</span>
-                  <span className="text-sm font-bold text-white font-mono">{liveCalculation.horasOrdinariasDiurnas}h</span>
-                </div>
-
-                {/* Recargo Noct. */}
-                <div className="bg-[#0E0E14] p-2 rounded-lg border border-indigo-500/20">
-                  <span className="text-[10px] text-indigo-400 block truncate">Recargo Noct. (+35%)</span>
-                  <span className="text-sm font-bold text-indigo-300 font-mono">{liveCalculation.horasRecargoNocturno}h</span>
-                </div>
-
-                {/* Extra Diurna */}
-                <div className="bg-[#0E0E14] p-2 rounded-lg border border-amber-500/20">
-                  <span className="text-[10px] text-amber-400 block truncate">Extra Diurna (HED)</span>
-                  <span className="text-sm font-bold text-amber-300 font-mono">{liveCalculation.horasExtraDiurna}h</span>
-                </div>
-
-                {/* Extra Noct. */}
-                <div className="bg-[#0E0E14] p-2 rounded-lg border border-purple-500/20">
-                  <span className="text-[10px] text-purple-400 block truncate">Extra Noct. (HEN)</span>
-                  <span className="text-sm font-bold text-purple-300 font-mono">{liveCalculation.horasExtraNocturna}h</span>
-                </div>
-
-                {/* Dom/Fest Ord. */}
-                <div className="bg-[#0E0E14] p-2 rounded-lg border border-rose-500/20">
-                  <span className="text-[10px] text-rose-400 block truncate">Dom/Fest Ord. (+75%)</span>
-                  <span className="text-sm font-bold text-rose-300 font-mono">{liveCalculation.horasDominicalOrdinaria}h</span>
-                </div>
-
-                {/* Extra Dom. Diurna */}
-                <div className="bg-[#0E0E14] p-2 rounded-lg border border-red-500/20">
-                  <span className="text-[10px] text-red-400 block truncate">Extra Dom. Diurna</span>
-                  <span className="text-sm font-bold text-red-300 font-mono">{liveCalculation.horasExtraDominicalDiurna}h</span>
-                </div>
-
-                {/* Extra Dom. Noct. */}
-                <div className="bg-[#0E0E14] p-2 rounded-lg border border-fuchsia-500/20">
-                  <span className="text-[10px] text-fuchsia-400 block truncate">Extra Dom. Noct.</span>
-                  <span className="text-sm font-bold text-fuchsia-300 font-mono">{liveCalculation.horasExtraDominicalNocturna}h</span>
-                </div>
-
-                {/* Total Horas Extras */}
-                <div className="bg-emerald-950/40 p-2 rounded-lg border border-emerald-500/40">
-                  <span className="text-[10px] text-emerald-400 block font-bold truncate">Total Horas Extras</span>
-                  <span className="text-sm font-black text-emerald-300 font-mono">{liveCalculation.totalHorasExtras}h</span>
-                </div>
-              </div>
-
-              {typeof liveCalculation.valorEstimadoTotal === 'number' && liveCalculation.valorEstimadoTotal > 0 && (
-                <div className="pt-1 text-right text-xs text-emerald-400 font-semibold border-t border-emerald-500/20 flex items-center justify-between">
-                  <span className="text-zinc-400 text-[11px]">Valor estimado de nómina:</span>
-                  <span className="font-mono text-white text-sm font-bold">
-                    ${liveCalculation.valorEstimadoTotal.toLocaleString()} COP
-                  </span>
-                </div>
-              )}
-            </div>
-
             {/* OBSERVACIONES (OPCIONAL) CON BOTONES RÁPIDOS */}
             <div>
               <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider block mb-1">
@@ -931,6 +876,15 @@ export function PersonalLogeoStaff({ userUid, userName, userDocument }: Personal
                         <div className="flex items-center gap-1.5">
                           <button
                             type="button"
+                            onClick={() => setDetalleTurno(t)}
+                            className="px-2 py-1 rounded-lg bg-emerald-950/60 text-emerald-400 hover:text-emerald-200 border border-emerald-500/30 flex items-center gap-1 text-[11px] font-bold"
+                            title="Ver detalles del turno"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>Detalles</span>
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => handleEditTurno(t)}
                             className="p-1.5 rounded-lg bg-zinc-800 text-zinc-300 hover:text-white"
                             title="Editar"
@@ -1031,6 +985,15 @@ export function PersonalLogeoStaff({ userUid, userName, userDocument }: Personal
 
                           <td className="px-3 py-3 text-right whitespace-nowrap">
                             <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setDetalleTurno(t)}
+                                className="px-2 py-1 rounded bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-400 hover:text-emerald-200 border border-emerald-500/30 transition flex items-center gap-1 text-[11px] font-semibold"
+                                title="Ver detalles y cálculo de horas"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                                <span>Detalles</span>
+                              </button>
                               <button
                                 type="button"
                                 onClick={() => handleEditTurno(t)}
@@ -1154,6 +1117,165 @@ export function PersonalLogeoStaff({ userUid, userName, userDocument }: Personal
             >
               Cerrar
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE DETALLES DEL TURNO (DESGLOSE COMPLETO DE CÁLCULO DE HORAS) */}
+      {detalleTurno && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-[#0E0E14] border border-[#1C1C28] rounded-2xl w-full max-w-lg p-5 sm:p-6 shadow-2xl relative max-h-[92vh] overflow-y-auto space-y-4">
+            
+            {/* Header del Modal */}
+            <div className="flex items-start justify-between border-b border-[#1C1C28] pb-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <h3 className="text-base sm:text-lg font-black text-white uppercase tracking-wider font-orbitron">
+                    Detalles del Turno
+                  </h3>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-mono font-bold">
+                    Guardado
+                  </span>
+                </div>
+                <p className="text-xs text-zinc-400 mt-1 capitalize font-medium">
+                  📅 {formatFechaCompleta(detalleTurno.fecha)}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setDetalleTurno(null)}
+                className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition"
+                title="Cerrar detalles"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Titular e Información General */}
+            <div className="bg-black/50 border border-zinc-800/80 rounded-xl p-3.5 space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-zinc-400">Titular Staff:</span>
+                <span className="text-white font-bold">{detalleTurno.staffNombre}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-zinc-400">Identificación:</span>
+                <span className="text-zinc-300 font-mono">CC: {detalleTurno.staffIdentificacion}</span>
+              </div>
+              <div className="flex items-center justify-between border-t border-zinc-800/60 pt-2">
+                <span className="text-zinc-400">Jornada Registrada:</span>
+                <span className="text-white font-mono font-bold">
+                  {detalleTurno.horaEntrada} - {detalleTurno.horaSalida}
+                  {detalleTurno.minutosDescanso > 0 && (
+                    <span className="text-zinc-500 font-normal ml-1">({detalleTurno.minutosDescanso}m desc.)</span>
+                  )}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-zinc-400">Tipo de Día:</span>
+                {detalleTurno.esDominicalOFestivo ? (
+                  <span className="text-amber-400 font-bold bg-amber-950/60 px-2 py-0.5 rounded border border-amber-500/30 text-[11px]">
+                    ★ {detalleTurno.nombreFestivo || 'Día Domingo'} (Recargo Festivo)
+                  </span>
+                ) : (
+                  <span className="text-zinc-300">Día Hábil Ordinario</span>
+                )}
+              </div>
+            </div>
+
+            {/* DESGLOSE Y CÁLCULO DE HORAS (EXACTAMENTE LA TARJETA SOLICITADA) */}
+            <div className="bg-black/60 border border-emerald-500/30 rounded-xl p-4 space-y-3 shadow-inner">
+              <div className="flex items-center justify-between border-b border-emerald-500/20 pb-2">
+                <span className="text-xs font-black text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-emerald-400" />
+                  Cálculo de Horas
+                </span>
+                <span className="text-xs font-mono font-black text-white bg-emerald-950 px-2.5 py-0.5 rounded-full border border-emerald-500/40">
+                  {detalleTurno.horasTotalesEfectivas}h Totales
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                {/* Ord. Diurna */}
+                <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-[#1C1C28]">
+                  <span className="text-[10px] text-zinc-400 block truncate">Ord. Diurna</span>
+                  <span className="text-sm font-bold text-white font-mono">{detalleTurno.horasOrdinariasDiurnas}h</span>
+                </div>
+
+                {/* Recargo Noct. */}
+                <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-indigo-500/20">
+                  <span className="text-[10px] text-indigo-400 block truncate">Recargo Noct. (+35%)</span>
+                  <span className="text-sm font-bold text-indigo-300 font-mono">{detalleTurno.horasRecargoNocturno}h</span>
+                </div>
+
+                {/* Extra Diurna */}
+                <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-amber-500/20">
+                  <span className="text-[10px] text-amber-400 block truncate">Extra Diurna (HED)</span>
+                  <span className="text-sm font-bold text-amber-300 font-mono">{detalleTurno.horasExtraDiurna}h</span>
+                </div>
+
+                {/* Extra Noct. */}
+                <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-purple-500/20">
+                  <span className="text-[10px] text-purple-400 block truncate">Extra Noct. (HEN)</span>
+                  <span className="text-sm font-bold text-purple-300 font-mono">{detalleTurno.horasExtraNocturna}h</span>
+                </div>
+
+                {/* Dom/Fest Ord. */}
+                <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-rose-500/20">
+                  <span className="text-[10px] text-rose-400 block truncate">Dom/Fest Ord. (+75%)</span>
+                  <span className="text-sm font-bold text-rose-300 font-mono">{detalleTurno.horasDominicalOrdinaria}h</span>
+                </div>
+
+                {/* Extra Dom. Diurna */}
+                <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-red-500/20">
+                  <span className="text-[10px] text-red-400 block truncate">Extra Dom. Diurna</span>
+                  <span className="text-sm font-bold text-red-300 font-mono">{detalleTurno.horasExtraDominicalDiurna}h</span>
+                </div>
+
+                {/* Extra Dom. Noct. */}
+                <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-fuchsia-500/20">
+                  <span className="text-[10px] text-fuchsia-400 block truncate">Extra Dom. Noct.</span>
+                  <span className="text-sm font-bold text-fuchsia-300 font-mono">{detalleTurno.horasExtraDominicalNocturna}h</span>
+                </div>
+
+                {/* Total Horas Extras */}
+                <div className="bg-emerald-950/40 p-2.5 rounded-lg border border-emerald-500/40">
+                  <span className="text-[10px] text-emerald-400 block font-bold truncate">Total Horas Extras</span>
+                  <span className="text-sm font-black text-emerald-300 font-mono">{detalleTurno.totalHorasExtras}h</span>
+                </div>
+              </div>
+
+              {typeof detalleTurno.valorEstimadoTotal === 'number' && detalleTurno.valorEstimadoTotal > 0 && (
+                <div className="pt-2 text-right text-xs text-emerald-400 font-semibold border-t border-emerald-500/20 flex items-center justify-between">
+                  <span className="text-zinc-400 text-[11px]">Valor estimado de nómina:</span>
+                  <span className="font-mono text-white text-sm font-bold">
+                    ${detalleTurno.valorEstimadoTotal.toLocaleString()} COP
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Observaciones (si las hay) */}
+            {detalleTurno.observaciones && (
+              <div className="bg-black/40 border border-zinc-800 rounded-xl p-3 text-xs">
+                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">
+                  Novedad / Observaciones:
+                </span>
+                <p className="text-zinc-300 italic">{detalleTurno.observaciones}</p>
+              </div>
+            )}
+
+            {/* Botón Cerrar */}
+            <div className="pt-1 flex items-center justify-end">
+              <button
+                type="button"
+                onClick={() => setDetalleTurno(null)}
+                className="w-full py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs uppercase tracking-wider transition"
+              >
+                Cerrar
+              </button>
+            </div>
           </div>
         </div>
       )}

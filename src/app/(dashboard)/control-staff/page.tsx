@@ -8,7 +8,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { 
   Search, Clock, Calendar, Plus, Edit3, Trash2, Download, AlertTriangle, 
   CheckCircle2, Settings, X, Loader2, Building2, Sun, Moon,
-  DollarSign, ArrowLeft, Users, Filter, Sparkles
+  DollarSign, ArrowLeft, Users, Filter, Sparkles, Eye
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
@@ -98,6 +98,7 @@ export default function ControlStaffPage() {
   // Modals
   const [showTurnoModal, setShowTurnoModal] = useState(false);
   const [editingTurno, setEditingTurno] = useState<TurnoStaffRecord | null>(null);
+  const [detalleTurno, setDetalleTurno] = useState<TurnoStaffRecord | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   // Form states: Registro de Turno
@@ -314,15 +315,19 @@ export default function ControlStaffPage() {
         actualizadoEl: new Date().toISOString()
       };
 
+      let savedRecord: TurnoStaffRecord;
       if (editingTurno) {
         await updateDoc(doc(db, 'staffTurnos', editingTurno.id), payload);
+        savedRecord = { id: editingTurno.id, ...payload };
         toast({ title: 'Turno actualizado', description: `Se actualizaron las horas de ${payload.staffNombre}.` });
       } else {
-        await addDoc(collection(db, 'staffTurnos'), payload);
+        const docRef = await addDoc(collection(db, 'staffTurnos'), payload);
+        savedRecord = { id: docRef.id, ...payload };
         toast({ title: 'Turno registrado', description: `Se registraron ${calc.horasTotalesEfectivas}h para ${payload.staffNombre}.` });
       }
 
       setShowTurnoModal(false);
+      setDetalleTurno(savedRecord);
       await loadAllData();
     } catch (err: any) {
       console.error(err);
@@ -765,6 +770,15 @@ export default function ControlStaffPage() {
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             type="button"
+                            onClick={() => setDetalleTurno(t)}
+                            title="Ver Detalles y Cálculo de Horas"
+                            className="px-2 py-1 rounded-lg bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-400 hover:text-emerald-200 border border-emerald-500/30 transition flex items-center gap-1 text-[11px] font-semibold"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>Detalles</span>
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => handleOpenEditTurno(t)}
                             title="Editar Turno"
                             className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-amber-400 border border-amber-500/30 transition"
@@ -958,67 +972,6 @@ export default function ControlStaffPage() {
                   </select>
                 </div>
 
-                {/* PREVISUALIZADOR EN TIEMPO REAL DEL CÁLCULO */}
-                <div className="bg-black/40 border border-emerald-500/30 rounded-xl p-4 space-y-3">
-                  <div className="flex items-center justify-between border-b border-emerald-500/20 pb-2">
-                    <span className="text-xs font-black text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
-                      <Sparkles className="w-4 h-4 text-emerald-400" />
-                      Cálculo de Horas en Tiempo Real
-                    </span>
-                    <span className="text-xs font-mono font-black text-white bg-emerald-950 px-2.5 py-0.5 rounded-full border border-emerald-500/40">
-                      {liveCalculation.horasTotalesEfectivas}h Totales
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                    <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-[#1C1C28]">
-                      <span className="text-[10px] text-zinc-400 block">Ord. Diurna</span>
-                      <span className="text-sm font-bold text-white font-mono">{liveCalculation.horasOrdinariasDiurnas}h</span>
-                    </div>
-
-                    <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-indigo-500/20">
-                      <span className="text-[10px] text-indigo-400 block">Recargo Noct. (+35%)</span>
-                      <span className="text-sm font-bold text-indigo-300 font-mono">{liveCalculation.horasRecargoNocturno}h</span>
-                    </div>
-
-                    <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-amber-500/20">
-                      <span className="text-[10px] text-amber-400 block">Extra Diurna (HED)</span>
-                      <span className="text-sm font-bold text-amber-300 font-mono">{liveCalculation.horasExtraDiurna}h</span>
-                    </div>
-
-                    <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-purple-500/20">
-                      <span className="text-[10px] text-purple-400 block">Extra Noct. (HEN)</span>
-                      <span className="text-sm font-bold text-purple-300 font-mono">{liveCalculation.horasExtraNocturna}h</span>
-                    </div>
-
-                    <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-rose-500/20">
-                      <span className="text-[10px] text-rose-400 block">Dom/Fest Ord. (+75%)</span>
-                      <span className="text-sm font-bold text-rose-300 font-mono">{liveCalculation.horasDominicalOrdinaria}h</span>
-                    </div>
-
-                    <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-red-500/20">
-                      <span className="text-[10px] text-red-400 block">Extra Dom. Diurna</span>
-                      <span className="text-sm font-bold text-red-300 font-mono">{liveCalculation.horasExtraDominicalDiurna}h</span>
-                    </div>
-
-                    <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-fuchsia-500/20">
-                      <span className="text-[10px] text-fuchsia-400 block">Extra Dom. Noct.</span>
-                      <span className="text-sm font-bold text-fuchsia-300 font-mono">{liveCalculation.horasExtraDominicalNocturna}h</span>
-                    </div>
-
-                    <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-emerald-500/20">
-                      <span className="text-[10px] text-emerald-400 block">Total Horas Extras</span>
-                      <span className="text-sm font-black text-emerald-300 font-mono">{liveCalculation.totalHorasExtras}h</span>
-                    </div>
-                  </div>
-
-                  {liveCalculation.valorEstimadoTotal && liveCalculation.valorEstimadoTotal > 0 && (
-                    <div className="pt-1 text-right text-xs text-emerald-400 font-semibold">
-                      Valor estimado de nómina: <span className="font-mono text-white text-sm font-bold">${liveCalculation.valorEstimadoTotal.toLocaleString()} COP</span>
-                    </div>
-                  )}
-                </div>
-
                 {/* Observaciones */}
                 <div>
                   <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider block mb-1">
@@ -1055,6 +1008,171 @@ export default function ControlStaffPage() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* MODAL DE DETALLES DEL TURNO (DESGLOSE COMPLETO DE CÁLCULO DE HORAS) */}
+      {detalleTurno && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-[#0E0E14] border border-[#1C1C28] rounded-2xl w-full max-w-lg p-5 sm:p-6 shadow-2xl relative max-h-[92vh] overflow-y-auto space-y-4">
+            
+            {/* Header del Modal */}
+            <div className="flex items-start justify-between border-b border-[#1C1C28] pb-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <h3 className="text-base sm:text-lg font-black text-white uppercase tracking-wider font-orbitron">
+                    Detalles del Turno
+                  </h3>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-mono font-bold">
+                    Guardado
+                  </span>
+                </div>
+                <p className="text-xs text-zinc-400 mt-1 capitalize font-medium">
+                  📅 {formatFechaCompleta(detalleTurno.fecha)}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setDetalleTurno(null)}
+                className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition"
+                title="Cerrar detalles"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Titular e Información General */}
+            <div className="bg-black/50 border border-zinc-800/80 rounded-xl p-3.5 space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-zinc-400">Colaborador Staff:</span>
+                <span className="text-white font-bold">{detalleTurno.staffNombre}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-zinc-400">Identificación:</span>
+                <span className="text-zinc-300 font-mono">CC: {detalleTurno.staffIdentificacion}</span>
+              </div>
+              <div className="flex items-center justify-between border-t border-zinc-800/60 pt-2">
+                <span className="text-zinc-400">Jornada Registrada:</span>
+                <span className="text-white font-mono font-bold">
+                  {detalleTurno.horaEntrada} - {detalleTurno.horaSalida}
+                  {detalleTurno.minutosDescanso > 0 && (
+                    <span className="text-zinc-500 font-normal ml-1">({detalleTurno.minutosDescanso}m desc.)</span>
+                  )}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-zinc-400">Tipo de Día:</span>
+                {detalleTurno.esDominicalOFestivo ? (
+                  <span className="text-amber-400 font-bold bg-amber-950/60 px-2 py-0.5 rounded border border-amber-500/30 text-[11px]">
+                    ★ {detalleTurno.nombreFestivo || 'Día Domingo'} (Recargo Festivo)
+                  </span>
+                ) : (
+                  <span className="text-zinc-300">Día Hábil Ordinario</span>
+                )}
+              </div>
+              {detalleTurno.centroCosto && (
+                <div className="flex items-center justify-between border-t border-zinc-800/60 pt-2">
+                  <span className="text-zinc-400">Centro de Costo:</span>
+                  <span className="text-amber-300 font-bold">{detalleTurno.centroCosto}</span>
+                </div>
+              )}
+            </div>
+
+            {/* DESGLOSE Y CÁLCULO DE HORAS (EXACTAMENTE LA TARJETA SOLICITADA) */}
+            <div className="bg-black/60 border border-emerald-500/30 rounded-xl p-4 space-y-3 shadow-inner">
+              <div className="flex items-center justify-between border-b border-emerald-500/20 pb-2">
+                <span className="text-xs font-black text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-emerald-400" />
+                  Cálculo de Horas
+                </span>
+                <span className="text-xs font-mono font-black text-white bg-emerald-950 px-2.5 py-0.5 rounded-full border border-emerald-500/40">
+                  {detalleTurno.horasTotalesEfectivas}h Totales
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                {/* Ord. Diurna */}
+                <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-[#1C1C28]">
+                  <span className="text-[10px] text-zinc-400 block truncate">Ord. Diurna</span>
+                  <span className="text-sm font-bold text-white font-mono">{detalleTurno.horasOrdinariasDiurnas}h</span>
+                </div>
+
+                {/* Recargo Noct. */}
+                <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-indigo-500/20">
+                  <span className="text-[10px] text-indigo-400 block truncate">Recargo Noct. (+35%)</span>
+                  <span className="text-sm font-bold text-indigo-300 font-mono">{detalleTurno.horasRecargoNocturno}h</span>
+                </div>
+
+                {/* Extra Diurna */}
+                <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-amber-500/20">
+                  <span className="text-[10px] text-amber-400 block truncate">Extra Diurna (HED)</span>
+                  <span className="text-sm font-bold text-amber-300 font-mono">{detalleTurno.horasExtraDiurna}h</span>
+                </div>
+
+                {/* Extra Noct. */}
+                <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-purple-500/20">
+                  <span className="text-[10px] text-purple-400 block truncate">Extra Noct. (HEN)</span>
+                  <span className="text-sm font-bold text-purple-300 font-mono">{detalleTurno.horasExtraNocturna}h</span>
+                </div>
+
+                {/* Dom/Fest Ord. */}
+                <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-rose-500/20">
+                  <span className="text-[10px] text-rose-400 block truncate">Dom/Fest Ord. (+75%)</span>
+                  <span className="text-sm font-bold text-rose-300 font-mono">{detalleTurno.horasDominicalOrdinaria}h</span>
+                </div>
+
+                {/* Extra Dom. Diurna */}
+                <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-red-500/20">
+                  <span className="text-[10px] text-red-400 block truncate">Extra Dom. Diurna</span>
+                  <span className="text-sm font-bold text-red-300 font-mono">{detalleTurno.horasExtraDominicalDiurna}h</span>
+                </div>
+
+                {/* Extra Dom. Noct. */}
+                <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-fuchsia-500/20">
+                  <span className="text-[10px] text-fuchsia-400 block truncate">Extra Dom. Noct.</span>
+                  <span className="text-sm font-bold text-fuchsia-300 font-mono">{detalleTurno.horasExtraDominicalNocturna}h</span>
+                </div>
+
+                {/* Total Horas Extras */}
+                <div className="bg-emerald-950/40 p-2.5 rounded-lg border border-emerald-500/40">
+                  <span className="text-[10px] text-emerald-400 block font-bold truncate">Total Horas Extras</span>
+                  <span className="text-sm font-black text-emerald-300 font-mono">{detalleTurno.totalHorasExtras}h</span>
+                </div>
+              </div>
+
+              {typeof detalleTurno.valorEstimadoTotal === 'number' && detalleTurno.valorEstimadoTotal > 0 && (
+                <div className="pt-2 text-right text-xs text-emerald-400 font-semibold border-t border-emerald-500/20 flex items-center justify-between">
+                  <span className="text-zinc-400 text-[11px]">Valor estimado de nómina:</span>
+                  <span className="font-mono text-white text-sm font-bold">
+                    ${detalleTurno.valorEstimadoTotal.toLocaleString()} COP
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Observaciones (si las hay) */}
+            {detalleTurno.observaciones && (
+              <div className="bg-black/40 border border-zinc-800 rounded-xl p-3 text-xs">
+                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">
+                  Novedad / Observaciones:
+                </span>
+                <p className="text-zinc-300 italic">{detalleTurno.observaciones}</p>
+              </div>
+            )}
+
+            {/* Botón Cerrar */}
+            <div className="pt-1 flex items-center justify-end">
+              <button
+                type="button"
+                onClick={() => setDetalleTurno(null)}
+                className="w-full py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs uppercase tracking-wider transition"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
