@@ -152,17 +152,17 @@ export default function ControlStaffPage() {
       fetchedStaff.sort((a, b) => a.nombres.localeCompare(b.nombres));
       setStaffList(fetchedStaff);
 
-      // 2. Cargar Centros de Costo
+      // 2. Cargar Centros de Costo (Deduplicados)
       try {
         const ccoSnap = await getDocs(collection(db, 'centrosCosto'));
-        const ccos: string[] = [];
+        const ccoSet = new Set<string>();
         ccoSnap.forEach(d => {
           const name = (d.data().nombre || d.id || '').trim().toUpperCase();
           if (name && !name.includes('ARRENDAMIENTO') && !name.includes('ARCHIVO PLANO')) {
-            ccos.push(name);
+            ccoSet.add(name);
           }
         });
-        ccos.sort();
+        const ccos = Array.from(ccoSet).sort();
         setCentrosCostoList(ccos);
       } catch (ccoErr) {
         console.warn('Error al cargar CCOs para turnos', ccoErr);
@@ -565,8 +565,8 @@ export default function ControlStaffPage() {
                 className="bg-black/50 border border-[#1C1C28] rounded-xl px-3 py-1.5 text-xs text-zinc-300 outline-none cursor-pointer max-w-[180px]"
               >
                 <option value="todos">Todos los CCOs</option>
-                {centrosCostoList.map(cc => (
-                  <option key={cc} value={cc}>{cc}</option>
+                {centrosCostoList.map((cc, idx) => (
+                  <option key={`filter-cco-${cc}-${idx}`} value={cc}>{cc}</option>
                 ))}
               </select>
             )}
@@ -903,8 +903,8 @@ export default function ControlStaffPage() {
                     className="w-full px-3.5 py-2.5 bg-black/50 border border-[#1C1C28] focus:border-[#C8102E] rounded-xl text-xs text-white outline-none cursor-pointer"
                   >
                     <option value="">[ Ningún CCO asociado / Sede General ]</option>
-                    {centrosCostoList.map(cc => (
-                      <option key={cc} value={cc}>{cc}</option>
+                    {centrosCostoList.map((cc, idx) => (
+                      <option key={`form-cco-${cc}-${idx}`} value={cc}>{cc}</option>
                     ))}
                   </select>
                 </div>
