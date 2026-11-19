@@ -27,6 +27,7 @@ const INTERFACES_CONFIG = [
   { id: 'pilotos', label: 'Pilotos', color: 'text-blue-400', border: 'border-blue-500/30' },
   { id: 'staff', label: 'Staff', color: 'text-purple-400', border: 'border-purple-500/30' },
   { id: 'control-staff', label: 'Control Staff', color: 'text-emerald-400 font-medium', border: 'border-emerald-500/30' },
+  { id: 'logeo', label: 'Logeo Turnos', color: 'text-lime-400 font-medium', border: 'border-lime-500/30' },
   { id: 'jueces', label: 'Jueces', color: 'text-yellow-400', border: 'border-yellow-500/30' },
   { id: 'qr', label: 'QRs', color: 'text-cyan-400', border: 'border-cyan-500/30' },
   { id: 'codigos', label: 'Códigos', color: 'text-rose-400', border: 'border-rose-500/30' },

@@ -6,6 +6,7 @@ import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firesto
 import { ref, getDownloadURL, listAll } from 'firebase/storage';
 import { useSearchParams } from 'next/navigation';
 import { DashboardInicio } from '@/components/staff-portal/DashboardInicio';
+import { PersonalLogeoStaff } from '@/components/staff-portal/PersonalLogeoStaff';
 
 interface Codigo {
   id: string;
@@ -129,6 +130,14 @@ export function StaffProfileView({ userUid, userName, userDocument }: { userUid:
             userUid={userUid}
             documentosRechazados={documentosRechazados}
             setDocumentosRechazados={setDocumentosRechazados}
+          />
+        );
+      case 'logeo':
+        return (
+          <PersonalLogeoStaff
+            userUid={userUid}
+            userName={finalName}
+            userDocument={finalDocNum}
           />
         );
       default:

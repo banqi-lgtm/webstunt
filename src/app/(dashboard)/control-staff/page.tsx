@@ -59,6 +59,7 @@ export interface TurnoStaffRecord {
   valorEstimadoTotal?: number;
   creadoEl: string;
   actualizadoEl?: string;
+  origen?: string;
 }
 
 export default function ControlStaffPage() {
@@ -198,7 +199,8 @@ export default function ControlStaffPage() {
             nombreFestivo: t.nombreFestivo || undefined,
             valorEstimadoTotal: t.valorEstimadoTotal || undefined,
             creadoEl: t.creadoEl || '',
-            actualizadoEl: t.actualizadoEl || ''
+            actualizadoEl: t.actualizadoEl || '',
+            origen: t.origen || 'ADMIN'
           });
         });
         turnos.sort((a, b) => b.fecha.localeCompare(a.fecha));
@@ -637,9 +639,16 @@ export default function ControlStaffPage() {
                           <span className="font-bold text-white text-sm">
                             {t.staffNombre}
                           </span>
-                          <span className="text-[11px] text-zinc-500 font-mono">
-                            CC: {t.staffIdentificacion}
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] text-zinc-500 font-mono">
+                              CC: {t.staffIdentificacion}
+                            </span>
+                            {t.origen === 'LOGEO_PERSONAL' && (
+                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-lime-950/80 text-lime-400 border border-lime-500/30 font-semibold font-mono">
+                                Logeo Personal
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </td>
 

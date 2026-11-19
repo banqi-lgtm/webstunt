@@ -29,6 +29,7 @@ export function MainNav() {
   const [hasPilotosAccess, setHasPilotosAccess] = useState(false);
   const [hasStaffAccess, setHasStaffAccess] = useState(false);
   const [hasControlStaffAccess, setHasControlStaffAccess] = useState(false);
+  const [hasLogeoAccess, setHasLogeoAccess] = useState(false);
   const [hasWhatsAppAccess, setHasWhatsAppAccess] = useState(false);
   const [hasJuecesAccess, setHasJuecesAccess] = useState(false);
   const [hasQrAccess, setHasQrAccess] = useState(false);
@@ -58,6 +59,7 @@ export function MainNav() {
             setHasPilotosAccess(isSuperAdmin || interfaces.includes('pilotos'));
             setHasStaffAccess(isSuperAdmin || interfaces.includes('staff'));
             setHasControlStaffAccess(isSuperAdmin || interfaces.includes('control-staff'));
+            setHasLogeoAccess(isSuperAdmin || interfaces.includes('logeo'));
             setHasJuecesAccess(isSuperAdmin || interfaces.includes('jueces'));
             setHasQrAccess(isSuperAdmin || interfaces.includes('qr'));
             setHasCodigosAccess(isSuperAdmin || interfaces.includes('codigos'));
@@ -70,6 +72,7 @@ export function MainNav() {
               setHasPilotosAccess(true);
               setHasStaffAccess(true);
               setHasControlStaffAccess(true);
+              setHasLogeoAccess(true);
               setHasJuecesAccess(true);
               setHasQrAccess(true);
               setHasCodigosAccess(true);
@@ -84,6 +87,7 @@ export function MainNav() {
         setHasPilotosAccess(false);
         setHasStaffAccess(false);
         setHasControlStaffAccess(false);
+        setHasLogeoAccess(false);
         setHasJuecesAccess(false);
         setHasQrAccess(false);
         setHasCodigosAccess(false);
@@ -134,12 +138,14 @@ export function MainNav() {
     adminLinks.push({ href: '/admin', label: 'Panel Admin', icon: Shield });
   }
 
-  const filteredProfileLinks = (userRol === 'staff' || userRol === 'admin')
-    ? profileLinks
-    : [
-        { href: '/profile?tab=inicio', label: 'Inicio', icon: LayoutDashboard },
-        { href: '/inscripcion', label: 'Mi información', icon: User },
-      ];
+  const filteredProfileLinks = [
+    { href: '/profile?tab=inicio', label: 'Inicio', icon: LayoutDashboard },
+    ...(hasLogeoAccess ? [{ href: '/profile?tab=logeo', label: 'Logeo', icon: Clock }] : []),
+    ...((userRol === 'staff' || userRol === 'admin')
+      ? [{ href: '/profile?tab=cuentas', label: 'Mis cuentas de cobro', icon: FileText }]
+      : []),
+    { href: (userRol === 'staff' || userRol === 'admin') ? '/profile?tab=info' : '/inscripcion', label: 'Mi información', icon: User },
+  ];
 
   const finalBaseLinks: Array<{ href: string; label: string; icon: any }> = [];
   const allLinks = [...filteredProfileLinks, ...finalBaseLinks, ...adminLinks];
@@ -149,11 +155,17 @@ export function MainNav() {
       return pathname === '/inscripcion';
     }
     if (href.startsWith('/profile')) {
-      if (pathname !== '/profile') return false;
+      if (pathname !== '/profile') {
+        if (href === '/profile?tab=logeo' && pathname === '/logeo') return true;
+        return false;
+      }
       const urlParams = new URLSearchParams(href.includes('?') ? href.split('?')[1] : '');
       const tabParam = urlParams.get('tab');
       const currentTab = searchParams?.get('tab') || 'inicio';
       return tabParam ? currentTab === tabParam : true;
+    }
+    if (href === '/logeo') {
+      return pathname === '/logeo' || (pathname === '/profile' && searchParams?.get('tab') === 'logeo');
     }
     if (href === '/codigos') {
       return pathname === '/codigos';
@@ -175,6 +187,7 @@ export function MainNav() {
     const isAdminLink = link.href === '/admin';
     const isStaff = link.href === '/staff';
     const isControlStaff = link.href === '/control-staff';
+    const isLogeo = link.href.includes('logeo');
     const isJueces = link.href === '/jueces';
     const isQr = link.href === '/qr';
     const isCodigos = link.href === '/codigos';
@@ -201,6 +214,10 @@ export function MainNav() {
       activeClass = 'bg-zinc-800 text-white border border-emerald-500/20';
       inactiveClass = 'text-zinc-400 hover:text-white hover:bg-zinc-900 border border-emerald-500/10';
       iconClass = 'h-4 w-4 text-emerald-400';
+    } else if (isLogeo) {
+      activeClass = 'bg-zinc-800 text-white border border-lime-500/20';
+      inactiveClass = 'text-zinc-400 hover:text-white hover:bg-zinc-900 border border-lime-500/10';
+      iconClass = 'h-4 w-4 text-lime-400';
     } else if (isJueces) {
       activeClass = 'bg-zinc-800 text-white border border-yellow-500/20';
       inactiveClass = 'text-zinc-400 hover:text-white hover:bg-zinc-900 border border-yellow-500/10';
