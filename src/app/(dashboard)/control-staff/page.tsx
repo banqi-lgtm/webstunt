@@ -2,18 +2,18 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { 
   Search, Clock, Calendar, Plus, Edit3, Trash2, Download, AlertTriangle, 
   CheckCircle2, Settings, X, Loader2, Building2, Sun, Moon,
-  DollarSign, ArrowLeft, Users, Filter, Sparkles, Eye
+  DollarSign, ArrowLeft, Users, Filter, Sparkles, Eye, BarChart3,
+  CalendarDays, FileSpreadsheet, ChevronRight, Check
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
 import { 
   calculateOvertimeColombia, 
@@ -43,6 +43,8 @@ interface TurnoStaffRecord {
   horaEntrada: string; // HH:mm
   horaSalida: string; // HH:mm
   minutosDescanso: number;
+  horasDescanso?: number;
+  horasFaltantes?: number;
   centroCosto?: string;
   observaciones?: string;
   horasTotalesEfectivas: number;
@@ -53,7 +55,14 @@ interface TurnoStaffRecord {
   horasDominicalOrdinaria: number;
   horasExtraDominicalDiurna: number;
   horasExtraDominicalNocturna: number;
+  horasFestivoOrdinaria?: number;
+  horasExtraFestivoDiurna?: number;
+  horasExtraFestivoNocturna?: number;
+  totalHorasOrdinarias?: number;
   totalHorasExtras: number;
+  totalHorasDominicalesYFestivas?: number;
+  esDomingo?: boolean;
+  esFestivo?: boolean;
   esDominicalOFestivo: boolean;
   nombreFestivo?: string;
   valorEstimadoTotal?: number;
@@ -82,18 +91,25 @@ export default function ControlStaffPage() {
   const { toast } = useToast();
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
   
+  // Navigation tabs: 'turnos' | 'reportes'
+  const [activeTab, setActiveTab] = useState<'turnos' | 'reportes'>('turnos');
+
   // Data lists
   const [staffList, setStaffList] = useState<StaffMember[]>([]);
   const [turnosList, setTurnosList] = useState<TurnoStaffRecord[]>([]);
   const [centrosCostoList, setCentrosCostoList] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Search & Filters
+  // Search & Filters (Turnos view)
   const [turnoSearch, setTurnoSearch] = useState('');
   const [filterStaffUid, setFilterStaffUid] = useState('todos');
   const [filterMes, setFilterMes] = useState('todos');
   const [filterSoloExtras, setFilterSoloExtras] = useState(false);
   const [filterCCO, setFilterCCO] = useState('todos');
+
+  // Filters (Reportes view)
+  const [reportPeriodo, setReportPeriodo] = useState<'hoy' | 'semana' | 'mes' | 'todos'>('mes');
+  const [reportStaffUid, setReportStaffUid] = useState('todos');
 
   // Modals
   const [showTurnoModal, setShowTurnoModal] = useState(false);
@@ -105,7 +121,7 @@ export default function ControlStaffPage() {
   const [formStaffUid, setFormStaffUid] = useState('');
   const [formFecha, setFormFecha] = useState(new Date().toISOString().substring(0, 10));
   const [formHoraEntrada, setFormHoraEntrada] = useState('08:00');
-  const [formHoraSalida, setFormHoraSalida] = useState('19:00');
+  const [formHoraSalida, setFormHoraSalida] = useState('16:00');
   const [formMinutosDescanso, setFormMinutosDescanso] = useState(60);
   const [formCentroCosto, setFormCentroCosto] = useState('');
   const [formObservaciones, setFormObservaciones] = useState('');
@@ -200,6 +216,8 @@ export default function ControlStaffPage() {
             horaEntrada: t.horaEntrada || '',
             horaSalida: t.horaSalida || '',
             minutosDescanso: t.minutosDescanso || 0,
+            horasDescanso: t.horasDescanso || (t.minutosDescanso ? t.minutosDescanso / 60 : 0),
+            horasFaltantes: t.horasFaltantes || 0,
             centroCosto: t.centroCosto || '',
             observaciones: t.observaciones || '',
             horasTotalesEfectivas: t.horasTotalesEfectivas || 0,
@@ -210,7 +228,14 @@ export default function ControlStaffPage() {
             horasDominicalOrdinaria: t.horasDominicalOrdinaria || 0,
             horasExtraDominicalDiurna: t.horasExtraDominicalDiurna || 0,
             horasExtraDominicalNocturna: t.horasExtraDominicalNocturna || 0,
+            horasFestivoOrdinaria: t.horasFestivoOrdinaria || 0,
+            horasExtraFestivoDiurna: t.horasExtraFestivoDiurna || 0,
+            horasExtraFestivoNocturna: t.horasExtraFestivoNocturna || 0,
+            totalHorasOrdinarias: t.totalHorasOrdinarias || t.horasOrdinariasDiurnas || 0,
             totalHorasExtras: t.totalHorasExtras || 0,
+            totalHorasDominicalesYFestivas: t.totalHorasDominicalesYFestivas || 0,
+            esDomingo: Boolean(t.esDomingo),
+            esFestivo: Boolean(t.esFestivo),
             esDominicalOFestivo: Boolean(t.esDominicalOFestivo),
             nombreFestivo: t.nombreFestivo || undefined,
             valorEstimadoTotal: t.valorEstimadoTotal || undefined,
@@ -254,7 +279,7 @@ export default function ControlStaffPage() {
     setFormStaffUid(defaultStaff);
     setFormFecha(new Date().toISOString().substring(0, 10));
     setFormHoraEntrada(staffObj?.horarioLaboral?.horaEntradaDefecto || '08:00');
-    setFormHoraSalida(staffObj?.horarioLaboral?.horaSalidaDefecto || '19:00');
+    setFormHoraSalida(staffObj?.horarioLaboral?.horaSalidaDefecto || '16:00');
     setFormMinutosDescanso(staffObj?.horarioLaboral?.minutosDescansoDefecto ?? 60);
     setFormCentroCosto('');
     setFormObservaciones('');
@@ -297,6 +322,8 @@ export default function ControlStaffPage() {
         horaEntrada: formHoraEntrada,
         horaSalida: formHoraSalida,
         minutosDescanso: Number(formMinutosDescanso) || 0,
+        horasDescanso: calc.horasDescanso,
+        horasFaltantes: calc.horasFaltantes,
         centroCosto: formCentroCosto.trim() || undefined,
         observaciones: formObservaciones.trim() || undefined,
         horasTotalesEfectivas: calc.horasTotalesEfectivas,
@@ -307,7 +334,14 @@ export default function ControlStaffPage() {
         horasDominicalOrdinaria: calc.horasDominicalOrdinaria,
         horasExtraDominicalDiurna: calc.horasExtraDominicalDiurna,
         horasExtraDominicalNocturna: calc.horasExtraDominicalNocturna,
+        horasFestivoOrdinaria: calc.horasFestivoOrdinaria,
+        horasExtraFestivoDiurna: calc.horasExtraFestivoDiurna,
+        horasExtraFestivoNocturna: calc.horasExtraFestivoNocturna,
+        totalHorasOrdinarias: calc.totalHorasOrdinarias,
         totalHorasExtras: calc.totalHorasExtras,
+        totalHorasDominicalesYFestivas: calc.totalHorasDominicalesYFestivas,
+        esDomingo: calc.esDomingo,
+        esFestivo: calc.esFestivo,
         esDominicalOFestivo: calc.esDominicalOFestivo,
         nombreFestivo: calc.nombreFestivo || undefined,
         valorEstimadoTotal: calc.valorEstimadoTotal || undefined,
@@ -329,108 +363,270 @@ export default function ControlStaffPage() {
       setShowTurnoModal(false);
       setDetalleTurno(savedRecord);
       await loadAllData();
-    } catch (err: any) {
-      console.error(err);
-      toast({ title: 'Error al guardar turno', description: err.message, variant: 'destructive' });
+    } catch (e: any) {
+      console.error(e);
+      toast({ title: 'Error al guardar turno', description: e.message, variant: 'destructive' });
     } finally {
       setIsSaving(false);
     }
   };
 
   // Eliminar turno
-  const handleDeleteTurno = async (turno: TurnoStaffRecord) => {
-    if (!window.confirm(`¿Seguro que deseas eliminar el registro del ${turno.fecha} para ${turno.staffNombre}?`)) return;
+  const handleDeleteTurno = async (id: string, staffName: string) => {
+    if (!window.confirm(`¿Estás seguro de eliminar el turno registrado para ${staffName}?`)) return;
+
     try {
-      await deleteDoc(doc(db, 'staffTurnos', turno.id));
-      toast({ title: 'Turno eliminado', description: 'El registro fue retirado con éxito.' });
-      setTurnosList(prev => prev.filter(t => t.id !== turno.id));
-    } catch (err) {
-      toast({ title: 'Error al eliminar turno', variant: 'destructive' });
+      await deleteDoc(doc(db, 'staffTurnos', id));
+      toast({ title: 'Turno eliminado', description: 'El turno fue retirado del control.' });
+      setTurnosList(prev => prev.filter(t => t.id !== id));
+      if (detalleTurno?.id === id) setDetalleTurno(null);
+    } catch (e: any) {
+      console.error(e);
+      toast({ title: 'Error al eliminar', description: e.message, variant: 'destructive' });
     }
   };
 
-  // Exportar Excel
+  // Exportar Excel detallado
   const handleExportTurnosExcel = () => {
-    const exportData = filteredTurnos.map((t, i) => ({
-      '#': i + 1,
-      'EMPLEADO / STAFF': t.staffNombre,
-      'CÉDULA / IDENTIFICACIÓN': t.staffIdentificacion,
-      'FECHA': t.fecha,
-      'DÍA DOMINICAL / FESTIVO': t.esDominicalOFestivo ? `SÍ (${t.nombreFestivo || 'Domingo'})` : 'NO',
-      'HORA ENTRADA': t.horaEntrada,
-      'HORA SALIDA': t.horaSalida,
-      'DESCANSO (MIN)': t.minutosDescanso,
-      'TOTAL HORAS LABORADAS': t.horasTotalesEfectivas,
-      'HORAS ORD. DIURNAS (HO)': t.horasOrdinariasDiurnas,
-      'RECARGO NOCTURNO (RN +35%)': t.horasRecargoNocturno,
-      'DOMINICAL ORD. (RDF +75%)': t.horasDominicalOrdinaria,
-      'EXTRA DIURNA (HED +25%)': t.horasExtraDiurna,
-      'EXTRA NOCTURNA (HEN +75%)': t.horasExtraNocturna,
-      'EXTRA DOM/FEST DIURNA (HEDDF +100%)': t.horasExtraDominicalDiurna,
-      'EXTRA DOM/FEST NOCTURNA (HENDF +150%)': t.horasExtraDominicalNocturna,
-      'TOTAL HORAS EXTRAS': t.totalHorasExtras,
-      'CENTRO DE COSTO / EVENTO': t.centroCosto || 'N/A',
-      'VALOR ESTIMADO (COP)': t.valorEstimadoTotal ? `$${t.valorEstimadoTotal.toLocaleString()}` : 'N/A',
-      'OBSERVACIONES': t.observaciones || ''
+    if (turnosFiltrados.length === 0) {
+      toast({ title: 'Sin datos', description: 'No hay turnos para exportar con los filtros seleccionados.', variant: 'destructive' });
+      return;
+    }
+
+    const dataToExport = turnosFiltrados.map(t => ({
+      'Fecha': t.fecha,
+      'Colaborador': t.staffNombre,
+      'Identificación': t.staffIdentificacion,
+      'Hora Entrada': t.horaEntrada,
+      'Hora Salida': t.horaSalida,
+      'Descanso (Min)': t.minutosDescanso,
+      'Horas Efectivas': t.horasTotalesEfectivas,
+      'Ord. Diurnas (7h)': t.horasOrdinariasDiurnas,
+      'Recargo Nocturno (h)': t.horasRecargoNocturno,
+      'Extra Diurna HED (h)': t.horasExtraDiurna,
+      'Extra Nocturna HEN (h)': t.horasExtraNocturna,
+      'Dominical Ord. (h)': t.horasDominicalOrdinaria,
+      'Extra Dom. Diurna (h)': t.horasExtraDominicalDiurna,
+      'Extra Dom. Nocturna (h)': t.horasExtraDominicalNocturna,
+      'Festivo Ord. (h)': t.horasFestivoOrdinaria || 0,
+      'Extra Fest. Diurna (h)': t.horasExtraFestivoDiurna || 0,
+      'Extra Fest. Nocturna (h)': t.horasExtraFestivoNocturna || 0,
+      'Total Extras (h)': t.totalHorasExtras,
+      'Horas Faltantes (h)': t.horasFaltantes || 0,
+      'Tipo Día': t.esDominicalOFestivo ? (t.nombreFestivo || 'Dominical') : 'Hábil',
+      'Centro de Costo': t.centroCosto || 'N/A',
+      'Observaciones': t.observaciones || '',
+      'Origen': t.origen || 'ADMIN',
+      'Valor Estimado (COP)': t.valorEstimadoTotal || 0,
     }));
 
-    const ws = XLSX.utils.json_to_sheet(exportData);
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Control_Staff_Horas_Extras');
-    XLSX.writeFile(wb, `control_staff_horas_extras_${new Date().toISOString().split('T')[0]}.xlsx`);
-    toast({ title: 'Reporte Exportado', description: `Se descargó el archivo Excel con ${exportData.length} turnos calculados.` });
+    XLSX.utils.book_append_sheet(wb, ws, 'Control de Staff');
+    XLSX.writeFile(wb, `Control_Staff_7H_${new Date().toISOString().substring(0, 10)}.xlsx`);
   };
 
-  // Filtrado de turnos
-  const filteredTurnos = useMemo(() => {
-    return turnosList.filter(t => {
-      if (filterStaffUid !== 'todos' && t.staffUid !== filterStaffUid) return false;
-      if (filterMes !== 'todos' && !t.fecha.startsWith(filterMes)) return false;
-      if (filterSoloExtras && t.totalHorasExtras <= 0) return false;
-      if (filterCCO !== 'todos' && (t.centroCosto || '').toUpperCase() !== filterCCO.toUpperCase()) return false;
-      if (!turnoSearch.trim()) return true;
-      const q = turnoSearch.toLowerCase();
-      return (
-        t.staffNombre.toLowerCase().includes(q) ||
-        t.staffIdentificacion.toLowerCase().includes(q) ||
-        t.fecha.toLowerCase().includes(q) ||
-        (t.centroCosto && t.centroCosto.toLowerCase().includes(q)) ||
-        (t.observaciones && t.observaciones.toLowerCase().includes(q))
-      );
-    });
-  }, [turnosList, filterStaffUid, filterMes, filterSoloExtras, filterCCO, turnoSearch]);
+  // Exportar Reporte Consolidado por Colaborador
+  const handleExportConsolidadoExcel = () => {
+    if (reporteConsolidadoPorStaff.length === 0) {
+      toast({ title: 'Sin datos', description: 'No hay datos en el reporte para exportar.', variant: 'destructive' });
+      return;
+    }
 
-  // KPIs
+    const dataToExport = reporteConsolidadoPorStaff.map(r => ({
+      'Colaborador': r.nombre,
+      'Identificación': r.identificacion,
+      'Días Laborados': r.diasLaborados,
+      'Total Horas Trabajadas': r.totalHoras,
+      'Horas Ordinarias (7h)': r.totalOrdinarias,
+      'Extras Diurnas (HED)': r.totalHED,
+      'Extras Nocturnas (HEN)': r.totalHEN,
+      'Horas Dominicales': r.totalDominicales,
+      'Horas Festivas': r.totalFestivas,
+      'Total Horas Extras': r.totalExtras,
+      'Horas Faltantes': r.totalFaltantes,
+      'Valor Estimado (COP)': r.totalValorEstimado
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Resumen por Colaborador');
+    XLSX.writeFile(wb, `Resumen_Nomina_Staff_${reportPeriodo}_${new Date().toISOString().substring(0, 10)}.xlsx`);
+  };
+
+  // Filtro de turnos para vista de lista
+  const turnosFiltrados = useMemo(() => {
+    return turnosList.filter(t => {
+      // 1. Búsqueda por texto (nombre, identificación, cco)
+      if (turnoSearch) {
+        const q = turnoSearch.toLowerCase();
+        const matches = t.staffNombre.toLowerCase().includes(q) ||
+          t.staffIdentificacion.toLowerCase().includes(q) ||
+          (t.centroCosto && t.centroCosto.toLowerCase().includes(q)) ||
+          (t.observaciones && t.observaciones.toLowerCase().includes(q));
+        if (!matches) return false;
+      }
+
+      // 2. Filtro por miembro de staff
+      if (filterStaffUid !== 'todos' && t.staffUid !== filterStaffUid) {
+        return false;
+      }
+
+      // 3. Filtro por mes (YYYY-MM)
+      if (filterMes !== 'todos' && !t.fecha.startsWith(filterMes)) {
+        return false;
+      }
+
+      // 4. Filtro solo con horas extras
+      if (filterSoloExtras && t.totalHorasExtras <= 0) {
+        return false;
+      }
+
+      // 5. Filtro por Centro de Costo
+      if (filterCCO !== 'todos') {
+        const ccoTurno = (t.centroCosto || '').trim().toUpperCase();
+        if (ccoTurno !== filterCCO.toUpperCase()) return false;
+      }
+
+      return true;
+    });
+  }, [turnosList, turnoSearch, filterStaffUid, filterMes, filterSoloExtras, filterCCO]);
+
+  // KPIs de la vista de turnos
   const kpisTurnos = useMemo(() => {
     let totalHoras = 0;
+    let totalOrdinarias = 0;
+    let totalExtras = 0;
     let totalHED = 0;
     let totalHEN = 0;
-    let totalDominicales = 0;
-    let totalHorasExtras = 0;
-    let valorEstimado = 0;
+    let totalDomFest = 0;
+    let totalFaltantes = 0;
+    let totalValor = 0;
 
-    filteredTurnos.forEach(t => {
+    turnosFiltrados.forEach(t => {
       totalHoras += t.horasTotalesEfectivas || 0;
+      totalOrdinarias += t.horasOrdinariasDiurnas || 0;
+      totalExtras += t.totalHorasExtras || 0;
       totalHED += t.horasExtraDiurna || 0;
       totalHEN += t.horasExtraNocturna || 0;
-      totalDominicales += (t.horasDominicalOrdinaria || 0) + (t.horasExtraDominicalDiurna || 0) + (t.horasExtraDominicalNocturna || 0);
-      totalHorasExtras += t.totalHorasExtras || 0;
-      if (t.valorEstimadoTotal) valorEstimado += t.valorEstimadoTotal;
+      totalDomFest += (t.horasDominicalOrdinaria || 0) + (t.horasExtraDominicalDiurna || 0) + (t.horasExtraDominicalNocturna || 0) + (t.horasFestivoOrdinaria || 0) + (t.horasExtraFestivoDiurna || 0) + (t.horasExtraFestivoNocturna || 0);
+      totalFaltantes += t.horasFaltantes || 0;
+      totalValor += t.valorEstimadoTotal || 0;
     });
 
     return {
-      totalTurnos: filteredTurnos.length,
-      totalHoras: Math.round(totalHoras * 10) / 10,
-      totalHED: Math.round(totalHED * 10) / 10,
-      totalHEN: Math.round(totalHEN * 10) / 10,
-      totalDominicales: Math.round(totalDominicales * 10) / 10,
-      totalHorasExtras: Math.round(totalHorasExtras * 10) / 10,
-      valorEstimado: Math.round(valorEstimado)
+      totalTurnos: turnosFiltrados.length,
+      totalHoras: Math.round(totalHoras * 100) / 100,
+      totalOrdinarias: Math.round(totalOrdinarias * 100) / 100,
+      totalExtras: Math.round(totalExtras * 100) / 100,
+      totalHED: Math.round(totalHED * 100) / 100,
+      totalHEN: Math.round(totalHEN * 100) / 100,
+      totalDomFest: Math.round(totalDomFest * 100) / 100,
+      totalFaltantes: Math.round(totalFaltantes * 100) / 100,
+      totalValor: Math.round(totalValor)
     };
-  }, [filteredTurnos]);
+  }, [turnosFiltrados]);
 
-  // Meses disponibles
-  const availableTurnoMonths = useMemo(() => {
+  // ==========================================
+  // LÓGICA DE REPORTES (DIARIO, SEMANAL, MENSUAL)
+  // ==========================================
+  const turnosReportePeriodo = useMemo(() => {
+    const today = new Date();
+    const todayStr = today.toISOString().substring(0, 10);
+
+    // Calcular inicio de semana (Lunes de la semana actual)
+    const dayOfWeek = today.getDay(); // 0 es domingo
+    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const mondayDate = new Date(today);
+    mondayDate.setDate(today.getDate() + diffToMonday);
+    const mondayStr = mondayDate.toISOString().substring(0, 10);
+
+    // Calcular inicio de mes
+    const currentMonthStr = todayStr.substring(0, 7);
+
+    return turnosList.filter(t => {
+      // Filtro de colaborador para reporte
+      if (reportStaffUid !== 'todos' && t.staffUid !== reportStaffUid) {
+        return false;
+      }
+
+      // Filtro de periodo
+      if (reportPeriodo === 'hoy') {
+        return t.fecha === todayStr;
+      } else if (reportPeriodo === 'semana') {
+        return t.fecha >= mondayStr && t.fecha <= todayStr;
+      } else if (reportPeriodo === 'mes') {
+        return t.fecha.startsWith(currentMonthStr);
+      }
+      return true; // 'todos'
+    });
+  }, [turnosList, reportPeriodo, reportStaffUid]);
+
+  // Consolidado por Colaborador en el Periodo
+  const reporteConsolidadoPorStaff = useMemo(() => {
+    const map = new Map<string, {
+      staffUid: string;
+      nombre: string;
+      identificacion: string;
+      diasLaborados: number;
+      totalHoras: number;
+      totalOrdinarias: number;
+      totalHED: number;
+      totalHEN: number;
+      totalDominicales: number;
+      totalFestivas: number;
+      totalExtras: number;
+      totalFaltantes: number;
+      totalValorEstimado: number;
+    }>();
+
+    turnosReportePeriodo.forEach(t => {
+      const existing = map.get(t.staffUid) || {
+        staffUid: t.staffUid,
+        nombre: t.staffNombre,
+        identificacion: t.staffIdentificacion,
+        diasLaborados: 0,
+        totalHoras: 0,
+        totalOrdinarias: 0,
+        totalHED: 0,
+        totalHEN: 0,
+        totalDominicales: 0,
+        totalFestivas: 0,
+        totalExtras: 0,
+        totalFaltantes: 0,
+        totalValorEstimado: 0
+      };
+
+      existing.diasLaborados += 1;
+      existing.totalHoras += t.horasTotalesEfectivas || 0;
+      existing.totalOrdinarias += t.horasOrdinariasDiurnas || 0;
+      existing.totalHED += t.horasExtraDiurna || 0;
+      existing.totalHEN += t.horasExtraNocturna || 0;
+      existing.totalDominicales += (t.horasDominicalOrdinaria || 0) + (t.horasExtraDominicalDiurna || 0) + (t.horasExtraDominicalNocturna || 0);
+      existing.totalFestivas += (t.horasFestivoOrdinaria || 0) + (t.horasExtraFestivoDiurna || 0) + (t.horasExtraFestivoNocturna || 0);
+      existing.totalExtras += t.totalHorasExtras || 0;
+      existing.totalFaltantes += t.horasFaltantes || 0;
+      existing.totalValorEstimado += t.valorEstimadoTotal || 0;
+
+      map.set(t.staffUid, existing);
+    });
+
+    return Array.from(map.values()).map(r => ({
+      ...r,
+      totalHoras: Math.round(r.totalHoras * 100) / 100,
+      totalOrdinarias: Math.round(r.totalOrdinarias * 100) / 100,
+      totalHED: Math.round(r.totalHED * 100) / 100,
+      totalHEN: Math.round(r.totalHEN * 100) / 100,
+      totalDominicales: Math.round(r.totalDominicales * 100) / 100,
+      totalFestivas: Math.round(r.totalFestivas * 100) / 100,
+      totalExtras: Math.round(r.totalExtras * 100) / 100,
+      totalFaltantes: Math.round(r.totalFaltantes * 100) / 100,
+      totalValorEstimado: Math.round(r.totalValorEstimado)
+    })).sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }, [turnosReportePeriodo]);
+
+  // Lista de meses disponibles para filtros
+  const mesesDisponibles = useMemo(() => {
     const set = new Set<string>();
     turnosList.forEach(t => {
       if (t.fecha && t.fecha.length >= 7) {
@@ -473,11 +669,11 @@ export default function ControlStaffPage() {
                 <h1 className="text-2xl font-black text-white tracking-wide flex items-center gap-2">
                   CONTROL DE STAFF
                   <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-500/40">
-                    HORAS EXTRAS & ASISTENCIA
+                    JORNADA LEGAL 7H / DÍA
                   </span>
                 </h1>
                 <p className="text-xs text-zinc-400">
-                  Registro de horas de entrada y salida con validación automática de horas extras diurnas, nocturnas, dominicales y festivas (CST Colombia)
+                  Cálculo automático de horas ordinarias (base 7h), horas extras diurnas, nocturnas, dominicales y festivos colombianos.
                 </p>
               </div>
             </div>
@@ -487,18 +683,18 @@ export default function ControlStaffPage() {
           <div className="flex items-center gap-2 flex-wrap">
             <button
               type="button"
-              onClick={handleExportTurnosExcel}
-              className="px-3.5 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs font-bold flex items-center gap-2 transition"
+              onClick={activeTab === 'turnos' ? handleExportTurnosExcel : handleExportConsolidadoExcel}
+              className="px-3.5 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs font-bold flex items-center gap-2 transition cursor-pointer"
               title="Descargar reporte en Excel"
             >
               <Download className="w-4 h-4 text-emerald-400" />
-              <span>Exportar Excel</span>
+              <span>{activeTab === 'turnos' ? 'Exportar Turnos' : 'Exportar Consolidado'}</span>
             </button>
 
             <button
               type="button"
               onClick={() => handleOpenNewTurno()}
-              className="px-4 py-2.5 rounded-xl bg-[#C8102E] hover:bg-red-700 text-white text-xs font-bold flex items-center gap-2 transition shadow-lg shadow-red-950/50"
+              className="px-4 py-2.5 rounded-xl bg-[#C8102E] hover:bg-red-700 text-white text-xs font-bold flex items-center gap-2 transition shadow-lg shadow-red-950/50 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>Registrar Turno</span>
@@ -506,669 +702,879 @@ export default function ControlStaffPage() {
           </div>
         </div>
 
-        {/* KPIS DE HORAS */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-          <div className="bg-[#0E0E14] border border-[#1C1C28] rounded-xl p-4">
-            <span className="text-zinc-500 text-[11px] font-bold uppercase block">Total Horas</span>
-            <span className="text-2xl font-black text-white font-mono">{kpisTurnos.totalHoras}h</span>
-            <span className="text-[10px] text-zinc-500 block mt-0.5">{kpisTurnos.totalTurnos} turnos registrados</span>
-          </div>
-          <div className="bg-[#0E0E14] border border-amber-500/20 rounded-xl p-4">
-            <span className="text-amber-400/80 text-[11px] font-bold uppercase block">Extras Diurnas (HED)</span>
-            <span className="text-2xl font-black text-amber-400 font-mono">{kpisTurnos.totalHED}h</span>
-            <span className="text-[10px] text-zinc-500 block mt-0.5">+25% recargo (6am-9pm)</span>
-          </div>
-          <div className="bg-[#0E0E14] border border-purple-500/20 rounded-xl p-4">
-            <span className="text-purple-400/80 text-[11px] font-bold uppercase block">Extras Noct. (HEN)</span>
-            <span className="text-2xl font-black text-purple-400 font-mono">{kpisTurnos.totalHEN}h</span>
-            <span className="text-[10px] text-zinc-500 block mt-0.5">+75% recargo (9pm-6am)</span>
-          </div>
-          <div className="bg-[#0E0E14] border border-rose-500/20 rounded-xl p-4">
-            <span className="text-rose-400/80 text-[11px] font-bold uppercase block">Dominical / Festivo</span>
-            <span className="text-2xl font-black text-rose-400 font-mono">{kpisTurnos.totalDominicales}h</span>
-            <span className="text-[10px] text-zinc-500 block mt-0.5">+75% a +150% recargo</span>
-          </div>
-          <div className="bg-[#0E0E14] border border-emerald-500/20 rounded-xl p-4">
-            <span className="text-emerald-400/80 text-[11px] font-bold uppercase block">Total Horas Extras</span>
-            <span className="text-2xl font-black text-emerald-400 font-mono">{kpisTurnos.totalHorasExtras}h</span>
-            {kpisTurnos.valorEstimado > 0 ? (
-              <span className="text-[10px] text-emerald-400 block mt-0.5 font-bold">~${kpisTurnos.valorEstimado.toLocaleString()} COP</span>
-            ) : (
-              <span className="text-[10px] text-zinc-500 block mt-0.5">HED + HEN + Dom/Fest</span>
-            )}
-          </div>
+        {/* TABS DE VISTA: TURNOS VS REPORTES */}
+        <div className="flex items-center gap-2 border-b border-[#1C1C28] pb-1">
+          <button
+            type="button"
+            onClick={() => setActiveTab('turnos')}
+            className={`px-4 py-2 rounded-t-xl text-xs font-bold transition flex items-center gap-2 border-b-2 ${
+              activeTab === 'turnos'
+                ? 'bg-zinc-900/80 text-white border-emerald-500 shadow-sm'
+                : 'text-zinc-500 hover:text-zinc-300 border-transparent'
+            }`}
+          >
+            <Clock className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Turnos y Asistencia ({turnosList.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('reportes')}
+            className={`px-4 py-2 rounded-t-xl text-xs font-bold transition flex items-center gap-2 border-b-2 ${
+              activeTab === 'reportes'
+                ? 'bg-zinc-900/80 text-white border-emerald-500 shadow-sm'
+                : 'text-zinc-500 hover:text-zinc-300 border-transparent'
+            }`}
+          >
+            <BarChart3 className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Resumen y Reportes por Periodo</span>
+          </button>
         </div>
 
-        {/* FILTERS AND SEARCH */}
-        <div className="bg-[#0E0E14] border border-[#1C1C28] rounded-2xl p-4 flex flex-col md:flex-row gap-3 items-center justify-between">
-          <div className="relative w-full md:w-72">
-            <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Buscar turno, staff, cédula o CCO..."
-              value={turnoSearch}
-              onChange={(e) => setTurnoSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-black/50 border border-[#1C1C28] focus:border-[#C8102E] rounded-xl text-xs text-white outline-none"
-            />
-          </div>
+        {/* ============================================================== */}
+        {/* VISTA 1: LISTADO DE TURNOS Y ASISTENCIA                        */}
+        {/* ============================================================== */}
+        {activeTab === 'turnos' && (
+          <div className="space-y-6">
+            {/* KPIS DE HORAS */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+              <div className="bg-[#0E0E14] border border-[#1C1C28] rounded-xl p-4">
+                <span className="text-zinc-500 text-[11px] font-bold uppercase block">Total Horas</span>
+                <span className="text-2xl font-black text-white font-mono">{kpisTurnos.totalHoras}h</span>
+                <span className="text-[10px] text-zinc-500 block mt-0.5">{kpisTurnos.totalTurnos} turnos registrados</span>
+              </div>
+              <div className="bg-[#0E0E14] border border-[#1C1C28] rounded-xl p-4">
+                <span className="text-zinc-400 text-[11px] font-bold uppercase block">Ordinarias (7h)</span>
+                <span className="text-2xl font-black text-zinc-200 font-mono">{kpisTurnos.totalOrdinarias}h</span>
+                <span className="text-[10px] text-zinc-500 block mt-0.5">Jornada legal diurna</span>
+              </div>
+              <div className="bg-[#0E0E14] border border-amber-500/20 rounded-xl p-4">
+                <span className="text-amber-400/80 text-[11px] font-bold uppercase block">Extras Diurnas (HED)</span>
+                <span className="text-2xl font-black text-amber-400 font-mono">{kpisTurnos.totalHED}h</span>
+                <span className="text-[10px] text-zinc-500 block mt-0.5">+25% recargo</span>
+              </div>
+              <div className="bg-[#0E0E14] border border-purple-500/20 rounded-xl p-4">
+                <span className="text-purple-400/80 text-[11px] font-bold uppercase block">Extras Noct. (HEN)</span>
+                <span className="text-2xl font-black text-purple-400 font-mono">{kpisTurnos.totalHEN}h</span>
+                <span className="text-[10px] text-zinc-500 block mt-0.5">+75% recargo nocturno</span>
+              </div>
+              <div className="bg-[#0E0E14] border border-rose-500/20 rounded-xl p-4 col-span-2 sm:col-span-1">
+                <span className="text-rose-400/80 text-[11px] font-bold uppercase block">Dom / Festivas</span>
+                <span className="text-2xl font-black text-rose-400 font-mono">{kpisTurnos.totalDomFest}h</span>
+                <span className="text-[10px] text-zinc-500 block mt-0.5">Recargos 75% / 100% / 150%</span>
+              </div>
+            </div>
 
-          <div className="flex items-center gap-2 w-full md:w-auto flex-wrap">
-            {/* Staff filter */}
-            <select
-              value={filterStaffUid}
-              onChange={(e) => setFilterStaffUid(e.target.value)}
-              className="bg-black/50 border border-[#1C1C28] rounded-xl px-3 py-1.5 text-xs text-zinc-300 outline-none cursor-pointer"
-            >
-              <option value="todos">Todo el Staff ({staffList.length})</option>
-              {staffList.map(s => (
-                <option key={s.uid} value={s.uid}>{s.nombres} {s.apellidos}</option>
-              ))}
-            </select>
+            {/* BARRA DE FILTROS */}
+            <div className="bg-[#0E0E14] border border-[#1C1C28] rounded-2xl p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 shadow-xl">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-3" />
+                <input
+                  type="text"
+                  placeholder="Buscar colaborador, cédula o novedad..."
+                  value={turnoSearch}
+                  onChange={(e) => setTurnoSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 bg-black/60 border border-[#1C1C28] focus:border-emerald-500 rounded-xl text-xs text-white placeholder-zinc-500 outline-none transition"
+                />
+              </div>
 
-            {/* Mes filter */}
-            {availableTurnoMonths.length > 0 && (
-              <select
-                value={filterMes}
-                onChange={(e) => setFilterMes(e.target.value)}
-                className="bg-black/50 border border-[#1C1C28] rounded-xl px-3 py-1.5 text-xs text-zinc-300 outline-none cursor-pointer"
-              >
-                <option value="todos">Todos los meses</option>
-                {availableTurnoMonths.map(m => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
-            )}
+              <div className="flex items-center gap-2 flex-wrap">
+                <select
+                  value={filterStaffUid}
+                  onChange={(e) => setFilterStaffUid(e.target.value)}
+                  className="bg-black/60 border border-[#1C1C28] focus:border-emerald-500 rounded-xl px-3 py-2 text-xs text-zinc-300 outline-none cursor-pointer font-mono"
+                >
+                  <option value="todos">Todos los colaboradores</option>
+                  {staffList.map(s => (
+                    <option key={s.uid} value={s.uid}>{s.nombres} {s.apellidos}</option>
+                  ))}
+                </select>
 
-            {/* CCO filter */}
-            {centrosCostoList.length > 0 && (
-              <select
-                value={filterCCO}
-                onChange={(e) => setFilterCCO(e.target.value)}
-                className="bg-black/50 border border-[#1C1C28] rounded-xl px-3 py-1.5 text-xs text-zinc-300 outline-none cursor-pointer max-w-[180px]"
-              >
-                <option value="todos">Todos los CCOs</option>
-                {centrosCostoList.map((cc, idx) => (
-                  <option key={`filter-cco-${cc}-${idx}`} value={cc}>{cc}</option>
-                ))}
-              </select>
-            )}
+                {mesesDisponibles.length > 0 && (
+                  <select
+                    value={filterMes}
+                    onChange={(e) => setFilterMes(e.target.value)}
+                    className="bg-black/60 border border-[#1C1C28] focus:border-emerald-500 rounded-xl px-3 py-2 text-xs text-zinc-300 outline-none cursor-pointer font-mono"
+                  >
+                    <option value="todos">Todos los meses</option>
+                    {mesesDisponibles.map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                )}
 
-            {/* Solo Extras toggle */}
-            <button
-              type="button"
-              onClick={() => setFilterSoloExtras(prev => !prev)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition ${
-                filterSoloExtras
-                  ? 'bg-amber-950/60 border-amber-500 text-amber-300'
-                  : 'bg-black/50 border-[#1C1C28] text-zinc-400 hover:text-white'
-              }`}
-            >
-              {filterSoloExtras ? '★ Con Horas Extras' : 'Ver solo Extras'}
-            </button>
+                {centrosCostoList.length > 0 && (
+                  <select
+                    value={filterCCO}
+                    onChange={(e) => setFilterCCO(e.target.value)}
+                    className="bg-black/60 border border-[#1C1C28] focus:border-emerald-500 rounded-xl px-3 py-2 text-xs text-zinc-300 outline-none cursor-pointer max-w-[180px] truncate"
+                  >
+                    <option value="todos">Todos los CCOs</option>
+                    {centrosCostoList.map((cc, idx) => (
+                      <option key={`filter-cco-${cc}-${idx}`} value={cc}>{cc}</option>
+                    ))}
+                  </select>
+                )}
 
-            {/* Reset Filters */}
-            {(turnoSearch || filterStaffUid !== 'todos' || filterMes !== 'todos' || filterSoloExtras || filterCCO !== 'todos') && (
-              <button
-                type="button"
-                onClick={() => {
-                  setTurnoSearch('');
-                  setFilterStaffUid('todos');
-                  setFilterMes('todos');
-                  setFilterSoloExtras(false);
-                  setFilterCCO('todos');
-                }}
-                className="px-2.5 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white text-xs transition"
-              >
-                Limpiar
-              </button>
-            )}
-          </div>
-        </div>
+                <button
+                  type="button"
+                  onClick={() => setFilterSoloExtras(prev => !prev)}
+                  className={`px-3 py-2 rounded-xl text-xs font-bold border transition flex items-center gap-1.5 cursor-pointer ${
+                    filterSoloExtras
+                      ? 'bg-amber-950/80 border-amber-500/50 text-amber-300'
+                      : 'bg-black/40 border-[#1C1C28] text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Solo con Horas Extras</span>
+                </button>
+              </div>
+            </div>
 
-        {/* TABLA DE TURNOS Y HORAS EXTRAS */}
-        <div className="bg-[#0E0E14] border border-[#1C1C28] rounded-2xl overflow-hidden shadow-2xl">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-black/60 border-b border-[#1C1C28] text-zinc-400 font-bold uppercase tracking-wider">
-                <tr>
-                  <th className="py-3.5 px-4">Staff / Empleado</th>
-                  <th className="py-3.5 px-4">Fecha y Día</th>
-                  <th className="py-3.5 px-4 text-center">Horario</th>
-                  <th className="py-3.5 px-4 text-center">Horas Efectivas</th>
-                  <th className="py-3.5 px-4">Desglose de Horas y Recargos</th>
-                  <th className="py-3.5 px-4">Centro de Costo</th>
-                  <th className="py-3.5 px-4 text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#1C1C28]/60 text-zinc-300">
-                {filteredTurnos.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="py-12 text-center text-zinc-500">
-                      <Clock className="w-8 h-8 text-zinc-600 mx-auto mb-2 opacity-50" />
-                      <p className="font-semibold">No se encontraron turnos registrados con los filtros actuales.</p>
-                      <p className="text-[11px] mt-1 text-zinc-600">
-                        Haz clic en &quot;Registrar Turno&quot; para ingresar horas de entrada y salida del staff.
-                      </p>
-                    </td>
-                  </tr>
-                ) : (
-                  filteredTurnos.map(t => (
-                    <tr key={t.id} className="hover:bg-zinc-900/50 transition">
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <div className="flex flex-col">
-                          <span className="font-bold text-white text-sm">
-                            {t.staffNombre}
-                          </span>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[11px] text-zinc-500 font-mono">
-                              CC: {t.staffIdentificacion}
-                            </span>
-                            {t.origen === 'LOGEO_PERSONAL' && (
-                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-lime-950/80 text-lime-400 border border-lime-500/30 font-semibold font-mono">
-                                Logeo Personal
-                              </span>
-                            )}
+            {/* TABLA PRINCIPAL DE TURNOS */}
+            <div className="bg-[#0E0E14] border border-[#1C1C28] rounded-2xl shadow-xl overflow-hidden">
+              <div className="p-4 border-b border-[#1C1C28] flex items-center justify-between bg-black/40">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-emerald-400" />
+                  <h2 className="text-xs font-bold text-white uppercase tracking-wider font-orbitron">
+                    Turnos Registrados ({turnosFiltrados.length})
+                  </h2>
+                </div>
+              </div>
+
+              {turnosFiltrados.length === 0 ? (
+                <div className="p-12 text-center text-zinc-500 text-xs">
+                  <Clock className="w-8 h-8 mx-auto mb-2 text-zinc-700" />
+                  No hay turnos registrados que coincidan con los filtros seleccionados.
+                </div>
+              ) : (
+                <>
+                  {/* Vista Móvil: Tarjetas individuales */}
+                  <div className="block lg:hidden divide-y divide-[#1C1C28]">
+                    {turnosFiltrados.map(t => (
+                      <div key={`mob-t-${t.id}`} className="p-4 space-y-2.5 hover:bg-zinc-900/30 transition">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className="font-bold text-white text-sm">{t.staffNombre}</div>
+                            <div className="text-[11px] text-zinc-400 font-mono">CC: {t.staffIdentificacion}</div>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => setDetalleTurno(t)}
+                              className="px-2 py-1 rounded-lg bg-emerald-950/60 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold flex items-center gap-1"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>Detalles</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditTurno(t)}
+                              className="p-1.5 rounded-lg bg-zinc-800 text-zinc-300 hover:text-white"
+                              title="Editar"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteTurno(t.id, t.staffNombre)}
+                              className="p-1.5 rounded-lg bg-red-950/60 text-red-400 hover:text-red-200"
+                              title="Eliminar"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
                           </div>
                         </div>
-                      </td>
 
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-zinc-200">
-                            {t.fecha}
+                        <div className="flex items-center justify-between text-xs font-mono text-zinc-400">
+                          <div>
+                            <span className="text-white font-bold">{t.fecha}</span>
+                            <span className="mx-1">•</span>
+                            <span>{t.horaEntrada} - {t.horaSalida}</span>
+                            {t.minutosDescanso > 0 && <span className="text-zinc-600 ml-1">({t.minutosDescanso}m desc.)</span>}
+                          </div>
+                          <span className="text-white font-bold bg-zinc-900 px-2 py-0.5 rounded border border-zinc-800">
+                            {t.horasTotalesEfectivas}h
                           </span>
-                          {t.esDominicalOFestivo ? (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-400">
-                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                              {t.nombreFestivo || 'Domingo'}
+                        </div>
+
+                        <div className="flex items-center gap-2 flex-wrap text-[11px]">
+                          <span className="px-2 py-0.5 rounded bg-zinc-900 text-zinc-300 border border-zinc-800">
+                            Ord: {t.horasOrdinariasDiurnas}h
+                          </span>
+                          {t.totalHorasExtras > 0 ? (
+                            <span className="px-2 py-0.5 rounded bg-amber-950/60 text-amber-300 border border-amber-500/30 font-bold">
+                              +{t.totalHorasExtras}h Extra (HED: {t.horasExtraDiurna}h / HEN: {t.horasExtraNocturna}h)
                             </span>
                           ) : (
-                            <span className="text-[10px] text-zinc-500">Día hábil</span>
+                            <span className="text-zinc-600 text-[10px]">Sin extras</span>
                           )}
-                        </div>
-                      </td>
-
-                      <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                        <div className="flex flex-col items-center">
-                          <span className="font-mono font-bold text-white text-xs">
-                            {t.horaEntrada} - {t.horaSalida}
-                          </span>
-                          {t.minutosDescanso > 0 && (
-                            <span className="text-[10px] text-zinc-500">
-                              Descanso: {t.minutosDescanso}m
+                          {t.horasFaltantes && t.horasFaltantes > 0 ? (
+                            <span className="px-2 py-0.5 rounded bg-amber-950/60 text-amber-400 border border-amber-500/30 font-bold">
+                              ⚠️ {t.horasFaltantes}h faltantes
+                            </span>
+                          ) : null}
+                          {t.esDominicalOFestivo && (
+                            <span className="px-2 py-0.5 rounded bg-rose-950/60 text-rose-300 border border-rose-500/30 font-bold">
+                              {t.nombreFestivo || 'Dominical'}
                             </span>
                           )}
                         </div>
-                      </td>
+                      </div>
+                    ))}
+                  </div>
 
-                      <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                        <span className="font-mono font-black text-base text-white">
-                          {t.horasTotalesEfectivas}h
-                        </span>
-                      </td>
-
-                      <td className="py-3.5 px-4">
-                        <div className="flex flex-wrap gap-1.5 items-center">
-                          {t.horasOrdinariasDiurnas > 0 && (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-zinc-800 text-zinc-300 border border-zinc-700">
-                              {t.horasOrdinariasDiurnas}h Ordinarias
-                            </span>
-                          )}
-                          {t.horasRecargoNocturno > 0 && (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-950/70 text-indigo-300 border border-indigo-500/30 flex items-center gap-1">
-                              <Moon className="w-3 h-3 text-indigo-400" />
-                              {t.horasRecargoNocturno}h RN (+35%)
-                            </span>
-                          )}
-                          {t.horasDominicalOrdinaria > 0 && (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-950/70 text-rose-300 border border-rose-500/30">
-                              {t.horasDominicalOrdinaria}h Dom/Fest (+75%)
-                            </span>
-                          )}
-                          {t.horasExtraDiurna > 0 && (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-950/70 text-amber-300 border border-amber-500/30 flex items-center gap-1">
-                              <Sun className="w-3 h-3 text-amber-400" />
-                              {t.horasExtraDiurna}h HED (+25%)
-                            </span>
-                          )}
-                          {t.horasExtraNocturna > 0 && (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-950/70 text-purple-300 border border-purple-500/30 flex items-center gap-1">
-                              <Moon className="w-3 h-3 text-purple-400" />
-                              {t.horasExtraNocturna}h HEN (+75%)
-                            </span>
-                          )}
-                          {t.horasExtraDominicalDiurna > 0 && (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-950/80 text-red-300 border border-red-500/40">
-                              {t.horasExtraDominicalDiurna}h HEDDF (+100%)
-                            </span>
-                          )}
-                          {t.horasExtraDominicalNocturna > 0 && (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-fuchsia-950/80 text-fuchsia-300 border border-fuchsia-500/40">
-                              {t.horasExtraDominicalNocturna}h HENDF (+150%)
-                            </span>
-                          )}
-                        </div>
-                        {t.observaciones && (
-                          <p className="text-[10px] text-zinc-400 mt-1 italic">
-                            &quot;{t.observaciones}&quot;
-                          </p>
-                        )}
-                      </td>
-
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        {t.centroCosto ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-300 bg-amber-950/40 border border-amber-500/30 px-2 py-0.5 rounded-lg">
-                            <Building2 className="w-3 h-3 text-amber-400" />
-                            {t.centroCosto}
-                          </span>
-                        ) : (
-                          <span className="text-zinc-600 text-[11px]">-</span>
-                        )}
-                      </td>
-
-                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => setDetalleTurno(t)}
-                            title="Ver Detalles y Cálculo de Horas"
-                            className="px-2 py-1 rounded-lg bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-400 hover:text-emerald-200 border border-emerald-500/30 transition flex items-center gap-1 text-[11px] font-semibold"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                            <span>Detalles</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEditTurno(t)}
-                            title="Editar Turno"
-                            className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-amber-400 border border-amber-500/30 transition"
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteTurno(t)}
-                            title="Eliminar Turno"
-                            className="p-1.5 rounded-lg bg-zinc-800 hover:bg-red-950 text-red-400 border border-red-500/30 transition"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  {/* Vista Desktop: Tabla estructurada */}
+                  <div className="hidden lg:block overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-black/60 text-zinc-400 uppercase font-bold border-b border-[#1C1C28] text-[10px] tracking-wider">
+                        <tr>
+                          <th className="py-3 px-4">Colaborador</th>
+                          <th className="py-3 px-3">Fecha</th>
+                          <th className="py-3 px-3">Horario</th>
+                          <th className="py-3 px-2 text-center">Efectivas</th>
+                          <th className="py-3 px-2 text-center">Ord. (7h)</th>
+                          <th className="py-3 px-2 text-center">HED (+25%)</th>
+                          <th className="py-3 px-2 text-center">HEN (+75%)</th>
+                          <th className="py-3 px-2 text-center">Dom / Fest</th>
+                          <th className="py-3 px-2 text-center">Faltantes</th>
+                          <th className="py-3 px-3">CCO / Origen</th>
+                          <th className="py-3 px-4 text-right">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#1C1C28]">
+                        {turnosFiltrados.map(t => (
+                          <tr key={`desk-t-${t.id}`} className="hover:bg-zinc-900/30 transition">
+                            <td className="py-3 px-4">
+                              <div className="font-bold text-white">{t.staffNombre}</div>
+                              <div className="text-[10px] text-zinc-500 font-mono">CC: {t.staffIdentificacion}</div>
+                            </td>
+                            <td className="py-3 px-3 whitespace-nowrap font-mono font-medium text-zinc-300">
+                              {t.fecha}
+                              {t.esDominicalOFestivo && (
+                                <span className="block text-[9px] text-amber-400 font-bold">
+                                  {t.nombreFestivo || 'Dominical'}
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-3 px-3 whitespace-nowrap font-mono text-zinc-400">
+                              <span>{t.horaEntrada} - {t.horaSalida}</span>
+                              {t.minutosDescanso > 0 && (
+                                <span className="block text-[10px] text-zinc-600">({t.minutosDescanso}m desc.)</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-2 text-center font-mono font-black text-white bg-zinc-900/40">
+                              {t.horasTotalesEfectivas}h
+                            </td>
+                            <td className="py-3 px-2 text-center font-mono text-zinc-300">
+                              {t.horasOrdinariasDiurnas}h
+                            </td>
+                            <td className="py-3 px-2 text-center font-mono">
+                              {t.horasExtraDiurna > 0 ? (
+                                <span className="text-amber-400 font-bold bg-amber-950/40 px-1.5 py-0.5 rounded">
+                                  {t.horasExtraDiurna}h
+                                </span>
+                              ) : <span className="text-zinc-600">-</span>}
+                            </td>
+                            <td className="py-3 px-2 text-center font-mono">
+                              {t.horasExtraNocturna > 0 ? (
+                                <span className="text-purple-400 font-bold bg-purple-950/40 px-1.5 py-0.5 rounded">
+                                  {t.horasExtraNocturna}h
+                                </span>
+                              ) : <span className="text-zinc-600">-</span>}
+                            </td>
+                            <td className="py-3 px-2 text-center font-mono">
+                              {((t.horasDominicalOrdinaria || 0) + (t.horasExtraDominicalDiurna || 0) + (t.horasExtraDominicalNocturna || 0) + (t.horasFestivoOrdinaria || 0) + (t.horasExtraFestivoDiurna || 0) + (t.horasExtraFestivoNocturna || 0)) > 0 ? (
+                                <span className="text-rose-400 font-bold bg-rose-950/40 px-1.5 py-0.5 rounded">
+                                  {((t.horasDominicalOrdinaria || 0) + (t.horasExtraDominicalDiurna || 0) + (t.horasExtraDominicalNocturna || 0) + (t.horasFestivoOrdinaria || 0) + (t.horasExtraFestivoDiurna || 0) + (t.horasExtraFestivoNocturna || 0))}h
+                                </span>
+                              ) : <span className="text-zinc-600">-</span>}
+                            </td>
+                            <td className="py-3 px-2 text-center font-mono">
+                              {t.horasFaltantes && t.horasFaltantes > 0 ? (
+                                <span className="text-amber-400 font-bold bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-500/30">
+                                  {t.horasFaltantes}h
+                                </span>
+                              ) : <span className="text-zinc-600">-</span>}
+                            </td>
+                            <td className="py-3 px-3">
+                              <span className="text-[11px] text-zinc-300 block truncate max-w-[140px]" title={t.centroCosto}>
+                                {t.centroCosto || 'N/A'}
+                              </span>
+                              <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold uppercase ${
+                                t.origen === 'LOGEO_PERSONAL' ? 'bg-emerald-950 text-emerald-400 border border-emerald-500/30' : 'text-zinc-500'
+                              }`}>
+                                {t.origen || 'ADMIN'}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => setDetalleTurno(t)}
+                                  className="px-2 py-1 rounded-lg bg-emerald-950/60 text-emerald-400 hover:text-emerald-200 border border-emerald-500/30 text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                                  title="Ver desglose completo de horas"
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                  <span>Detalles</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEditTurno(t)}
+                                  className="p-1.5 rounded-lg bg-zinc-800 text-zinc-300 hover:text-white cursor-pointer"
+                                  title="Editar Turno"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteTurno(t.id, t.staffNombre)}
+                                  className="p-1.5 rounded-lg bg-red-950/60 text-red-400 hover:text-red-200 cursor-pointer"
+                                  title="Eliminar Turno"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
-      </div>
+        {/* ============================================================== */}
+        {/* VISTA 2: REPORTES Y RESÚMENES POR PERIODO (DIARIO/SEMANAL/MES)  */}
+        {/* ============================================================== */}
+        {activeTab === 'reportes' && (
+          <div className="space-y-6">
+            {/* FILTROS DEL REPORTE */}
+            <div className="bg-[#0E0E14] border border-[#1C1C28] rounded-2xl p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 shadow-xl">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-emerald-400" />
+                <div>
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider font-orbitron">
+                    Generador de Reportes de Nómina & Horas
+                  </h3>
+                  <p className="text-xs text-zinc-400">
+                    Consolidación automática por trabajador basada en la jornada ordinaria de 7 horas diarias.
+                  </p>
+                </div>
+              </div>
 
-      {/* MODAL: REGISTRAR / EDITAR TURNO */}
-      <AnimatePresence>
-        {showTurnoModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-[#12121A] border border-[#C8102E]/40 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl max-h-[90vh] flex flex-col"
-            >
-              <div className="p-5 border-b border-[#1C1C28] flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 bg-red-950/60 border border-red-500/40 rounded-xl">
-                    <Clock className="w-5 h-5 text-[#C8102E]" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-black text-white">
-                      {editingTurno ? 'MODIFICAR TURNO DE TRABAJO' : 'REGISTRAR TURNO Y CALCULAR HORAS EXTRAS'}
-                    </h3>
-                    <p className="text-xs text-zinc-400">
-                      Ingresa la hora de entrada y salida para clasificar automáticamente las horas según la ley colombiana
-                    </p>
-                  </div>
+              {/* Selector de Periodo */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center bg-black/60 border border-[#1C1C28] rounded-xl p-1">
+                  {[
+                    { id: 'hoy', label: 'Hoy (Diario)' },
+                    { id: 'semana', label: 'Esta Semana' },
+                    { id: 'mes', label: 'Este Mes' },
+                    { id: 'todos', label: 'Todo el Histórico' }
+                  ].map(p => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setReportPeriodo(p.id as any)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                        reportPeriodo === p.id
+                          ? 'bg-emerald-600 text-white shadow-sm'
+                          : 'text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+
+                <select
+                  value={reportStaffUid}
+                  onChange={(e) => setReportStaffUid(e.target.value)}
+                  className="bg-black/60 border border-[#1C1C28] focus:border-emerald-500 rounded-xl px-3 py-2 text-xs text-zinc-300 outline-none cursor-pointer font-mono"
+                >
+                  <option value="todos">Todos los colaboradores</option>
+                  {staffList.map(s => (
+                    <option key={s.uid} value={s.uid}>{s.nombres} {s.apellidos}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* TARJETAS RESUMEN DEL PERIODO */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+              <div className="bg-[#0E0E14] border border-[#1C1C28] rounded-xl p-3.5">
+                <span className="text-zinc-500 text-[10px] font-bold uppercase block">Total Horas</span>
+                <span className="text-xl font-black text-white font-mono">
+                  {reporteConsolidadoPorStaff.reduce((acc, r) => acc + r.totalHoras, 0).toFixed(1)}h
+                </span>
+                <span className="text-[10px] text-zinc-500 block">Horas efectivas</span>
+              </div>
+
+              <div className="bg-[#0E0E14] border border-[#1C1C28] rounded-xl p-3.5">
+                <span className="text-zinc-400 text-[10px] font-bold uppercase block">Ordinarias (7h)</span>
+                <span className="text-xl font-black text-zinc-200 font-mono">
+                  {reporteConsolidadoPorStaff.reduce((acc, r) => acc + r.totalOrdinarias, 0).toFixed(1)}h
+                </span>
+                <span className="text-[10px] text-zinc-500 block">Base laboral</span>
+              </div>
+
+              <div className="bg-[#0E0E14] border border-amber-500/20 rounded-xl p-3.5">
+                <span className="text-amber-400 text-[10px] font-bold uppercase block">Total Extras</span>
+                <span className="text-xl font-black text-amber-300 font-mono">
+                  {reporteConsolidadoPorStaff.reduce((acc, r) => acc + r.totalExtras, 0).toFixed(1)}h
+                </span>
+                <span className="text-[10px] text-zinc-500 block">Diurnas + Nocturnas</span>
+              </div>
+
+              <div className="bg-[#0E0E14] border border-rose-500/20 rounded-xl p-3.5">
+                <span className="text-rose-400 text-[10px] font-bold uppercase block">Dom / Festivas</span>
+                <span className="text-xl font-black text-rose-300 font-mono">
+                  {reporteConsolidadoPorStaff.reduce((acc, r) => acc + r.totalDominicales + r.totalFestivas, 0).toFixed(1)}h
+                </span>
+                <span className="text-[10px] text-zinc-500 block">Recargo legal</span>
+              </div>
+
+              <div className="bg-[#0E0E14] border border-yellow-500/20 rounded-xl p-3.5">
+                <span className="text-yellow-400 text-[10px] font-bold uppercase block">Faltantes</span>
+                <span className="text-xl font-black text-yellow-300 font-mono">
+                  {reporteConsolidadoPorStaff.reduce((acc, r) => acc + r.totalFaltantes, 0).toFixed(1)}h
+                </span>
+                <span className="text-[10px] text-zinc-500 block">Déficit jornada</span>
+              </div>
+
+              <div className="bg-[#0E0E14] border border-emerald-500/30 rounded-xl p-3.5">
+                <span className="text-emerald-400 text-[10px] font-bold uppercase block">Total Nómina Est.</span>
+                <span className="text-lg font-black text-emerald-300 font-mono truncate block">
+                  ${reporteConsolidadoPorStaff.reduce((acc, r) => acc + r.totalValorEstimado, 0).toLocaleString()}
+                </span>
+                <span className="text-[10px] text-zinc-500 block">COP estimados</span>
+              </div>
+            </div>
+
+            {/* TABLA CONSOLIDADA POR COLABORADOR */}
+            <div className="bg-[#0E0E14] border border-[#1C1C28] rounded-2xl shadow-xl overflow-hidden">
+              <div className="p-4 border-b border-[#1C1C28] flex items-center justify-between bg-black/40">
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-emerald-400" />
+                  <h3 className="text-xs font-bold text-white uppercase tracking-wider font-orbitron">
+                    Resumen Consolidado por Trabajador ({reporteConsolidadoPorStaff.length} colaboradores activos)
+                  </h3>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setShowTurnoModal(false)}
-                  className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition"
+                  onClick={handleExportConsolidadoExcel}
+                  className="px-3 py-1.5 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
                 >
-                  <X className="w-4 h-4" />
+                  <FileSpreadsheet className="w-3.5 h-3.5" />
+                  <span>Exportar Consolidado</span>
                 </button>
               </div>
 
-              <form onSubmit={handleSaveTurno} className="p-5 space-y-4 overflow-y-auto flex-1">
-                {/* Selección de Staff y Fecha */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider block mb-1">
-                      Miembro del Staff <span className="text-[#C8102E]">*</span>
-                    </label>
-                    <select
-                      required
-                      value={formStaffUid}
-                      onChange={(e) => {
-                        setFormStaffUid(e.target.value);
-                        const s = staffList.find(item => item.uid === e.target.value);
-                        if (s?.horarioLaboral?.horaEntradaDefecto) {
-                          setFormHoraEntrada(s.horarioLaboral.horaEntradaDefecto);
-                          setFormHoraSalida(s.horarioLaboral.horaSalidaDefecto || '19:00');
-                          setFormMinutosDescanso(s.horarioLaboral.minutosDescansoDefecto ?? 60);
-                        }
-                      }}
-                      className="w-full px-3.5 py-2.5 bg-black/50 border border-[#1C1C28] focus:border-[#C8102E] rounded-xl text-xs text-white outline-none cursor-pointer"
-                    >
-                      <option value="">[ Selecciona un miembro ]</option>
-                      {staffList.map(s => (
-                        <option key={s.uid} value={s.uid}>
-                          {s.nombres} {s.apellidos} (CC: {s.numeroIdentificacion})
-                        </option>
+              {reporteConsolidadoPorStaff.length === 0 ? (
+                <div className="p-12 text-center text-zinc-500 text-xs">
+                  No hay registros de horas en el periodo seleccionado ({reportPeriodo}).
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-black/60 text-zinc-400 uppercase font-bold border-b border-[#1C1C28] text-[10px] tracking-wider">
+                      <tr>
+                        <th className="py-3 px-4">Colaborador</th>
+                        <th className="py-3 px-2 text-center">Días Trab.</th>
+                        <th className="py-3 px-2 text-center">Total Horas</th>
+                        <th className="py-3 px-2 text-center">Ordinarias (7h)</th>
+                        <th className="py-3 px-2 text-center">HED (+25%)</th>
+                        <th className="py-3 px-2 text-center">HEN (+75%)</th>
+                        <th className="py-3 px-2 text-center">Dominicales</th>
+                        <th className="py-3 px-2 text-center">Festivas</th>
+                        <th className="py-3 px-2 text-center">Total Extras</th>
+                        <th className="py-3 px-2 text-center">Faltantes</th>
+                        <th className="py-3 px-4 text-right">Valor Nómina</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#1C1C28]">
+                      {reporteConsolidadoPorStaff.map((r, idx) => (
+                        <tr key={`rep-${r.staffUid}-${idx}`} className="hover:bg-zinc-900/30 transition">
+                          <td className="py-3 px-4">
+                            <span className="font-bold text-white block">{r.nombre}</span>
+                            <span className="text-[10px] text-zinc-500 font-mono">CC: {r.identificacion}</span>
+                          </td>
+                          <td className="py-3 px-2 text-center font-mono font-bold text-zinc-300">
+                            {r.diasLaborados}
+                          </td>
+                          <td className="py-3 px-2 text-center font-mono font-black text-white bg-zinc-900/40">
+                            {r.totalHoras}h
+                          </td>
+                          <td className="py-3 px-2 text-center font-mono text-zinc-300">
+                            {r.totalOrdinarias}h
+                          </td>
+                          <td className="py-3 px-2 text-center font-mono text-amber-400 font-bold">
+                            {r.totalHED > 0 ? `${r.totalHED}h` : '-'}
+                          </td>
+                          <td className="py-3 px-2 text-center font-mono text-purple-400 font-bold">
+                            {r.totalHEN > 0 ? `${r.totalHEN}h` : '-'}
+                          </td>
+                          <td className="py-3 px-2 text-center font-mono text-rose-400 font-bold">
+                            {r.totalDominicales > 0 ? `${r.totalDominicales}h` : '-'}
+                          </td>
+                          <td className="py-3 px-2 text-center font-mono text-orange-400 font-bold">
+                            {r.totalFestivas > 0 ? `${r.totalFestivas}h` : '-'}
+                          </td>
+                          <td className="py-3 px-2 text-center font-mono font-black text-emerald-400 bg-emerald-950/20">
+                            {r.totalExtras}h
+                          </td>
+                          <td className="py-3 px-2 text-center font-mono">
+                            {r.totalFaltantes > 0 ? (
+                              <span className="text-yellow-400 font-bold bg-yellow-950/40 px-1.5 py-0.5 rounded">
+                                {r.totalFaltantes}h
+                              </span>
+                            ) : '-'}
+                          </td>
+                          <td className="py-3 px-4 text-right font-mono font-bold text-white">
+                            {r.totalValorEstimado > 0 ? `$${r.totalValorEstimado.toLocaleString()} COP` : 'Pendiente'}
+                          </td>
+                        </tr>
                       ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider block">
-                        Fecha del Turno <span className="text-[#C8102E]">*</span>
-                      </label>
-                      <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => setFormFecha(new Date().toISOString().substring(0, 10))}
-                          className="px-1.5 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-mono text-[10px]"
-                        >
-                          Hoy
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const d = new Date();
-                            d.setDate(d.getDate() - 1);
-                            setFormFecha(d.toISOString().substring(0, 10));
-                          }}
-                          className="px-1.5 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-mono text-[10px]"
-                        >
-                          Ayer
-                        </button>
-                      </div>
-                    </div>
-                    <input
-                      type="date"
-                      required
-                      value={formFecha}
-                      onChange={(e) => setFormFecha(e.target.value)}
-                      className="w-full px-3.5 py-2 bg-black/50 border border-[#1C1C28] focus:border-[#C8102E] rounded-xl text-xs text-white outline-none cursor-pointer"
-                    />
-                    <div className="mt-1 text-[11px] text-zinc-400 capitalize">
-                      📅 {formatFechaCompleta(formFecha)}
-                    </div>
-                    {liveCalculation.esDominicalOFestivo && (
-                      <span className="text-[10px] text-rose-400 font-bold block mt-0.5">
-                        ★ {liveCalculation.nombreFestivo || 'Día Domingo'} (Aplica recargo dominical/festivo)
-                      </span>
-                    )}
-                  </div>
+                    </tbody>
+                  </table>
                 </div>
-
-                {/* Hora Entrada, Hora Salida y Descanso */}
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider block mb-1">
-                      Hora Entrada <span className="text-[#C8102E]">*</span>
-                    </label>
-                    <input
-                      type="time"
-                      required
-                      value={formHoraEntrada}
-                      onChange={(e) => setFormHoraEntrada(e.target.value)}
-                      className="w-full px-3 py-2 bg-black/50 border border-[#1C1C28] focus:border-[#C8102E] rounded-xl text-xs text-white outline-none font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider block mb-1">
-                      Hora Salida <span className="text-[#C8102E]">*</span>
-                    </label>
-                    <input
-                      type="time"
-                      required
-                      value={formHoraSalida}
-                      onChange={(e) => setFormHoraSalida(e.target.value)}
-                      className="w-full px-3 py-2 bg-black/50 border border-[#1C1C28] focus:border-[#C8102E] rounded-xl text-xs text-white outline-none font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider block mb-1">
-                      Descanso (Min)
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      step={15}
-                      value={formMinutosDescanso}
-                      onChange={(e) => setFormMinutosDescanso(Number(e.target.value))}
-                      className="w-full px-3 py-2 bg-black/50 border border-[#1C1C28] focus:border-[#C8102E] rounded-xl text-xs text-white outline-none font-mono"
-                    />
-                  </div>
-                </div>
-
-                {/* Centro de Costo / Evento */}
-                <div>
-                  <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider block mb-1">
-                    Centro de Costo / Evento Asociado (Opcional)
-                  </label>
-                  <select
-                    value={formCentroCosto}
-                    onChange={(e) => setFormCentroCosto(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-black/50 border border-[#1C1C28] focus:border-[#C8102E] rounded-xl text-xs text-white outline-none cursor-pointer"
-                  >
-                    <option value="">[ Ningún CCO asociado / Sede General ]</option>
-                    {centrosCostoList.map((cc, idx) => (
-                      <option key={`form-cco-${cc}-${idx}`} value={cc}>{cc}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Observaciones */}
-                <div>
-                  <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider block mb-1">
-                    Observaciones / Novedad (Opcional)
-                  </label>
-                  <textarea
-                    rows={2}
-                    placeholder="Ej. Apoyo logístico montaje de pista, desmontaje y cargue..."
-                    value={formObservaciones}
-                    onChange={(e) => setFormObservaciones(e.target.value)}
-                    className="w-full px-3 py-2 bg-black/50 border border-[#1C1C28] focus:border-[#C8102E] rounded-xl text-xs text-white outline-none resize-none"
-                  />
-                </div>
-
-                <div className="p-4 bg-black/60 border-t border-[#1C1C28] flex items-center justify-end gap-2 -mx-5 -mb-5 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setShowTurnoModal(false)}
-                    className="px-4 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-bold"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSaving}
-                    className="px-5 py-2.5 rounded-xl bg-[#C8102E] hover:bg-red-700 disabled:opacity-50 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-red-950/50"
-                  >
-                    {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                    <span>{editingTurno ? 'Actualizar Turno' : 'Guardar Turno'}</span>
-                  </button>
-                </div>
-              </form>
-            </motion.div>
+              )}
+            </div>
           </div>
         )}
-      </AnimatePresence>
 
-      {/* MODAL DE DETALLES DEL TURNO (DESGLOSE COMPLETO DE CÁLCULO DE HORAS) */}
-      {detalleTurno && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-[#0E0E14] border border-[#1C1C28] rounded-2xl w-full max-w-lg p-5 sm:p-6 shadow-2xl relative max-h-[92vh] overflow-y-auto space-y-4">
-            
-            {/* Header del Modal */}
-            <div className="flex items-start justify-between border-b border-[#1C1C28] pb-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <h3 className="text-base sm:text-lg font-black text-white uppercase tracking-wider font-orbitron">
-                    Detalles del Turno
-                  </h3>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-mono font-bold">
-                    Guardado
-                  </span>
+      </div>
+
+      {/* ============================================================== */}
+      {/* MODAL 1: FORMULARIO REGISTRAR / EDITAR TURNO                   */}
+      {/* ============================================================== */}
+      {showTurnoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-[#0E0E14] border border-[#1C1C28] rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
+            <div className="p-5 border-b border-[#1C1C28] flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-red-950/70 border border-red-500/40 rounded-xl text-red-400">
+                  <Clock className="w-5 h-5" />
                 </div>
-                <p className="text-xs text-zinc-400 mt-1 capitalize font-medium">
-                  📅 {formatFechaCompleta(detalleTurno.fecha)}
-                </p>
+                <div>
+                  <h3 className="text-sm font-black text-white uppercase tracking-wider font-orbitron">
+                    {editingTurno ? 'Editar Turno de Staff' : 'Registrar Nuevo Turno'}
+                  </h3>
+                  <p className="text-xs text-zinc-400">
+                    Jornada ordinaria legal: 7 horas diarias. Horas extras calculadas automáticamente.
+                  </p>
+                </div>
               </div>
-
               <button
                 type="button"
-                onClick={() => setDetalleTurno(null)}
-                className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition"
-                title="Cerrar detalles"
+                onClick={() => setShowTurnoModal(false)}
+                className="text-zinc-500 hover:text-white p-1 rounded-lg hover:bg-zinc-900 transition"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Titular e Información General */}
-            <div className="bg-black/50 border border-zinc-800/80 rounded-xl p-3.5 space-y-2 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-zinc-400">Colaborador Staff:</span>
-                <span className="text-white font-bold">{detalleTurno.staffNombre}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-zinc-400">Identificación:</span>
-                <span className="text-zinc-300 font-mono">CC: {detalleTurno.staffIdentificacion}</span>
-              </div>
-              <div className="flex items-center justify-between border-t border-zinc-800/60 pt-2">
-                <span className="text-zinc-400">Jornada Registrada:</span>
-                <span className="text-white font-mono font-bold">
-                  {detalleTurno.horaEntrada} - {detalleTurno.horaSalida}
-                  {detalleTurno.minutosDescanso > 0 && (
-                    <span className="text-zinc-500 font-normal ml-1">({detalleTurno.minutosDescanso}m desc.)</span>
-                  )}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-zinc-400">Tipo de Día:</span>
-                {detalleTurno.esDominicalOFestivo ? (
-                  <span className="text-amber-400 font-bold bg-amber-950/60 px-2 py-0.5 rounded border border-amber-500/30 text-[11px]">
-                    ★ {detalleTurno.nombreFestivo || 'Día Domingo'} (Recargo Festivo)
-                  </span>
-                ) : (
-                  <span className="text-zinc-300">Día Hábil Ordinario</span>
-                )}
-              </div>
-              {detalleTurno.centroCosto && (
-                <div className="flex items-center justify-between border-t border-zinc-800/60 pt-2">
-                  <span className="text-zinc-400">Centro de Costo:</span>
-                  <span className="text-amber-300 font-bold">{detalleTurno.centroCosto}</span>
-                </div>
-              )}
-            </div>
-
-            {/* DESGLOSE Y CÁLCULO DE HORAS (EXACTAMENTE LA TARJETA SOLICITADA) */}
-            <div className="bg-black/60 border border-emerald-500/30 rounded-xl p-4 space-y-3 shadow-inner">
-              <div className="flex items-center justify-between border-b border-emerald-500/20 pb-2">
-                <span className="text-xs font-black text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-emerald-400" />
-                  Cálculo de Horas
-                </span>
-                <span className="text-xs font-mono font-black text-white bg-emerald-950 px-2.5 py-0.5 rounded-full border border-emerald-500/40">
-                  {detalleTurno.horasTotalesEfectivas}h Totales
-                </span>
+            <form onSubmit={handleSaveTurno} className="p-5 space-y-4">
+              {/* Colaborador */}
+              <div>
+                <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider block mb-1">
+                  Miembro del Staff <span className="text-red-500">*</span>
+                </label>
+                <select
+                  required
+                  value={formStaffUid}
+                  onChange={(e) => setFormStaffUid(e.target.value)}
+                  disabled={Boolean(editingTurno)}
+                  className="w-full px-3 py-2 bg-black/50 border border-[#1C1C28] focus:border-red-600 rounded-xl text-xs text-white outline-none cursor-pointer"
+                >
+                  <option value="" disabled>Selecciona un colaborador...</option>
+                  {staffList.map(s => (
+                    <option key={s.uid} value={s.uid}>
+                      {s.nombres} {s.apellidos} (CC: {s.numeroIdentificacion})
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                {/* Ord. Diurna */}
-                <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-[#1C1C28]">
-                  <span className="text-[10px] text-zinc-400 block truncate">Ord. Diurna</span>
-                  <span className="text-sm font-bold text-white font-mono">{detalleTurno.horasOrdinariasDiurnas}h</span>
+              {/* Fecha */}
+              <div>
+                <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider block mb-1">
+                  Fecha del Turno <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={formFecha}
+                  onChange={(e) => setFormFecha(e.target.value)}
+                  className="w-full px-3 py-2 bg-black/50 border border-[#1C1C28] focus:border-red-600 rounded-xl text-xs text-white outline-none font-mono"
+                />
+              </div>
+
+              {/* Horas Entrada y Salida */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1 mb-1">
+                    <Sun className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Hora Entrada</span>
+                  </label>
+                  <input
+                    type="time"
+                    required
+                    value={formHoraEntrada}
+                    onChange={(e) => setFormHoraEntrada(e.target.value)}
+                    className="w-full px-3 py-2 bg-black/50 border border-[#1C1C28] focus:border-red-600 rounded-xl text-xs text-white outline-none font-mono text-center font-bold"
+                  />
                 </div>
 
-                {/* Recargo Noct. */}
-                <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-indigo-500/20">
-                  <span className="text-[10px] text-indigo-400 block truncate">Recargo Noct. (+35%)</span>
-                  <span className="text-sm font-bold text-indigo-300 font-mono">{detalleTurno.horasRecargoNocturno}h</span>
-                </div>
-
-                {/* Extra Diurna */}
-                <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-amber-500/20">
-                  <span className="text-[10px] text-amber-400 block truncate">Extra Diurna (HED)</span>
-                  <span className="text-sm font-bold text-amber-300 font-mono">{detalleTurno.horasExtraDiurna}h</span>
-                </div>
-
-                {/* Extra Noct. */}
-                <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-purple-500/20">
-                  <span className="text-[10px] text-purple-400 block truncate">Extra Noct. (HEN)</span>
-                  <span className="text-sm font-bold text-purple-300 font-mono">{detalleTurno.horasExtraNocturna}h</span>
-                </div>
-
-                {/* Dom/Fest Ord. */}
-                <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-rose-500/20">
-                  <span className="text-[10px] text-rose-400 block truncate">Dom/Fest Ord. (+75%)</span>
-                  <span className="text-sm font-bold text-rose-300 font-mono">{detalleTurno.horasDominicalOrdinaria}h</span>
-                </div>
-
-                {/* Extra Dom. Diurna */}
-                <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-red-500/20">
-                  <span className="text-[10px] text-red-400 block truncate">Extra Dom. Diurna</span>
-                  <span className="text-sm font-bold text-red-300 font-mono">{detalleTurno.horasExtraDominicalDiurna}h</span>
-                </div>
-
-                {/* Extra Dom. Noct. */}
-                <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-fuchsia-500/20">
-                  <span className="text-[10px] text-fuchsia-400 block truncate">Extra Dom. Noct.</span>
-                  <span className="text-sm font-bold text-fuchsia-300 font-mono">{detalleTurno.horasExtraDominicalNocturna}h</span>
-                </div>
-
-                {/* Total Horas Extras */}
-                <div className="bg-emerald-950/40 p-2.5 rounded-lg border border-emerald-500/40">
-                  <span className="text-[10px] text-emerald-400 block font-bold truncate">Total Horas Extras</span>
-                  <span className="text-sm font-black text-emerald-300 font-mono">{detalleTurno.totalHorasExtras}h</span>
+                <div>
+                  <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1 mb-1">
+                    <Moon className="w-3.5 h-3.5 text-purple-400" />
+                    <span>Hora Salida</span>
+                  </label>
+                  <input
+                    type="time"
+                    required
+                    value={formHoraSalida}
+                    onChange={(e) => setFormHoraSalida(e.target.value)}
+                    className="w-full px-3 py-2 bg-black/50 border border-[#1C1C28] focus:border-red-600 rounded-xl text-xs text-white outline-none font-mono text-center font-bold"
+                  />
                 </div>
               </div>
 
-              {typeof detalleTurno.valorEstimadoTotal === 'number' && detalleTurno.valorEstimadoTotal > 0 && (
-                <div className="pt-2 text-right text-xs text-emerald-400 font-semibold border-t border-emerald-500/20 flex items-center justify-between">
-                  <span className="text-zinc-400 text-[11px]">Valor estimado de nómina:</span>
-                  <span className="font-mono text-white text-sm font-bold">
-                    ${detalleTurno.valorEstimadoTotal.toLocaleString()} COP
-                  </span>
+              {/* Descanso */}
+              <div>
+                <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider block mb-1">
+                  Tiempo de Descanso / Almuerzo (Minutos)
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {[0, 30, 60, 90].map(m => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setFormMinutosDescanso(m)}
+                      className={`py-1.5 rounded-lg text-xs font-bold border transition ${
+                        formMinutosDescanso === m
+                          ? 'bg-red-600 border-red-500 text-white'
+                          : 'bg-black/40 border-[#1C1C28] text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      {m === 0 ? 'Sin desc.' : `${m} min`}
+                    </button>
+                  ))}
                 </div>
-              )}
-            </div>
-
-            {/* Observaciones (si las hay) */}
-            {detalleTurno.observaciones && (
-              <div className="bg-black/40 border border-zinc-800 rounded-xl p-3 text-xs">
-                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">
-                  Novedad / Observaciones:
-                </span>
-                <p className="text-zinc-300 italic">{detalleTurno.observaciones}</p>
               </div>
-            )}
 
-            {/* Botón Cerrar */}
-            <div className="pt-1 flex items-center justify-end">
+              {/* Centro de Costo (Opcional) */}
+              <div>
+                <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider block mb-1">
+                  Centro de Costo (Opcional)
+                </label>
+                <input
+                  type="text"
+                  list="ccos-datalist"
+                  placeholder="Ej. COPA STUNT F2R, EVENTO MEDELLÍN..."
+                  value={formCentroCosto}
+                  onChange={(e) => setFormCentroCosto(e.target.value)}
+                  className="w-full px-3 py-2 bg-black/50 border border-[#1C1C28] focus:border-red-600 rounded-xl text-xs text-white outline-none"
+                />
+                <datalist id="ccos-datalist">
+                  {centrosCostoList.map((cc, idx) => (
+                    <option key={`dl-cco-${cc}-${idx}`} value={cc} />
+                  ))}
+                </datalist>
+              </div>
+
+              {/* Observaciones */}
+              <div>
+                <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider block mb-1">
+                  Observaciones / Novedad (Opcional)
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Ej. Apoyo en montaje de pista, acreditaciones..."
+                  value={formObservaciones}
+                  onChange={(e) => setFormObservaciones(e.target.value)}
+                  className="w-full px-3 py-2 bg-black/50 border border-[#1C1C28] focus:border-red-600 rounded-xl text-xs text-white outline-none resize-none"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-2 flex items-center justify-end gap-2 border-t border-[#1C1C28]">
+                <button
+                  type="button"
+                  onClick={() => setShowTurnoModal(false)}
+                  className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 text-xs font-bold cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="px-5 py-2 rounded-xl bg-[#C8102E] hover:bg-red-700 disabled:opacity-50 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-red-950/50 cursor-pointer"
+                >
+                  {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>{editingTurno ? 'Actualizar Turno' : 'Guardar Turno'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* MODAL 2: DETALLES DEL TURNO POST-GUARDADO / CONSULTA           */}
+      {/* ============================================================== */}
+      {detalleTurno && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-[#0E0E14] border border-[#1C1C28] rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
+            <div className="p-5 border-b border-[#1C1C28] flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-emerald-950/70 border border-emerald-500/40 rounded-xl text-emerald-400">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-white uppercase tracking-wider font-orbitron">
+                    Detalles del Turno
+                  </h3>
+                  <p className="text-xs text-zinc-400">
+                    {detalleTurno.staffNombre} (CC: {detalleTurno.staffIdentificacion})
+                  </p>
+                </div>
+              </div>
               <button
                 type="button"
                 onClick={() => setDetalleTurno(null)}
-                className="w-full py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs uppercase tracking-wider transition"
+                className="text-zinc-500 hover:text-white p-1 rounded-lg hover:bg-zinc-900 transition"
               >
-                Cerrar
+                <X className="w-5 h-5" />
               </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {/* Header info */}
+              <div className="bg-black/40 border border-zinc-800/80 rounded-xl p-3 space-y-1.5 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-zinc-400">Fecha del Turno:</span>
+                  <span className="text-white font-mono font-bold">{formatFechaCompleta(detalleTurno.fecha)}</span>
+                </div>
+                <div className="flex items-center justify-between border-t border-zinc-800/60 pt-1.5">
+                  <span className="text-zinc-400">Horario Registrado:</span>
+                  <span className="text-white font-mono font-bold">
+                    {detalleTurno.horaEntrada} a {detalleTurno.horaSalida}
+                    {detalleTurno.minutosDescanso > 0 && (
+                      <span className="text-zinc-500 font-normal ml-1">({detalleTurno.minutosDescanso}m descanso)</span>
+                    )}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-zinc-400">Tipo de Día:</span>
+                  {detalleTurno.esDominicalOFestivo ? (
+                    <span className="text-amber-400 font-bold bg-amber-950/60 px-2 py-0.5 rounded border border-amber-500/30 text-[11px]">
+                      ★ {detalleTurno.nombreFestivo || 'Día Domingo'} (Recargo Festivo)
+                    </span>
+                  ) : (
+                    <span className="text-zinc-300">Día Hábil Ordinario</span>
+                  )}
+                </div>
+              </div>
+
+              {/* 8 BOXES CALCULATION */}
+              <div className="bg-black/60 border border-emerald-500/30 rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-emerald-500/20 pb-2">
+                  <span className="text-xs font-black text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-emerald-400" />
+                    Cálculo Oficial de Horas
+                  </span>
+                  <span className="text-xs font-mono font-black text-white bg-emerald-950 px-2.5 py-0.5 rounded-full border border-emerald-500/40">
+                    {detalleTurno.horasTotalesEfectivas}h Totales
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                  <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-[#1C1C28]">
+                    <span className="text-[10px] text-zinc-400 block truncate">Ord. Diurna (Base 7h)</span>
+                    <span className="text-sm font-bold text-white font-mono">{detalleTurno.horasOrdinariasDiurnas}h</span>
+                  </div>
+
+                  <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-indigo-500/20">
+                    <span className="text-[10px] text-indigo-400 block truncate">Recargo Noct. (+35%)</span>
+                    <span className="text-sm font-bold text-indigo-300 font-mono">{detalleTurno.horasRecargoNocturno}h</span>
+                  </div>
+
+                  <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-amber-500/20">
+                    <span className="text-[10px] text-amber-400 block truncate">Extra Diurna (HED)</span>
+                    <span className="text-sm font-bold text-amber-300 font-mono">{detalleTurno.horasExtraDiurna}h</span>
+                  </div>
+
+                  <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-purple-500/20">
+                    <span className="text-[10px] text-purple-400 block truncate">Extra Noct. (HEN)</span>
+                    <span className="text-sm font-bold text-purple-300 font-mono">{detalleTurno.horasExtraNocturna}h</span>
+                  </div>
+
+                  <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-rose-500/20">
+                    <span className="text-[10px] text-rose-400 block truncate">Dominicales (+75%/+100%)</span>
+                    <span className="text-sm font-bold text-rose-300 font-mono">
+                      {((detalleTurno.horasDominicalOrdinaria || 0) + (detalleTurno.horasExtraDominicalDiurna || 0) + (detalleTurno.horasExtraDominicalNocturna || 0))}h
+                    </span>
+                  </div>
+
+                  <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-orange-500/20">
+                    <span className="text-[10px] text-orange-400 block truncate">Festivas (+75%/+100%)</span>
+                    <span className="text-sm font-bold text-orange-300 font-mono">
+                      {((detalleTurno.horasFestivoOrdinaria || 0) + (detalleTurno.horasExtraFestivoDiurna || 0) + (detalleTurno.horasExtraFestivoNocturna || 0))}h
+                    </span>
+                  </div>
+
+                  <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-zinc-700/30">
+                    <span className="text-[10px] text-zinc-400 block truncate">Descanso / Almuerzo</span>
+                    <span className="text-sm font-bold text-zinc-300 font-mono">{detalleTurno.minutosDescanso} min</span>
+                  </div>
+
+                  <div className="bg-emerald-950/40 p-2.5 rounded-lg border border-emerald-500/40">
+                    <span className="text-[10px] text-emerald-400 block font-bold truncate">Total Horas Extras</span>
+                    <span className="text-sm font-black text-emerald-300 font-mono">{detalleTurno.totalHorasExtras}h</span>
+                  </div>
+                </div>
+
+                {/* Banner de Horas Faltantes */}
+                {typeof detalleTurno.horasFaltantes === 'number' && detalleTurno.horasFaltantes > 0 && (
+                  <div className="p-2.5 rounded-lg bg-amber-950/50 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span><strong>Horas Faltantes:</strong> Faltaron <strong>{detalleTurno.horasFaltantes}h</strong> para completar la jornada legal de 7 horas diarias.</span>
+                  </div>
+                )}
+
+                {typeof detalleTurno.valorEstimadoTotal === 'number' && detalleTurno.valorEstimadoTotal > 0 && (
+                  <div className="pt-2 text-right text-xs text-emerald-400 font-semibold border-t border-emerald-500/20 flex items-center justify-between">
+                    <span className="text-zinc-400 text-[11px]">Valor estimado de nómina:</span>
+                    <span className="font-mono text-white text-sm font-bold">
+                      ${detalleTurno.valorEstimadoTotal.toLocaleString()} COP
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {detalleTurno.observaciones && (
+                <div className="bg-black/40 border border-zinc-800 rounded-xl p-3 text-xs">
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">
+                    Novedad / Observaciones:
+                  </span>
+                  <p className="text-zinc-300 italic">{detalleTurno.observaciones}</p>
+                </div>
+              )}
+
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => setDetalleTurno(null)}
+                  className="w-full py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs uppercase tracking-wider transition cursor-pointer"
+                >
+                  Cerrar
+                </button>
+              </div>
             </div>
           </div>
         </div>

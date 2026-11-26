@@ -1,12 +1,12 @@
 import { isDominicalOFestivoColombia } from './colombian-holidays';
 
 export interface HorarioLaboralStaff {
-  diasLaborales?: number[]; // [1, 2, 3, 4, 5] (1=Lunes, 5=Viernes, 6=Sábado, 0=Domingo)
+  diasLaborales?: number[]; // [1, 2, 3, 4, 5, 6] (1=Lunes, ..., 6=Sábado, 0=Domingo descanso)
   horaEntradaDefecto?: string; // "08:00"
-  horaSalidaDefecto?: string; // "19:00"
+  horaSalidaDefecto?: string; // "16:00" (7h trabajo + 1h descanso)
   minutosDescansoDefecto?: number; // 60
-  jornadaDiariaHoras?: number; // 8
-  horasSemanales?: number; // 42 o 44
+  jornadaDiariaHoras?: number; // 7 (Estándar legal actual 42h semanales / 6 días)
+  horasSemanales?: number; // 42
   valorHoraOrdinaria?: number; // Valor hora en pesos COP
 }
 
@@ -14,22 +14,45 @@ export interface InputTurnoStaff {
   fecha: string; // YYYY-MM-DD
   horaEntrada: string; // "HH:mm"
   horaSalida: string; // "HH:mm"
-  minutosDescanso?: number; // default 60
+  minutosDescanso?: number; // default 0 o minutos indicados
   horarioLaboral?: HorarioLaboralStaff;
 }
 
 export interface ResultadoCalculoHoras {
-  horasTotalesEfectivas: number;
-  horasOrdinariasDiurnas: number; // 6am - 7pm dentro de jornada (1.0x)
-  horasRecargoNocturno: number; // recargo nocturno dentro de jornada (+0.35x)
-  horasExtraDiurna: number; // HED (+0.25x / 1.25x) - Inicia a las 7:00 PM hasta las 9:00 PM
-  horasExtraNocturna: number; // HEN (+0.75x / 1.75x) - 9:00 PM en adelante
-  horasDominicalOrdinaria: number; // RDF dentro de jornada (+0.75x / 1.75x)
-  horasExtraDominicalDiurna: number; // HEDDF (+1.00x / 2.00x)
-  horasExtraDominicalNocturna: number; // HENDF (+1.50x / 2.50x)
-  totalHorasExtras: number; // HED + HEN + HEDDF + HENDF
+  horasTotalesEfectivas: number; // Tiempo trabajado real descontando descanso
+  horasBrutasEstancia: number; // Tiempo total de presencia (salida - entrada)
+  horasDescanso: number; // Minutos de descanso convertidos a horas
+  horasFaltantes: number; // Horas que faltaron para cumplir la jornada ordinaria de 7h
+  
+  // Ordinarias en días hábiles (Lunes a Sábado no festivos)
+  horasOrdinariasDiurnas: number; // 06:00 a 21:00 dentro de las 7h (1.0x)
+  horasRecargoNocturno: number; // 21:00 a 06:00 dentro de las 7h (+0.35x)
+  
+  // Extras en días hábiles
+  horasExtraDiurna: number; // HED (+0.25x / 1.25x) - Superan 7h de día (06:00 a 21:00)
+  horasExtraNocturna: number; // HEN (+0.75x / 1.75x) - Superan 7h de noche (21:00 a 06:00)
+  
+  // Domingos
+  horasDominicalOrdinaria: number; // Primeras 7h en domingo (+0.75x / 1.75x)
+  horasExtraDominicalDiurna: number; // Domingo superando 7h diurna (+1.00x / 2.00x)
+  horasExtraDominicalNocturna: number; // Domingo superando 7h nocturna (+1.50x / 2.50x)
+  
+  // Festivos oficiales Colombia
+  horasFestivoOrdinaria: number; // Primeras 7h en festivo (+0.75x / 1.75x)
+  horasExtraFestivoDiurna: number; // Festivo superando 7h diurna (+1.00x / 2.00x)
+  horasExtraFestivoNocturna: number; // Festivo superando 7h nocturna (+1.50x / 2.50x)
+  
+  // Totales consolidados
+  totalHorasOrdinarias: number; // Ordinarias diurnas + dominicales ordinarias + festivas ordinarias
+  totalHorasExtras: number; // HED + HEN + Extras Dominicales + Extras Festivas
+  totalHorasDominicalesYFestivas: number; // Toda hora en domingo o festivo
+  
+  esDomingo: boolean;
+  esFestivo: boolean;
   esDominicalOFestivo: boolean;
   nombreFestivo?: string;
+  esDescanso: boolean; // Día sin turno trabajado
+  
   valorEstimadoTotal?: number;
   desgloseTexto: string[];
 }
@@ -44,8 +67,23 @@ function parseDateTime(fechaStr: string, horaStr: string): Date {
 }
 
 /**
- * Calcula con precisión según la legislación laboral colombiana y los horarios
- * configurados desde Staff. Las horas extra diurnas empiezan a las 7:00 PM (19:00).
+ * Redondea a 2 decimales para evitar artefactos de punto flotante en minutos.
+ */
+function toHoras(minutos: number): number {
+  return Math.round((minutos / 60) * 100) / 100;
+}
+
+/**
+ * Calcula con precisión legal colombiana las horas laborales basadas en la
+ * JORNADA ORDINARIA DE 7 HORAS DIARIAS (Ley 2101 / 42 horas semanales).
+ * 
+ * Reglas:
+ * 1. Jornada ordinaria máxima diaria: 7 horas efectivas (420 min).
+ * 2. Cada minuto de trabajo efectivo por encima de 420 min es HORA EXTRA.
+ * 3. Descanso: Se descuenta limpiamente del tiempo bruto sin fraccionar minutos.
+ * 4. Días domingos: Considerados descanso legal. Si se trabajan, reciben recargo dominical (+75%) en ordinarias y 100%/150% en extras.
+ * 5. Días festivos oficiales de Colombia: Identificados automáticamente con recargo festivo (+75%) en ordinarias y 100%/150% en extras.
+ * 6. Horas faltantes: Si en día hábil laborado cumple menos de 7h, se calcula la diferencia.
  */
 export function calculateOvertimeColombia(input: InputTurnoStaff): ResultadoCalculoHoras {
   const {
@@ -56,41 +94,67 @@ export function calculateOvertimeColombia(input: InputTurnoStaff): ResultadoCalc
     horarioLaboral = {},
   } = input;
 
-  // Horario oficial del staff: por defecto entrada 08:00 y salida 19:00 (7:00 PM).
-  // A las 7:00 PM inician las horas extra diurnas.
-  const horaEntradaOficial = horarioLaboral.horaEntradaDefecto || '08:00';
-  const horaSalidaOficial = horarioLaboral.horaSalidaDefecto || '19:00';
-
+  // Jornada diaria ordinaria: 7 horas por defecto (420 min)
   const jornadaMaxHoras = horarioLaboral.jornadaDiariaHoras && horarioLaboral.jornadaDiariaHoras > 0
     ? horarioLaboral.jornadaDiariaHoras
-    : 8;
+    : 7;
+  const jornadaMaxMinutos = jornadaMaxHoras * 60;
 
   const valorHora = horarioLaboral.valorHoraOrdinaria || 0;
 
   let start = parseDateTime(fecha, horaEntrada);
   let end = parseDateTime(fecha, horaSalida);
 
-  // Si la hora de salida es menor o igual a la de entrada, el turno cruzó la medianoche
+  // Si la salida es menor o igual a la entrada, el turno cruzó la medianoche (+24h)
   if (end.getTime() <= start.getTime()) {
     end = new Date(end.getTime() + 24 * 60 * 60 * 1000);
   }
 
-  // Calculamos los hitos de salida e inicio programados para el staff
-  let scheduledStart = parseDateTime(fecha, horaEntradaOficial);
-  let scheduledEnd = parseDateTime(fecha, horaSalidaOficial);
-  if (scheduledEnd.getTime() <= scheduledStart.getTime()) {
-    scheduledEnd = new Date(scheduledEnd.getTime() + 24 * 60 * 60 * 1000);
-  }
-
-  // Duración total bruta en minutos
+  // 1. Minutos brutos de presencia
   const diffMs = end.getTime() - start.getTime();
-  const totalMinutosBrutos = Math.max(0, Math.round(diffMs / (60 * 1000)));
+  const totalMinutosBrutos = Math.max(0, Math.round(diffMs / 60000));
 
-  // Minutos de descanso efectivos
-  const descansoRealMinutos = Math.min(minutosDescanso, totalMinutosBrutos);
+  // 2. Descuento limpio de descanso
+  const descansoRealMinutos = Math.min(Math.max(0, Number(minutosDescanso) || 0), totalMinutosBrutos);
   const totalMinutosEfectivos = Math.max(0, totalMinutosBrutos - descansoRealMinutos);
 
-  // Minutos acumuladores por categoría
+  // Información del día de inicio
+  const festivoInfoInicial = isDominicalOFestivoColombia(fecha);
+  const dateObjInicial = new Date(start);
+  const esDomingoInicial = dateObjInicial.getDay() === 0;
+  const esFestivoInicial = Boolean(festivoInfoInicial.esDominicalOFestivo && !esDomingoInicial);
+
+  // Si no hay tiempo trabajado, es un descanso
+  if (totalMinutosEfectivos === 0) {
+    return {
+      horasTotalesEfectivas: 0,
+      horasBrutasEstancia: 0,
+      horasDescanso: toHoras(descansoRealMinutos),
+      horasFaltantes: 0,
+      horasOrdinariasDiurnas: 0,
+      horasRecargoNocturno: 0,
+      horasExtraDiurna: 0,
+      horasExtraNocturna: 0,
+      horasDominicalOrdinaria: 0,
+      horasExtraDominicalDiurna: 0,
+      horasExtraDominicalNocturna: 0,
+      horasFestivoOrdinaria: 0,
+      horasExtraFestivoDiurna: 0,
+      horasExtraFestivoNocturna: 0,
+      totalHorasOrdinarias: 0,
+      totalHorasExtras: 0,
+      totalHorasDominicalesYFestivas: 0,
+      esDomingo: esDomingoInicial,
+      esFestivo: esFestivoInicial,
+      esDominicalOFestivo: festivoInfoInicial.esDominicalOFestivo,
+      nombreFestivo: festivoInfoInicial.nombreFestivo,
+      esDescanso: true,
+      valorEstimadoTotal: 0,
+      desgloseTexto: [esDomingoInicial ? 'Descanso Dominical' : esFestivoInicial ? `Descanso Festivo (${festivoInfoInicial.nombreFestivo || 'Festivo'})` : 'Día de Descanso'],
+    };
+  }
+
+  // Acumuladores en minutos
   let minOrdinariosDiurnos = 0;
   let minRecargoNocturno = 0;
   let minExtraDiurna = 0;
@@ -98,74 +162,94 @@ export function calculateOvertimeColombia(input: InputTurnoStaff): ResultadoCalc
   let minDominicalOrdinaria = 0;
   let minExtraDominicalDiurna = 0;
   let minExtraDominicalNocturna = 0;
+  let minFestivoOrdinaria = 0;
+  let minExtraFestivoDiurna = 0;
+  let minExtraFestivoNocturna = 0;
 
-  // Calculamos la proporción de descanso por minuto para descontarlo uniformemente
-  const factorEfectivo = totalMinutosBrutos > 0 ? totalMinutosEfectivos / totalMinutosBrutos : 0;
+  // Analizamos cada minuto efectivo trabajado secuencialmente.
+  // El descanso se asume tomado durante la mitad del turno; por ende,
+  // evaluamos los minutos efectivos mapeados a lo largo de la jornada.
+  let minutosEfectivosAcumulados = 0;
 
-  let festivoInicial: { esDominicalOFestivo: boolean; nombreFestivo?: string } = { esDominicalOFestivo: false };
-
-  // Analizamos cada bloque de 1 minuto del turno
   for (let m = 0; m < totalMinutosBrutos; m++) {
-    const currentMoment = new Date(start.getTime() + m * 60 * 1000);
-    const minuteDateKey = `${currentMoment.getFullYear()}-${String(currentMoment.getMonth() + 1).padStart(2, '0')}-${String(currentMoment.getDate()).padStart(2, '0')}`;
-    
-    const festivoInfo = isDominicalOFestivoColombia(minuteDateKey);
-    if (m === 0) {
-      festivoInicial = festivoInfo;
+    // Si ya completamos todos los minutos efectivos posibles (el resto fue descanso)
+    if (minutosEfectivosAcumulados >= totalMinutosEfectivos) {
+      break;
     }
 
+    const currentMoment = new Date(start.getTime() + m * 60 * 1000);
+    const minuteDateKey = `${currentMoment.getFullYear()}-${String(currentMoment.getMonth() + 1).padStart(2, '0')}-${String(currentMoment.getDate()).padStart(2, '0')}`;
+    const diaInfo = isDominicalOFestivoColombia(minuteDateKey);
+    const dayOfWeek = currentMoment.getDay();
+    const esDomingoMinuto = dayOfWeek === 0;
+    const esFestivoMinuto = Boolean(diaInfo.esDominicalOFestivo && !esDomingoMinuto);
+
     const hourOfDay = currentMoment.getHours();
-    // Diurno: 06:00 a 20:59 (6am - 9pm) | Nocturno: 21:00 a 05:59 (9pm - 6am)
+    // Diurno: 06:00 a 20:59 (6:00 AM a 9:00 PM)
+    // Nocturno: 21:00 a 05:59 (9:00 PM a 6:00 AM)
     const esDiurno = hourOfDay >= 6 && hourOfDay < 21;
-    const esDominical = festivoInfo.esDominicalOFestivo;
 
-    // Multiplicamos por el factor de trabajo efectivo (descuenta el descanso proporcionalmente)
-    const minutoPonderado = 1 * factorEfectivo;
+    // ¿Es minuto ordinario o minuto extra?
+    // Las primeras 7 horas (420 min) de trabajo efectivo son ORDINARIAS.
+    // Del minuto 421 en adelante son EXTRAS.
+    const esMinutoOrdinario = minutosEfectivosAcumulados < jornadaMaxMinutos;
 
-    // Las horas extra diurnas inician a las 7:00 PM (o después de la salida programada del staff)
-    const esDespuesDeSalidaProgramada = currentMoment.getTime() >= scheduledEnd.getTime();
-    const esAntesDeInicioProgramado = currentMoment.getTime() < scheduledStart.getTime();
-    const esExtra = esDespuesDeSalidaProgramada || esAntesDeInicioProgramado;
-    const esOrdinaria = !esExtra;
-
-    if (esOrdinaria) {
-      if (esDominical) {
-        minDominicalOrdinaria += minutoPonderado;
+    if (esMinutoOrdinario) {
+      if (esDomingoMinuto) {
+        minDominicalOrdinaria++;
         if (!esDiurno) {
-          // Además del recargo dominical, genera recargo nocturno ordinario
-          minRecargoNocturno += minutoPonderado;
+          minRecargoNocturno++; // Recargo nocturno adicional en domingo ordinario
+        }
+      } else if (esFestivoMinuto) {
+        minFestivoOrdinaria++;
+        if (!esDiurno) {
+          minRecargoNocturno++; // Recargo nocturno adicional en festivo ordinario
         }
       } else {
         if (esDiurno) {
-          minOrdinariosDiurnos += minutoPonderado;
+          minOrdinariosDiurnos++;
         } else {
-          minRecargoNocturno += minutoPonderado;
+          minRecargoNocturno++;
         }
       }
     } else {
-      // Es hora extra:
-      // Si cae entre 19:00 y 20:59 (esDiurno), es Extra Diurna (+25% o +100% en dominical)
-      // Si cae entre 21:00 y 05:59 (!esDiurno), es Extra Nocturna (+75% o +150% en dominical)
-      if (esDominical) {
+      // Es hora extra (superó las 7 horas diarias efectivas)
+      if (esDomingoMinuto) {
         if (esDiurno) {
-          minExtraDominicalDiurna += minutoPonderado;
+          minExtraDominicalDiurna++;
         } else {
-          minExtraDominicalNocturna += minutoPonderado;
+          minExtraDominicalNocturna++;
+        }
+      } else if (esFestivoMinuto) {
+        if (esDiurno) {
+          minExtraFestivoDiurna++;
+        } else {
+          minExtraFestivoNocturna++;
         }
       } else {
         if (esDiurno) {
-          minExtraDiurna += minutoPonderado;
+          minExtraDiurna++;
         } else {
-          minExtraNocturna += minutoPonderado;
+          minExtraNocturna++;
         }
       }
     }
+
+    minutosEfectivosAcumulados++;
   }
 
-  // Conversión a horas con 2 decimales
-  const toHoras = (min: number) => Math.round((min / 60) * 100) / 100;
+  // Horas faltantes si en día hábil no completó las 7 horas ordinarias
+  let minFaltantes = 0;
+  if (!esDomingoInicial && !esFestivoInicial && totalMinutosEfectivos < jornadaMaxMinutos) {
+    minFaltantes = jornadaMaxMinutos - totalMinutosEfectivos;
+  }
 
+  // Conversión a horas
   const horasTotalesEfectivas = toHoras(totalMinutosEfectivos);
+  const horasBrutasEstancia = toHoras(totalMinutosBrutos);
+  const horasDescanso = toHoras(descansoRealMinutos);
+  const horasFaltantes = toHoras(minFaltantes);
+
   const horasOrdinariasDiurnas = toHoras(minOrdinariosDiurnos);
   const horasRecargoNocturno = toHoras(minRecargoNocturno);
   const horasExtraDiurna = toHoras(minExtraDiurna);
@@ -173,36 +257,61 @@ export function calculateOvertimeColombia(input: InputTurnoStaff): ResultadoCalc
   const horasDominicalOrdinaria = toHoras(minDominicalOrdinaria);
   const horasExtraDominicalDiurna = toHoras(minExtraDominicalDiurna);
   const horasExtraDominicalNocturna = toHoras(minExtraDominicalNocturna);
+  const horasFestivoOrdinaria = toHoras(minFestivoOrdinaria);
+  const horasExtraFestivoDiurna = toHoras(minExtraFestivoDiurna);
+  const horasExtraFestivoNocturna = toHoras(minExtraFestivoNocturna);
 
-  const totalHorasExtras = toHoras(
-    minExtraDiurna + minExtraNocturna + minExtraDominicalDiurna + minExtraDominicalNocturna
+  const totalHorasOrdinarias = toHoras(
+    minOrdinariosDiurnos + minDominicalOrdinaria + minFestivoOrdinaria
   );
 
-  // Valor económico estimado si se configuró el valor hora
+  const totalHorasExtras = toHoras(
+    minExtraDiurna + minExtraNocturna + 
+    minExtraDominicalDiurna + minExtraDominicalNocturna +
+    minExtraFestivoDiurna + minExtraFestivoNocturna
+  );
+
+  const totalHorasDominicalesYFestivas = toHoras(
+    minDominicalOrdinaria + minExtraDominicalDiurna + minExtraDominicalNocturna +
+    minFestivoOrdinaria + minExtraFestivoDiurna + minExtraFestivoNocturna
+  );
+
+  // Valor económico estimado en COP
   let valorEstimadoTotal = 0;
   if (valorHora > 0) {
     valorEstimadoTotal = Math.round(
       horasOrdinariasDiurnas * valorHora * 1.0 +
       horasRecargoNocturno * valorHora * 0.35 +
-      horasDominicalOrdinaria * valorHora * 1.75 +
       horasExtraDiurna * valorHora * 1.25 +
       horasExtraNocturna * valorHora * 1.75 +
+      horasDominicalOrdinaria * valorHora * 1.75 +
       horasExtraDominicalDiurna * valorHora * 2.0 +
-      horasExtraDominicalNocturna * valorHora * 2.5
+      horasExtraDominicalNocturna * valorHora * 2.5 +
+      horasFestivoOrdinaria * valorHora * 1.75 +
+      horasExtraFestivoDiurna * valorHora * 2.0 +
+      horasExtraFestivoNocturna * valorHora * 2.5
     );
   }
 
+  // Desglose descriptivo
   const desgloseTexto: string[] = [];
   if (horasOrdinariasDiurnas > 0) desgloseTexto.push(`${horasOrdinariasDiurnas}h Ordinarias Diurnas`);
   if (horasRecargoNocturno > 0) desgloseTexto.push(`${horasRecargoNocturno}h Recargo Nocturno (+35%)`);
-  if (horasDominicalOrdinaria > 0) desgloseTexto.push(`${horasDominicalOrdinaria}h Dominical/Festivo Ord. (+75%)`);
   if (horasExtraDiurna > 0) desgloseTexto.push(`${horasExtraDiurna}h Extra Diurna (HED +25%)`);
   if (horasExtraNocturna > 0) desgloseTexto.push(`${horasExtraNocturna}h Extra Nocturna (HEN +75%)`);
-  if (horasExtraDominicalDiurna > 0) desgloseTexto.push(`${horasExtraDominicalDiurna}h Extra Dom/Fest Diurna (HEDDF +100%)`);
-  if (horasExtraDominicalNocturna > 0) desgloseTexto.push(`${horasExtraDominicalNocturna}h Extra Dom/Fest Nocturna (HENDF +150%)`);
+  if (horasDominicalOrdinaria > 0) desgloseTexto.push(`${horasDominicalOrdinaria}h Dominical Ordinaria (+75%)`);
+  if (horasExtraDominicalDiurna > 0) desgloseTexto.push(`${horasExtraDominicalDiurna}h Extra Dominical Diurna (+100%)`);
+  if (horasExtraDominicalNocturna > 0) desgloseTexto.push(`${horasExtraDominicalNocturna}h Extra Dominical Nocturna (+150%)`);
+  if (horasFestivoOrdinaria > 0) desgloseTexto.push(`${horasFestivoOrdinaria}h Festivo Ordinaria (+75%)`);
+  if (horasExtraFestivoDiurna > 0) desgloseTexto.push(`${horasExtraFestivoDiurna}h Extra Festivo Diurna (+100%)`);
+  if (horasExtraFestivoNocturna > 0) desgloseTexto.push(`${horasExtraFestivoNocturna}h Extra Festivo Nocturna (+150%)`);
+  if (horasFaltantes > 0) desgloseTexto.push(`⚠️ ${horasFaltantes}h Faltantes de Jornada`);
 
   return {
     horasTotalesEfectivas,
+    horasBrutasEstancia,
+    horasDescanso,
+    horasFaltantes,
     horasOrdinariasDiurnas,
     horasRecargoNocturno,
     horasExtraDiurna,
@@ -210,9 +319,17 @@ export function calculateOvertimeColombia(input: InputTurnoStaff): ResultadoCalc
     horasDominicalOrdinaria,
     horasExtraDominicalDiurna,
     horasExtraDominicalNocturna,
+    horasFestivoOrdinaria,
+    horasExtraFestivoDiurna,
+    horasExtraFestivoNocturna,
+    totalHorasOrdinarias,
     totalHorasExtras,
-    esDominicalOFestivo: festivoInicial.esDominicalOFestivo,
-    nombreFestivo: festivoInicial.nombreFestivo,
+    totalHorasDominicalesYFestivas,
+    esDomingo: esDomingoInicial,
+    esFestivo: esFestivoInicial,
+    esDominicalOFestivo: festivoInfoInicial.esDominicalOFestivo,
+    nombreFestivo: festivoInfoInicial.nombreFestivo,
+    esDescanso: false,
     valorEstimadoTotal: valorHora > 0 ? valorEstimadoTotal : undefined,
     desgloseTexto,
   };

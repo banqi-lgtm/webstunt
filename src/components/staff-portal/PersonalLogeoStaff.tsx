@@ -27,6 +27,8 @@ export interface TurnoPersonalRecord {
   horaEntrada: string; // HH:mm
   horaSalida: string; // HH:mm
   minutosDescanso: number;
+  horasDescanso?: number;
+  horasFaltantes?: number;
   centroCosto?: string;
   observaciones?: string;
   horasTotalesEfectivas: number;
@@ -37,7 +39,14 @@ export interface TurnoPersonalRecord {
   horasDominicalOrdinaria: number;
   horasExtraDominicalDiurna: number;
   horasExtraDominicalNocturna: number;
+  horasFestivoOrdinaria?: number;
+  horasExtraFestivoDiurna?: number;
+  horasExtraFestivoNocturna?: number;
+  totalHorasOrdinarias?: number;
   totalHorasExtras: number;
+  totalHorasDominicalesYFestivas?: number;
+  esDomingo?: boolean;
+  esFestivo?: boolean;
   esDominicalOFestivo: boolean;
   nombreFestivo?: string;
   valorEstimadoTotal?: number;
@@ -86,7 +95,7 @@ export function PersonalLogeoStaff({ userUid, userName, userDocument }: Personal
   // Form states
   const [formFecha, setFormFecha] = useState<string>(new Date().toISOString().substring(0, 10));
   const [formHoraEntrada, setFormHoraEntrada] = useState<string>('08:00');
-  const [formHoraSalida, setFormHoraSalida] = useState<string>('19:00');
+  const [formHoraSalida, setFormHoraSalida] = useState<string>('16:00');
   const [formMinutosDescanso, setFormMinutosDescanso] = useState<number>(60);
   const [formObservaciones, setFormObservaciones] = useState<string>('');
 
@@ -175,7 +184,16 @@ export function PersonalLogeoStaff({ userUid, userName, userDocument }: Personal
           horasDominicalOrdinaria: t.horasDominicalOrdinaria || 0,
           horasExtraDominicalDiurna: t.horasExtraDominicalDiurna || 0,
           horasExtraDominicalNocturna: t.horasExtraDominicalNocturna || 0,
+          horasFestivoOrdinaria: t.horasFestivoOrdinaria || 0,
+          horasExtraFestivoDiurna: t.horasExtraFestivoDiurna || 0,
+          horasExtraFestivoNocturna: t.horasExtraFestivoNocturna || 0,
+          totalHorasOrdinarias: t.totalHorasOrdinarias || t.horasOrdinariasDiurnas || 0,
           totalHorasExtras: t.totalHorasExtras || 0,
+          totalHorasDominicalesYFestivas: t.totalHorasDominicalesYFestivas || 0,
+          horasDescanso: t.horasDescanso || (t.minutosDescanso ? t.minutosDescanso / 60 : 0),
+          horasFaltantes: t.horasFaltantes || 0,
+          esDomingo: Boolean(t.esDomingo),
+          esFestivo: Boolean(t.esFestivo),
           esDominicalOFestivo: Boolean(t.esDominicalOFestivo),
           nombreFestivo: t.nombreFestivo || undefined,
           valorEstimadoTotal: t.valorEstimadoTotal || undefined,
@@ -355,6 +373,9 @@ export function PersonalLogeoStaff({ userUid, userName, userDocument }: Personal
         centroCosto: 'PERSONAL',
         observaciones: formObservaciones.trim(),
         horasTotalesEfectivas: liveCalculation.horasTotalesEfectivas,
+        horasBrutasEstancia: liveCalculation.horasBrutasEstancia,
+        horasDescanso: liveCalculation.horasDescanso,
+        horasFaltantes: liveCalculation.horasFaltantes,
         horasOrdinariasDiurnas: liveCalculation.horasOrdinariasDiurnas,
         horasRecargoNocturno: liveCalculation.horasRecargoNocturno,
         horasExtraDiurna: liveCalculation.horasExtraDiurna,
@@ -362,7 +383,14 @@ export function PersonalLogeoStaff({ userUid, userName, userDocument }: Personal
         horasDominicalOrdinaria: liveCalculation.horasDominicalOrdinaria,
         horasExtraDominicalDiurna: liveCalculation.horasExtraDominicalDiurna,
         horasExtraDominicalNocturna: liveCalculation.horasExtraDominicalNocturna,
+        horasFestivoOrdinaria: liveCalculation.horasFestivoOrdinaria,
+        horasExtraFestivoDiurna: liveCalculation.horasExtraFestivoDiurna,
+        horasExtraFestivoNocturna: liveCalculation.horasExtraFestivoNocturna,
+        totalHorasOrdinarias: liveCalculation.totalHorasOrdinarias,
         totalHorasExtras: liveCalculation.totalHorasExtras,
+        totalHorasDominicalesYFestivas: liveCalculation.totalHorasDominicalesYFestivas,
+        esDomingo: liveCalculation.esDomingo,
+        esFestivo: liveCalculation.esFestivo,
         esDominicalOFestivo: liveCalculation.esDominicalOFestivo,
         nombreFestivo: liveCalculation.nombreFestivo || null,
         valorEstimadoTotal: liveCalculation.valorEstimadoTotal || 0,
@@ -463,28 +491,34 @@ export function PersonalLogeoStaff({ userUid, userName, userDocument }: Personal
   // Personal Monthly KPIs
   const kpisPersonales = useMemo(() => {
     let totalHoras = 0;
+    let totalOrdinarias = 0;
     let totalExtras = 0;
     let totalDiurnas = 0;
     let totalNocturnas = 0;
     let totalDomFest = 0;
+    let totalFaltantes = 0;
     let valorEstimado = 0;
 
     filteredMyTurnos.forEach(t => {
       totalHoras += t.horasTotalesEfectivas || 0;
+      totalOrdinarias += t.horasOrdinariasDiurnas || 0;
       totalExtras += t.totalHorasExtras || 0;
       totalDiurnas += t.horasExtraDiurna || 0;
       totalNocturnas += t.horasExtraNocturna || 0;
-      totalDomFest += (t.horasDominicalOrdinaria || 0) + (t.horasExtraDominicalDiurna || 0) + (t.horasExtraDominicalNocturna || 0);
+      totalDomFest += (t.horasDominicalOrdinaria || 0) + (t.horasExtraDominicalDiurna || 0) + (t.horasExtraDominicalNocturna || 0) + (t.horasFestivoOrdinaria || 0) + (t.horasExtraFestivoDiurna || 0) + (t.horasExtraFestivoNocturna || 0);
+      totalFaltantes += t.horasFaltantes || 0;
       valorEstimado += t.valorEstimadoTotal || 0;
     });
 
     return {
       totalTurnos: filteredMyTurnos.length,
       totalHoras: Math.round(totalHoras * 100) / 100,
+      totalOrdinarias: Math.round(totalOrdinarias * 100) / 100,
       totalExtras: Math.round(totalExtras * 100) / 100,
       totalDiurnas: Math.round(totalDiurnas * 100) / 100,
       totalNocturnas: Math.round(totalNocturnas * 100) / 100,
       totalDomFest: Math.round(totalDomFest * 100) / 100,
+      totalFaltantes: Math.round(totalFaltantes * 100) / 100,
       valorEstimado: Math.round(valorEstimado),
     };
   }, [filteredMyTurnos]);
@@ -1199,7 +1233,7 @@ export function PersonalLogeoStaff({ userUid, userName, userDocument }: Personal
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                 {/* Ord. Diurna */}
                 <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-[#1C1C28]">
-                  <span className="text-[10px] text-zinc-400 block truncate">Ord. Diurna</span>
+                  <span className="text-[10px] text-zinc-400 block truncate">Ord. Diurna (Base 7h)</span>
                   <span className="text-sm font-bold text-white font-mono">{detalleTurno.horasOrdinariasDiurnas}h</span>
                 </div>
 
@@ -1221,22 +1255,26 @@ export function PersonalLogeoStaff({ userUid, userName, userDocument }: Personal
                   <span className="text-sm font-bold text-purple-300 font-mono">{detalleTurno.horasExtraNocturna}h</span>
                 </div>
 
-                {/* Dom/Fest Ord. */}
+                {/* Dominicales */}
                 <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-rose-500/20">
-                  <span className="text-[10px] text-rose-400 block truncate">Dom/Fest Ord. (+75%)</span>
-                  <span className="text-sm font-bold text-rose-300 font-mono">{detalleTurno.horasDominicalOrdinaria}h</span>
+                  <span className="text-[10px] text-rose-400 block truncate">Dominicales (+75%/+100%)</span>
+                  <span className="text-sm font-bold text-rose-300 font-mono">
+                    {((detalleTurno.horasDominicalOrdinaria || 0) + (detalleTurno.horasExtraDominicalDiurna || 0) + (detalleTurno.horasExtraDominicalNocturna || 0))}h
+                  </span>
                 </div>
 
-                {/* Extra Dom. Diurna */}
-                <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-red-500/20">
-                  <span className="text-[10px] text-red-400 block truncate">Extra Dom. Diurna</span>
-                  <span className="text-sm font-bold text-red-300 font-mono">{detalleTurno.horasExtraDominicalDiurna}h</span>
+                {/* Festivas */}
+                <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-orange-500/20">
+                  <span className="text-[10px] text-orange-400 block truncate">Festivas (+75%/+100%)</span>
+                  <span className="text-sm font-bold text-orange-300 font-mono">
+                    {((detalleTurno.horasFestivoOrdinaria || 0) + (detalleTurno.horasExtraFestivoDiurna || 0) + (detalleTurno.horasExtraFestivoNocturna || 0))}h
+                  </span>
                 </div>
 
-                {/* Extra Dom. Noct. */}
-                <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-fuchsia-500/20">
-                  <span className="text-[10px] text-fuchsia-400 block truncate">Extra Dom. Noct.</span>
-                  <span className="text-sm font-bold text-fuchsia-300 font-mono">{detalleTurno.horasExtraDominicalNocturna}h</span>
+                {/* Descanso Descontado */}
+                <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-zinc-700/30">
+                  <span className="text-[10px] text-zinc-400 block truncate">Descanso / Almuerzo</span>
+                  <span className="text-sm font-bold text-zinc-300 font-mono">{detalleTurno.minutosDescanso} min</span>
                 </div>
 
                 {/* Total Horas Extras */}
@@ -1245,6 +1283,14 @@ export function PersonalLogeoStaff({ userUid, userName, userDocument }: Personal
                   <span className="text-sm font-black text-emerald-300 font-mono">{detalleTurno.totalHorasExtras}h</span>
                 </div>
               </div>
+
+              {/* Banner de Horas Faltantes si no cumplió la jornada de 7h */}
+              {typeof detalleTurno.horasFaltantes === 'number' && detalleTurno.horasFaltantes > 0 && (
+                <div className="p-2.5 rounded-lg bg-amber-950/50 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span><strong>Horas Faltantes de Jornada:</strong> Faltaron <strong>{detalleTurno.horasFaltantes}h</strong> para completar la jornada legal de 7 horas diarias.</span>
+                </div>
+              )}
 
               {typeof detalleTurno.valorEstimadoTotal === 'number' && detalleTurno.valorEstimadoTotal > 0 && (
                 <div className="pt-2 text-right text-xs text-emerald-400 font-semibold border-t border-emerald-500/20 flex items-center justify-between">

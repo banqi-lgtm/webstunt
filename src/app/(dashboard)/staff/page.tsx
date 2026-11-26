@@ -49,11 +49,11 @@ export default function StaffPage() {
   // Modal para parametrizar horario del staff
   const [showHorarioModal, setShowHorarioModal] = useState(false);
   const [selectedStaffForHorario, setSelectedStaffForHorario] = useState<StaffMember | null>(null);
-  const [horarioDias, setHorarioDias] = useState<number[]>([1, 2, 3, 4, 5]);
+  const [horarioDias, setHorarioDias] = useState<number[]>([1, 2, 3, 4, 5, 6]);
   const [horarioEntrada, setHorarioEntrada] = useState('08:00');
-  const [horarioSalida, setHorarioSalida] = useState('19:00');
+  const [horarioSalida, setHorarioSalida] = useState('16:00');
   const [horarioDescanso, setHorarioDescanso] = useState(60);
-  const [horarioJornadaHoras, setHorarioJornadaHoras] = useState(8);
+  const [horarioJornadaHoras, setHorarioJornadaHoras] = useState(7);
   const [horarioValorHora, setHorarioValorHora] = useState<number | ''>('');
   const [isSavingHorario, setIsSavingHorario] = useState(false);
 
@@ -129,11 +129,11 @@ export default function StaffPage() {
   const handleOpenHorarioModal = (staff: StaffMember) => {
     setSelectedStaffForHorario(staff);
     const h = staff.horarioLaboral;
-    setHorarioDias(h?.diasLaborales && h.diasLaborales.length > 0 ? h.diasLaborales : [1, 2, 3, 4, 5]);
+    setHorarioDias(h?.diasLaborales && h.diasLaborales.length > 0 ? h.diasLaborales : [1, 2, 3, 4, 5, 6]);
     setHorarioEntrada(h?.horaEntradaDefecto || '08:00');
-    setHorarioSalida(h?.horaSalidaDefecto || '19:00');
+    setHorarioSalida(h?.horaSalidaDefecto || '16:00');
     setHorarioDescanso(h?.minutosDescansoDefecto ?? 60);
-    setHorarioJornadaHoras(h?.jornadaDiariaHoras || 8);
+    setHorarioJornadaHoras(h?.jornadaDiariaHoras || 7);
     setHorarioValorHora(h?.valorHoraOrdinaria || '');
     setShowHorarioModal(true);
   };
@@ -149,8 +149,8 @@ export default function StaffPage() {
         horaEntradaDefecto: horarioEntrada,
         horaSalidaDefecto: horarioSalida,
         minutosDescansoDefecto: Number(horarioDescanso) || 0,
-        jornadaDiariaHoras: Number(horarioJornadaHoras) || 8,
-        horasSemanales: (Number(horarioJornadaHoras) || 8) * horarioDias.length,
+        jornadaDiariaHoras: Number(horarioJornadaHoras) || 7,
+        horasSemanales: (Number(horarioJornadaHoras) || 7) * horarioDias.length,
         valorHoraOrdinaria: horarioValorHora ? Number(horarioValorHora) : undefined
       };
 
@@ -293,7 +293,7 @@ export default function StaffPage() {
                           ) : (
                             <div className="flex items-center gap-1.5 text-zinc-500 text-xs">
                               <Clock className="w-3.5 h-3.5 text-zinc-600" />
-                              <span>08:00 a 19:00 (Estándar)</span>
+                              <span>08:00 a 16:00 (7h Estándar)</span>
                             </div>
                           )}
                         </td>
@@ -422,7 +422,7 @@ export default function StaffPage() {
                       onChange={(e) => setHorarioSalida(e.target.value)}
                       className="w-full px-3 py-2 bg-black/50 border border-[#1C1C28] focus:border-purple-500 rounded-xl text-xs text-white outline-none font-mono"
                     />
-                    <span className="text-[10px] text-zinc-500 block mt-0.5">Extras inician a partir de las 7:00 PM</span>
+                    <span className="text-[10px] text-zinc-500 block mt-0.5">Jornada 7h + descanso</span>
                   </div>
                 </div>
 
@@ -440,7 +440,7 @@ export default function StaffPage() {
                       onChange={(e) => setHorarioJornadaHoras(Number(e.target.value))}
                       className="w-full px-3 py-2 bg-black/50 border border-[#1C1C28] focus:border-purple-500 rounded-xl text-xs text-white outline-none font-mono"
                     />
-                    <span className="text-[10px] text-zinc-500 block mt-0.5">Estándar: 8h/día</span>
+                    <span className="text-[10px] text-zinc-500 block mt-0.5">Estándar Legal: 7h/día (42h/semana)</span>
                   </div>
 
                   <div>
