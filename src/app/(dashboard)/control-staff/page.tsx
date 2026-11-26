@@ -18,7 +18,9 @@ import * as XLSX from 'xlsx';
 import { 
   calculateOvertimeColombia, 
   HorarioLaboralStaff, 
-  ResultadoCalculoHoras 
+  ResultadoCalculoHoras,
+  formatHora12,
+  getInfoPeriodoHora
 } from '@/lib/overtime-calculator';
 import { isDominicalOFestivoColombia } from '@/lib/colombian-holidays';
 
@@ -887,10 +889,18 @@ export default function ControlStaffPage() {
                         </div>
 
                         <div className="flex items-center justify-between text-xs font-mono text-zinc-400">
-                          <div>
+                          <div className="flex items-center flex-wrap gap-1">
                             <span className="text-white font-bold">{t.fecha}</span>
                             <span className="mx-1">•</span>
-                            <span>{t.horaEntrada} - {t.horaSalida}</span>
+                            <span className="text-white font-semibold">{formatHora12(t.horaEntrada, false)} - {formatHora12(t.horaSalida, false)}</span>
+                            {(t.horaEntrada === '12:00' || t.horaSalida === '12:00' || t.horaEntrada === '00:00' || t.horaSalida === '00:00') && (
+                              <span className="text-[10px] text-amber-400 font-semibold bg-amber-950/40 px-1.5 py-0.2 rounded border border-amber-500/20 ml-1">
+                                {t.horaEntrada === '12:00' && 'Entr: 12 PM Mediodía'}
+                                {t.horaEntrada === '00:00' && 'Entr: 12 AM Medianoche'}
+                                {t.horaSalida === '12:00' && 'Sal: 12 PM Mediodía'}
+                                {t.horaSalida === '00:00' && 'Sal: 12 AM Medianoche'}
+                              </span>
+                            )}
                             {t.minutosDescanso > 0 && <span className="text-zinc-600 ml-1">({t.minutosDescanso}m desc.)</span>}
                           </div>
                           <span className="text-white font-bold bg-zinc-900 px-2 py-0.5 rounded border border-zinc-800">
@@ -958,7 +968,15 @@ export default function ControlStaffPage() {
                               )}
                             </td>
                             <td className="py-3 px-3 whitespace-nowrap font-mono text-zinc-400">
-                              <span>{t.horaEntrada} - {t.horaSalida}</span>
+                              <div className="font-semibold text-white">{formatHora12(t.horaEntrada, false)} - {formatHora12(t.horaSalida, false)}</div>
+                              {(t.horaEntrada === '12:00' || t.horaSalida === '12:00' || t.horaEntrada === '00:00' || t.horaSalida === '00:00') && (
+                                <div className="text-[10px] text-amber-400 font-semibold">
+                                  {t.horaEntrada === '12:00' && 'Entrada: 12 PM (Mediodía)'}
+                                  {t.horaEntrada === '00:00' && 'Entrada: 12 AM (Medianoche)'}
+                                  {t.horaSalida === '12:00' && 'Salida: 12 PM (Mediodía)'}
+                                  {t.horaSalida === '00:00' && 'Salida: 12 AM (Medianoche)'}
+                                </div>
+                              )}
                               {t.minutosDescanso > 0 && (
                                 <span className="block text-[10px] text-zinc-600">({t.minutosDescanso}m desc.)</span>
                               )}
@@ -1313,12 +1331,14 @@ export default function ControlStaffPage() {
                 />
               </div>
 
-              {/* Horas Entrada y Salida */}
+              {/* Horas Entrada y Salida con Diferenciador 12 AM vs 12 PM */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1 mb-1">
-                    <Sun className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Hora Entrada</span>
+                  <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center justify-between mb-1">
+                    <span className="flex items-center gap-1">
+                      <Sun className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Hora Entrada</span>
+                    </span>
                   </label>
                   <input
                     type="time"
@@ -1327,12 +1347,46 @@ export default function ControlStaffPage() {
                     onChange={(e) => setFormHoraEntrada(e.target.value)}
                     className="w-full px-3 py-2 bg-black/50 border border-[#1C1C28] focus:border-red-600 rounded-xl text-xs text-white outline-none font-mono text-center font-bold"
                   />
+                  {/* Diferenciador 12 AM vs 12 PM */}
+                  <div className="mt-1 flex flex-col gap-0.5 px-0.5">
+                    <span className={`font-mono text-[11px] font-bold ${
+                      formHoraEntrada === '12:00' 
+                        ? 'text-amber-400' 
+                        : formHoraEntrada === '00:00' 
+                        ? 'text-purple-400' 
+                        : 'text-zinc-400'
+                    }`}>
+                      {formHoraEntrada === '12:00' && '☀️ 12:00 PM (Mediodía)'}
+                      {formHoraEntrada === '00:00' && '🌙 12:00 AM (Medianoche)'}
+                      {formHoraEntrada !== '12:00' && formHoraEntrada !== '00:00' && formatHora12(formHoraEntrada)}
+                    </span>
+                    {formHoraEntrada === '12:00' && (
+                      <button
+                        type="button"
+                        onClick={() => setFormHoraEntrada('00:00')}
+                        className="text-[10px] text-purple-400 hover:text-purple-300 text-left underline font-medium"
+                      >
+                        ¿Medianoche? Cambiar a 12 AM (00:00)
+                      </button>
+                    )}
+                    {formHoraEntrada === '00:00' && (
+                      <button
+                        type="button"
+                        onClick={() => setFormHoraEntrada('12:00')}
+                        className="text-[10px] text-amber-400 hover:text-amber-300 text-left underline font-medium"
+                      >
+                        ¿Mediodía? Cambiar a 12 PM (12:00)
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1 mb-1">
-                    <Moon className="w-3.5 h-3.5 text-purple-400" />
-                    <span>Hora Salida</span>
+                  <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center justify-between mb-1">
+                    <span className="flex items-center gap-1">
+                      <Moon className="w-3.5 h-3.5 text-purple-400" />
+                      <span>Hora Salida</span>
+                    </span>
                   </label>
                   <input
                     type="time"
@@ -1341,8 +1395,57 @@ export default function ControlStaffPage() {
                     onChange={(e) => setFormHoraSalida(e.target.value)}
                     className="w-full px-3 py-2 bg-black/50 border border-[#1C1C28] focus:border-red-600 rounded-xl text-xs text-white outline-none font-mono text-center font-bold"
                   />
+                  {/* Diferenciador 12 AM vs 12 PM */}
+                  <div className="mt-1 flex flex-col gap-0.5 px-0.5">
+                    <span className={`font-mono text-[11px] font-bold ${
+                      formHoraSalida === '12:00' 
+                        ? 'text-amber-400' 
+                        : formHoraSalida === '00:00' 
+                        ? 'text-purple-400' 
+                        : 'text-zinc-400'
+                    }`}>
+                      {formHoraSalida === '12:00' && '☀️ 12:00 PM (Mediodía)'}
+                      {formHoraSalida === '00:00' && '🌙 12:00 AM (Medianoche)'}
+                      {formHoraSalida !== '12:00' && formHoraSalida !== '00:00' && formatHora12(formHoraSalida)}
+                    </span>
+                    {formHoraSalida === '12:00' && (
+                      <button
+                        type="button"
+                        onClick={() => setFormHoraSalida('00:00')}
+                        className="text-[10px] text-purple-400 hover:text-purple-300 text-left underline font-medium"
+                      >
+                        ¿Medianoche? Cambiar a 12 AM (00:00)
+                      </button>
+                    )}
+                    {formHoraSalida === '00:00' && (
+                      <button
+                        type="button"
+                        onClick={() => setFormHoraSalida('12:00')}
+                        className="text-[10px] text-amber-400 hover:text-amber-300 text-left underline font-medium"
+                      >
+                        ¿Mediodía? Cambiar a 12 PM (12:00)
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
+
+              {/* Aviso si la estancia supera 14 horas */}
+              {liveCalculation.horasBrutasEstancia >= 14 && (
+                <div className="p-2.5 bg-amber-950/40 border border-amber-500/30 rounded-xl text-xs space-y-1 text-amber-200">
+                  <div className="flex items-center gap-1.5 font-bold">
+                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>Verificación de Horario ({liveCalculation.horasBrutasEstancia}h de estancia):</span>
+                  </div>
+                  <p className="text-[11px] text-zinc-300">
+                    Registrando de <strong className="text-white">{formatHora12(formHoraEntrada)}</strong> a <strong className="text-white">{formatHora12(formHoraSalida)}</strong>.
+                    <br />
+                    • <strong>12:00 PM</strong> = Mediodía de día.
+                    <br />
+                    • <strong>12:00 AM (00:00)</strong> = Medianoche de noche/madrugada.
+                  </p>
+                </div>
+              )}
 
               {/* Descanso */}
               <div>
@@ -1462,8 +1565,8 @@ export default function ControlStaffPage() {
                 </div>
                 <div className="flex items-center justify-between border-t border-zinc-800/60 pt-1.5">
                   <span className="text-zinc-400">Horario Registrado:</span>
-                  <span className="text-white font-mono font-bold">
-                    {detalleTurno.horaEntrada} a {detalleTurno.horaSalida}
+                  <span className="text-white font-mono font-bold text-right">
+                    {formatHora12(detalleTurno.horaEntrada)} a {formatHora12(detalleTurno.horaSalida)}
                     {detalleTurno.minutosDescanso > 0 && (
                       <span className="text-zinc-500 font-normal ml-1">({detalleTurno.minutosDescanso}m descanso)</span>
                     )}

@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
-import { HorarioLaboralStaff } from '@/lib/overtime-calculator';
+import { HorarioLaboralStaff, formatHora12 } from '@/lib/overtime-calculator';
 
 interface StaffMember {
   id: string;
@@ -284,7 +284,7 @@ export default function StaffPage() {
                             <div className="space-y-0.5">
                               <div className="flex items-center gap-1.5 text-emerald-400 font-semibold text-xs">
                                 <CheckCircle2 className="w-3.5 h-3.5" />
-                                <span>{h?.horaEntradaDefecto} a {h?.horaSalidaDefecto}</span>
+                                <span>{formatHora12(h?.horaEntradaDefecto || '', false)} a {formatHora12(h?.horaSalidaDefecto || '', false)}</span>
                               </div>
                               <div className="text-[10px] text-zinc-500">
                                 {h?.jornadaDiariaHoras}h/día {h?.valorHoraOrdinaria ? `• $${h.valorHoraOrdinaria.toLocaleString()}/h` : ''}
@@ -293,7 +293,7 @@ export default function StaffPage() {
                           ) : (
                             <div className="flex items-center gap-1.5 text-zinc-500 text-xs">
                               <Clock className="w-3.5 h-3.5 text-zinc-600" />
-                              <span>08:00 a 16:00 (7h Estándar)</span>
+                              <span>08:00 AM a 04:00 PM (7h Estándar)</span>
                             </div>
                           )}
                         </td>
@@ -397,6 +397,7 @@ export default function StaffPage() {
                 </div>
 
                 {/* Hora Entrada y Salida Habitual */}
+                {/* Hora Entrada y Salida Habitual con Diferenciador 12 AM vs 12 PM */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider block mb-1">
@@ -409,6 +410,37 @@ export default function StaffPage() {
                       onChange={(e) => setHorarioEntrada(e.target.value)}
                       className="w-full px-3 py-2 bg-black/50 border border-[#1C1C28] focus:border-purple-500 rounded-xl text-xs text-white outline-none font-mono"
                     />
+                    <div className="mt-1 flex flex-col gap-0.5 px-0.5">
+                      <span className={`font-mono text-[11px] font-bold ${
+                        horarioEntrada === '12:00' 
+                          ? 'text-amber-400' 
+                          : horarioEntrada === '00:00' 
+                          ? 'text-purple-400' 
+                          : 'text-zinc-400'
+                      }`}>
+                        {horarioEntrada === '12:00' && '☀️ 12:00 PM (Mediodía)'}
+                        {horarioEntrada === '00:00' && '🌙 12:00 AM (Medianoche)'}
+                        {horarioEntrada !== '12:00' && horarioEntrada !== '00:00' && formatHora12(horarioEntrada)}
+                      </span>
+                      {horarioEntrada === '12:00' && (
+                        <button
+                          type="button"
+                          onClick={() => setHorarioEntrada('00:00')}
+                          className="text-[10px] text-purple-400 hover:text-purple-300 text-left underline font-medium"
+                        >
+                          ¿Medianoche? Cambiar a 12 AM (00:00)
+                        </button>
+                      )}
+                      {horarioEntrada === '00:00' && (
+                        <button
+                          type="button"
+                          onClick={() => setHorarioEntrada('12:00')}
+                          className="text-[10px] text-amber-400 hover:text-amber-300 text-left underline font-medium"
+                        >
+                          ¿Mediodía? Cambiar a 12 PM (12:00)
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div>
@@ -422,6 +454,37 @@ export default function StaffPage() {
                       onChange={(e) => setHorarioSalida(e.target.value)}
                       className="w-full px-3 py-2 bg-black/50 border border-[#1C1C28] focus:border-purple-500 rounded-xl text-xs text-white outline-none font-mono"
                     />
+                    <div className="mt-1 flex flex-col gap-0.5 px-0.5">
+                      <span className={`font-mono text-[11px] font-bold ${
+                        horarioSalida === '12:00' 
+                          ? 'text-amber-400' 
+                          : horarioSalida === '00:00' 
+                          ? 'text-purple-400' 
+                          : 'text-zinc-400'
+                      }`}>
+                        {horarioSalida === '12:00' && '☀️ 12:00 PM (Mediodía)'}
+                        {horarioSalida === '00:00' && '🌙 12:00 AM (Medianoche)'}
+                        {horarioSalida !== '12:00' && horarioSalida !== '00:00' && formatHora12(horarioSalida)}
+                      </span>
+                      {horarioSalida === '12:00' && (
+                        <button
+                          type="button"
+                          onClick={() => setHorarioSalida('00:00')}
+                          className="text-[10px] text-purple-400 hover:text-purple-300 text-left underline font-medium"
+                        >
+                          ¿Medianoche? Cambiar a 12 AM (00:00)
+                        </button>
+                      )}
+                      {horarioSalida === '00:00' && (
+                        <button
+                          type="button"
+                          onClick={() => setHorarioSalida('12:00')}
+                          className="text-[10px] text-amber-400 hover:text-amber-300 text-left underline font-medium"
+                        >
+                          ¿Mediodía? Cambiar a 12 PM (12:00)
+                        </button>
+                      )}
+                    </div>
                     <span className="text-[10px] text-zinc-500 block mt-0.5">Jornada 7h + descanso</span>
                   </div>
                 </div>

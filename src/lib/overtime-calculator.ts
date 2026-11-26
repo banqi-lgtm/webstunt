@@ -58,11 +58,115 @@ export interface ResultadoCalculoHoras {
 }
 
 /**
- * Convierte cadena "YYYY-MM-DD" y "HH:mm" en un objeto Date en hora local.
+ * Normaliza cualquier formato de hora (24h o 12h con AM/PM) a "HH:mm" estricto (00:00 - 23:59).
+ * Crucial para diferenciar con total exactitud:
+ * - "12:00 AM" / "12:00 a. m." -> "00:00" (Medianoche)
+ * - "12:00 PM" / "12:00 p. m." -> "12:00" (Mediodía)
+ * - "24:00" -> "00:00" (Medianoche)
+ */
+export function normalizeHora(horaStr: string): string {
+  if (!horaStr) return '00:00';
+  const clean = horaStr.trim().toLowerCase();
+
+  const isPm = clean.includes('pm') || clean.includes('p.m.') || clean.includes('p. m.');
+  const isAm = clean.includes('am') || clean.includes('a.m.') || clean.includes('a. m.');
+
+  const match = clean.match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return '00:00';
+
+  let hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+
+  if (isAm) {
+    if (hours === 12) hours = 0; // 12:00 AM es 00:00 (Medianoche)
+  } else if (isPm) {
+    if (hours < 12) hours += 12; // 01:00 PM -> 13:00, 12:00 PM se mantiene en 12:00 (Mediodía)
+  } else {
+    if (hours === 24) hours = 0; // 24:00 es 00:00 (Medianoche)
+  }
+
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+}
+
+/**
+ * Obtiene información detallada sobre el periodo del día y aclaración para 12 AM vs 12 PM.
+ */
+export function getInfoPeriodoHora(horaStr: string): {
+  normalized: string;
+  hora12: string;
+  ampm: 'AM' | 'PM';
+  label: string;
+  isMediodia: boolean;
+  isMedianoche: boolean;
+  icono: 'sol' | 'luna';
+} {
+  const normalized = normalizeHora(horaStr);
+  const [hStr, mStr] = normalized.split(':');
+  const h = parseInt(hStr, 10);
+  const m = mStr || '00';
+
+  const isMedianoche = h === 0 && m === '00';
+  const isMediodia = h === 12 && m === '00';
+
+  const ampm: 'AM' | 'PM' = h >= 12 ? 'PM' : 'AM';
+  const h12Num = h % 12 === 0 ? 12 : h % 12;
+  const h12 = `${String(h12Num).padStart(2, '0')}:${m} ${ampm}`;
+
+  let label = '';
+  let icono: 'sol' | 'luna' = 'sol';
+
+  if (isMedianoche) {
+    label = '12:00 AM (Medianoche)';
+    icono = 'luna';
+  } else if (isMediodia) {
+    label = '12:00 PM (Mediodía)';
+    icono = 'sol';
+  } else if (h === 0 || h < 6) {
+    label = `${h12} (Madrugada)`;
+    icono = 'luna';
+  } else if (h < 12) {
+    label = `${h12} (Mañana)`;
+    icono = 'sol';
+  } else if (h < 18) {
+    label = `${h12} (Tarde)`;
+    icono = 'sol';
+  } else {
+    label = `${h12} (Noche)`;
+    icono = 'luna';
+  }
+
+  return {
+    normalized,
+    hora12: h12,
+    ampm,
+    label,
+    isMediodia,
+    isMedianoche,
+    icono,
+  };
+}
+
+/**
+ * Formatea una hora para visualización humana inequívoca.
+ * Evita confusiones entre mediodía y medianoche:
+ * - "00:00" -> "12:00 AM (Medianoche)"
+ * - "12:00" -> "12:00 PM (Mediodía)"
+ * - "08:00" -> "08:00 AM"
+ * - "16:00" -> "04:00 PM"
+ */
+export function formatHora12(horaStr: string, includeNote = true): string {
+  if (!horaStr) return '';
+  const info = getInfoPeriodoHora(horaStr);
+  return includeNote ? info.label : info.hora12;
+}
+
+/**
+ * Convierte cadena "YYYY-MM-DD" y "HH:mm" (o con AM/PM) en un objeto Date en hora local.
  */
 function parseDateTime(fechaStr: string, horaStr: string): Date {
   const [y, m, d] = fechaStr.split('-').map(Number);
-  const [h, min] = (horaStr || '00:00').split(':').map(Number);
+  const normalized = normalizeHora(horaStr);
+  const [h, min] = normalized.split(':').map(Number);
   return new Date(y, m - 1, d, h || 0, min || 0, 0, 0);
 }
 
