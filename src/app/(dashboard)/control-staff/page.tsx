@@ -796,22 +796,22 @@ export default function ControlStaffPage() {
                 <span className="text-[10px] text-zinc-500 block mt-0.5">{kpisTurnos.totalTurnos} turnos registrados</span>
               </div>
               <div className="bg-[#0E0E14] border border-[#1C1C28] rounded-xl p-4">
-                <span className="text-zinc-400 text-[11px] font-bold uppercase block">Ordinarias (7h)</span>
+                <span className="text-zinc-400 text-[11px] font-bold uppercase block">HO • Ordinarias (7h)</span>
                 <span className="text-2xl font-black text-zinc-200 font-mono">{kpisTurnos.totalOrdinarias}h</span>
                 <span className="text-[10px] text-zinc-500 block mt-0.5">Jornada legal diurna</span>
               </div>
               <div className="bg-[#0E0E14] border border-amber-500/20 rounded-xl p-4">
-                <span className="text-amber-400/80 text-[11px] font-bold uppercase block">Extras Diurnas (HED)</span>
+                <span className="text-amber-400/80 text-[11px] font-bold uppercase block">HED • Extra Diurna</span>
                 <span className="text-2xl font-black text-amber-400 font-mono">{kpisTurnos.totalHED}h</span>
                 <span className="text-[10px] text-zinc-500 block mt-0.5">+25% recargo</span>
               </div>
               <div className="bg-[#0E0E14] border border-purple-500/20 rounded-xl p-4">
-                <span className="text-purple-400/80 text-[11px] font-bold uppercase block">Extras Noct. (HEN)</span>
+                <span className="text-purple-400/80 text-[11px] font-bold uppercase block">HEN • Extra Nocturna</span>
                 <span className="text-2xl font-black text-purple-400 font-mono">{kpisTurnos.totalHEN}h</span>
                 <span className="text-[10px] text-zinc-500 block mt-0.5">+75% recargo nocturno</span>
               </div>
               <div className="bg-[#0E0E14] border border-rose-500/20 rounded-xl p-4 col-span-2 sm:col-span-1">
-                <span className="text-rose-400/80 text-[11px] font-bold uppercase block">Dom / Festivas</span>
+                <span className="text-rose-400/80 text-[11px] font-bold uppercase block">DOM / HEF • Dominical y Festivo</span>
                 <span className="text-2xl font-black text-rose-400 font-mono">{kpisTurnos.totalDomFest}h</span>
                 <span className="text-[10px] text-zinc-500 block mt-0.5">Recargos 75% / 100% / 150%</span>
               </div>
@@ -965,7 +965,7 @@ export default function ControlStaffPage() {
 
                         <div className="flex items-center gap-2 flex-wrap text-[11px]">
                           <span className="px-2 py-0.5 rounded bg-zinc-900 text-zinc-300 border border-zinc-800">
-                            Ord: {t.horasOrdinariasDiurnas}h
+                            HO: {t.horasOrdinariasDiurnas}h
                           </span>
                           {t.totalHorasExtras > 0 ? (
                             <span className="px-2 py-0.5 rounded bg-amber-950/60 text-amber-300 border border-amber-500/30 font-bold">
@@ -998,10 +998,10 @@ export default function ControlStaffPage() {
                           <th className="py-3 px-3">Fecha</th>
                           <th className="py-3 px-3">Horario</th>
                           <th className="py-3 px-2 text-center">Efectivas</th>
-                          <th className="py-3 px-2 text-center">Ord. (7h)</th>
+                          <th className="py-3 px-2 text-center">HO (7h)</th>
                           <th className="py-3 px-2 text-center">HED (+25%)</th>
                           <th className="py-3 px-2 text-center">HEN (+75%)</th>
-                          <th className="py-3 px-2 text-center">Dom / Fest</th>
+                          <th className="py-3 px-2 text-center">DOM / HEF</th>
                           <th className="py-3 px-2 text-center">Faltantes</th>
                           <th className="py-3 px-3">CCO / Origen</th>
                           <th className="py-3 px-4 text-right">Acciones</th>
@@ -1263,11 +1263,11 @@ export default function ControlStaffPage() {
                         <th className="py-3 px-4">Colaborador</th>
                         <th className="py-3 px-2 text-center">Días Trab.</th>
                         <th className="py-3 px-2 text-center">Total Horas</th>
-                        <th className="py-3 px-2 text-center">Ordinarias (7h)</th>
+                        <th className="py-3 px-2 text-center">HO (7h)</th>
                         <th className="py-3 px-2 text-center">HED (+25%)</th>
                         <th className="py-3 px-2 text-center">HEN (+75%)</th>
-                        <th className="py-3 px-2 text-center">Dominicales</th>
-                        <th className="py-3 px-2 text-center">Festivas</th>
+                        <th className="py-3 px-2 text-center">DOM</th>
+                        <th className="py-3 px-2 text-center">HEF</th>
                         <th className="py-3 px-2 text-center">Total Extras</th>
                         <th className="py-3 px-2 text-center">Faltantes</th>
                         <th className="py-3 px-4 text-right">Valor Nómina</th>
@@ -1704,48 +1704,136 @@ export default function ControlStaffPage() {
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                  <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-[#1C1C28]">
-                    <span className="text-[10px] text-zinc-400 block truncate">Ord. Diurna (Base 7h)</span>
-                    <span className="text-sm font-bold text-white font-mono">{detalleTurno.horasOrdinariasDiurnas}h</span>
+                  {/* 1. HO - Ordinaria Diurna */}
+                  <div className="bg-[#0E0E14] p-2.5 rounded-xl border border-zinc-800 flex flex-col justify-between" title="HO - Hora Ordinaria Diurna (Base 7h)">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[10px] font-black font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-200 border border-zinc-700">
+                        HO
+                      </span>
+                      <span className="text-[11px] font-semibold text-zinc-300 leading-tight">
+                        Hora Ordinaria
+                      </span>
+                    </div>
+                    <div className="flex items-baseline justify-between mt-2">
+                      <span className="text-base font-black text-white font-mono">{detalleTurno.horasOrdinariasDiurnas}h</span>
+                      <span className="text-[10px] text-zinc-500 font-mono">Base 7h</span>
+                    </div>
                   </div>
 
-                  <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-indigo-500/20">
-                    <span className="text-[10px] text-indigo-400 block truncate">Recargo Noct. (+35%)</span>
-                    <span className="text-sm font-bold text-indigo-300 font-mono">{detalleTurno.horasRecargoNocturno}h</span>
+                  {/* 2. RN - Recargo Nocturno */}
+                  <div className="bg-[#0E0E14] p-2.5 rounded-xl border border-indigo-500/30 flex flex-col justify-between" title="RN - Recargo Nocturno (+35%)">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[10px] font-black font-mono px-1.5 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-500/40">
+                        RN
+                      </span>
+                      <span className="text-[11px] font-semibold text-indigo-200 leading-tight">
+                        Recargo Noct.
+                      </span>
+                    </div>
+                    <div className="flex items-baseline justify-between mt-2">
+                      <span className="text-base font-black text-indigo-300 font-mono">{detalleTurno.horasRecargoNocturno}h</span>
+                      <span className="text-[10px] text-indigo-400/60 font-mono">+35%</span>
+                    </div>
                   </div>
 
-                  <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-amber-500/20">
-                    <span className="text-[10px] text-amber-400 block truncate">Extra Diurna (HED)</span>
-                    <span className="text-sm font-bold text-amber-300 font-mono">{detalleTurno.horasExtraDiurna}h</span>
+                  {/* 3. HED - Extra Diurna */}
+                  <div className="bg-[#0E0E14] p-2.5 rounded-xl border border-amber-500/30 flex flex-col justify-between" title="HED - Hora Extra Diurna (+25%)">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[10px] font-black font-mono px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-500/40">
+                        HED
+                      </span>
+                      <span className="text-[11px] font-semibold text-amber-200 leading-tight">
+                        Extra Diurna
+                      </span>
+                    </div>
+                    <div className="flex items-baseline justify-between mt-2">
+                      <span className="text-base font-black text-amber-300 font-mono">{detalleTurno.horasExtraDiurna}h</span>
+                      <span className="text-[10px] text-amber-400/60 font-mono">+25%</span>
+                    </div>
                   </div>
 
-                  <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-purple-500/20">
-                    <span className="text-[10px] text-purple-400 block truncate">Extra Noct. (HEN)</span>
-                    <span className="text-sm font-bold text-purple-300 font-mono">{detalleTurno.horasExtraNocturna}h</span>
+                  {/* 4. HEN - Extra Nocturna */}
+                  <div className="bg-[#0E0E14] p-2.5 rounded-xl border border-purple-500/30 flex flex-col justify-between" title="HEN - Hora Extra Nocturna (+75%)">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[10px] font-black font-mono px-1.5 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-500/40">
+                        HEN
+                      </span>
+                      <span className="text-[11px] font-semibold text-purple-200 leading-tight">
+                        Extra Noct.
+                      </span>
+                    </div>
+                    <div className="flex items-baseline justify-between mt-2">
+                      <span className="text-base font-black text-purple-300 font-mono">{detalleTurno.horasExtraNocturna}h</span>
+                      <span className="text-[10px] text-purple-400/60 font-mono">+75%</span>
+                    </div>
                   </div>
 
-                  <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-rose-500/20">
-                    <span className="text-[10px] text-rose-400 block truncate">Dominicales (+75%/+100%)</span>
-                    <span className="text-sm font-bold text-rose-300 font-mono">
-                      {((detalleTurno.horasDominicalOrdinaria || 0) + (detalleTurno.horasExtraDominicalDiurna || 0) + (detalleTurno.horasExtraDominicalNocturna || 0))}h
-                    </span>
+                  {/* 5. DOM - Dominical */}
+                  <div className="bg-[#0E0E14] p-2.5 rounded-xl border border-rose-500/30 flex flex-col justify-between" title="DOM - Horas Dominicales (+75% / +100%)">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[10px] font-black font-mono px-1.5 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-500/40">
+                        DOM
+                      </span>
+                      <span className="text-[11px] font-semibold text-rose-200 leading-tight">
+                        Dominical
+                      </span>
+                    </div>
+                    <div className="flex items-baseline justify-between mt-2">
+                      <span className="text-base font-black text-rose-300 font-mono">
+                        {((detalleTurno.horasDominicalOrdinaria || 0) + (detalleTurno.horasExtraDominicalDiurna || 0) + (detalleTurno.horasExtraDominicalNocturna || 0))}h
+                      </span>
+                      <span className="text-[10px] text-rose-400/60 font-mono">+75%</span>
+                    </div>
                   </div>
 
-                  <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-orange-500/20">
-                    <span className="text-[10px] text-orange-400 block truncate">Festivas (+75%/+100%)</span>
-                    <span className="text-sm font-bold text-orange-300 font-mono">
-                      {((detalleTurno.horasFestivoOrdinaria || 0) + (detalleTurno.horasExtraFestivoDiurna || 0) + (detalleTurno.horasExtraFestivoNocturna || 0))}h
-                    </span>
+                  {/* 6. HEF - Festivos */}
+                  <div className="bg-[#0E0E14] p-2.5 rounded-xl border border-orange-500/30 flex flex-col justify-between" title="HEF - Horas Festivas (+75% / +100%)">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[10px] font-black font-mono px-1.5 py-0.5 rounded bg-orange-950 text-orange-300 border border-orange-500/40">
+                        HEF
+                      </span>
+                      <span className="text-[11px] font-semibold text-orange-200 leading-tight">
+                        Festivos
+                      </span>
+                    </div>
+                    <div className="flex items-baseline justify-between mt-2">
+                      <span className="text-base font-black text-orange-300 font-mono">
+                        {((detalleTurno.horasFestivoOrdinaria || 0) + (detalleTurno.horasExtraFestivoDiurna || 0) + (detalleTurno.horasExtraFestivoNocturna || 0))}h
+                      </span>
+                      <span className="text-[10px] text-orange-400/60 font-mono">+75%</span>
+                    </div>
                   </div>
 
-                  <div className="bg-[#0E0E14] p-2.5 rounded-lg border border-zinc-700/30">
-                    <span className="text-[10px] text-zinc-400 block truncate">Descanso / Almuerzo</span>
-                    <span className="text-sm font-bold text-zinc-300 font-mono">{detalleTurno.minutosDescanso} min</span>
+                  {/* 7. DESC - Descanso / Almuerzo */}
+                  <div className="bg-[#0E0E14] p-2.5 rounded-xl border border-zinc-700/40 flex flex-col justify-between" title="DESC - Tiempo de Descanso / Almuerzo">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[10px] font-black font-mono px-1.5 py-0.5 rounded bg-zinc-900 text-zinc-400 border border-zinc-700/50">
+                        DESC
+                      </span>
+                      <span className="text-[11px] font-semibold text-zinc-400 leading-tight">
+                        Descanso
+                      </span>
+                    </div>
+                    <div className="flex items-baseline justify-between mt-2">
+                      <span className="text-base font-black text-zinc-200 font-mono">{detalleTurno.minutosDescanso} min</span>
+                      <span className="text-[10px] text-zinc-500 font-mono">Pausa</span>
+                    </div>
                   </div>
 
-                  <div className="bg-emerald-950/40 p-2.5 rounded-lg border border-emerald-500/40">
-                    <span className="text-[10px] text-emerald-400 block font-bold truncate">Total Horas Extras</span>
-                    <span className="text-sm font-black text-emerald-300 font-mono">{detalleTurno.totalHorasExtras}h</span>
+                  {/* 8. EXTRAS - Total Horas Extras */}
+                  <div className="bg-emerald-950/40 p-2.5 rounded-xl border border-emerald-500/40 flex flex-col justify-between" title="EXTRAS - Total Horas Extras (HED + HEN + Extras Festivas/Dominicales)">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[10px] font-black font-mono px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/50">
+                        EXTRAS
+                      </span>
+                      <span className="text-[11px] font-black text-emerald-300 leading-tight">
+                        Total Extras
+                      </span>
+                    </div>
+                    <div className="flex items-baseline justify-between mt-2">
+                      <span className="text-base font-black text-emerald-300 font-mono">{detalleTurno.totalHorasExtras}h</span>
+                      <span className="text-[10px] text-emerald-400 font-bold font-mono">Acumulado</span>
+                    </div>
                   </div>
                 </div>
 
