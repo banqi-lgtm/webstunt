@@ -75,6 +75,13 @@ function getTodayColombia(): string {
 }
 
 /**
+ * Normaliza cadenas de texto quitando acentos, espacios extra y convirtiendo a mayúsculas.
+ */
+function normalizeStr(str: string): string {
+  return (str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim();
+}
+
+/**
  * Parsea textos como "07 al 13-feb", "1-Feb", "28 al 31 octubre", "22 -September" a fechas ISO (YYYY-MM-DD).
  */
 function parseDateRange(rawStr: string, monthContext: string, year = '2026'): { start: string; end: string } {
@@ -195,6 +202,24 @@ function determineEstadoEvento(
   }
 
   return estadoActual || 'Programado';
+}
+
+/**
+ * Obtiene la fecha representativa en formato ISO (YYYY-MM-DD)
+ * para ordenar los eventos de forma consistente del más reciente al más antiguo.
+ */
+function getSortDate(c: CentroCostoItem): string {
+  if (c.fechaFin && /^\d{4}-\d{2}-\d{2}$/.test(c.fechaFin)) return c.fechaFin;
+  if (c.fechaInicio && /^\d{4}-\d{2}-\d{2}$/.test(c.fechaInicio)) return c.fechaInicio;
+  if (c.fecha && c.fecha !== 'Por definir') {
+    const p = parseDateRange(c.fecha, c.mes || '');
+    if (p.end) return p.end;
+    if (p.start) return p.start;
+  }
+  if (c.mes && MES_NUM[c.mes.toUpperCase()]) {
+    return `2026-${MES_NUM[c.mes.toUpperCase()]}-15`;
+  }
+  return '1900-01-01';
 }
 
 // 50 CCOs oficiales del archivo public/ccos.xlsx con Ciudad, Fechas Reales y Estado
@@ -420,9 +445,6 @@ export default function CentrosDeCostoPage() {
 
         let needsUpdate = false;
 
-        const normalizeStr = (str: string) =>
-          (str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim();
-
         // 1. Auto-heal con la semilla canónica de los 50 CCOs oficiales del Excel
         const normRaw = normalizeStr(rawName);
         const normDocId = normalizeStr(docId);
@@ -526,6 +548,21 @@ export default function CentrosDeCostoPage() {
         });
       });
 
+      // Deduplicar documentos redundantes en Firestore (mismo nombre normalizado y mes)
+      const uniqueList: CentroCostoItem[] = [];
+      const seenNames = new Map<string, string>(); // normKey -> docId conservado
+
+      for (const item of list) {
+        const normKey = `${normalizeStr(item.nombre)}_${normalizeStr(item.mes || '')}`;
+        if (seenNames.has(normKey)) {
+          // Documento duplicado en Firestore -> marcar para eliminar
+          toDeleteDocs.push(item.id);
+        } else {
+          seenNames.set(normKey, item.id);
+          uniqueList.push(item);
+        }
+      }
+
       if (toDeleteDocs.length > 0) {
         Promise.all(toDeleteDocs.map(id => deleteDoc(doc(db, 'centrosCosto', id)))).catch(console.error);
       }
@@ -537,10 +574,10 @@ export default function CentrosDeCostoPage() {
       }
 
       // Si hay menos de 20 CCOs en la base de datos, poblar con los 50 de ccos.xlsx
-      if (autoSeedIfEmpty && list.length < 20) {
-        const existingNames = new Set(list.map(c => c.nombre));
+      if (autoSeedIfEmpty && uniqueList.length < 20) {
+        const existingNames = new Set(uniqueList.map(c => normalizeStr(c.nombre)));
         for (const item of CANONICAL_CCOS_SEED) {
-          if (!existingNames.has(item.nombre)) {
+          if (!existingNames.has(normalizeStr(item.nombre))) {
             const autoEst = determineEstadoEvento(item.fechaInicio, item.fechaFin, item.estado);
             const newItem: CentroCostoItem = {
               ...item,
@@ -548,14 +585,22 @@ export default function CentrosDeCostoPage() {
               creadoEl: new Date().toISOString(),
               actualizadoEl: new Date().toISOString()
             };
-            list.push(newItem);
+            uniqueList.push(newItem);
             setDoc(doc(db, 'centrosCosto', item.id), newItem, { merge: true }).catch(console.error);
           }
         }
       }
 
-      list.sort((a, b) => a.nombre.localeCompare(b.nombre));
-      setCentros(list);
+      // Ordenar SIEMPRE del más reciente al más antiguo (Fecha descendente)
+      uniqueList.sort((a, b) => {
+        const dateA = getSortDate(a);
+        const dateB = getSortDate(b);
+        if (dateA !== dateB) {
+          return dateB.localeCompare(dateA); // Más reciente primero
+        }
+        return a.nombre.localeCompare(b.nombre);
+      });
+      setCentros(uniqueList);
     } catch (err) {
       console.error(err);
       toast({ title: 'Error', description: 'No se pudieron cargar los centros de costo.', variant: 'destructive' });
@@ -947,9 +992,9 @@ export default function CentrosDeCostoPage() {
     toast({ title: 'Exportado', description: `Se descargó el archivo Excel con ${exportData.length} registros.` });
   };
 
-  // Filtered List
+  // Filtered List - Ordenado siempre del más reciente al más antiguo
   const filteredCentros = useMemo(() => {
-    return centros.filter(c => {
+    const list = centros.filter(c => {
       if (sinPeriodoFilter && c.fecha && c.fecha !== 'Por definir') {
         return false;
       }
@@ -971,6 +1016,15 @@ export default function CentrosDeCostoPage() {
         (c.mes && c.mes.toLowerCase().includes(q)) ||
         c.estado.toLowerCase().includes(q)
       );
+    });
+
+    return list.sort((a, b) => {
+      const dateA = getSortDate(a);
+      const dateB = getSortDate(b);
+      if (dateA !== dateB) {
+        return dateB.localeCompare(dateA); // Más reciente primero (descendente)
+      }
+      return a.nombre.localeCompare(b.nombre);
     });
   }, [centros, searchQuery, estadoFilter, mesFilter, ciudadFilter, sinPeriodoFilter]);
 
@@ -1306,9 +1360,6 @@ export default function CentrosDeCostoPage() {
                           <span className="font-bold text-white text-sm tracking-wide block uppercase">
                             {c.nombre}
                           </span>
-                          {c.origen === 'EXCEL_CCOS' && (
-                            <span className="text-[9px] text-purple-400 font-mono">Oficial ccos.xlsx</span>
-                          )}
                           {c.observaciones && (
                             <div className="mt-1 text-[11px] text-zinc-300 bg-black/40 px-2.5 py-1 rounded-lg border border-zinc-800/80 font-normal flex items-start gap-1">
                               <span className="text-amber-400 font-bold shrink-0">Nota:</span>
