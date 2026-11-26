@@ -12,6 +12,7 @@ export interface HorarioLaboralStaff {
 
 export interface InputTurnoStaff {
   fecha: string; // YYYY-MM-DD
+  fechaFin?: string; // YYYY-MM-DD (Obligatorio si la salida es menor a la entrada / cruza medianoche)
   horaEntrada: string; // "HH:mm"
   horaSalida: string; // "HH:mm"
   minutosDescanso?: number; // default 0 o minutos indicados
@@ -46,6 +47,9 @@ export interface ResultadoCalculoHoras {
   totalHorasOrdinarias: number; // Ordinarias diurnas + dominicales ordinarias + festivas ordinarias
   totalHorasExtras: number; // HED + HEN + Extras Dominicales + Extras Festivas
   totalHorasDominicalesYFestivas: number; // Toda hora en domingo o festivo
+  
+  fechaFin?: string;
+  cruzaMedianoche: boolean;
   
   esDomingo: boolean;
   esFestivo: boolean;
@@ -171,6 +175,26 @@ function parseDateTime(fechaStr: string, horaStr: string): Date {
 }
 
 /**
+ * Retorna la fecha del día siguiente en formato "YYYY-MM-DD".
+ */
+export function getDiaSiguiente(fechaYMD: string): string {
+  if (!fechaYMD) return '';
+  const [y, m, d] = fechaYMD.split('-').map(Number);
+  const nextDate = new Date(y, m - 1, d + 1);
+  return `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}-${String(nextDate.getDate()).padStart(2, '0')}`;
+}
+
+/**
+ * Convierte hora "HH:mm" o "HH:mm AM/PM" a minutos totales del día (0 a 1439).
+ */
+export function horaAMinutos(horaStr: string): number {
+  if (!horaStr) return 0;
+  const norm = normalizeHora(horaStr);
+  const [h, m] = norm.split(':').map(Number);
+  return (h || 0) * 60 + (m || 0);
+}
+
+/**
  * Redondea a 2 decimales para evitar artefactos de punto flotante en minutos.
  */
 function toHoras(minutos: number): number {
@@ -188,10 +212,12 @@ function toHoras(minutos: number): number {
  * 4. Días domingos: Considerados descanso legal. Si se trabajan, reciben recargo dominical (+75%) en ordinarias y 100%/150% en extras.
  * 5. Días festivos oficiales de Colombia: Identificados automáticamente con recargo festivo (+75%) en ordinarias y 100%/150% en extras.
  * 6. Horas faltantes: Si en día hábil laborado cumple menos de 7h, se calcula la diferencia.
+ * 7. Turnos que cruzan la medianoche: Si horaSalida < horaEntrada, se exige fechaFin para calcular los días exactos.
  */
 export function calculateOvertimeColombia(input: InputTurnoStaff): ResultadoCalculoHoras {
   const {
     fecha,
+    fechaFin,
     horaEntrada,
     horaSalida,
     minutosDescanso = 0,
@@ -207,12 +233,26 @@ export function calculateOvertimeColombia(input: InputTurnoStaff): ResultadoCalc
   const valorHora = horarioLaboral.valorHoraOrdinaria || 0;
 
   let start = parseDateTime(fecha, horaEntrada);
-  let end = parseDateTime(fecha, horaSalida);
+  let end: Date;
 
-  // Si la salida es menor o igual a la entrada, el turno cruzó la medianoche (+24h)
-  if (end.getTime() <= start.getTime()) {
-    end = new Date(end.getTime() + 24 * 60 * 60 * 1000);
+  if (fechaFin) {
+    end = parseDateTime(fechaFin, horaSalida);
+  } else {
+    end = parseDateTime(fecha, horaSalida);
+    // Si la salida es menor o igual a la entrada, el turno cruzó la medianoche (+24h)
+    if (end.getTime() <= start.getTime()) {
+      end = new Date(end.getTime() + 24 * 60 * 60 * 1000);
+    }
   }
+
+  // Detectar si el turno termina en una fecha diferente (cruza medianoche)
+  const cruzaMedianoche = Boolean(
+    start.getFullYear() !== end.getFullYear() ||
+    start.getMonth() !== end.getMonth() ||
+    start.getDate() !== end.getDate()
+  );
+
+  const fechaFinCalculada = fechaFin || `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`;
 
   // 1. Minutos brutos de presencia
   const diffMs = end.getTime() - start.getTime();
@@ -248,6 +288,8 @@ export function calculateOvertimeColombia(input: InputTurnoStaff): ResultadoCalc
       totalHorasOrdinarias: 0,
       totalHorasExtras: 0,
       totalHorasDominicalesYFestivas: 0,
+      fechaFin: fechaFinCalculada,
+      cruzaMedianoche,
       esDomingo: esDomingoInicial,
       esFestivo: esFestivoInicial,
       esDominicalOFestivo: festivoInfoInicial.esDominicalOFestivo,
@@ -429,6 +471,8 @@ export function calculateOvertimeColombia(input: InputTurnoStaff): ResultadoCalc
     totalHorasOrdinarias,
     totalHorasExtras,
     totalHorasDominicalesYFestivas,
+    fechaFin: fechaFinCalculada,
+    cruzaMedianoche,
     esDomingo: esDomingoInicial,
     esFestivo: esFestivoInicial,
     esDominicalOFestivo: festivoInfoInicial.esDominicalOFestivo,

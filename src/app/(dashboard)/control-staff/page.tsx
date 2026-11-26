@@ -8,7 +8,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { 
   Search, Clock, Calendar, Plus, Edit3, Trash2, Download, AlertTriangle, 
   CheckCircle2, Settings, X, Loader2, Building2, Sun, Moon,
-  DollarSign, ArrowLeft, Users, Filter, Sparkles, Eye, BarChart3,
+  DollarSign, ArrowLeft, ArrowRight, Users, Filter, Sparkles, Eye, BarChart3,
   CalendarDays, FileSpreadsheet, ChevronRight, Check
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -20,7 +20,9 @@ import {
   HorarioLaboralStaff, 
   ResultadoCalculoHoras,
   formatHora12,
-  getInfoPeriodoHora
+  getInfoPeriodoHora,
+  getDiaSiguiente,
+  horaAMinutos
 } from '@/lib/overtime-calculator';
 import { isDominicalOFestivoColombia } from '@/lib/colombian-holidays';
 
@@ -42,6 +44,8 @@ interface TurnoStaffRecord {
   staffNombre: string;
   staffIdentificacion: string;
   fecha: string; // YYYY-MM-DD
+  fechaFin?: string; // YYYY-MM-DD
+  cruzaMedianoche?: boolean;
   horaEntrada: string; // HH:mm
   horaSalida: string; // HH:mm
   minutosDescanso: number;
@@ -122,11 +126,29 @@ export default function ControlStaffPage() {
   // Form states: Registro de Turno
   const [formStaffUid, setFormStaffUid] = useState('');
   const [formFecha, setFormFecha] = useState(new Date().toISOString().substring(0, 10));
+  const [formFechaFin, setFormFechaFin] = useState('');
   const [formHoraEntrada, setFormHoraEntrada] = useState('08:00');
   const [formHoraSalida, setFormHoraSalida] = useState('16:00');
   const [formMinutosDescanso, setFormMinutosDescanso] = useState(60);
   const [formCentroCosto, setFormCentroCosto] = useState('');
   const [formObservaciones, setFormObservaciones] = useState('');
+
+  // Detección automática si la jornada termina al día siguiente (horaSalida < horaEntrada)
+  const cruzaAlOtroDia = useMemo(() => {
+    if (!formHoraEntrada || !formHoraSalida) return false;
+    return horaAMinutos(formHoraSalida) < horaAMinutos(formHoraEntrada);
+  }, [formHoraEntrada, formHoraSalida]);
+
+  // Si cruza al otro día, autocompletar formFechaFin con el día siguiente si está vacía o inválida
+  useEffect(() => {
+    if (cruzaAlOtroDia) {
+      if (!formFechaFin || formFechaFin <= formFecha) {
+        setFormFechaFin(getDiaSiguiente(formFecha));
+      }
+    } else {
+      setFormFechaFin(formFecha);
+    }
+  }, [cruzaAlOtroDia, formFecha]);
 
   // Check auth & permissions (requiere control-staff, admin o superAdmin)
   useEffect(() => {
@@ -215,6 +237,8 @@ export default function ControlStaffPage() {
             staffNombre: t.staffNombre || 'Staff',
             staffIdentificacion: t.staffIdentificacion || '',
             fecha: t.fecha || '',
+            fechaFin: t.fechaFin || (horaAMinutos(t.horaSalida || '') < horaAMinutos(t.horaEntrada || '') ? getDiaSiguiente(t.fecha || '') : t.fecha || ''),
+            cruzaMedianoche: Boolean(t.cruzaMedianoche || (horaAMinutos(t.horaSalida || '') < horaAMinutos(t.horaEntrada || ''))),
             horaEntrada: t.horaEntrada || '',
             horaSalida: t.horaSalida || '',
             minutosDescanso: t.minutosDescanso || 0,
@@ -265,12 +289,13 @@ export default function ControlStaffPage() {
     const selectedStaff = staffList.find(s => s.uid === formStaffUid);
     return calculateOvertimeColombia({
       fecha: formFecha,
+      fechaFin: cruzaAlOtroDia ? formFechaFin : formFecha,
       horaEntrada: formHoraEntrada,
       horaSalida: formHoraSalida,
       minutosDescanso: Number(formMinutosDescanso) || 0,
       horarioLaboral: selectedStaff?.horarioLaboral
     });
-  }, [staffList, formStaffUid, formFecha, formHoraEntrada, formHoraSalida, formMinutosDescanso]);
+  }, [staffList, formStaffUid, formFecha, formFechaFin, cruzaAlOtroDia, formHoraEntrada, formHoraSalida, formMinutosDescanso]);
 
   // Abrir modal de nuevo turno
   const handleOpenNewTurno = (presetStaffUid?: string) => {
@@ -280,6 +305,7 @@ export default function ControlStaffPage() {
     
     setFormStaffUid(defaultStaff);
     setFormFecha(new Date().toISOString().substring(0, 10));
+    setFormFechaFin('');
     setFormHoraEntrada(staffObj?.horarioLaboral?.horaEntradaDefecto || '08:00');
     setFormHoraSalida(staffObj?.horarioLaboral?.horaSalidaDefecto || '16:00');
     setFormMinutosDescanso(staffObj?.horarioLaboral?.minutosDescansoDefecto ?? 60);
@@ -293,6 +319,8 @@ export default function ControlStaffPage() {
     setEditingTurno(t);
     setFormStaffUid(t.staffUid);
     setFormFecha(t.fecha);
+    const cruzaba = Boolean(t.cruzaMedianoche || (horaAMinutos(t.horaSalida) < horaAMinutos(t.horaEntrada)));
+    setFormFechaFin(t.fechaFin || (cruzaba ? getDiaSiguiente(t.fecha) : t.fecha));
     setFormHoraEntrada(t.horaEntrada);
     setFormHoraSalida(t.horaSalida);
     setFormMinutosDescanso(t.minutosDescanso);
@@ -309,6 +337,25 @@ export default function ControlStaffPage() {
       return;
     }
 
+    if (cruzaAlOtroDia) {
+      if (!formFechaFin) {
+        toast({
+          title: 'Fecha Fin Obligatoria',
+          description: 'La hora de salida es menor a la de entrada (termina al día siguiente). Debes seleccionar la fecha de fin de jornada.',
+          variant: 'destructive'
+        });
+        return;
+      }
+      if (formFechaFin < formFecha) {
+        toast({
+          title: 'Fecha Fin Inválida',
+          description: 'La fecha de fin de jornada no puede ser anterior a la fecha de inicio del turno.',
+          variant: 'destructive'
+        });
+        return;
+      }
+    }
+
     const staffObj = staffList.find(s => s.uid === formStaffUid);
     if (!staffObj) return;
 
@@ -321,6 +368,8 @@ export default function ControlStaffPage() {
         staffNombre: `${staffObj.nombres} ${staffObj.apellidos}`.trim(),
         staffIdentificacion: staffObj.numeroIdentificacion || 'N/A',
         fecha: formFecha,
+        fechaFin: cruzaAlOtroDia ? formFechaFin : formFecha,
+        cruzaMedianoche: cruzaAlOtroDia,
         horaEntrada: formHoraEntrada,
         horaSalida: formHoraSalida,
         minutosDescanso: Number(formMinutosDescanso) || 0,
@@ -396,7 +445,8 @@ export default function ControlStaffPage() {
     }
 
     const dataToExport = turnosFiltrados.map(t => ({
-      'Fecha': t.fecha,
+      'Fecha Inicio': t.fecha,
+      'Fecha Fin': t.fechaFin || t.fecha,
       'Colaborador': t.staffNombre,
       'Identificación': t.staffIdentificacion,
       'Hora Entrada': t.horaEntrada,
@@ -891,6 +941,11 @@ export default function ControlStaffPage() {
                         <div className="flex items-center justify-between text-xs font-mono text-zinc-400">
                           <div className="flex items-center flex-wrap gap-1">
                             <span className="text-white font-bold">{t.fecha}</span>
+                            {t.fechaFin && t.fechaFin !== t.fecha && (
+                              <span className="text-[10px] font-mono text-purple-300 bg-purple-950/60 px-1.5 py-0.2 rounded border border-purple-500/30">
+                                🌙 Fin: {t.fechaFin}
+                              </span>
+                            )}
                             <span className="mx-1">•</span>
                             <span className="text-white font-semibold">{formatHora12(t.horaEntrada, false)} - {formatHora12(t.horaSalida, false)}</span>
                             {(t.horaEntrada === '12:00' || t.horaSalida === '12:00' || t.horaEntrada === '00:00' || t.horaSalida === '00:00') && (
@@ -960,7 +1015,12 @@ export default function ControlStaffPage() {
                               <div className="text-[10px] text-zinc-500 font-mono">CC: {t.staffIdentificacion}</div>
                             </td>
                             <td className="py-3 px-3 whitespace-nowrap font-mono font-medium text-zinc-300">
-                              {t.fecha}
+                              <div>{t.fecha}</div>
+                              {t.fechaFin && t.fechaFin !== t.fecha && (
+                                <span className="inline-block text-[10px] text-purple-300 bg-purple-950/60 px-1.5 py-0.5 rounded border border-purple-500/30 font-bold mt-0.5">
+                                  🌙 Fin: {t.fechaFin}
+                                </span>
+                              )}
                               {t.esDominicalOFestivo && (
                                 <span className="block text-[9px] text-amber-400 font-bold">
                                   {t.nombreFestivo || 'Dominical'}
@@ -1430,6 +1490,46 @@ export default function ControlStaffPage() {
                 </div>
               </div>
 
+              {/* CAMPO OBLIGATORIO: Fecha Fin de Jornada si horaSalida < horaEntrada */}
+              {cruzaAlOtroDia && (
+                <div className="p-3 bg-purple-950/40 border border-purple-500/40 rounded-xl space-y-2 animate-in fade-in duration-200">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-purple-300 uppercase tracking-wider flex items-center gap-1.5">
+                      <Calendar className="w-4 h-4 text-purple-400" />
+                      <span>Fecha Fin de Jornada * (Obligatorio)</span>
+                    </label>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-900/60 text-purple-200 border border-purple-500/30">
+                      🌙 Termina al otro día
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-zinc-300">
+                    Como la hora de salida ({formatHora12(formHoraSalida)}) es menor a la de entrada ({formatHora12(formHoraEntrada)}), la jornada culmina al día siguiente.
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="date"
+                      required
+                      value={formFechaFin}
+                      min={formFecha}
+                      onChange={(e) => setFormFechaFin(e.target.value)}
+                      className="flex-1 px-3 py-2 bg-black/60 border border-purple-500/50 focus:border-purple-400 rounded-xl text-xs text-white outline-none font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setFormFechaFin(getDiaSiguiente(formFecha))}
+                      className="px-2.5 py-2 rounded-xl bg-purple-900/40 hover:bg-purple-900/70 border border-purple-500/30 text-purple-200 text-[11px] font-bold whitespace-nowrap"
+                    >
+                      +1 Día
+                    </button>
+                  </div>
+                  {formFechaFin && formFechaFin < formFecha && (
+                    <span className="text-[11px] text-red-400 font-medium block">
+                      ⚠️ La fecha fin no puede ser anterior a la fecha de inicio ({formFecha}).
+                    </span>
+                  )}
+                </div>
+              )}
+
               {/* Aviso si la estancia supera 14 horas */}
               {liveCalculation.horasBrutasEstancia >= 14 && (
                 <div className="p-2.5 bg-amber-950/40 border border-amber-500/30 rounded-xl text-xs space-y-1 text-amber-200">
@@ -1560,8 +1660,15 @@ export default function ControlStaffPage() {
               {/* Header info */}
               <div className="bg-black/40 border border-zinc-800/80 rounded-xl p-3 space-y-1.5 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="text-zinc-400">Fecha del Turno:</span>
-                  <span className="text-white font-mono font-bold">{formatFechaCompleta(detalleTurno.fecha)}</span>
+                  <span className="text-zinc-400">Fecha(s) del Turno:</span>
+                  <div className="text-right">
+                    <span className="text-white font-mono font-bold block">{formatFechaCompleta(detalleTurno.fecha)}</span>
+                    {detalleTurno.fechaFin && detalleTurno.fechaFin !== detalleTurno.fecha && (
+                      <span className="text-[11px] text-purple-400 font-mono font-bold block">
+                        ➔ Termina el {formatFechaCompleta(detalleTurno.fechaFin)} (🌙 +1 día)
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-center justify-between border-t border-zinc-800/60 pt-1.5">
                   <span className="text-zinc-400">Horario Registrado:</span>

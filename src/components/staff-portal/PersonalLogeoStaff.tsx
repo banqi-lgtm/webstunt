@@ -16,7 +16,9 @@ import {
   HorarioLaboralStaff, 
   ResultadoCalculoHoras,
   formatHora12,
-  getInfoPeriodoHora
+  getInfoPeriodoHora,
+  getDiaSiguiente,
+  horaAMinutos
 } from '@/lib/overtime-calculator';
 import { isDominicalOFestivoColombia } from '@/lib/colombian-holidays';
 
@@ -26,6 +28,8 @@ export interface TurnoPersonalRecord {
   staffNombre: string;
   staffIdentificacion: string;
   fecha: string; // YYYY-MM-DD
+  fechaFin?: string; // YYYY-MM-DD
+  cruzaMedianoche?: boolean;
   horaEntrada: string; // HH:mm
   horaSalida: string; // HH:mm
   minutosDescanso: number;
@@ -96,6 +100,7 @@ export function PersonalLogeoStaff({ userUid, userName, userDocument }: Personal
 
   // Form states
   const [formFecha, setFormFecha] = useState<string>(new Date().toISOString().substring(0, 10));
+  const [formFechaFin, setFormFechaFin] = useState<string>('');
   const [formHoraEntrada, setFormHoraEntrada] = useState<string>('08:00');
   const [formHoraSalida, setFormHoraSalida] = useState<string>('16:00');
   const [formMinutosDescanso, setFormMinutosDescanso] = useState<number>(60);
@@ -173,6 +178,8 @@ export function PersonalLogeoStaff({ userUid, userName, userDocument }: Personal
           staffNombre: t.staffNombre || fixedNombre,
           staffIdentificacion: t.staffIdentificacion || fixedIdentificacion,
           fecha: t.fecha || '',
+          fechaFin: t.fechaFin || (horaAMinutos(t.horaSalida || '') < horaAMinutos(t.horaEntrada || '') ? getDiaSiguiente(t.fecha) : t.fecha),
+          cruzaMedianoche: Boolean(t.cruzaMedianoche || (horaAMinutos(t.horaSalida || '') < horaAMinutos(t.horaEntrada || ''))),
           horaEntrada: t.horaEntrada || '',
           horaSalida: t.horaSalida || '',
           minutosDescanso: t.minutosDescanso || 0,
@@ -223,16 +230,34 @@ export function PersonalLogeoStaff({ userUid, userName, userDocument }: Personal
     return isDominicalOFestivoColombia(formFecha);
   }, [formFecha]);
 
+  // Si la hora de salida es menor a la de entrada, el turno terminó al día siguiente
+  const cruzaAlOtroDia = useMemo(() => {
+    if (!formHoraEntrada || !formHoraSalida) return false;
+    return horaAMinutos(formHoraSalida) < horaAMinutos(formHoraEntrada);
+  }, [formHoraEntrada, formHoraSalida]);
+
+  // Sincronización automática de fecha fin si cruza al día siguiente
+  useEffect(() => {
+    if (cruzaAlOtroDia) {
+      if (!formFechaFin || formFechaFin <= formFecha) {
+        setFormFechaFin(getDiaSiguiente(formFecha));
+      }
+    } else {
+      setFormFechaFin(formFecha);
+    }
+  }, [cruzaAlOtroDia, formFecha]);
+
   // Real-time Overtime Calculation Preview
   const liveCalculation: ResultadoCalculoHoras = useMemo(() => {
     return calculateOvertimeColombia({
       fecha: formFecha,
+      fechaFin: cruzaAlOtroDia ? formFechaFin : formFecha,
       horaEntrada: formHoraEntrada,
       horaSalida: formHoraSalida,
       minutosDescanso: Number(formMinutosDescanso) || 0,
       horarioLaboral: horarioParametrizado
     });
-  }, [formFecha, formHoraEntrada, formHoraSalida, formMinutosDescanso, horarioParametrizado]);
+  }, [formFecha, formFechaFin, cruzaAlOtroDia, formHoraEntrada, formHoraSalida, formMinutosDescanso, horarioParametrizado]);
 
   // Quick Date Selectors
   const setDateToday = () => {
@@ -362,6 +387,24 @@ export function PersonalLogeoStaff({ userUid, userName, userDocument }: Personal
       return;
     }
 
+    if (cruzaAlOtroDia && !formFechaFin) {
+      toast({ 
+        title: 'Fecha fin requerida', 
+        description: 'Como la hora de salida es menor a la de entrada, el turno termina al día siguiente. Por favor selecciona la Fecha Fin.', 
+        variant: 'destructive' 
+      });
+      return;
+    }
+
+    if (cruzaAlOtroDia && formFechaFin < formFecha) {
+      toast({ 
+        title: 'Fecha fin inválida', 
+        description: 'La fecha fin no puede ser anterior a la fecha de inicio.', 
+        variant: 'destructive' 
+      });
+      return;
+    }
+
     setIsSaving(true);
     try {
       const payload = {
@@ -369,6 +412,8 @@ export function PersonalLogeoStaff({ userUid, userName, userDocument }: Personal
         staffNombre: fixedNombre || 'Staff',
         staffIdentificacion: fixedIdentificacion || 'N/A',
         fecha: formFecha,
+        fechaFin: cruzaAlOtroDia ? formFechaFin : formFecha,
+        cruzaMedianoche: cruzaAlOtroDia,
         horaEntrada: formHoraEntrada,
         horaSalida: formHoraSalida,
         minutosDescanso: Number(formMinutosDescanso) || 0,
@@ -443,6 +488,7 @@ export function PersonalLogeoStaff({ userUid, userName, userDocument }: Personal
   const handleEditTurno = (t: TurnoPersonalRecord) => {
     setEditingTurno(t);
     setFormFecha(t.fecha);
+    setFormFechaFin(t.fechaFin || (horaAMinutos(t.horaSalida) < horaAMinutos(t.horaEntrada) ? getDiaSiguiente(t.fecha) : t.fecha));
     setFormHoraEntrada(t.horaEntrada);
     setFormHoraSalida(t.horaSalida);
     setFormMinutosDescanso(t.minutosDescanso);
@@ -806,6 +852,44 @@ export function PersonalLogeoStaff({ userUid, userName, userDocument }: Personal
               </div>
             </div>
 
+            {/* CAMPO OBLIGATORIO: FECHA FIN DE JORNADA (SI TERMINÓ AL OTRO DÍA) */}
+            {cruzaAlOtroDia && (
+              <div className="p-3 bg-purple-950/40 border border-purple-500/50 rounded-xl space-y-2 animate-fadeIn shadow-inner">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-purple-200 uppercase tracking-wider flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-purple-400" />
+                    <span>Fecha Fin de Jornada</span>
+                    <span className="text-red-400 font-black">* (Obligatorio)</span>
+                  </label>
+                  <span className="text-[10px] bg-purple-900 text-purple-200 px-2 py-0.5 rounded-full border border-purple-400/40 font-bold flex items-center gap-1">
+                    <Moon className="w-3 h-3 text-purple-300" />
+                    Termina al día siguiente
+                  </span>
+                </div>
+                <p className="text-[11px] text-zinc-300">
+                  La hora de salida (<strong>{formatHora12(formHoraSalida, false)}</strong>) es menor a la de entrada (<strong>{formatHora12(formHoraEntrada, false)}</strong>), lo que indica que el turno finalizó al otro día.
+                </p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="date"
+                    required
+                    min={formFecha}
+                    value={formFechaFin}
+                    onChange={(e) => setFormFechaFin(e.target.value)}
+                    className="w-full px-3 py-2 bg-black/80 border border-purple-500/60 focus:border-purple-400 rounded-xl text-xs font-bold text-white outline-none font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setFormFechaFin(getDiaSiguiente(formFecha))}
+                    className="px-3 py-2 bg-purple-900/70 hover:bg-purple-800 text-purple-200 rounded-xl text-xs font-bold border border-purple-500/40 whitespace-nowrap transition"
+                    title="Asignar automáticamente el día siguiente"
+                  >
+                    Día Siguiente
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Aviso inteligente si el turno supera 14 horas para evitar confusión 12 AM vs 12 PM */}
             {liveCalculation.horasBrutasEstancia >= 14 && (
               <div className="p-2.5 bg-amber-950/40 border border-amber-500/30 rounded-xl text-xs space-y-1 text-amber-200">
@@ -992,6 +1076,11 @@ export function PersonalLogeoStaff({ userUid, userName, userDocument }: Personal
                       <div className="flex items-center justify-between">
                         <div>
                           <span className="font-mono font-black text-white text-sm">{t.fecha}</span>
+                          {t.fechaFin && t.fechaFin !== t.fecha && (
+                            <span className="ml-1.5 text-[10px] text-purple-300 font-semibold bg-purple-950/80 px-1.5 py-0.5 rounded border border-purple-500/30">
+                              🌙 Fin: {t.fechaFin}
+                            </span>
+                          )}
                           {t.esDominicalOFestivo && (
                             <span className="ml-2 text-[9px] px-1.5 py-0.2 rounded bg-amber-950 text-amber-300 border border-amber-600/30 font-bold">
                               {t.nombreFestivo || 'Dominical'}
@@ -1082,6 +1171,12 @@ export function PersonalLogeoStaff({ userUid, userName, userDocument }: Personal
                         <tr key={t.id} className="hover:bg-zinc-900/40 transition">
                           <td className="px-4 py-3 whitespace-nowrap">
                             <div className="font-mono font-bold text-white text-xs">{t.fecha}</div>
+                            {t.fechaFin && t.fechaFin !== t.fecha && (
+                              <div className="text-[10px] text-purple-400 font-semibold flex items-center gap-1 mt-0.5">
+                                <span>Fin: {t.fechaFin}</span>
+                                <span className="text-[9px] bg-purple-950 px-1 rounded border border-purple-500/30">🌙 +1d</span>
+                              </div>
+                            )}
                             {t.esDominicalOFestivo && (
                               <span className="inline-block mt-0.5 text-[9px] px-1.5 py-0.2 rounded bg-amber-950 text-amber-300 border border-amber-600/30">
                                 {t.nombreFestivo || 'Dominical'}
@@ -1305,6 +1400,15 @@ export function PersonalLogeoStaff({ userUid, userName, userDocument }: Personal
                 <span className="text-zinc-300 font-mono">CC: {detalleTurno.staffIdentificacion}</span>
               </div>
               <div className="flex items-center justify-between border-t border-zinc-800/60 pt-2">
+                <span className="text-zinc-400">Fecha(s) del Turno:</span>
+                <span className="text-white font-mono font-bold text-right">
+                  {detalleTurno.fecha}
+                  {detalleTurno.fechaFin && detalleTurno.fechaFin !== detalleTurno.fecha && (
+                    <span className="text-purple-400 ml-1">➔ {detalleTurno.fechaFin} (🌙 +1d)</span>
+                  )}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
                 <span className="text-zinc-400">Jornada Registrada:</span>
                 <span className="text-white font-mono font-bold text-right">
                   {formatHora12(detalleTurno.horaEntrada)} a {formatHora12(detalleTurno.horaSalida)}
