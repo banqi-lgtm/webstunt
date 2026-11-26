@@ -90,15 +90,27 @@ function parseDateRange(rawStr: string, monthContext: string, year = '2026'): { 
     };
   }
 
-  // 2. Extraer año si está especificado en el texto (ej. 2026)
+  // 2. Si es formato latino DD/MM/YYYY o DD-MM-YYYY (ej. 22/02/2026)
+  const dmyMatch = s.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+  if (dmyMatch) {
+    const d = dmyMatch[1].padStart(2, '0');
+    const m = dmyMatch[2].padStart(2, '0');
+    const y = dmyMatch[3];
+    return {
+      start: `${y}-${m}-${d}`,
+      end: `${y}-${m}-${d}`
+    };
+  }
+
+  // 3. Extraer año si está especificado en el texto (ej. 2026)
   const yearMatch = s.match(/\b(202\d)\b/);
   const targetYear = yearMatch ? yearMatch[1] : year;
 
-  // 3. Rango de días: "21 al 24", "13 al 15", "11 a 13", "7 y 16"
+  // 4. Rango de días: "21 al 24", "13 al 15", "11 a 13", "7 y 16", "7 - 8"
   const rangeMatch = s.match(/(\d{1,2})\s*(?:al|-|a|y)\s*(\d{1,2})/);
   const singleMatch = s.match(/(\d{1,2})/);
 
-  let mNum = MES_NUM[monthContext.toUpperCase()] || '';
+  let mNum = MES_NUM[monthContext ? monthContext.toUpperCase() : ''] || '';
   const mesKeys = Object.keys(MES_NUM).sort((a, b) => b.length - a.length);
   for (const k of mesKeys) {
     if (s.includes(k.toLowerCase())) {
@@ -408,12 +420,22 @@ export default function CentrosDeCostoPage() {
 
         let needsUpdate = false;
 
+        const normalizeStr = (str: string) =>
+          (str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim();
+
         // 1. Auto-heal con la semilla canónica de los 50 CCOs oficiales del Excel
-        const canonical = CANONICAL_CCOS_SEED.find(s => 
-          s.nombre.toUpperCase() === rawName || 
-          s.id.toUpperCase() === docId.toUpperCase() ||
-          s.nombre.replace(/[/\\#? ]/g, '-').toUpperCase() === docId.toUpperCase()
-        ) || (LEGACY_CCO_HEAL_MAP[rawName] ? {
+        const normRaw = normalizeStr(rawName);
+        const normDocId = normalizeStr(docId);
+        const canonical = CANONICAL_CCOS_SEED.find(s => {
+          const sNorm = normalizeStr(s.nombre);
+          const sIdNorm = normalizeStr(s.id);
+          const sHyphen = normalizeStr(s.nombre.replace(/[/\\#? ]/g, '-'));
+          return sNorm === normRaw || 
+                 sIdNorm === normDocId || 
+                 sHyphen === normDocId || 
+                 sNorm === normDocId ||
+                 (normRaw.length > 5 && (sNorm.includes(normRaw) || normRaw.includes(sNorm)));
+        }) || (LEGACY_CCO_HEAL_MAP[rawName] ? {
           nombre: rawName,
           ciudad: LEGACY_CCO_HEAL_MAP[rawName].ciudad,
           fecha: LEGACY_CCO_HEAL_MAP[rawName].fecha,
@@ -432,11 +454,11 @@ export default function CentrosDeCostoPage() {
             fecha = canonical.fecha;
             needsUpdate = true;
           }
-          if (!fechaInicio && canonical.fechaInicio) {
+          if ((!fechaInicio || fechaInicio === '') && canonical.fechaInicio) {
             fechaInicio = canonical.fechaInicio;
             needsUpdate = true;
           }
-          if (!fechaFin && canonical.fechaFin) {
+          if ((!fechaFin || fechaFin === '') && canonical.fechaFin) {
             fechaFin = canonical.fechaFin;
             needsUpdate = true;
           }
@@ -453,9 +475,16 @@ export default function CentrosDeCostoPage() {
             fechaInicio = parsed.start;
             needsUpdate = true;
           }
-          if (parsed.end && !fechaFin) {
-            fechaFin = parsed.end;
+          if ((parsed.end || parsed.start) && !fechaFin) {
+            fechaFin = parsed.end || parsed.start;
             needsUpdate = true;
+          }
+          if (!mes && parsed.start) {
+            const m = parseInt(parsed.start.split('-')[1], 10);
+            if (m >= 1 && m <= 12) {
+              mes = MESES[m - 1];
+              needsUpdate = true;
+            }
           }
         }
 
@@ -470,12 +499,12 @@ export default function CentrosDeCostoPage() {
           needsHealBatch.push({
             docId,
             payload: {
-              ciudad,
-              fecha,
-              fechaInicio,
-              fechaFin,
-              mes,
-              estado,
+              ciudad: ciudad || 'N/A',
+              fecha: fecha || 'Por definir',
+              fechaInicio: fechaInicio || '',
+              fechaFin: fechaFin || '',
+              mes: mes || '',
+              estado: estado,
               actualizadoEl: new Date().toISOString()
             }
           });
@@ -503,7 +532,7 @@ export default function CentrosDeCostoPage() {
 
       if (needsHealBatch.length > 0) {
         Promise.all(
-          needsHealBatch.map(item => updateDoc(doc(db, 'centrosCosto', item.docId), item.payload))
+          needsHealBatch.map(item => setDoc(doc(db, 'centrosCosto', item.docId), item.payload, { merge: true }))
         ).catch(console.error);
       }
 
@@ -638,6 +667,46 @@ export default function CentrosDeCostoPage() {
     }
   };
 
+  // Controladores de sincronización reactiva en vivo de fechas (Create)
+  const handleFormFechaChange = (val: string) => {
+    setFormFecha(val);
+    if (!val || val === 'Por definir') return;
+    const parsed = parseDateRange(val, formMes);
+    if (parsed.start) {
+      setFormFechaInicio(parsed.start);
+      setFormFechaFin(parsed.end || parsed.start);
+      if (!formMes) {
+        const m = parseInt(parsed.start.split('-')[1], 10);
+        if (m >= 1 && m <= 12) setFormMes(MESES[m - 1]);
+      }
+    }
+  };
+
+  const handleFormFechaInicioChange = (val: string) => {
+    setFormFechaInicio(val);
+    if (!formFecha) {
+      setFormFecha(formFechaFin ? `${val} al ${formFechaFin}` : val);
+    }
+  };
+
+  const handleFormFechaFinChange = (val: string) => {
+    setFormFechaFin(val);
+    if (!formFecha && formFechaInicio) {
+      setFormFecha(`${formFechaInicio} al ${val}`);
+    }
+  };
+
+  const handleFormMesChange = (val: string) => {
+    setFormMes(val);
+    if (formFecha && (!formFechaInicio || !formFechaFin)) {
+      const parsed = parseDateRange(formFecha, val);
+      if (parsed.start) {
+        if (!formFechaInicio) setFormFechaInicio(parsed.start);
+        if (!formFechaFin) setFormFechaFin(parsed.end || parsed.start);
+      }
+    }
+  };
+
   // Create Single CCO
   const handleCreateCCO = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -652,12 +721,29 @@ export default function CentrosDeCostoPage() {
       const docId = cleanNombre.replace(/[/\\#? ]/g, '-');
       
       let finalFecha = formFecha.trim();
-      if (!finalFecha && formFechaInicio) {
-        finalFecha = formFechaFin ? `${formFechaInicio} al ${formFechaFin}` : formFechaInicio;
+      let finalFechaInicio = formFechaInicio.trim();
+      let finalFechaFin = formFechaFin.trim();
+      let finalMes = formMes.trim().toUpperCase();
+
+      if ((!finalFechaInicio || !finalFechaFin) && finalFecha && finalFecha !== 'Por definir') {
+        const parsed = parseDateRange(finalFecha, finalMes);
+        if (!finalFechaInicio && parsed.start) finalFechaInicio = parsed.start;
+        if (!finalFechaFin && (parsed.end || parsed.start)) finalFechaFin = parsed.end || parsed.start;
+      }
+
+      if (!finalFecha && finalFechaInicio) {
+        finalFecha = finalFechaFin && finalFechaFin !== finalFechaInicio 
+          ? `${finalFechaInicio} al ${finalFechaFin}` 
+          : finalFechaInicio;
+      }
+
+      if (!finalMes && finalFechaInicio) {
+        const m = parseInt(finalFechaInicio.split('-')[1], 10);
+        if (m >= 1 && m <= 12) finalMes = MESES[m - 1];
       }
 
       const calculatedEstado = formEstado === 'auto'
-        ? determineEstadoEvento(formFechaInicio, formFechaFin, 'Programado')
+        ? determineEstadoEvento(finalFechaInicio, finalFechaFin, 'Programado', finalFecha, finalMes)
         : formEstado;
 
       const newCCO: CentroCostoItem = {
@@ -666,16 +752,16 @@ export default function CentrosDeCostoPage() {
         ciudad: formCiudad.trim() || 'N/A',
         estado: calculatedEstado,
         fecha: finalFecha || 'Por definir',
-        fechaInicio: formFechaInicio || '',
-        fechaFin: formFechaFin || '',
-        mes: formMes.trim().toUpperCase() || '',
+        fechaInicio: finalFechaInicio || '',
+        fechaFin: finalFechaFin || '',
+        mes: finalMes || '',
         observaciones: formObservaciones.trim() || undefined,
         creadoEl: new Date().toISOString(),
         actualizadoEl: new Date().toISOString(),
         origen: 'MANUAL'
       };
 
-      await setDoc(doc(db, 'centrosCosto', docId), newCCO);
+      await setDoc(doc(db, 'centrosCosto', docId), newCCO, { merge: true });
       toast({ title: 'Centro de Costo creado', description: `Se registró ${cleanNombre} con éxito en ${formCiudad || 'N/A'}.` });
 
       setShowCreateModal(false);
@@ -702,12 +788,69 @@ export default function CentrosDeCostoPage() {
     setEditNombre(c.nombre);
     setEditCiudad(c.ciudad && c.ciudad !== 'N/A' ? c.ciudad : '');
     setEditEstado(c.estado || 'Programado');
-    setEditFecha(c.fecha && c.fecha !== 'Por definir' ? c.fecha : '');
-    setEditFechaInicio(c.fechaInicio || '');
-    setEditFechaFin(c.fechaFin || '');
-    setEditMes(c.mes || '');
+    const fTexto = c.fecha && c.fecha !== 'Por definir' ? c.fecha : '';
+    setEditFecha(fTexto);
+
+    let fInicio = c.fechaInicio || '';
+    let fFin = c.fechaFin || '';
+    let fMes = c.mes || '';
+
+    // Auto-parsear si no tiene fechaInicio o fechaFin definidas
+    if ((!fInicio || !fFin) && fTexto) {
+      const parsed = parseDateRange(fTexto, fMes);
+      if (!fInicio && parsed.start) fInicio = parsed.start;
+      if (!fFin && (parsed.end || parsed.start)) fFin = parsed.end || parsed.start;
+      if (!fMes && parsed.start) {
+        const m = parseInt(parsed.start.split('-')[1], 10);
+        if (m >= 1 && m <= 12) fMes = MESES[m - 1];
+      }
+    }
+
+    setEditFechaInicio(fInicio);
+    setEditFechaFin(fFin);
+    setEditMes(fMes);
     setEditObservaciones(c.observaciones || '');
     setShowEditModal(true);
+  };
+
+  // Controladores de sincronización reactiva en vivo de fechas (Edit)
+  const handleEditFechaChange = (val: string) => {
+    setEditFecha(val);
+    if (!val || val === 'Por definir') return;
+    const parsed = parseDateRange(val, editMes);
+    if (parsed.start) {
+      setEditFechaInicio(parsed.start);
+      setEditFechaFin(parsed.end || parsed.start);
+      if (!editMes) {
+        const m = parseInt(parsed.start.split('-')[1], 10);
+        if (m >= 1 && m <= 12) setEditMes(MESES[m - 1]);
+      }
+    }
+  };
+
+  const handleEditFechaInicioChange = (val: string) => {
+    setEditFechaInicio(val);
+    if (!editFecha) {
+      setEditFecha(editFechaFin ? `${val} al ${editFechaFin}` : val);
+    }
+  };
+
+  const handleEditFechaFinChange = (val: string) => {
+    setEditFechaFin(val);
+    if (!editFecha && editFechaInicio) {
+      setEditFecha(`${editFechaInicio} al ${val}`);
+    }
+  };
+
+  const handleEditMesChange = (val: string) => {
+    setEditMes(val);
+    if (editFecha && (!editFechaInicio || !editFechaFin)) {
+      const parsed = parseDateRange(editFecha, val);
+      if (parsed.start) {
+        if (!editFechaInicio) setEditFechaInicio(parsed.start);
+        if (!editFechaFin) setEditFechaFin(parsed.end || parsed.start);
+      }
+    }
   };
 
   // Save Edit
@@ -719,26 +862,43 @@ export default function CentrosDeCostoPage() {
     try {
       const cleanNombre = editNombre.trim().toUpperCase();
       let finalFecha = editFecha.trim();
-      if (!finalFecha && editFechaInicio) {
-        finalFecha = editFechaFin ? `${editFechaInicio} al ${editFechaFin}` : editFechaInicio;
+      let finalFechaInicio = editFechaInicio.trim();
+      let finalFechaFin = editFechaFin.trim();
+      let finalMes = editMes.trim().toUpperCase();
+
+      if ((!finalFechaInicio || !finalFechaFin) && finalFecha && finalFecha !== 'Por definir') {
+        const parsed = parseDateRange(finalFecha, finalMes);
+        if (!finalFechaInicio && parsed.start) finalFechaInicio = parsed.start;
+        if (!finalFechaFin && (parsed.end || parsed.start)) finalFechaFin = parsed.end || parsed.start;
+      }
+
+      if (!finalFecha && finalFechaInicio) {
+        finalFecha = finalFechaFin && finalFechaFin !== finalFechaInicio 
+          ? `${finalFechaInicio} al ${finalFechaFin}` 
+          : finalFechaInicio;
+      }
+
+      if (!finalMes && finalFechaInicio) {
+        const m = parseInt(finalFechaInicio.split('-')[1], 10);
+        if (m >= 1 && m <= 12) finalMes = MESES[m - 1];
       }
 
       // Si el usuario no modificó manualmente el estado a Cancelado, verificar si la fechaFin define Realizado/En Curso
-      const autoEstado = determineEstadoEvento(editFechaInicio, editFechaFin, editEstado, finalFecha, editMes);
+      const autoEstado = determineEstadoEvento(finalFechaInicio, finalFechaFin, editEstado, finalFecha, finalMes);
 
       const updateData = {
         nombre: cleanNombre,
         ciudad: editCiudad.trim() || 'N/A',
         estado: autoEstado,
         fecha: finalFecha || 'Por definir',
-        fechaInicio: editFechaInicio || '',
-        fechaFin: editFechaFin || '',
-        mes: editMes.trim().toUpperCase() || '',
+        fechaInicio: finalFechaInicio || '',
+        fechaFin: finalFechaFin || '',
+        mes: finalMes || '',
         observaciones: editObservaciones.trim() || undefined,
         actualizadoEl: new Date().toISOString()
       };
 
-      await updateDoc(doc(db, 'centrosCosto', selectedCentro.id), updateData);
+      await setDoc(doc(db, 'centrosCosto', selectedCentro.id), updateData, { merge: true });
       toast({ title: 'Actualizado', description: `Se actualizaron los datos y la ciudad de ${cleanNombre}.` });
 
       setShowEditModal(false);
@@ -1114,10 +1274,19 @@ export default function CentrosDeCostoPage() {
                                 <span className="font-semibold text-zinc-200">
                                   {c.fecha}
                                 </span>
-                                {c.fechaInicio && c.fechaFin && (
+                                {c.fechaInicio && c.fechaFin ? (
                                   <span className="text-[10px] text-zinc-500 font-mono">
                                     {c.fechaInicio} {c.fechaInicio !== c.fechaFin ? `al ${c.fechaFin}` : ''}
                                   </span>
+                                ) : (
+                                  (() => {
+                                    const autoP = parseDateRange(c.fecha, c.mes || '');
+                                    return autoP.start ? (
+                                      <span className="text-[10px] text-zinc-500 font-mono">
+                                        {autoP.start} {autoP.end && autoP.end !== autoP.start ? `al ${autoP.end}` : ''}
+                                      </span>
+                                    ) : null;
+                                  })()
                                 )}
                               </div>
                             </div>
@@ -1257,7 +1426,7 @@ export default function CentrosDeCostoPage() {
                     </label>
                     <select
                       value={formMes}
-                      onChange={(e) => setFormMes(e.target.value)}
+                      onChange={(e) => handleFormMesChange(e.target.value)}
                       className="w-full px-3.5 py-2.5 bg-black/50 border border-[#1C1C28] focus:border-[#C8102E] rounded-xl text-xs text-white outline-none cursor-pointer"
                     >
                       <option value="">[ Seleccionar Mes ]</option>
@@ -1293,12 +1462,19 @@ export default function CentrosDeCostoPage() {
                   </label>
 
                   <div>
-                    <span className="text-[10px] text-zinc-400 block mb-1">Descripción del periodo / rango:</span>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] text-zinc-400">Descripción del periodo / rango:</span>
+                      {formFechaInicio && (
+                        <span className="text-[10px] text-[#C8102E] font-mono">
+                          Auto: {formFechaInicio} {formFechaFin && formFechaFin !== formFechaInicio ? `al ${formFechaFin}` : ''}
+                        </span>
+                      )}
+                    </div>
                     <input
                       type="text"
                       placeholder="Ej. 07 al 13-feb o 15 de Marzo"
                       value={formFecha}
-                      onChange={(e) => setFormFecha(e.target.value)}
+                      onChange={(e) => handleFormFechaChange(e.target.value)}
                       className="w-full px-3 py-2 bg-black/60 border border-[#1C1C28] focus:border-[#C8102E] rounded-lg text-xs text-white outline-none"
                     />
                   </div>
@@ -1309,7 +1485,7 @@ export default function CentrosDeCostoPage() {
                       <input
                         type="date"
                         value={formFechaInicio}
-                        onChange={(e) => setFormFechaInicio(e.target.value)}
+                        onChange={(e) => handleFormFechaInicioChange(e.target.value)}
                         className="w-full px-2.5 py-1.5 bg-black/60 border border-[#1C1C28] focus:border-[#C8102E] rounded-lg text-xs text-white outline-none"
                       />
                     </div>
@@ -1318,7 +1494,7 @@ export default function CentrosDeCostoPage() {
                       <input
                         type="date"
                         value={formFechaFin}
-                        onChange={(e) => setFormFechaFin(e.target.value)}
+                        onChange={(e) => handleFormFechaFinChange(e.target.value)}
                         className="w-full px-2.5 py-1.5 bg-black/60 border border-[#1C1C28] focus:border-[#C8102E] rounded-lg text-xs text-white outline-none"
                       />
                     </div>
@@ -1430,7 +1606,7 @@ export default function CentrosDeCostoPage() {
                     </label>
                     <select
                       value={editMes}
-                      onChange={(e) => setEditMes(e.target.value)}
+                      onChange={(e) => handleEditMesChange(e.target.value)}
                       className="w-full px-3.5 py-2.5 bg-black/50 border border-[#1C1C28] focus:border-amber-500 rounded-xl text-xs text-white outline-none cursor-pointer"
                     >
                       <option value="">[ Sin Mes ]</option>
@@ -1465,12 +1641,19 @@ export default function CentrosDeCostoPage() {
                   </label>
 
                   <div>
-                    <span className="text-[10px] text-zinc-400 block mb-1">Descripción del periodo / rango:</span>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] text-zinc-400">Descripción del periodo / rango:</span>
+                      {editFechaInicio && (
+                        <span className="text-[10px] text-amber-400 font-mono">
+                          Auto: {editFechaInicio} {editFechaFin && editFechaFin !== editFechaInicio ? `al ${editFechaFin}` : ''}
+                        </span>
+                      )}
+                    </div>
                     <input
                       type="text"
                       placeholder="Ej. 07 al 13-feb o 15 de Marzo"
                       value={editFecha}
-                      onChange={(e) => setEditFecha(e.target.value)}
+                      onChange={(e) => handleEditFechaChange(e.target.value)}
                       className="w-full px-3 py-2 bg-black/60 border border-[#1C1C28] focus:border-amber-500 rounded-lg text-xs text-white outline-none"
                     />
                   </div>
@@ -1481,7 +1664,7 @@ export default function CentrosDeCostoPage() {
                       <input
                         type="date"
                         value={editFechaInicio}
-                        onChange={(e) => setEditFechaInicio(e.target.value)}
+                        onChange={(e) => handleEditFechaInicioChange(e.target.value)}
                         className="w-full px-2.5 py-1.5 bg-black/60 border border-[#1C1C28] focus:border-amber-500 rounded-lg text-xs text-white outline-none"
                       />
                     </div>
@@ -1490,7 +1673,7 @@ export default function CentrosDeCostoPage() {
                       <input
                         type="date"
                         value={editFechaFin}
-                        onChange={(e) => setEditFechaFin(e.target.value)}
+                        onChange={(e) => handleEditFechaFinChange(e.target.value)}
                         className="w-full px-2.5 py-1.5 bg-black/60 border border-[#1C1C28] focus:border-amber-500 rounded-lg text-xs text-white outline-none"
                       />
                     </div>
