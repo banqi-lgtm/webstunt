@@ -25,6 +25,7 @@ interface CentroCostoItem {
   fechaInicio?: string; // YYYY-MM-DD
   fechaFin?: string;    // YYYY-MM-DD
   mes?: string;
+  observaciones?: string; // Notas u observaciones del evento
   creadoEl?: string;
   actualizadoEl?: string;
   origen?: string;
@@ -43,25 +44,117 @@ const MESES = [
 ];
 
 const MES_NUM: Record<string, string> = {
-  'ENERO': '01', 'FEBRERO': '02', 'MARZO': '03', 'ABRIL': '04',
-  'MAYO': '05', 'JUNIO': '06', 'JULIO': '07', 'AGOSTO': '08',
-  'SEPTIEMBRE': '09', 'OCTUBRE': '10', 'NOVIEMBRE': '11', 'DICIEMBRE': '12',
-  'FEB': '02', 'MAR': '03', 'ABR': '04', 'APR': '04', 'MAY': '05',
-  'JUN': '06', 'JUNE': '06', 'JUL': '07', 'JULY': '07', 'AGO': '08',
-  'AUG': '08', 'AUGUST': '08', 'SEP': '09', 'SEPT': '09', 'SEPTEMBER': '09',
-  'OCT': '10', 'OCTOBER': '10', 'NOV': '11', 'NOVEMBER': '11', 'DIC': '12'
+  'ENERO': '01', 'ENE': '01', 'JAN': '01', 'JANUARY': '01',
+  'FEBRERO': '02', 'FEB': '02', 'FEBRUARY': '02',
+  'MARZO': '03', 'MAR': '03', 'MARCH': '03',
+  'ABRIL': '04', 'ABR': '04', 'APR': '04', 'APRIL': '04',
+  'MAYO': '05', 'MAY': '05',
+  'JUNIO': '06', 'JUN': '06', 'JUNE': '06',
+  'JULIO': '07', 'JUL': '07', 'JULY': '07',
+  'AGOSTO': '08', 'AGO': '08', 'AUG': '08', 'AUGUST': '08',
+  'SEPTIEMBRE': '09', 'SEP': '09', 'SEPT': '09', 'SEPTEMBER': '09', 'SET': '09',
+  'OCTUBRE': '10', 'OCT': '10', 'OCTOBER': '10',
+  'NOVIEMBRE': '11', 'NOV': '11', 'NOVEMBER': '11',
+  'DICIEMBRE': '12', 'DIC': '12', 'DEC': '12', 'DECEMBER': '12'
 };
 
 /**
- * Función que determina el estado de un evento a partir de sus fechas reales
- * en comparación con la fecha actual de hoy.
+ * Obtiene la fecha actual en hora de Colombia (America/Bogota, UTC-5) en formato YYYY-MM-DD
  */
-function determineEstadoEvento(fechaInicio?: string, fechaFin?: string, estadoActual?: string): string {
+function getTodayColombia(): string {
+  try {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Bogota',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(new Date());
+  } catch {
+    return new Date().toISOString().split('T')[0];
+  }
+}
+
+/**
+ * Parsea textos como "07 al 13-feb", "1-Feb", "28 al 31 octubre", "22 -September" a fechas ISO (YYYY-MM-DD).
+ */
+function parseDateRange(rawStr: string, monthContext: string, year = '2026'): { start: string; end: string } {
+  if (!rawStr || rawStr === 'Por definir') return { start: '', end: '' };
+  const s = String(rawStr).trim().toLowerCase();
+
+  // 1. Si ya es formato ISO YYYY-MM-DD
+  const isoMatch = s.match(/(\d{4}-\d{2}-\d{2})(?:\s*(?:al|a|-)\s*(\d{4}-\d{2}-\d{2}))?/);
+  if (isoMatch) {
+    return {
+      start: isoMatch[1],
+      end: isoMatch[2] || isoMatch[1]
+    };
+  }
+
+  // 2. Extraer año si está especificado en el texto (ej. 2026)
+  const yearMatch = s.match(/\b(202\d)\b/);
+  const targetYear = yearMatch ? yearMatch[1] : year;
+
+  // 3. Rango de días: "21 al 24", "13 al 15", "11 a 13", "7 y 16"
+  const rangeMatch = s.match(/(\d{1,2})\s*(?:al|-|a|y)\s*(\d{1,2})/);
+  const singleMatch = s.match(/(\d{1,2})/);
+
+  let mNum = MES_NUM[monthContext.toUpperCase()] || '';
+  const mesKeys = Object.keys(MES_NUM).sort((a, b) => b.length - a.length);
+  for (const k of mesKeys) {
+    if (s.includes(k.toLowerCase())) {
+      mNum = MES_NUM[k];
+      break;
+    }
+  }
+
+  if (!mNum) {
+    mNum = '01';
+  }
+
+  if (rangeMatch) {
+    const d1 = rangeMatch[1].padStart(2, '0');
+    const d2 = rangeMatch[2].padStart(2, '0');
+    return {
+      start: `${targetYear}-${mNum}-${d1}`,
+      end: `${targetYear}-${mNum}-${d2}`
+    };
+  } else if (singleMatch) {
+    const d = singleMatch[1].padStart(2, '0');
+    return {
+      start: `${targetYear}-${mNum}-${d}`,
+      end: `${targetYear}-${mNum}-${d}`
+    };
+  }
+  return { start: '', end: '' };
+}
+
+/**
+ * Función que determina el estado de un evento a partir de sus fechas reales
+ * en comparación con la fecha actual de hoy (en hora de Colombia).
+ */
+function determineEstadoEvento(
+  fechaInicio?: string, 
+  fechaFin?: string, 
+  estadoActual?: string,
+  fechaTexto?: string,
+  mesTexto?: string
+): string {
   if (estadoActual === 'Cancelado') return 'Cancelado';
 
-  const hoy = new Date().toISOString().split('T')[0];
-  const fin = fechaFin || fechaInicio || '';
-  const inicio = fechaInicio || fechaFin || '';
+  let fin = fechaFin || '';
+  let inicio = fechaInicio || '';
+
+  // Si faltan fechas pero hay texto descriptivo o contexto de mes, parsear automáticamente
+  if ((!inicio || !fin) && fechaTexto && fechaTexto !== 'Por definir') {
+    const parsed = parseDateRange(fechaTexto, mesTexto || '');
+    if (parsed.start) inicio = inicio || parsed.start;
+    if (parsed.end) fin = fin || parsed.end;
+  }
+
+  fin = fin || inicio;
+  inicio = inicio || fin;
+
+  const hoy = getTodayColombia();
 
   if (fin && fin < hoy) {
     return 'Realizado';
@@ -73,42 +166,23 @@ function determineEstadoEvento(fechaInicio?: string, fechaFin?: string, estadoAc
     return 'Programado';
   }
 
-  return estadoActual || 'Programado';
-}
-
-/**
- * Parsea textos como "07 al 13-feb", "1-Feb", "28 al 31 octubre" a fechas ISO (YYYY-MM-DD).
- */
-function parseDateRange(rawStr: string, monthContext: string, year = '2026'): { start: string; end: string } {
-  if (!rawStr || rawStr === 'Por definir') return { start: '', end: '' };
-  const s = String(rawStr).trim().toLowerCase();
-
-  const rangeMatch = s.match(/(\d{1,2})\s*(?:al|-|y)\s*(\d{1,2})/);
-  const singleMatch = s.match(/(\d{1,2})/);
-
-  let mNum = MES_NUM[monthContext.toUpperCase()] || '01';
-  for (const [k, v] of Object.entries(MES_NUM)) {
-    if (s.includes(k.toLowerCase())) {
-      mNum = v;
-      break;
+  // Si no tenemos fecha exacta de días pero sí el mes:
+  if (mesTexto && MES_NUM[mesTexto.toUpperCase()]) {
+    const mesNum = parseInt(MES_NUM[mesTexto.toUpperCase()], 10);
+    try {
+      const nowCol = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+      const mesActual = nowCol.getMonth() + 1; // 1-12
+      if (mesNum < mesActual) {
+        return 'Realizado';
+      } else if (mesNum > mesActual) {
+        return 'Programado';
+      }
+    } catch {
+      // fallback
     }
   }
 
-  if (rangeMatch) {
-    const d1 = rangeMatch[1].padStart(2, '0');
-    const d2 = rangeMatch[2].padStart(2, '0');
-    return {
-      start: `${year}-${mNum}-${d1}`,
-      end: `${year}-${mNum}-${d2}`
-    };
-  } else if (singleMatch) {
-    const d = singleMatch[1].padStart(2, '0');
-    return {
-      start: `${year}-${mNum}-${d}`,
-      end: `${year}-${mNum}-${d}`
-    };
-  }
-  return { start: '', end: '' };
+  return estadoActual || 'Programado';
 }
 
 // 50 CCOs oficiales del archivo public/ccos.xlsx con Ciudad, Fechas Reales y Estado
@@ -248,6 +322,7 @@ export default function CentrosDeCostoPage() {
   const [formFechaInicio, setFormFechaInicio] = useState('');
   const [formFechaFin, setFormFechaFin] = useState('');
   const [formMes, setFormMes] = useState('');
+  const [formObservaciones, setFormObservaciones] = useState('');
 
   // Form states (Edit)
   const [editNombre, setEditNombre] = useState('');
@@ -257,6 +332,7 @@ export default function CentrosDeCostoPage() {
   const [editFechaInicio, setEditFechaInicio] = useState('');
   const [editFechaFin, setEditFechaFin] = useState('');
   const [editMes, setEditMes] = useState('');
+  const [editObservaciones, setEditObservaciones] = useState('');
 
   // Check Permissions
   useEffect(() => {
@@ -328,39 +404,80 @@ export default function CentrosDeCostoPage() {
         let mes = data.mes || '';
         let ciudad = data.ciudad || '';
         let estado = data.estado || 'Programado';
+        let observaciones = data.observaciones || data.notas || '';
 
-        // Auto-heal de los 4 elementos conocidos
-        const healInfo = LEGACY_CCO_HEAL_MAP[rawName] || LEGACY_CCO_HEAL_MAP[docId];
-        if (healInfo) {
-          if (!fecha || fecha === 'Por definir' || !ciudad || !fechaFin) {
-            fecha = healInfo.fecha;
-            fechaInicio = healInfo.fechaInicio;
-            fechaFin = healInfo.fechaFin;
-            mes = healInfo.mes;
-            ciudad = healInfo.ciudad;
-            estado = determineEstadoEvento(fechaInicio, fechaFin, estado);
-            needsHealBatch.push({
-              docId,
-              payload: {
-                fecha,
-                fechaInicio,
-                fechaFin,
-                mes,
-                ciudad,
-                estado,
-                actualizadoEl: new Date().toISOString()
-              }
-            });
+        let needsUpdate = false;
+
+        // 1. Auto-heal con la semilla canónica de los 50 CCOs oficiales del Excel
+        const canonical = CANONICAL_CCOS_SEED.find(s => 
+          s.nombre.toUpperCase() === rawName || 
+          s.id.toUpperCase() === docId.toUpperCase() ||
+          s.nombre.replace(/[/\\#? ]/g, '-').toUpperCase() === docId.toUpperCase()
+        ) || (LEGACY_CCO_HEAL_MAP[rawName] ? {
+          nombre: rawName,
+          ciudad: LEGACY_CCO_HEAL_MAP[rawName].ciudad,
+          fecha: LEGACY_CCO_HEAL_MAP[rawName].fecha,
+          fechaInicio: LEGACY_CCO_HEAL_MAP[rawName].fechaInicio,
+          fechaFin: LEGACY_CCO_HEAL_MAP[rawName].fechaFin,
+          mes: LEGACY_CCO_HEAL_MAP[rawName].mes,
+          estado: 'Realizado'
+        } : undefined);
+
+        if (canonical) {
+          if (!ciudad || ciudad === 'N/A') {
+            ciudad = canonical.ciudad || 'N/A';
+            needsUpdate = true;
+          }
+          if (!fecha || fecha === 'Por definir') {
+            fecha = canonical.fecha;
+            needsUpdate = true;
+          }
+          if (!fechaInicio && canonical.fechaInicio) {
+            fechaInicio = canonical.fechaInicio;
+            needsUpdate = true;
+          }
+          if (!fechaFin && canonical.fechaFin) {
+            fechaFin = canonical.fechaFin;
+            needsUpdate = true;
+          }
+          if (!mes && canonical.mes) {
+            mes = canonical.mes;
+            needsUpdate = true;
           }
         }
 
-        // Si tiene fechas reales y su estado era Programado pero la fecha ya pasó, auto-actualizar a Realizado
-        const estadoRecalculado = determineEstadoEvento(fechaInicio, fechaFin, estado);
+        // 2. Si aún no tiene fechas ISO pero tiene fecha textual o contexto de mes, parsear automáticamente
+        if ((!fechaInicio || !fechaFin) && fecha && fecha !== 'Por definir') {
+          const parsed = parseDateRange(fecha, mes);
+          if (parsed.start && !fechaInicio) {
+            fechaInicio = parsed.start;
+            needsUpdate = true;
+          }
+          if (parsed.end && !fechaFin) {
+            fechaFin = parsed.end;
+            needsUpdate = true;
+          }
+        }
+
+        // 3. Recalcular estado con base en las fechas reales de inicio/fin y fecha actual de hoy
+        const estadoRecalculado = determineEstadoEvento(fechaInicio, fechaFin, estado, fecha, mes);
         if (estadoRecalculado !== estado && estado !== 'Cancelado') {
           estado = estadoRecalculado;
+          needsUpdate = true;
+        }
+
+        if (needsUpdate) {
           needsHealBatch.push({
             docId,
-            payload: { estado, actualizadoEl: new Date().toISOString() }
+            payload: {
+              ciudad,
+              fecha,
+              fechaInicio,
+              fechaFin,
+              mes,
+              estado,
+              actualizadoEl: new Date().toISOString()
+            }
           });
         }
 
@@ -373,9 +490,10 @@ export default function CentrosDeCostoPage() {
           fechaInicio: fechaInicio,
           fechaFin: fechaFin,
           mes: mes || '',
+          observaciones: observaciones,
           creadoEl: data.creadoEl || '',
           actualizadoEl: data.actualizadoEl || '',
-          origen: data.origen || 'SISTEMA'
+          origen: data.origen || (canonical ? 'EXCEL_CCOS' : 'SISTEMA')
         });
       });
 
@@ -551,6 +669,7 @@ export default function CentrosDeCostoPage() {
         fechaInicio: formFechaInicio || '',
         fechaFin: formFechaFin || '',
         mes: formMes.trim().toUpperCase() || '',
+        observaciones: formObservaciones.trim() || undefined,
         creadoEl: new Date().toISOString(),
         actualizadoEl: new Date().toISOString(),
         origen: 'MANUAL'
@@ -567,6 +686,7 @@ export default function CentrosDeCostoPage() {
       setFormFechaInicio('');
       setFormFechaFin('');
       setFormMes('');
+      setFormObservaciones('');
       await fetchCentrosCosto(false);
     } catch (err) {
       console.error(err);
@@ -586,6 +706,7 @@ export default function CentrosDeCostoPage() {
     setEditFechaInicio(c.fechaInicio || '');
     setEditFechaFin(c.fechaFin || '');
     setEditMes(c.mes || '');
+    setEditObservaciones(c.observaciones || '');
     setShowEditModal(true);
   };
 
@@ -603,7 +724,7 @@ export default function CentrosDeCostoPage() {
       }
 
       // Si el usuario no modificó manualmente el estado a Cancelado, verificar si la fechaFin define Realizado/En Curso
-      const autoEstado = determineEstadoEvento(editFechaInicio, editFechaFin, editEstado);
+      const autoEstado = determineEstadoEvento(editFechaInicio, editFechaFin, editEstado, finalFecha, editMes);
 
       const updateData = {
         nombre: cleanNombre,
@@ -613,6 +734,7 @@ export default function CentrosDeCostoPage() {
         fechaInicio: editFechaInicio || '',
         fechaFin: editFechaFin || '',
         mes: editMes.trim().toUpperCase() || '',
+        observaciones: editObservaciones.trim() || undefined,
         actualizadoEl: new Date().toISOString()
       };
 
@@ -654,7 +776,8 @@ export default function CentrosDeCostoPage() {
       'FECHA INICIO': c.fechaInicio || '',
       'FECHA FIN': c.fechaFin || '',
       'CENTRO DE COSTO / EVENTO': c.nombre,
-      'MES': c.mes || 'N/A'
+      'MES': c.mes || 'N/A',
+      'NOTAS / OBSERVACIONES': c.observaciones || ''
     }));
 
     const ws = XLSX.utils.json_to_sheet(exportData);
@@ -1017,6 +1140,12 @@ export default function CentrosDeCostoPage() {
                           {c.origen === 'EXCEL_CCOS' && (
                             <span className="text-[9px] text-purple-400 font-mono">Oficial ccos.xlsx</span>
                           )}
+                          {c.observaciones && (
+                            <div className="mt-1 text-[11px] text-zinc-300 bg-black/40 px-2.5 py-1 rounded-lg border border-zinc-800/80 font-normal flex items-start gap-1">
+                              <span className="text-amber-400 font-bold shrink-0">Nota:</span>
+                              <span className="text-zinc-400">{c.observaciones}</span>
+                            </div>
+                          )}
                         </td>
                         <td className="py-3 px-4 text-center whitespace-nowrap">
                           {c.mes ? (
@@ -1196,6 +1325,20 @@ export default function CentrosDeCostoPage() {
                   </div>
                 </div>
 
+                {/* Notas / Observaciones */}
+                <div>
+                  <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider block mb-1">
+                    Notas / Observaciones (Opcional)
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="Escribe notas u observaciones adicionales sobre el evento..."
+                    value={formObservaciones}
+                    onChange={(e) => setFormObservaciones(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-black/50 border border-[#1C1C28] focus:border-[#C8102E] rounded-xl text-xs text-white outline-none resize-none placeholder-zinc-600"
+                  />
+                </div>
+
                 <div className="p-4 bg-black/40 border-t border-[#1C1C28] flex items-center justify-end gap-2 -mx-5 -mb-5">
                   <button
                     type="button"
@@ -1352,6 +1495,20 @@ export default function CentrosDeCostoPage() {
                       />
                     </div>
                   </div>
+                </div>
+
+                {/* Notas / Observaciones */}
+                <div>
+                  <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider block mb-1">
+                    Notas / Observaciones (Opcional)
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="Escribe notas u observaciones adicionales sobre el evento..."
+                    value={editObservaciones}
+                    onChange={(e) => setEditObservaciones(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-black/50 border border-[#1C1C28] focus:border-amber-500 rounded-xl text-xs text-white outline-none resize-none placeholder-zinc-600"
+                  />
                 </div>
 
                 <div className="p-4 bg-black/40 border-t border-[#1C1C28] flex items-center justify-end gap-2 -mx-5 -mb-5">
